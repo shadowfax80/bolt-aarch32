@@ -7,7 +7,7 @@ out/
 *.fdata
 *.tar.gz
 
-# Upstream checkouts (populated by submodule init)
+# Upstream checkouts (populated by scripts/fetch-sources.sh)
 third_party/llvm-project/
 third_party/lk/
 

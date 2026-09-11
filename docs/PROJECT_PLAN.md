@@ -1,12 +1,13 @@
 # Project plan
 
-**Repo:** [somraj80/bolt-lk-overlay](https://github.com/somraj80/bolt-lk-overlay)  
+**Repo:** [somraj80/bolt-aarch32](https://github.com/somraj80/bolt-aarch32)  
 **Updated:** 2026-09-11
 
-**Goal:** bare-metal BOLT on LK (AArch64 first), then an AArch32 BOLT backend merged into LLVM upstream.
+**Goal:** an AArch32 BOLT backend merged into LLVM upstream, proven on a bare-metal LK harness with in-RAM profiling. AArch64 comes first because BOLT already supports it, so Phase 2 isolates the bare-metal problem from the new-backend problem.
 
 | Doc | Contents |
 |-----|----------|
+| [why-bolt.md](why-bolt.md) | What BOLT adds over PGO and LTO, with examples |
 | [architecture.md](architecture.md) | Overlay model, data flow, toolchain baseline |
 | [aarch64-bare-metal.md](aarch64-bare-metal.md) | Delta from stock BOLT, runtime library, workloads |
 | [aarch32-bolt.md](aarch32-bolt.md) | ARM/Thumb design, edge cases, upstream PR ladder |
@@ -31,7 +32,7 @@
 - [x] Overlay repo scaffold, scripts, cmake cache
 - [x] Idempotent `ensure-*-source.sh` (flock, branch-aware marker)
 - [x] GitHub push; RunPod pod + a single 150 GB volume in EU-RO-1
-- [x] Deps installed on pod; repo at `/workspace/bolt-lk-overlay`
+- [x] Deps installed on pod; repo checked out under `/workspace`
 
 ---
 

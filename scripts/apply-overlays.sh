@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Apply overlay patches to upstream submodules.
+# Apply overlay patches to the upstream checkouts in third_party/.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
@@ -10,8 +10,8 @@ apply_patches() {
   local patch_dir="$3"
 
   if [[ ! -d "$dir/.git" ]]; then
-    echo "error: submodule $name not initialized at $dir" >&2
-    echo "Run: git submodule update --init --recursive" >&2
+    echo "error: $name not checked out at $dir" >&2
+    echo "Run: ./scripts/fetch-sources.sh" >&2
     exit 1
   fi
 

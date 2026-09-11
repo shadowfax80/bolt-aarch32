@@ -1,13 +1,14 @@
-# bolt-lk-overlay
+# bolt-aarch32
 
-Overlay repo for **BOLT on bare-metal Little Kernel** — AArch64 in-RAM profiling first, then an **AArch32 BOLT backend** for LLVM upstream.
+Working toward an **AArch32 (ARM/Thumb) backend for LLVM BOLT**, with a bare-metal **Little Kernel** harness that collects instrumentation profiles **in RAM** — no OS, no filesystem, no `perf`.
 
-Upstream [llvm-project](https://github.com/llvm/llvm-project) and [lk](https://github.com/littlekernel/lk) are **not forked**. Only deltas live in `overlay/`; the upstream trees are cloned into `third_party/` (gitignored) by `scripts/fetch-sources.sh`.
+Upstream [llvm-project](https://github.com/llvm/llvm-project) and [lk](https://github.com/littlekernel/lk) are **not forked**. Only deltas live in `overlay/`; the upstream trees are cloned into `third_party/` (gitignored) by `scripts/fetch-sources.sh`. Patches are deleted from `overlay/` as they merge upstream.
 
 ## Documentation
 
 | Doc | What |
 |-----|------|
+| [docs/why-bolt.md](docs/why-bolt.md) | What BOLT does that PGO and LTO cannot, with examples |
 | [docs/PROJECT_PLAN.md](docs/PROJECT_PLAN.md) | Checklist, status, decisions |
 | [docs/architecture.md](docs/architecture.md) | End-to-end flow, overlay split, toolchain baseline |
 | [docs/aarch64-bare-metal.md](docs/aarch64-bare-metal.md) | Delta vs stock BOLT; runtime library; LK workloads |
@@ -19,14 +20,16 @@ Upstream [llvm-project](https://github.com/llvm/llvm-project) and [lk](https://g
 |-------|-------|--------|
 | 0 | Repo, scripts, RunPod | Done |
 | 1 | LLVM + BOLT toolchain (`release/23.x`) | In progress |
-| 2 | AArch64 RAM profile + `bolt_bench` on LK | Not started |
+| 2 | AArch64 in-RAM profiling + `bolt_bench` on LK | Not started |
 | 3 | AArch32 backend → LLVM upstream | Not started |
+
+Phase 2 exists to prove bare-metal profiling on an architecture BOLT already supports, so that Phase 3 only has to solve the AArch32 problem.
 
 ## Quick start
 
 ```bash
-git clone https://github.com/somraj80/bolt-lk-overlay.git
-cd bolt-lk-overlay
+git clone https://github.com/somraj80/bolt-aarch32.git
+cd bolt-aarch32
 ./scripts/install-deps.sh         # Ubuntu 24.04
 ./scripts/fetch-sources.sh        # clones llvm + lk into third_party/
 ./scripts/build-llvm-bolt.sh
@@ -34,12 +37,12 @@ cd bolt-lk-overlay
 ./scripts/build-lk-aarch64.sh
 ```
 
-Copy `.env.example` to `.env` for RunPod and branch settings.
+Copy `.env.example` to `.env` for RunPod and branch settings; see the header for how to load it.
 
 ## Layout
 
 ```
-overlay/llvm/patches/   # bare-metal runtime, AArch32 slices (deleted as they merge upstream)
+overlay/llvm/patches/   # bare-metal runtime, AArch32 backend slices
 overlay/lk/patches/     # linker script, bolt_bench, dump hook
 scripts/                # source fetch, build, RunPod, ram-dump-to-fdata (TBD)
 docs/                   # plan + design

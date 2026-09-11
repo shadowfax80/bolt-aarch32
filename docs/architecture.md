@@ -2,6 +2,8 @@
 
 Bare-metal BOLT on LK: overlay patches plus host tooling. Upstream LLVM and LK stay unmodified in `third_party/`; only deltas live in `overlay/`.
 
+For why a post-link optimizer earns its place after PGO and LTO at all, see [why-bolt.md](why-bolt.md).
+
 ## Toolchain baseline
 
 | Choice | Value | Why |
