@@ -11,8 +11,14 @@ All upstream sources, builds, and QEMU runs live on the **RunPod network volume*
 
 | Resource | ID / value | Notes |
 |----------|------------|-------|
-| Pod | `kn1kscmdlxcvge` | Name: `llvm-bolt-builder` — **STOPPED** (compute billing off) |
+| Pod | `kn1kscmdlxcvge` | Name: `llvm-bolt-builder` — **STOPPED**; restarts have been failing with "not enough free vcpu on the host machine" |
 | Network volume | `j1d9e6wq5l` | 150 GB, EU-RO-1 — **keeps all work** (~$0.07/GB/mo storage) |
+
+A network volume can only be attached **when the pod is created**: RunPod rejects
+a PATCH that adds a mount to a mountless pod, and `volumeId` is immutable after
+create. If `kn1kscmdlxcvge` will not start, deploy a replacement CPU pod from the
+console and pick volume `j1d9e6wq5l` in the deploy form — do not create the pod
+first and try to attach it after.
 | Region | EU-RO-1 | Pod must mount this volume in the same region |
 | Image | `runpod/base:1.0.2-ubuntu2404` | Do not use plain `ubuntu:24.04` (no sshd) |
 | Compute | cpu5m, 8 vCPU, 64 GB RAM | ~$0.52/hr when running |
@@ -38,7 +44,8 @@ All upstream sources, builds, and QEMU runs live on the **RunPod network volume*
 
 **Not done yet (Phase 2):**
 
-- Bare-metal BOLT runtime (`libbolt_rt_baremetal.a`)
+- First run of the bare-metal runtime on the pod (source is committed, never compiled)
+- On-target `.fdata` serialization over UART
 - LK overlay patches (linker script, `bolt_bench`, profile dump)
 - BOLT instrument → profile → optimize loop
 
@@ -88,11 +95,24 @@ ls /workspace/bolt-lk-overlay/third_party/lk/build-qemu-virt-arm64-test/lk.elf
 
 See [PROJECT_PLAN.md](PROJECT_PLAN.md) and [aarch64-bare-metal.md](aarch64-bare-metal.md).
 
-1. Cross-build bare-metal bolt-rt for `aarch64-elf` → `libbolt_rt_baremetal.a`
+Verify instrumentation end to end before touching LK source — the first bring-up
+needs no LK patches at all, because the counters live in a section BOLT emits
+itself and the host reads them out of the guest:
+
+```bash
+cd /workspace/bolt-lk-overlay
+./scripts/build-bolt-rt-baremetal.sh          # libbolt_rt_baremetal.a
+./scripts/build-lk-aarch64.sh                 # lk.elf, LDFLAGS=--emit-relocs
+./scripts/instrument-lk-bolt.sh               # build/lk.instr.elf
+python3 scripts/dump-bolt-counters.py --elf build/lk.instr.elf
+```
+
+Expected: LK reaches `entering main console loop` and the dump reports a
+non-zero share of counters set. Then continue with:
+
+1. On-target `.fdata` serialization (port upstream `writeFunctionProfile` to UART)
 2. LK patches: `.bolt_profile` section, dump hook, `bolt_bench` app
-3. Rebuild LK with `--emit-relocs`
-4. `llvm-bolt -instrument --no-lse-atomics --runtime-instrumentation-lib=…`
-5. Run workload in QEMU, dump profile RAM → `.fdata`, re-optimize
+3. `llvm-bolt lk.elf -data=prof.fdata -o lk.bolt.elf`, re-run and measure
 
 Build LK (already works):
 

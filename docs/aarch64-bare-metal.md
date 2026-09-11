@@ -37,16 +37,39 @@ llvm-bolt lk.elf -instrument --no-lse-atomics \
 
 ## Overlay work items
 
-### 1. Bare-metal runtime — `overlay/llvm/patches/`
+### 1. Bare-metal runtime — `overlay/llvm/bolt-rt-baremetal/`
 
-Derived from `bolt/runtime/instr.cpp`, with every syscall path removed:
+Built in two stages, because the symbol contract and the profile serializer fail
+for completely different reasons and are worth de-risking separately.
 
-- Counters live between the linker symbols `__bolt_profile_start` / `__bolt_profile_end`
-- No `open`/`write`/`mmap`; no `malloc`
-- Exposes `bolt_profile_reset()` and `bolt_profile_serialize()` for the workload to call
-- Cross-built with the freshly built clang: `--target=aarch64-none-elf -ffreestanding -mgeneral-regs-only`
+**Stage 1 — symbol contract only** (`instr_baremetal.cpp`, built by
+`scripts/build-bolt-rt-baremetal.sh`). Defines just what
+`RewriteInstance::linkRuntime()` validates and what the instrumentation pass
+branches to: `__bolt_instr_start`, `__bolt_instr_fini`, `__bolt_instr_setup`,
+`__bolt_instr_clear_counters`, `__bolt_instr_data_dump`.
 
-`-mgeneral-regs-only` matters: the runtime runs inside interrupt paths where FP/SIMD state is not saved.
+- Counters stay in `.bolt.instr.counters` where BOLT emits them. Upstream mmaps
+  MAP_FIXED over that range so forked children can share it; a bare-metal image
+  loads it as ordinary writable data, so setup has nothing to do.
+- No `open`/`write`/`mmap`, no `malloc`, and no `.bss` — BOLT's ORC linker
+  cannot place it. The build script fails the archive if either appears.
+- Cross-built with the freshly built clang: `--target=aarch64-none-elf
+  -ffreestanding -mgeneral-regs-only`.
+
+`-mgeneral-regs-only` matters: the runtime runs inside interrupt paths where
+FP/SIMD state is not saved.
+
+This stage proves instrumentation links, boots and increments counters without
+writing a single line of LK patch, because `scripts/dump-bolt-counters.py` reads
+the counter range out of the guest over QMP instead of the target writing it.
+
+**Stage 2 — on-target serialization.** Port upstream's `readDescriptions()` and
+`writeFunctionProfile()` (which reconstruct the CFG from `.bolt.instr.tables`
+and infer the edge counts BOLT expects) and send the resulting `.fdata` text to
+the UART instead of a file descriptor. Reusing that logic rather than
+reimplementing it on the host keeps the profile correct by construction — the
+edge inference and call-flow balancing are the parts most likely to be got
+subtly wrong.
 
 ### 2. LK — `overlay/lk/patches/`
 
