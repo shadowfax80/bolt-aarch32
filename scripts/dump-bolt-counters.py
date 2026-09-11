@@ -215,7 +215,10 @@ def main() -> int:
         "-kernel", args.elf,
     ]
     print("launching:", " ".join(cmd))
-    qemu = subprocess.Popen(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
+    qemu_err = log + ".qemu-err"
+    qemu = subprocess.Popen(
+        cmd, stdout=subprocess.DEVNULL, stderr=open(qemu_err, "w")
+    )
 
     try:
         qmp = Qmp(qmp_path, timeout=30.0)

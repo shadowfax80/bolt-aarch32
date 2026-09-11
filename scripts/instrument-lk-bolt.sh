@@ -47,3 +47,4 @@ mkdir -p "$(dirname "$OUT")"
 OUT_SECTIONS="$("$TOOLCHAIN/llvm-readelf" --sections "$OUT")"
 grep -E 'bolt\.instr' <<<"$OUT_SECTIONS" || true
 echo "instrumented image: $OUT"
+python3 "$ROOT/scripts/fix-kernel-elf-paddr.py" "$OUT"
