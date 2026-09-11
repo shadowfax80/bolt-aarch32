@@ -1,0 +1,22 @@
+# Build outputs
+build/
+out/
+*.o
+*.elf
+*.bin
+*.fdata
+*.tar.gz
+
+# Upstream checkouts (populated by submodule init)
+third_party/llvm-project/
+third_party/lk/
+
+# Local secrets
+.env
+
+# Editor / OS
+.vscode/
+.idea/
+*.swp
+.DS_Store
+Thumbs.db

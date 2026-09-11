@@ -1,0 +1,9 @@
+[submodule "third_party/llvm-project"]
+	path = third_party/llvm-project
+	url = https://github.com/llvm/llvm-project.git
+	branch = release/19.x
+
+[submodule "third_party/lk"]
+	path = third_party/lk
+	url = https://github.com/littlekernel/lk.git
+	branch = master
