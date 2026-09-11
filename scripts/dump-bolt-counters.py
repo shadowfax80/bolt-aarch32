@@ -42,16 +42,49 @@ def counter_range(readelf: str, elf: str) -> tuple[int, int]:
     )
 
 
-def symbols(nm: str, elf: str) -> dict[str, int]:
-    out = subprocess.run(
-        [nm, "--defined-only", elf], check=True, capture_output=True, text=True
+GETTER_RE = re.compile(
+    r"adrp\s+x0,\s+0x([0-9a-fA-F]+).*\n\s*[0-9a-fA-F]+:\s+add\s+x0,\s+x0,\s+#0x([0-9a-fA-F]+)",
+    re.MULTILINE,
+)
+
+
+def getter_address(objdump: str, elf: str, name: str) -> int:
+    """Decode the ADRP+ADD pair BOLT injects as __bolt_*_getter.
+
+    The data symbols themselves are not exported in the rewritten ELF, so
+    the getter is the only host-visible record of where the array lives.
+    """
+    nm = subprocess.run(
+        [objdump.replace("llvm-objdump", "llvm-nm"), elf],
+        check=True,
+        capture_output=True,
+        text=True,
     ).stdout
-    found = {}
-    for line in out.splitlines():
+    start = None
+    for line in nm.splitlines():
         parts = line.split()
-        if len(parts) == 3:
-            found[parts[2]] = int(parts[0], 16)
-    return found
+        if len(parts) == 3 and parts[2] == name:
+            start = int(parts[0], 16)
+            break
+    if start is None:
+        raise SystemExit(f"{elf} has no {name}")
+    out = subprocess.run(
+        [
+            objdump,
+            "-d",
+            "--no-show-raw-insn",
+            f"--start-address={hex(start)}",
+            f"--stop-address={hex(start + 16)}",
+            elf,
+        ],
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout
+    m = GETTER_RE.search(out)
+    if not m:
+        raise SystemExit(f"could not decode {name} from:\n{out}")
+    return int(m.group(1), 16) + int(m.group(2), 16)
 
 
 class Qmp:
@@ -154,17 +187,16 @@ def main() -> int:
     args = ap.parse_args()
 
     readelf = os.path.join(args.toolchain, "llvm-readelf")
+    objdump = os.path.join(args.toolchain, "llvm-objdump")
     addr, size = counter_range(readelf, args.elf)
-
-    syms = symbols(os.path.join(args.toolchain, "llvm-nm"), args.elf)
-    for required in ("__bolt_instr_locations", "__bolt_num_counters"):
-        if required not in syms:
-            raise SystemExit(f"{args.elf} does not define {required}")
-    locations_off = syms["__bolt_instr_locations"] - addr
-    num_counters_off = syms["__bolt_num_counters"] - addr
+    locations = getter_address(objdump, args.elf, "__bolt_instr_locations_getter")
+    num_counters = getter_address(objdump, args.elf, "__bolt_num_counters_getter")
+    locations_off = locations - addr
+    num_counters_off = num_counters - addr
 
     print(f"{COUNTER_SECTION}: {size} bytes at 0x{addr:x}")
-    print(f"__bolt_instr_locations at +0x{locations_off:x}")
+    print(f"counters at 0x{locations:x} (+0x{locations_off:x})")
+    print(f"__bolt_num_counters at 0x{num_counters:x} (+0x{num_counters_off:x})")
 
     tmp = tempfile.mkdtemp(prefix="bolt-qemu-")
     qmp_path = os.path.join(tmp, "qmp.sock")
