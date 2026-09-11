@@ -18,9 +18,15 @@ if [[ ! -f "$LIB" ]]; then
   exit 1
 fi
 
-# --emit-relocs is set by build-lk-aarch64.sh; without it BOLT cannot move code.
-if ! "$TOOLCHAIN/llvm-readelf" --sections "$ELF" | grep -q '\.rela\.text'; then
-  echo "error: $ELF has no .rela.text — relink with LDFLAGS=--emit-relocs" >&2
+# Without relocations in the final image BOLT cannot move code. LK only emits
+# them with the overlay patch to make/build.mk, because engine.mk assigns
+# GLOBAL_LDFLAGS with := and ignores LDFLAGS from the environment.
+#
+# Read into a variable rather than piping: grep -q exits on the first match,
+# which sends SIGPIPE upstream and makes pipefail report the success as failure.
+SECTIONS="$("$TOOLCHAIN/llvm-readelf" --sections "$ELF")"
+if ! grep -q '\.rela\.text' <<<"$SECTIONS"; then
+  echo "error: $ELF has no .rela.text — rebuild with WITH_BOLT_RELOCS=true" >&2
   exit 1
 fi
 
@@ -38,5 +44,6 @@ mkdir -p "$(dirname "$OUT")"
   -o "$OUT" \
   "$@"
 
-"$TOOLCHAIN/llvm-readelf" --sections "$OUT" | grep -E 'bolt\.instr' || true
+OUT_SECTIONS="$("$TOOLCHAIN/llvm-readelf" --sections "$OUT")"
+grep -E 'bolt\.instr' <<<"$OUT_SECTIONS" || true
 echo "instrumented image: $OUT"

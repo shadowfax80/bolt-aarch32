@@ -37,18 +37,22 @@ mkdir -p "$OUT_DIR"
 rm -f "$LIB"
 "$TOOLCHAIN/llvm-ar" rcs "$LIB" "$OUT_DIR/instr_baremetal.o"
 
+# Read the symbol table once: grep -q exits on the first match, which sends
+# SIGPIPE upstream and makes pipefail report the success as a failure.
+SYMS="$("$TOOLCHAIN/llvm-nm" "$LIB")"
+
 # RewriteInstance::linkRuntime() refuses the archive without these two.
 for sym in __bolt_instr_start __bolt_instr_fini; do
-  if ! "$TOOLCHAIN/llvm-nm" "$LIB" | grep -q " T $sym\$"; then
+  if ! grep -q " T $sym\$" <<<"$SYMS"; then
     echo "error: $LIB does not define $sym" >&2
     exit 1
   fi
 done
 
 # BOLT's linker cannot allocate .bss for the runtime.
-if "$TOOLCHAIN/llvm-nm" "$LIB" | grep -qE " [bB] "; then
+if grep -qE " [bB] " <<<"$SYMS"; then
   echo "error: $LIB has .bss symbols, which BOLT's ORC linker cannot place" >&2
-  "$TOOLCHAIN/llvm-nm" "$LIB" | grep -E " [bB] " >&2
+  grep -E " [bB] " <<<"$SYMS" >&2
   exit 1
 fi
 
