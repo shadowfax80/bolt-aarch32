@@ -17,11 +17,13 @@ if [[ ! -f "$BUILD_DIR/build.ninja" ]]; then
     -C "$ROOT/cmake/llvm-bolt.cmake"
 fi
 
-# lld and the llvm-* binutils are required by build-lk-aarch64.sh and
-# package-toolchain.sh; they are not pulled in by the clang/llvm-bolt targets.
+# `bolt` is the umbrella target: llvm-bolt, merge-fdata and the perf2bolt
+# symlink. There is no `perf2bolt` or `bolt-runtime` target — the runtime is
+# `bolt_rt`. lld and the llvm-* binutils are needed by build-lk-aarch64.sh and
+# package-toolchain.sh and are not pulled in by clang or bolt.
 ninja -C "$BUILD_DIR" -j"$JOBS" \
   clang lld \
-  llvm-bolt perf2bolt merge-fdata bolt-runtime \
-  llvm-objdump llvm-readelf llvm-objcopy llvm-nm llvm-strip llvm-ar
+  bolt bolt_rt \
+  llvm-objdump llvm-readelf llvm-objcopy llvm-nm llvm-strip llvm-ar llvm-cxxfilt
 
 echo "Build complete: $BUILD_DIR/bin/llvm-bolt"
