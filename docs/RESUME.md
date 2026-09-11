@@ -80,8 +80,7 @@ Upstream trees (`third_party/`) are already on the volume — no re-clone unless
 ls /workspace/bolt-lk-overlay/third_party/lk/build-qemu-virt-arm64-test/lk.elf
 
 # Boot LK in QEMU (on pod)
-timeout 15 qemu-system-aarch64 -machine virt -cpu cortex-a53 -m 512 -smp 4 \
-  -nographic -kernel /workspace/bolt-lk-overlay/third_party/lk/build-qemu-virt-arm64-test/lk.elf
+/workspace/bolt-lk-overlay/scripts/run-qemu-lk.sh
 # Expect: "entering main console loop" and "]" prompt
 ```
 

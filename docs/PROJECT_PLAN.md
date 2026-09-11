@@ -76,5 +76,6 @@ See [aarch32-bolt.md](aarch32-bolt.md).
 | `build-llvm-bolt.sh` | Toolchain build |
 | `ensure-lk-source.sh` / `ensure-llvm-source.sh` | Idempotent clones |
 | `build-lk-aarch64.sh` | LK with `--emit-relocs` |
+| `run-qemu-lk.sh` | Boot LK in QEMU on pod |
 | `apply-overlays.sh` | Apply `overlay/*/patches/` |
 | `create-pod.sh` / `destroy-pod.sh` | RunPod lifecycle |
