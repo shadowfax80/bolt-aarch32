@@ -89,7 +89,7 @@ Boot alone is a weak profile — short and cold-cache. Workloads must exercise r
 ```
 overlay/llvm/patches/   # bare-metal runtime, AArch32 backend slices
 overlay/lk/patches/     # linker script, bolt_bench, dump hook
-scripts/                # source fetch, build, RunPod, ram-dump-to-fdata (TBD)
+scripts/                # source fetch, build, RunPod, BOLT instrument/optimize
 docs/                   # plan + design
 third_party/            # llvm-project, lk — gitignored, cloned on demand
 ```

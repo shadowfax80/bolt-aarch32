@@ -23,7 +23,7 @@
 |-------|-------|--------|
 | 0 | Repo, scripts, RunPod | **Done** |
 | 1 | LLVM/BOLT toolchain | **Done** |
-| 2 | AArch64 bare-metal + LK | **Started** — LK built, QEMU boot OK; runtime TBD |
+| 2 | AArch64 bare-metal + LK | **Done** — instrument, profile, optimize, boot verified |
 | 3 | AArch32 BOLT → upstream | Not started |
 
 **Pod:** `kn1kscmdlxcvge` — **STOPPED**  
@@ -55,10 +55,13 @@
 |---|------|--------|
 | 2.1 | LK clone + build `qemu-virt-arm64-test` | **Done** — `lk.elf` on volume |
 | 2.1b | QEMU boot smoke test on pod | **Done** — shell prompt |
-| 2.2 | Bare-metal bolt-rt (`libbolt_rt_baremetal.a`) | **Next** |
-| 2.3 | LK linker + dump + `bolt_bench` patches | Pending |
-| 2.4 | `llvm-bolt -instrument --no-lse-atomics` | Pending |
-| 2.5–2.10 | Profile, optimize, measure | Pending |
+| 2.2 | Bare-metal bolt-rt (`libbolt_rt_baremetal.a`) | **Done** |
+| 2.3 | LK `--emit-relocs` overlay patch | **Done** |
+| 2.4 | `llvm-bolt -instrument --no-lse-atomics` | **Done** |
+| 2.5 | RAM dump → `.fdata` (host-side) | **Done** |
+| 2.6 | `llvm-bolt -data=prof.fdata` + boot fixes | **Done** |
+| 2.7 | End-to-end `verify-lk-bolt.sh` | **Done** |
+| 2.8 | On-target UART `.fdata` export | Pending |
 
 ---
 
@@ -77,5 +80,11 @@ See [aarch32-bolt.md](aarch32-bolt.md).
 | `ensure-lk-source.sh` / `ensure-llvm-source.sh` | Idempotent clones |
 | `build-lk-aarch64.sh` | LK with `--emit-relocs` |
 | `run-qemu-lk.sh` | Boot LK in QEMU on pod |
+| `build-bolt-rt-baremetal.sh` | Bare-metal BOLT runtime library |
+| `instrument-lk-bolt.sh` | Instrument LK with llvm-bolt |
+| `dump-bolt-counters.py` | QEMU QMP counter dump |
+| `ram-dump-to-fdata.sh` | Counter RAM → `.fdata` |
+| `optimize-lk-bolt.sh` | BOLT optimize pass |
+| `verify-lk-bolt.sh` | End-to-end pipeline check |
 | `apply-overlays.sh` | Apply `overlay/*/patches/` |
 | `create-pod.sh` / `destroy-pod.sh` | RunPod lifecycle |

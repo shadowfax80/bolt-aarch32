@@ -21,7 +21,7 @@ Upstream [llvm-project](https://github.com/llvm/llvm-project) and [lk](https://g
 |-------|-------|--------|
 | 0 | Repo, scripts, RunPod | Done |
 | 1 | LLVM + BOLT toolchain (`release/23.x`) | Done (on pod volume) |
-| 2 | AArch64 in-RAM profiling + `bolt_bench` on LK | Started — LK+QEMU OK; runtime next |
+| 2 | AArch64 in-RAM profiling + BOLT optimize on LK | **Done** — instrument → fdata → optimize boots |
 | 3 | AArch32 backend → LLVM upstream | Not started |
 
 Phase 2 exists to prove bare-metal profiling on an architecture BOLT already supports, so that Phase 3 only has to solve the AArch32 problem.
@@ -38,6 +38,7 @@ cd /workspace/bolt-lk-overlay
 ./scripts/build-llvm-bolt.sh       # Phase 1 — already done on volume
 ./scripts/apply-overlays.sh        # when overlay patches exist
 ./scripts/run-qemu-lk.sh             # boot LK in QEMU
+./scripts/verify-lk-bolt.sh          # instrument → profile → optimize → boot
 ```
 
 Copy `.env.example` to `.env` on the pod; set `NETWORK_VOLUME_ID=j1d9e6wq5l` to reattach the saved volume.
@@ -47,7 +48,7 @@ Copy `.env.example` to `.env` on the pod; set `NETWORK_VOLUME_ID=j1d9e6wq5l` to 
 ```
 overlay/llvm/patches/   # bare-metal runtime, AArch32 backend slices
 overlay/lk/patches/     # linker script, bolt_bench, dump hook
-scripts/                # source fetch, build, RunPod, ram-dump-to-fdata (TBD)
+scripts/                # source fetch, build, RunPod, BOLT instrument/optimize
 docs/                   # plan + design
 third_party/            # llvm-project, lk — gitignored, cloned on demand
 ```

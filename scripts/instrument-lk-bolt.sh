@@ -66,3 +66,15 @@ OUT_SECTIONS="$("$TOOLCHAIN/llvm-readelf" --sections "$OUT")"
 grep -E 'bolt\.instr' <<<"$OUT_SECTIONS" || true
 echo "instrumented image: $OUT"
 python3 "$ROOT/scripts/fix-kernel-elf-paddr.py" "$OUT"
+python3 "$ROOT/scripts/fix-kernel-elf-entry.py" "$OUT" --original "$ELF" \
+  --readelf "$TOOLCHAIN/llvm-readelf"
+HOOK_FUNCS="${INSTRUMENT_FUNCS:-lk_main}"
+if [[ "$HOOK_FUNCS" == "all" ]]; then
+  HOOK_FUNCS=""
+fi
+SECTION_FIX=(python3 "$ROOT/scripts/fix-kernel-elf-sections.py" "$OUT" --original "$ELF"
+  --readelf "$TOOLCHAIN/llvm-readelf")
+if [[ -n "$HOOK_FUNCS" ]]; then
+  SECTION_FIX+=(--hook-funcs "$HOOK_FUNCS")
+fi
+"${SECTION_FIX[@]}"

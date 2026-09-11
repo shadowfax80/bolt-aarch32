@@ -117,28 +117,32 @@ ls /workspace/bolt-lk-overlay/third_party/lk/build-qemu-virt-arm64-test/lk.elf
 # Expect: "entering main console loop" and "]" prompt
 ```
 
-### 5. Next work — Phase 2
+### 5. BOLT pipeline (Phase 2 complete)
 
-See [PROJECT_PLAN.md](PROJECT_PLAN.md) and [aarch64-bare-metal.md](aarch64-bare-metal.md).
-
-Verify instrumentation end to end before touching LK source — the first bring-up
-needs no LK patches at all, because the counters live in a section BOLT emits
-itself and the host reads them out of the guest:
+Full end-to-end check:
 
 ```bash
 cd /workspace/bolt-lk-overlay
-./scripts/build-bolt-rt-baremetal.sh          # libbolt_rt_baremetal.a
-./scripts/build-lk-aarch64.sh                 # lk.elf, LDFLAGS=--emit-relocs
-./scripts/instrument-lk-bolt.sh               # build/lk.instr.elf
-python3 scripts/dump-bolt-counters.py --elf build/lk.instr.elf
+git pull
+./scripts/verify-lk-bolt.sh
 ```
 
-Expected: LK reaches `entering main console loop` and the dump reports a
-non-zero share of counters set. Then continue with:
+Or step-by-step:
+
+```bash
+./scripts/build-bolt-rt-baremetal.sh
+./scripts/instrument-lk-bolt.sh
+python3 scripts/dump-bolt-counters.py --elf build/lk.instr.elf --toolchain build/bin
+./scripts/ram-dump-to-fdata.sh
+./scripts/optimize-lk-bolt.sh
+./scripts/run-qemu-lk.sh build/lk.bolt.elf
+```
+
+Remaining Phase 2 work:
 
 1. On-target `.fdata` serialization (port upstream `writeFunctionProfile` to UART)
-2. LK patches: `.bolt_profile` section, dump hook, `bolt_bench` app
-3. `llvm-bolt lk.elf -data=prof.fdata -o lk.bolt.elf`, re-run and measure
+2. LK patches: dump hook, `bolt_bench` app (optional workloads)
+3. Broader instrumentation (`INSTRUMENT_FUNCS=all`) — needs MMU/hot-text mapping work
 
 Build LK (already works):
 
