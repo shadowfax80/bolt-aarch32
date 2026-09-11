@@ -15,18 +15,14 @@ fi
 
 cd "$ROOT/third_party/lk"
 
-export CC="$TOOLCHAIN/clang --target=aarch64-unknown-elf"
-export CXX="$TOOLCHAIN/clang++ --target=aarch64-unknown-elf"
-export CPP="$TOOLCHAIN/clang-cpp --target=aarch64-unknown-elf"
-export LD="$TOOLCHAIN/ld.lld"
-export TOOLCHAIN_PREFIX="$TOOLCHAIN/llvm-"
-export CPPFILT="$TOOLCHAIN/llvm-cxxfilt"
+# LK's clang path uses TOOLCHAIN=clang + CLANG_BINDIR (see engine.mk).
+export TOOLCHAIN=clang
+export CLANG_BINDIR="$TOOLCHAIN"
+export LD=ld.lld
 
-# BOLT requires relocations in the final binary. LK links with $(LD) directly
-# rather than through the compiler driver, so this is the raw linker flag, not
-# the -Wl, form.
+# BOLT requires relocations. LK invokes $(LD) directly, not the compiler driver.
 export LDFLAGS="${LDFLAGS:---emit-relocs}"
 
-make "$LK_PROJECT"
+make "$LK_PROJECT" -j"${JOBS:-$(nproc)}"
 
 echo "LK build complete."
