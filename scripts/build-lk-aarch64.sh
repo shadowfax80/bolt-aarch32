@@ -21,7 +21,11 @@ export CPP="$TOOLCHAIN/clang-cpp --target=aarch64-unknown-elf"
 export LD="$TOOLCHAIN/ld.lld"
 export TOOLCHAIN_PREFIX="$TOOLCHAIN/llvm-"
 export CPPFILT="$TOOLCHAIN/llvm-cxxfilt"
-export LDFLAGS="${LDFLAGS:--Wl,-q}"
+
+# BOLT requires relocations in the final binary. LK links with $(LD) directly
+# rather than through the compiler driver, so this is the raw linker flag, not
+# the -Wl, form.
+export LDFLAGS="${LDFLAGS:---emit-relocs}"
 
 make "$LK_PROJECT"
 

@@ -2,7 +2,9 @@
 
 **Goal:** implement ARM/Thumb BOLT in LLVM and merge to upstream. LK on QEMU ARM32 is the bare-metal test harness; RAM profiling from Phase 2 carries over unchanged.
 
-**Fact:** upstream BOLT today supports X86, AArch64, RISC-V — **no ARM32/Thumb backend**.
+**Fact:** `bolt/lib/Target/` contains only `AArch64`, `RISCV`, and `X86` — there is **no ARM32/Thumb backend**. Building with `LLVM_TARGETS_TO_BUILD=…;ARM` gives clang and lld an AArch32 target but does nothing for BOLT.
+
+**Base branch:** Phases 1–2 build `release/23.x`. Phase 3 rebases onto `main`, because that is what LLVM reviews patches against.
 
 ---
 
@@ -73,7 +75,8 @@ New code lives primarily in `bolt/` (upstream). This repo holds **incremental pa
 | Move literal pool | Co-move pool with referencing insns or leave pool fixed initially |
 | Split function across ARM+Thumb | Rare in one symbol; split by mapping symbols if needed |
 | Instrumentation size | Thumb hooks may need veneer if hook stub out of range |
-| Profile counters | Reuse Phase 2 RAM scheme; 32-bit atomics (`ldrex/strex` or disable IRQ) |
+| Profile counters | Reuse the Phase 2 RAM scheme; 32-bit atomics via `ldrex`/`strex`, or mask IRQs |
+| Runtime library | Cross-build ours for `arm-none-eabi`; upstream still cannot build bolt-rt per-triple ([#187308](https://github.com/llvm/llvm-project/pull/187308)) |
 | `--emit-relocs` | Same requirement as AArch64 |
 
 ### Out of scope (initial upstream PRs)
@@ -109,7 +112,7 @@ Validate on **LK `qemu-virt-arm32-test`** + synthetic lit binaries before claimi
 
 ## Upstream merge strategy
 
-1. **Track LLVM main** (or latest release branch) — overlay rebases on tip.
+1. **Track LLVM `main`** — the overlay rebases on tip; release branches do not accept features.
 2. **Small PRs** — each passes CI; no monolithic dump.
 3. **Tests first** — every PR adds `llvm/test/tools/llvm-bolt/...` lit tests.
 4. **No LK in LLVM** — tests use checked-in tiny ELFs built from `.s` in test tree.
