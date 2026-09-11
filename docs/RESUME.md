@@ -11,17 +11,39 @@ All upstream sources, builds, and QEMU runs live on the **RunPod network volume*
 
 | Resource | ID / value | Notes |
 |----------|------------|-------|
-| Pod | `kn1kscmdlxcvge` | Name: `llvm-bolt-builder` — **STOPPED**; restarts have been failing with "not enough free vcpu on the host machine" |
+| Pod | `h9cs2sqm4h7w66` (`outer_gray_macaw`) | 4 vCPU, Ubuntu 24.04 — **RUNNING** |
 | Network volume | `j1d9e6wq5l` | 150 GB, EU-RO-1 — **keeps all work** (~$0.07/GB/mo storage) |
+| Region | EU-RO-1 | The volume only attaches to pods in its own region |
+| Image | `runpod/base:1.0.2-ubuntu2404` | Must be the 24.04 tag — see the traps below |
+| Compute | cpu5m / cpu3c, 4–8 vCPU | ~$0.12–0.52/hr while running |
 
-A network volume can only be attached **when the pod is created**: RunPod rejects
-a PATCH that adds a mount to a mountless pod, and `volumeId` is immutable after
-create. If `kn1kscmdlxcvge` will not start, deploy a replacement CPU pod from the
-console and pick volume `j1d9e6wq5l` in the deploy form — do not create the pod
-first and try to attach it after.
-| Region | EU-RO-1 | Pod must mount this volume in the same region |
-| Image | `runpod/base:1.0.2-ubuntu2404` | Do not use plain `ubuntu:24.04` (no sshd) |
-| Compute | cpu5m, 8 vCPU, 64 GB RAM | ~$0.52/hr when running |
+### Recreating the pod
+
+```bash
+export RUNPOD_API_KEY=...        # RunPod -> Settings -> API Keys
+./scripts/create-pod.sh          # attaches j1d9e6wq5l, falls back 8 -> 4 -> 2 vCPU
+./scripts/pod-ssh.sh             # resolves the current host and port, then connects
+```
+
+Four traps, each of which has already cost a redeploy, all now handled by those
+two scripts:
+
+| Trap | Consequence |
+|------|-------------|
+| Volume not attached at create | Unrecoverable — RunPod rejects adding a mount to a mountless pod and treats `volumeId` as immutable, so the pod is scrap |
+| Image other than `ubuntu2404` | `llvm-bolt` dies with `GLIBC_2.32 not found`; the toolchain was linked against glibc 2.39, and the console's `runpod-ubuntu` template defaults to 20.04 |
+| SSH key added inside the pod | Lost on the next deploy, because the container disk is ephemeral — add it under **Settings -> SSH Public Keys** so every new pod authorizes it |
+| Hardcoded IP and port | Reassigned on every deploy; a stale pair fails as "Connection refused" or "banner exchange", which looks nothing like the real cause |
+
+Deploying by hand instead? Start from the **Storage** page and click Deploy on the
+volume — that pre-attaches it and pins the region — then override the image to
+`runpod/base:1.0.2-ubuntu2404`.
+
+QEMU lives on the container disk rather than the volume, so every fresh pod needs:
+
+```bash
+apt-get update -qq && apt-get install -y -qq qemu-system-arm
+```
 
 ---
 
