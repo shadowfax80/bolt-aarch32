@@ -58,6 +58,10 @@ if [[ -d "$LLVM_DIR/.git" ]]; then
 fi
 
 if [[ ! -d "$LLVM_DIR/.git" ]]; then
+  if [[ -e "$LLVM_DIR" ]]; then
+    echo "Removing incomplete tree at $LLVM_DIR..."
+    rm -rf "$LLVM_DIR"
+  fi
   echo "Cloning llvm-project ($LLVM_BRANCH) — one-time full clone..."
   git clone --branch "$LLVM_BRANCH" --single-branch "$LLVM_REMOTE" "$LLVM_DIR"
 fi

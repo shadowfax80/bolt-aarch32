@@ -13,6 +13,7 @@ third_party/lk/
 
 # Local secrets
 .env
+.runpod-pod-id
 
 # Editor / OS
 .vscode/
