@@ -11,11 +11,16 @@ Upstream sources are **not forked** — they are tracked as git submodules and w
 | `third_party/llvm-project` | [llvm/llvm-project](https://github.com/llvm/llvm-project) | LLVM, Clang, LLD, BOLT |
 | `third_party/lk` | [littlekernel/lk](https://github.com/littlekernel/lk) | Little Kernel OS |
 
-## Project phases
+## Project plan
 
-1. **Toolchain** — Build LLVM + Clang + LLD + BOLT (RunPod CPU pod or local Linux)
-2. **AArch64 PoC** — LK on QEMU `virt`, BOLT instrumentation, profile counters in RAM (linker script), dump → `.fdata`, re-optimize
-3. **AArch32 design** — Step-by-step plan for ARM/Thumb BOLT (interworking, IT blocks, range, veneers)
+**[docs/PROJECT_PLAN.md](docs/PROJECT_PLAN.md)** — step-by-step checklist with current status, RunPod details, and phase breakdown.
+
+| Phase | Focus | Status |
+|-------|-------|--------|
+| 0 | Repo, scripts, RunPod infra | Done |
+| 1 | LLVM + Clang + LLD + BOLT toolchain | In progress |
+| 2 | AArch64 LK QEMU PoC + in-RAM profiling | Not started |
+| 3 | AArch32 BOLT design | Not started |
 
 ## Quick start
 
