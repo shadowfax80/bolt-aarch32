@@ -1,0 +1,19 @@
+diff --git a/make/build.mk b/make/build.mk
+index 3fbd81a6..c0cca8e7 100644
+--- a/make/build.mk
++++ b/make/build.mk
+@@ -8,6 +8,14 @@ GLOBAL_LDFLAGS += --gc-sections
+ GLOBAL_DEFINES += LINKER_GC=1
+ endif
+ 
++# llvm-bolt cannot move code in a binary that ships no relocations, and
++# LK ignores LDFLAGS from the environment because engine.mk assigns
++# GLOBAL_LDFLAGS with := before any of this is read.
++WITH_BOLT_RELOCS ?= true
++ifeq (true,$(call TOBOOL,$(WITH_BOLT_RELOCS)))
++GLOBAL_LDFLAGS += --emit-relocs
++endif
++
+ ifneq (,$(EXTRA_BUILDRULES))
+ -include $(EXTRA_BUILDRULES)
+ endif

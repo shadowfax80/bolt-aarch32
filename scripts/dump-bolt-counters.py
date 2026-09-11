@@ -42,6 +42,18 @@ def counter_range(readelf: str, elf: str) -> tuple[int, int]:
     )
 
 
+def symbols(nm: str, elf: str) -> dict[str, int]:
+    out = subprocess.run(
+        [nm, "--defined-only", elf], check=True, capture_output=True, text=True
+    ).stdout
+    found = {}
+    for line in out.splitlines():
+        parts = line.split()
+        if len(parts) == 3:
+            found[parts[2]] = int(parts[0], 16)
+    return found
+
+
 class Qmp:
     def __init__(self, path: str, timeout: float) -> None:
         deadline = time.time() + timeout
@@ -97,16 +109,21 @@ def wait_for_marker(log: str, marker: str, timeout: float) -> bool:
     return False
 
 
-def nonzero_counters(path: str) -> tuple[int, int]:
+def nonzero_counters(path: str, offset: int, count: int) -> tuple[int, int]:
+    """Count set counters in the array only.
+
+    The overlay patch emits the metadata tables into this same section, so
+    measuring the whole dump would report table bytes as live counters.
+    """
     with open(path, "rb") as fh:
         blob = fh.read()
-    total = len(blob) // 8
+    array = blob[offset : offset + count * 8]
     hot = sum(
         1
-        for i in range(total)
-        if int.from_bytes(blob[i * 8 : i * 8 + 8], "little") != 0
+        for i in range(len(array) // 8)
+        if int.from_bytes(array[i * 8 : i * 8 + 8], "little") != 0
     )
-    return hot, total
+    return hot, count
 
 
 def main() -> int:
@@ -138,7 +155,16 @@ def main() -> int:
 
     readelf = os.path.join(args.toolchain, "llvm-readelf")
     addr, size = counter_range(readelf, args.elf)
-    print(f"{COUNTER_SECTION}: {size} bytes at 0x{addr:x} ({size // 8} counters)")
+
+    syms = symbols(os.path.join(args.toolchain, "llvm-nm"), args.elf)
+    for required in ("__bolt_instr_locations", "__bolt_num_counters"):
+        if required not in syms:
+            raise SystemExit(f"{args.elf} does not define {required}")
+    locations_off = syms["__bolt_instr_locations"] - addr
+    num_counters_off = syms["__bolt_num_counters"] - addr
+
+    print(f"{COUNTER_SECTION}: {size} bytes at 0x{addr:x}")
+    print(f"__bolt_instr_locations at +0x{locations_off:x}")
 
     tmp = tempfile.mkdtemp(prefix="bolt-qemu-")
     qmp_path = os.path.join(tmp, "qmp.sock")
@@ -176,8 +202,8 @@ def main() -> int:
         # addresses while LK's kernel mapping is active. pmemsave is the
         # fallback for images running with the MMU off.
         qmp.monitor(f'memsave 0x{addr:x} {size} "{out}"')
-        if not os.path.exists(out) or nonzero_counters(out)[0] == 0:
-            print("virtual read came back empty, retrying physical", file=sys.stderr)
+        if not os.path.exists(out):
+            print("virtual read produced no file, retrying physical", file=sys.stderr)
             qmp.monitor(f'pmemsave 0x{addr:x} {size} "{out}"')
     finally:
         qemu.terminate()
@@ -186,7 +212,13 @@ def main() -> int:
         except subprocess.TimeoutExpired:
             qemu.kill()
 
-    hot, total = nonzero_counters(args.out)
+    with open(args.out, "rb") as fh:
+        blob = fh.read()
+    if num_counters_off + 4 > len(blob):
+        raise SystemExit(f"{args.out} is only {len(blob)} bytes, expected {size}")
+    count = int.from_bytes(blob[num_counters_off : num_counters_off + 4], "little")
+    print(f"__bolt_num_counters = {count}")
+    hot, total = nonzero_counters(args.out, locations_off, count)
     print(f"{args.out}: {hot}/{total} counters non-zero")
     if hot == 0:
         print(

@@ -1,0 +1,29 @@
+diff --git a/bolt/lib/Rewrite/RewriteInstance.cpp b/bolt/lib/Rewrite/RewriteInstance.cpp
+index a12b83859669..66f2366b5ec6 100644
+--- a/bolt/lib/Rewrite/RewriteInstance.cpp
++++ b/bolt/lib/Rewrite/RewriteInstance.cpp
+@@ -5527,11 +5527,20 @@ void RewriteInstance::updateELFSymbolTable(
+             });
+ 
+         if (FF == Function->getLayout().fragment_end()) {
+-          assert(
+-              OutputAddress >= Function->getCodeSection()->getOutputAddress() &&
+-              OutputAddress < (Function->getCodeSection()->getOutputAddress() +
+-                               Function->getCodeSection()->getOutputSize()) &&
+-              "Cannot locate fragment containing secondary entrypoint");
++          // LK keeps local labels inside hand-written assembly, and for a
++          // binary linked at a kernel address some of them translate to an
++          // address that falls outside every fragment and outside the
++          // function's code section. The assertion upstream places here
++          // compiles out under NDEBUG, so a release llvm-bolt already accepts
++          // this and attributes the label to the first fragment. Keep that
++          // behaviour and report it rather than aborting an assertions build.
++          if (OutputAddress < Function->getCodeSection()->getOutputAddress() ||
++              OutputAddress >= (Function->getCodeSection()->getOutputAddress() +
++                                Function->getCodeSection()->getOutputSize()))
++            BC->errs() << "BOLT-WARNING: secondary entry point at 0x"
++                       << Twine::utohexstr(OutputAddress) << " in "
++                       << Function->getPrintName()
++                       << " lies outside its code section\n";
+           FF = Function->getLayout().fragment_begin();
+         }

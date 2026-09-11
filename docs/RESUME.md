@@ -23,7 +23,11 @@ All upstream sources, builds, and QEMU runs live on the **RunPod network volume*
 export RUNPOD_API_KEY=...        # RunPod -> Settings -> API Keys
 ./scripts/create-pod.sh          # attaches j1d9e6wq5l, falls back 8 -> 4 -> 2 vCPU
 ./scripts/pod-ssh.sh             # resolves the current host and port, then connects
+./scripts/pod-ssh.sh 'cd /workspace/bolt-lk-overlay && git pull && ./scripts/bootstrap-pod.sh'
 ```
+
+`bootstrap-pod.sh` reinstalls the container-disk packages that vanish on every
+redeploy (QEMU, ninja, lld, ccache). The toolchain itself lives on the volume.
 
 Four traps, each of which has already cost a redeploy, all now handled by those
 two scripts:

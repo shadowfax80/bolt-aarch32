@@ -32,14 +32,14 @@ fi
 
 mkdir -p "$(dirname "$OUT")"
 
-# --no-lse-atomics: QEMU's cortex-a53 has no LSE, so counter updates must use
-# the ldaxr/stlxr helper instead of stadd.
-# --instrument-calls=false: leaves indirect-call stubs out of the image, which
-# the minimal runtime does not profile anyway.
+# Static ET_EXEC images have no DT_FINI, so BOLT refuses to instrument them
+# unless a watchdog interval is set. The watchdog is a Linux fork path that
+# our runtime never calls, so the value is only a key to unlock the rewrite.
 "$TOOLCHAIN/llvm-bolt" "$ELF" \
   -instrument \
   --no-lse-atomics \
   --instrument-calls=false \
+  --instrumentation-sleep-time=1 \
   --runtime-instrumentation-lib="$LIB" \
   -o "$OUT" \
   "$@"

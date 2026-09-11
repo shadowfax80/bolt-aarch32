@@ -1,0 +1,22 @@
+diff --git a/bolt/lib/RuntimeLibs/InstrumentationRuntimeLibrary.cpp b/bolt/lib/RuntimeLibs/InstrumentationRuntimeLibrary.cpp
+index d71d8ef1c044..a91cf2377982 100644
+--- a/bolt/lib/RuntimeLibs/InstrumentationRuntimeLibrary.cpp
++++ b/bolt/lib/RuntimeLibs/InstrumentationRuntimeLibrary.cpp
+@@ -191,6 +191,18 @@ void InstrumentationRuntimeLibrary::emitBinary(BinaryContext &BC,
+     TablesSection->setAlignment(llvm::Align(BC.RegularPageSize));
+     Streamer.switchSection(TablesSection);
+     emitString("__bolt_instr_tables", buildTables(BC));
++  } else {
++    // Instrumentation always injects __bolt_instr_tables_getter, which takes
++    // the address of __bolt_instr_tables. On ELF that symbol was only ever
++    // defined for Mach-O, so it resolved to 0: harmless for a binary linked
++    // low, but on AArch64 the ADRP in the getter cannot reach 0 from a kernel
++    // address and JITLink rejects the fixup as out of range.
++    //
++    // Emitting the tables here also gives a freestanding runtime a way to
++    // reach them, which it otherwise lacks - upstream finds its own notes by
++    // reading /proc/self/map_files, and there is no /proc on bare metal.
++    emitPadding(BC.RegularPageSize);
++    emitString("__bolt_instr_tables", buildTables(BC));
+   }
+ }

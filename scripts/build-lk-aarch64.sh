@@ -20,8 +20,9 @@ export TOOLCHAIN=clang
 export CLANG_BINDIR="$TOOLCHAIN"
 export LD=ld.lld
 
-# BOLT requires relocations. LK invokes $(LD) directly, not the compiler driver.
-export LDFLAGS="${LDFLAGS:---emit-relocs}"
+# Relocations come from overlay/lk/patches/0001-emit-relocs-for-bolt.patch,
+# applied above. engine.mk assigns GLOBAL_LDFLAGS with :=, so exporting
+# LDFLAGS here has no effect on the link.
 
 make "$LK_PROJECT" -j"${JOBS:-$(nproc)}"
 

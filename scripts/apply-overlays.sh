@@ -22,6 +22,10 @@ apply_patches() {
 
   echo "Applying patches for $name..."
   for patch in "$patch_dir"/*.patch; do
+    if git -C "$dir" apply --check --reverse "$patch" >/dev/null 2>&1; then
+      echo "  already applied: $patch"
+      continue
+    fi
     echo "  $patch"
     git -C "$dir" apply --check "$patch"
     git -C "$dir" apply "$patch"
