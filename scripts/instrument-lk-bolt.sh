@@ -32,17 +32,34 @@ fi
 
 mkdir -p "$(dirname "$OUT")"
 
+# Counters live at a high virtual address. Any store to them before the MMU
+# is on takes a fault at reset, so the default is to instrument only lk_main,
+# which runs after arch_early_init has enabled the MMU. Override with
+# INSTRUMENT_FUNCS=all to instrument everything (and then skip the boot path
+# some other way).
+FUNCS_FILE=""
+if [[ "${INSTRUMENT_FUNCS:-lk_main}" != "all" ]]; then
+  FUNCS_FILE="$(mktemp)"
+  tr ',' '\n' <<<"${INSTRUMENT_FUNCS:-lk_main}" > "$FUNCS_FILE"
+  trap 'rm -f "$FUNCS_FILE"' EXIT
+fi
+
 # Static ET_EXEC images have no DT_FINI, so BOLT refuses to instrument them
 # unless a watchdog interval is set. The watchdog is a Linux fork path that
 # our runtime never calls, so the value is only a key to unlock the rewrite.
-"$TOOLCHAIN/llvm-bolt" "$ELF" \
-  -instrument \
-  --no-lse-atomics \
-  --instrument-calls=false \
-  --instrumentation-sleep-time=1 \
-  --runtime-instrumentation-lib="$LIB" \
-  -o "$OUT" \
-  "$@"
+BOLT_ARGS=(
+  -instrument
+  --no-lse-atomics
+  --instrument-calls=false
+  --instrumentation-sleep-time=1
+  --runtime-instrumentation-lib="$LIB"
+  -o "$OUT"
+)
+if [[ -n "$FUNCS_FILE" ]]; then
+  BOLT_ARGS+=(--instrument-funcs-file="$FUNCS_FILE")
+fi
+
+"$TOOLCHAIN/llvm-bolt" "$ELF" "${BOLT_ARGS[@]}" "$@"
 
 OUT_SECTIONS="$("$TOOLCHAIN/llvm-readelf" --sections "$OUT")"
 grep -E 'bolt\.instr' <<<"$OUT_SECTIONS" || true
