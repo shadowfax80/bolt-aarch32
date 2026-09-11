@@ -1,39 +1,22 @@
 # Overlay patches
 
-This directory holds **only our changes** on top of upstream `llvm-project` and `lk`.
-Upstream sources live in `third_party/` as git submodules (pinned commits).
-
-## Layout
+Incremental changes on top of upstream — **not forks**. Applied with `scripts/apply-overlays.sh`.
 
 ```
 overlay/
-├── llvm/patches/     # Patches applied to llvm-project (bolt-rt, instrumentation, etc.)
-└── lk/patches/       # Patches applied to LK (linker script, RAM profile dump hook)
+├── llvm/patches/     # bolt/runtime, bolt/lib (AArch32 backend slices)
+└── lk/patches/       # linker script, bolt_bench app, profile dump
 ```
 
-## Applying overlays
+## Expected patches
 
-From the repo root:
+| Patch (planned) | Upstream path | Purpose |
+|-----------------|---------------|---------|
+| `bolt-rt-baremetal.patch` | `bolt/runtime/` | RAM profile; no syscalls |
+| `linker-bolt-profile.patch` | LK linker script | `.bolt_profile` section |
+| `app-bolt-bench.patch` | LK `app/` | Workload benchmarks |
+| `aarch32-*.patch` | `bolt/` | AArch32 backend (until merged to LLVM) |
 
-```bash
-./scripts/apply-overlays.sh
-```
+When a patch lands in llvm-project, **remove it here**.
 
-Patches are applied with `git apply` from inside each submodule checkout.
-After updating a submodule (`git submodule update --remote`), re-run apply-overlays
-and resolve any conflicts.
-
-## What we expect to overlay
-
-### LLVM / BOLT (`overlay/llvm/patches/`)
-
-- Bare-metal instrumentation runtime: profile counters in RAM instead of `/tmp/prof.fdata`
-- Optional: `--no-lse-atomics` defaults for QEMU `cortex-a53` targets
-
-### LK (`overlay/lk/patches/`)
-
-- Linker script: dedicated `.bolt.instr` (or similar) section in DRAM
-- Small hook to dump counter region over serial or for QEMU `dump-guest-memory`
-- Build flags: `--emit-relocs`, Clang/LLD cross-compile for `aarch64-unknown-elf`
-
-Patches are added incrementally as the AArch64 PoC progresses. Empty until first change lands.
+See [docs/architecture.md](../docs/architecture.md).

@@ -1,135 +1,117 @@
-# Project plan — BOLT on bare-metal Little Kernel
+# Project plan
 
-**Repository:** [somraj80/bolt-lk-overlay](https://github.com/somraj80/bolt-lk-overlay)  
-**Last updated:** 2026-09-11
+**Repo:** [somraj80/bolt-lk-overlay](https://github.com/somraj80/bolt-lk-overlay)  
+**Updated:** 2026-09-11
 
-## Goal
+**Goal:** bare-metal BOLT on LK (AArch64 first), then AArch32 BOLT backend merged to LLVM upstream.
 
-Build and validate **LLVM BOLT** on **bare-metal Little Kernel (LK)** — first on **AArch64** in QEMU, then design an **AArch32 (ARM/Thumb)** BOLT backend. Profile data is collected **in RAM** (no Linux `perf`, no filesystem).
-
-Upstream LLVM and LK are **not forked**. This repo holds overlay patches, build scripts, and docs on top of git submodules.
-
----
-
-## Status at a glance
-
-| Phase | Description | Status |
-|-------|-------------|--------|
-| 0 | Repo, scripts, RunPod infra | **Done** |
-| 1 | LLVM + Clang + LLD + BOLT toolchain | **In progress** (source clone on pod) |
-| 2 | AArch64 LK QEMU PoC + in-RAM profiling | Not started |
-| 3 | AArch32 BOLT design | Not started |
-
-**Active RunPod pod:** `llvm-bolt-builder` (`kn1kscmdlxcvge`) — EU-RO-1, 8 vCPU, 64 GB RAM, ~$0.52/hr, **RUNNING**
+| Doc | Contents |
+|-----|----------|
+| [architecture.md](architecture.md) | Overlay model, data flow, scope |
+| [aarch64-bare-metal.md](aarch64-bare-metal.md) | Delta from stock BOLT, workloads |
+| [aarch32-bolt.md](aarch32-bolt.md) | ARM/Thumb design, edge cases, upstream PRs |
 
 ---
 
-## Phase 0 — Repository and infrastructure
+## Status
 
-| Step | Task | Status | Notes |
-|------|------|--------|-------|
-| 0.1 | Create overlay repo scaffold (scripts, cmake, docs, patches dirs) | Done | Initial commit |
-| 0.2 | Add git submodules for `llvm-project` (release/19.x) and `lk` | Done | `third_party/` gitignored; scripts clone on demand |
-| 0.3 | Idempotent source fetch (`ensure-llvm-source.sh`, `ensure-lk-source.sh`) | Done | flock lock + `.overlay-source-ok` marker |
-| 0.4 | Push to GitHub (`somraj80/bolt-lk-overlay`) | Done | Public repo |
-| 0.5 | Provision RunPod CPU pod + 150 GB network volume | Done | EU-RO-1, `runpod/base:1.0.2-ubuntu2404` |
-| 0.6 | Install build deps on pod (`install-deps.sh`) | Done | cmake, ninja, clang, qemu-system-aarch64, etc. |
-| 0.7 | Clone overlay repo on pod at `/workspace/bolt-lk-overlay` | Done | From GitHub |
+| Phase | Focus | Status |
+|-------|-------|--------|
+| 0 | Repo, scripts, RunPod | **Done** |
+| 1 | LLVM/BOLT toolchain build | **In progress** |
+| 2 | AArch64 bare-metal profile + LK workloads | Not started |
+| 3 | AArch32 BOLT backend → LLVM upstream | Not started |
 
-### RunPod resources
-
-| Resource | ID / value |
-|----------|------------|
-| Pod | `kn1kscmdlxcvge` (`llvm-bolt-builder`) |
-| Network volume | `j1d9e6wq5l` (150 GB, mounted at `/workspace`) |
-| SSH (direct) | `ssh -i ~/.ssh/id_ed25519 root@213.173.111.83 -p 45358` |
-| SSH (proxy) | `ssh kn1kscmdlxcvge-6441163e@ssh.runpod.io` |
-
-**Cleanup (when done):** stop/delete pod `kn1kscmdlxcvge`; delete orphan volume `7r1yjbov27` in EU-NL-1 if still present.
+**Pod:** `kn1kscmdlxcvge` (EU-RO-1, 8 vCPU, volume `j1d9e6wq5l` @ `/workspace`)
 
 ---
 
-## Phase 1 — Toolchain build (LLVM + Clang + LLD + BOLT)
+## Phase 0 — Infrastructure ✓
 
-| Step | Task | Status | Command / check |
-|------|------|--------|-----------------|
-| 1.1 | Full clone `llvm-project` release/19.x (no shallow clone) | **In progress** | `bash scripts/ensure-llvm-source.sh` |
-| 1.2 | Verify source marker and TableGen tree | Pending | `cat third_party/llvm-project/.overlay-source-ok` and `llvm/utils/TableGen` exists |
-| 1.3 | CMake configure (X86, AArch64, ARM targets) | Pending | `bash scripts/build-llvm-bolt.sh` |
-| 1.4 | Ninja build (~2–4 h on 8 vCPU) | Pending | `pgrep -a ninja` on pod |
-| 1.5 | Verify binaries | Pending | `build/bin/llvm-bolt`, `clang`, `ld.lld` |
-| 1.6 | Package toolchain tarball | Pending | `bash scripts/package-toolchain.sh` |
-| 1.7 | Download tarball to local machine | Pending | `scp` from `/workspace/` |
-| 1.8 | Stop RunPod pod to end billing | Pending | `bash scripts/destroy-pod.sh` or RunPod console |
+- [x] Overlay repo scaffold, scripts, cmake
+- [x] Idempotent `ensure-*-source.sh` (flock + marker)
+- [x] GitHub push; RunPod pod + 150 GB volume (single volume, EU-RO-1)
+- [x] Deps installed on pod; repo at `/workspace/bolt-lk-overlay`
 
-### Monitor on pod
+---
+
+## Phase 1 — Toolchain
+
+| # | Task | Status |
+|---|------|--------|
+| 1.1 | Full clone `llvm-project` release/19.x | In progress |
+| 1.2 | `.overlay-source-ok` + `llvm/utils/TableGen` | Pending |
+| 1.3 | `build-llvm-bolt.sh` (cmake + ninja) | Pending |
+| 1.4 | Verify `llvm-bolt`, `clang`, `ld.lld` | Pending |
+| 1.5 | `package-toolchain.sh` + download tarball | Pending |
+| 1.6 | Stop pod when done | Pending |
 
 ```bash
 tail -f /workspace/build-llvm.log
-du -sh /workspace/bolt-lk-overlay/third_party/llvm-project
 pgrep -a 'git clone|ninja|cmake'
 ```
 
-### Lessons learned (Phase 1)
+---
 
-- **Do not** use `git clone --depth 1` for llvm-project — shallow trees miss `llvm/utils/TableGen` and cmake fails.
-- **Do not** start multiple parallel `git clone` processes; `ensure-llvm-source.sh` uses flock.
-- CPU pods: max ~20 GB container disk; keep source + build on `/workspace` network volume.
-- Use `runpod/base:1.0.2-ubuntu2404` (plain `ubuntu:24.04` broke SSH).
+## Phase 2 — AArch64 bare-metal BOLT on LK
+
+LK = test harness. **Boot is smoke test only**; real validation uses `bolt_bench` workloads (see [aarch64-bare-metal.md](aarch64-bare-metal.md)).
+
+### Overlay patches to land
+
+| Patch | Target | Purpose |
+|-------|--------|---------|
+| `bolt-rt-baremetal.patch` | `bolt/runtime/` | RAM counters, no syscalls |
+| `linker-bolt-profile.patch` | LK linker script | `.bolt_profile` section |
+| `platform-dump-profile.patch` | LK platform | Dump profile RAM |
+| `app-bolt-bench.patch` | LK `app/` | hot_loop, memcpy, threads |
+
+### Steps
+
+| # | Task | Status |
+|---|------|--------|
+| 2.1 | `ensure-lk-source.sh` + build `qemu-virt-arm64-test` (`-Wl,-q`) | |
+| 2.2 | `bolt-rt-baremetal.patch` — RAM profile layout | |
+| 2.3 | LK linker + dump hook patches | |
+| 2.4 | `llvm-bolt -instrument` → `lk.instr.elf` (`--no-lse-atomics`) | |
+| 2.5 | **T0:** boot smoke — counters non-zero | |
+| 2.6 | **`app-bolt-bench`** — T1 hot_loop, T2 memcpy | |
+| 2.7 | `scripts/ram-dump-to-fdata.sh` — host `.fdata` | |
+| 2.8 | `llvm-bolt -data=prof.fdata` → `lk.bolt.elf` | |
+| 2.9 | **T1/T2** on optimized ELF — measure speedup | |
+| 2.10 | (Stretch) T3 threads, T4 timer IRQ | |
 
 ---
 
-## Phase 2 — AArch64 LK proof of concept
+## Phase 3 — AArch32 BOLT → LLVM upstream
 
-See [phase1-aarch64-lk.md](phase1-aarch64-lk.md) for detail.
+Full design: [aarch32-bolt.md](aarch32-bolt.md).
 
-| Step | Task | Status |
-|------|------|--------|
-| 2.1 | Clone LK source (`ensure-lk-source.sh`) | Not started |
-| 2.2 | Build LK `qemu-virt-arm64-test` with `--emit-relocs` (`-Wl,-q`) | Not started |
-| 2.3 | Instrument with BOLT: `llvm-bolt lk.elf -instrument -o lk.instr.elf` | Not started |
-| 2.4 | Add overlay patch: profile counters in linker-script RAM section | Not started |
-| 2.5 | Boot instrumented LK in QEMU (`--no-lse-atomics` for cortex-a53) | Not started |
-| 2.6 | Run workload, dump counter region from RAM → host `.fdata` | Not started |
-| 2.7 | Re-optimize: `llvm-bolt lk.elf -o lk.bolt.elf -data=prof.fdata` | Not started |
-| 2.8 | Boot optimized LK and verify behavior | Not started |
-
-**Why overlay patches are needed:** stock `bolt/runtime/instr.cpp` writes `/tmp/prof.fdata` via Linux syscalls. LK has no filesystem — counters must live in a fixed RAM buffer defined in the linker script.
+| # | Task | Status |
+|---|------|--------|
+| 3.1 | ELF32 reader + ARM-mode CFG | |
+| 3.2 | MCPlusBuilder + branch veneers | |
+| 3.3 | Thumb-2, IT blocks, interworking | |
+| 3.4 | Instrumentation + RAM profile (reuse Phase 2) | |
+| 3.5 | LK `qemu-virt-arm32-test` + `bolt_bench` | |
+| 3.6 | Lit tests per upstream PR | |
+| 3.7 | Merge backend to llvm-project; shrink overlay | |
 
 ---
 
-## Phase 3 — AArch32 BOLT design
-
-See [phase2-aarch32-bolt-design.md](phase2-aarch32-bolt-design.md). Upstream BOLT has **no ARM32/Thumb backend** today.
-
-| Step | Task | Status |
-|------|------|--------|
-| 3.1 | ELF32 reader + ARM-mode disassemble-only | Not started |
-| 3.2 | `ARM MCPlusBuilder` + CFG (ARM-only functions) | Not started |
-| 3.3 | Rewrite with branch veneers (range limits) | Not started |
-| 3.4 | Thumb-2 without IT blocks | Not started |
-| 3.5 | IT blocks as atomic instrumentation units | Not started |
-| 3.6 | ARM/Thumb interworking edges (BL, BLX, BX, LDR PC) | Not started |
-| 3.7 | LK ARM32 QEMU target + in-RAM profile dump (reuse Phase 2) | Not started |
-
----
-
-## Script reference
+## Scripts
 
 | Script | Purpose |
 |--------|---------|
-| `scripts/ensure-llvm-source.sh` | Idempotent full llvm-project clone |
-| `scripts/ensure-lk-source.sh` | Idempotent LK clone |
-| `scripts/build-llvm-bolt.sh` | CMake + Ninja build |
-| `scripts/build-lk-aarch64.sh` | Build LK for QEMU virt |
-| `scripts/package-toolchain.sh` | Tarball of built tools |
-| `scripts/install-deps.sh` | Apt packages on Ubuntu 24.04 |
-| `scripts/create-pod.sh` / `destroy-pod.sh` | RunPod lifecycle |
+| `ensure-llvm-source.sh` / `ensure-lk-source.sh` | Idempotent clones |
+| `build-llvm-bolt.sh` | Toolchain build |
+| `build-lk-aarch64.sh` | LK AArch64 ELF |
+| `apply-overlays.sh` | Apply `overlay/*/patches/*.patch` |
+| `package-toolchain.sh` | Tarball |
+| `create-pod.sh` / `destroy-pod.sh` | RunPod |
 
 ---
 
-## Cost notes
+## Cost
 
-- Pod bills while **RUNNING** (~$0.52/hr for current config). Laptop shutdown does **not** stop the pod.
-- Monitor via [RunPod console](https://www.runpod.io/console/pods) or GitHub mobile app for repo updates.
-- Delete unused network volumes to avoid storage charges.
+Pod ~$0.52/hr while running. Stop pod after Phase 1 tarball is downloaded.

@@ -1,66 +1,49 @@
 # bolt-lk-overlay
 
-Overlay repository for **BOLT on bare-metal Little Kernel (LK)**.
+Overlay repo for **BOLT on bare-metal Little Kernel** — AArch64 RAM profiling first, then **AArch32 BOLT** for LLVM upstream.
 
-Upstream sources are **not forked** — they are tracked as git submodules and we apply local patches from `overlay/`.
+Upstream [llvm-project](https://github.com/llvm/llvm-project) and [lk](https://github.com/littlekernel/lk) are **not forked**. Only deltas live in `overlay/`; sources are cloned into `third_party/` by scripts.
 
-## Upstream dependencies
+## Documentation
 
-| Submodule | Repository | Purpose |
-|-----------|------------|---------|
-| `third_party/llvm-project` | [llvm/llvm-project](https://github.com/llvm/llvm-project) | LLVM, Clang, LLD, BOLT |
-| `third_party/lk` | [littlekernel/lk](https://github.com/littlekernel/lk) | Little Kernel OS |
+| Doc | What |
+|-----|------|
+| [docs/PROJECT_PLAN.md](docs/PROJECT_PLAN.md) | Checklist and status |
+| [docs/architecture.md](docs/architecture.md) | End-to-end flow, overlay split |
+| [docs/aarch64-bare-metal.md](docs/aarch64-bare-metal.md) | Bare-metal delta vs stock BOLT; LK workloads |
+| [docs/aarch32-bolt.md](docs/aarch32-bolt.md) | ARM/Thumb design, edge cases, upstream merge path |
 
-## Project plan
-
-**[docs/PROJECT_PLAN.md](docs/PROJECT_PLAN.md)** — step-by-step checklist with current status, RunPod details, and phase breakdown.
+## Phases
 
 | Phase | Focus | Status |
 |-------|-------|--------|
-| 0 | Repo, scripts, RunPod infra | Done |
-| 1 | LLVM + Clang + LLD + BOLT toolchain | In progress |
-| 2 | AArch64 LK QEMU PoC + in-RAM profiling | Not started |
-| 3 | AArch32 BOLT design | Not started |
+| 0 | Repo, scripts, RunPod | Done |
+| 1 | LLVM + BOLT toolchain | In progress |
+| 2 | AArch64 RAM profile + `bolt_bench` on LK | Not started |
+| 3 | AArch32 backend → LLVM upstream | Not started |
 
 ## Quick start
 
 ```bash
-# Clone with submodules
-git clone --recurse-submodules https://github.com/somraj80/bolt-lk-overlay.git
+git clone https://github.com/somraj80/bolt-lk-overlay.git
 cd bolt-lk-overlay
-
-# Fetch upstream sources (idempotent — skips if already cloned)
-./scripts/init-submodules.sh
-
-# Apply overlay patches (when present)
-./scripts/apply-overlays.sh
-
-# Build LLVM/BOLT (on Linux)
-./scripts/install-deps.sh
+./scripts/init-submodules.sh      # clones llvm + lk into third_party/
+./scripts/install-deps.sh         # Linux
 ./scripts/build-llvm-bolt.sh
-
-# Build LK for QEMU AArch64
+./scripts/apply-overlays.sh       # when patches exist
 ./scripts/build-lk-aarch64.sh
 ```
 
-Copy `.env.example` to `.env` and fill in RunPod/SSH settings if using remote builds.
-
-## Repository layout
+## Layout
 
 ```
-bolt-lk-overlay/
-├── .gitmodules
-├── cmake/llvm-bolt.cmake      # Shared LLVM/BOLT CMake cache
-├── overlay/
-│   ├── llvm/patches/          # Patches on llvm-project
-│   └── lk/patches/            # Patches on LK (linker script, RAM dump)
-├── scripts/                   # Build, RunPod, QEMU helpers
-├── docs/                      # Phase docs and AArch32 design
-└── third_party/               # Submodule mount points
-    ├── llvm-project/
-    └── lk/
+overlay/llvm/patches/   # bolt-rt, AArch32 backend slices (→ upstream when merged)
+overlay/lk/patches/     # linker script, bolt_bench, dump hook
+scripts/                # build, RunPod, ram-dump-to-fdata (TBD)
+docs/                   # plan + architecture
+third_party/            # llvm-project, lk (gitignored; cloned on demand)
 ```
 
 ## License
 
-Overlay scripts and docs: MIT. Upstream LLVM and LK retain their respective licenses.
+Overlay scripts and docs: MIT. Upstream LLVM and LK keep their licenses.
