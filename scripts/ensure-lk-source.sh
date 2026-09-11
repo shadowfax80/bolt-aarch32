@@ -7,7 +7,7 @@ LK_DIR="${LK_DIR:-$ROOT/third_party/lk}"
 LK_BRANCH="${LK_BRANCH:-master}"
 LK_REMOTE="${LK_REMOTE:-https://github.com/littlekernel/lk.git}"
 MARKER="$LK_DIR/.overlay-source-ok"
-LOCKFILE="$LK_DIR/.overlay-clone.lock"
+LOCKFILE="$(dirname "$LK_DIR")/.lk-clone.lock"
 
 lk_tree_ok() {
   [[ -d "$LK_DIR/.git" ]] && [[ -f "$LK_DIR/makefile" || -f "$LK_DIR/Makefile" ]]
