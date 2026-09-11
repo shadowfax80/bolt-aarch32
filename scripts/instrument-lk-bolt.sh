@@ -52,7 +52,6 @@ BOLT_ARGS=(
   --no-lse-atomics
   --instrument-calls=false
   --instrumentation-sleep-time=1
-  --use-old-text
   --skip-funcs=_start,arm64_elX_to_el1,arm64_enable_mmu,arch_early_init,arm64_early_init_percpu,platform_early_init
   --runtime-instrumentation-lib="$LIB"
   -o "$OUT"
