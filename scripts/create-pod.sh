@@ -111,7 +111,14 @@ for _ in $(seq 60); do
     "https://api.runpod.io/v2/pods/${POD_ID}")"
   if [[ "$(jq -r '.status // empty' <<<"$POD")" == "RUNNING" &&
         -n "$(jq -r '.ssh.direct.port // empty' <<<"$POD")" ]]; then
-    jq -r '"mount: " + (.mounts.network[0].volumeId // "NONE") + " at " + (.mounts.network[0].path // "-")' <<<"$POD"
+    MOUNT_VOL="$(jq -r '.mounts.network[0].volumeId // empty' <<<"$POD")"
+    MOUNT_PATH="$(jq -r '.mounts.network[0].path // empty' <<<"$POD")"
+    if [[ "$MOUNT_VOL" != "$NETWORK_VOLUME_ID" ]]; then
+      echo "error: pod $POD_ID has volume '$MOUNT_VOL', expected '$NETWORK_VOLUME_ID'" >&2
+      echo "error: delete this pod and recreate — volume cannot be attached later" >&2
+      exit 1
+    fi
+    echo "mount: $MOUNT_VOL at $MOUNT_PATH"
     jq -r '"ssh: " + .ssh.direct.command' <<<"$POD"
     exit 0
   fi

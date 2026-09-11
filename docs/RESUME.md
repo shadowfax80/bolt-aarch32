@@ -11,7 +11,7 @@ All upstream sources, builds, and QEMU runs live on the **RunPod network volume*
 
 | Resource | ID / value | Notes |
 |----------|------------|-------|
-| Pod | `h9cs2sqm4h7w66` (`outer_gray_macaw`) | 4 vCPU, Ubuntu 24.04 — **RUNNING** |
+| Pod | *(none)* | Deleted 2026-09-12 — recreate with `./scripts/create-pod.sh` |
 | Network volume | `j1d9e6wq5l` | 150 GB, EU-RO-1 — **keeps all work** (~$0.07/GB/mo storage) |
 | Region | EU-RO-1 | The volume only attaches to pods in its own region |
 | Image | `runpod/base:1.0.2-ubuntu2404` | Must be the 24.04 tag — see the traps below |
@@ -68,12 +68,15 @@ apt-get update -qq && apt-get install -y -qq qemu-system-arm
 - `llvm-bolt`, `clang`, `ld.lld`, llvm binutils — built
 - LK `qemu-virt-arm64-test` — built and booted to shell in QEMU (`cortex-a53`, 4 CPUs)
 
-**Not done yet (Phase 2):**
+**Phase 2 verified before pod delete:**
 
-- First run of the bare-metal runtime on the pod (source is committed, never compiled)
+- Bare-metal BOLT runtime built and used
+- Instrument → profile → optimize → boot (`./scripts/verify-lk-bolt.sh` passed)
+
+**Still pending:**
+
 - On-target `.fdata` serialization over UART
-- LK overlay patches (linker script, `bolt_bench`, profile dump)
-- BOLT instrument → profile → optimize loop
+- LK overlay patches (dump hook, `bolt_bench` workloads)
 
 ---
 
