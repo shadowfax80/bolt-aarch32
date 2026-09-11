@@ -1,15 +1,11 @@
 #!/usr/bin/env bash
+# Populate third_party trees idempotently (no submodule init for llvm/lk — they are gitignored).
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
 
-git submodule update --init --recursive
+"$ROOT/scripts/ensure-llvm-source.sh"
+"$ROOT/scripts/ensure-lk-source.sh"
 
-LLVM_BRANCH="${LLVM_BRANCH:-release/19.x}"
-if [[ -d third_party/llvm-project/.git ]]; then
-  git -C third_party/llvm-project fetch origin "$LLVM_BRANCH" --depth 1 || true
-  git -C third_party/llvm-project checkout "$LLVM_BRANCH" || true
-fi
-
-echo "Submodules ready."
+echo "Third-party sources ready."

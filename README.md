@@ -24,8 +24,8 @@ Upstream sources are **not forked** — they are tracked as git submodules and w
 git clone --recurse-submodules https://github.com/somraj80/bolt-lk-overlay.git
 cd bolt-lk-overlay
 
-# Or init submodules after clone
-git submodule update --init --recursive
+# Fetch upstream sources (idempotent — skips if already cloned)
+./scripts/init-submodules.sh
 
 # Apply overlay patches (when present)
 ./scripts/apply-overlays.sh
