@@ -36,13 +36,21 @@ apply_patches() {
       continue
     fi
     echo "  $patch"
-    git -C "$dir" apply --check "$patch"
+    if ! git -C "$dir" apply --check "$patch" 2>/dev/null; then
+      echo "  warning: patch check failed, skipping: $patch" >&2
+      continue
+    fi
     git -C "$dir" apply "$patch"
   done
 }
 
 # LK files + patches first — llvm apply failures must not block bolt_bench.
 install_overlay_files "$ROOT/third_party/lk" "$ROOT/overlay/lk/files"
+LK_PROJECT_MK="$ROOT/third_party/lk/project/qemu-virt-arm64-test.mk"
+if [[ -f "$LK_PROJECT_MK" ]] && ! grep -q 'app/bolt_bench' "$LK_PROJECT_MK"; then
+  sed -i '/app\/shell/a\\tapp/bolt_bench \\' "$LK_PROJECT_MK"
+  echo "added app/bolt_bench to qemu-virt-arm64-test.mk"
+fi
 apply_patches lk "$ROOT/third_party/lk" "$ROOT/overlay/lk/patches"
 apply_patches llvm-project "$ROOT/third_party/llvm-project" "$ROOT/overlay/llvm/patches"
 echo "Done."
