@@ -20,3 +20,4 @@ index d71d8ef1c044..a91cf2377982 100644
 +    emitString("__bolt_instr_tables", buildTables(BC));
    }
  }
+

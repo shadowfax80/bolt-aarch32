@@ -157,4 +157,5 @@ diff --git a/project/qemu-virt-arm64-test.mk b/project/qemu-virt-arm64-test.mk
      lib/uefi
  include project/virtual/test.mk
  include project/virtual/fs.mk
+ include project/virtual/minip.mk
 

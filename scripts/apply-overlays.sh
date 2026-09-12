@@ -32,6 +32,7 @@ apply_patches() {
   done
 }
 
-apply_patches llvm-project "$ROOT/third_party/llvm-project" "$ROOT/overlay/llvm/patches"
+# LK patches first — llvm apply failures must not block bolt_bench overlay.
 apply_patches lk "$ROOT/third_party/lk" "$ROOT/overlay/lk/patches"
+apply_patches llvm-project "$ROOT/third_party/llvm-project" "$ROOT/overlay/llvm/patches"
 echo "Done."
