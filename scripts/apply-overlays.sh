@@ -4,6 +4,15 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 
+install_overlay_files() {
+  local dir="$1"
+  local files_dir="$2"
+  if [[ -d "$files_dir" ]]; then
+    echo "Installing overlay files from $files_dir..."
+    cp -a "$files_dir/." "$dir/"
+  fi
+}
+
 apply_patches() {
   local name="$1"
   local dir="$2"
@@ -32,7 +41,8 @@ apply_patches() {
   done
 }
 
-# LK patches first — llvm apply failures must not block bolt_bench overlay.
+# LK files + patches first — llvm apply failures must not block bolt_bench.
+install_overlay_files "$ROOT/third_party/lk" "$ROOT/overlay/lk/files"
 apply_patches lk "$ROOT/third_party/lk" "$ROOT/overlay/lk/patches"
 apply_patches llvm-project "$ROOT/third_party/llvm-project" "$ROOT/overlay/llvm/patches"
 echo "Done."
