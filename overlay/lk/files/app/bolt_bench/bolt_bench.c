@@ -112,7 +112,7 @@ static void bolt_bench_app_entry(const struct app_descriptor *app, void *args) {
 
 #if WITH_LIB_CONSOLE
 STATIC_COMMAND_START
-STATIC_COMMAND("bolt_bench", "BOLT synthetic AArch64 workloads", &bolt_bench_cmd)
+STATIC_COMMAND("bolt_bench", "BOLT synthetic bare-metal workloads", &bolt_bench_cmd)
 STATIC_COMMAND_END(bolt_bench);
 #endif
 

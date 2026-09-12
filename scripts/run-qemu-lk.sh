@@ -1,20 +1,32 @@
 #!/usr/bin/env bash
-# Boot LK qemu-virt-arm64-test in QEMU on the pod.
+# Boot LK in QEMU (AArch64 or ARM32 virt targets).
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 LK_DIR="${LK_DIR:-$ROOT/third_party/lk}"
-ELF="${ELF:-$LK_DIR/build-qemu-virt-arm64-test/lk.elf}"
+LK_PROJECT="${LK_PROJECT:-qemu-virt-arm64-test}"
+ELF="${ELF:-$LK_DIR/build-$LK_PROJECT/lk.elf}"
 
-QEMU="${QEMU:-qemu-system-aarch64}"
-MACHINE="${QEMU_MACHINE:-virt}"
-CPU="${QEMU_CPU:-cortex-a53}"
-MEM="${QEMU_MEM:-512}"
-SMP="${QEMU_SMP:-4}"
+case "$LK_PROJECT" in
+  qemu-virt-arm32-test)
+    QEMU="${QEMU:-qemu-system-arm}"
+    MACHINE="${QEMU_MACHINE:-virt}"
+    CPU="${QEMU_CPU:-cortex-a15}"
+    MEM="${QEMU_MEM:-512}"
+    SMP="${QEMU_SMP:-1}"
+    ;;
+  *)
+    QEMU="${QEMU:-qemu-system-aarch64}"
+    MACHINE="${QEMU_MACHINE:-virt}"
+    CPU="${QEMU_CPU:-cortex-a53}"
+    MEM="${QEMU_MEM:-512}"
+    SMP="${QEMU_SMP:-4}"
+    ;;
+esac
 
 if [[ ! -f "$ELF" ]]; then
   echo "error: $ELF not found — build LK first" >&2
-  echo "  cd $LK_DIR && make qemu-virt-arm64-test TOOLCHAIN=clang CLANG_BINDIR=$ROOT/build/bin -j\$(nproc)" >&2
+  echo "  LK_PROJECT=$LK_PROJECT $ROOT/scripts/build-lk-aarch64.sh  # or build-lk-aarch32.sh" >&2
   exit 1
 fi
 
