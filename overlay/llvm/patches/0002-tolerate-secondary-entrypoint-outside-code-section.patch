@@ -27,3 +27,4 @@ index a12b83859669..66f2366b5ec6 100644
 +                       << " lies outside its code section\n";
            FF = Function->getLayout().fragment_begin();
          }
+
