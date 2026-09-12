@@ -87,9 +87,23 @@ Boot alone is a weak profile — short and cold-cache. Workloads must exercise r
 ## Directory map
 
 ```
-overlay/llvm/patches/   # bare-metal runtime, AArch32 backend slices
+overlay/llvm/patches/   # bare-metal runtime, AArch32 backend slices (staging until upstream merge)
+overlay/llvm/tests/     # lit .s fixtures until they move into llvm-project with each PR
 overlay/lk/patches/     # linker script, bolt_bench, dump hook
 scripts/                # source fetch, build, RunPod, BOLT instrument/optimize
 docs/                   # plan + design
-third_party/            # llvm-project, lk — gitignored, cloned on demand
+third_party/            # llvm-project, lk — gitignored locally; lives on the pod volume
 ```
+
+## Upstream backend development (Phase 3)
+
+AArch32 BOLT backend code is developed in **`third_party/llvm-project/` on the persistent volume**, not in this overlay repo. Each plan rung (P1–P8) becomes one small llvm-project PR with lit tests under `llvm/test/tools/llvm-bolt/`.
+
+| Step | Where |
+|------|--------|
+| Branch + implement | `/workspace/bolt-lk-overlay/third_party/llvm-project/` |
+| Export staging patch | `overlay/llvm/patches/000N-*.patch` |
+| Verify on pod | Rebuild `llvm-bolt`, run lit + LK harness |
+| Upstream | PR to `llvm-project/main`; delete overlay patch when merged |
+
+`LLVM_TARGETS_TO_BUILD=ARM` gives clang/lld ARM32 support only. A BOLT backend also requires adding `ARM` to `BOLT_TARGETS_TO_BUILD` and a new `bolt/lib/Target/ARM/` tree. LK/QEMU verification stays in this repo; no LK code goes upstream.

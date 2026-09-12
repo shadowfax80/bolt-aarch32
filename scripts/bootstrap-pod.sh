@@ -14,11 +14,10 @@ DEBIAN_FRONTEND=noninteractive apt-get update -qq
 DEBIAN_FRONTEND=noninteractive apt-get install -y -qq \
   qemu-system-arm ninja-build cmake build-essential ccache lld python3 git
 
-if [[ ! -x "$ROOT/build/bin/llvm-bolt" ]]; then
-  echo "error: $ROOT/build/bin/llvm-bolt missing — this is not the toolchain volume" >&2
-  exit 1
-fi
+"$ROOT/scripts/fetch-sources.sh"
+"$ROOT/scripts/verify-workspace.sh"
 
 "$ROOT/build/bin/llvm-bolt" --version | head -3
 command -v qemu-system-aarch64
+command -v qemu-system-arm
 echo "pod bootstrap complete"
