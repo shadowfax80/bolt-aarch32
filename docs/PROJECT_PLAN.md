@@ -65,9 +65,18 @@
 
 ---
 
-## Phase 3 — not started
+## Phase 3 — AArch32 BOLT (not started)
 
-See [aarch32-bolt.md](aarch32-bolt.md).
+LK stays the host; only `bolt_bench_*` is profiled. Details: [aarch32-bolt.md](aarch32-bolt.md).
+
+| # | Rung | What |
+|---|------|------|
+| 3.0 | P0 | ARM32 LK + QEMU + `bolt_bench` (no backend yet) |
+| 3.1 | P1–P4 | ELF32, ARM disasm, CFG, identity rewrite |
+| 3.2 | P5–P6 | Veneers, Thumb-2 without IT |
+| 3.3 | P7–P8 | IT blocks, ARM↔Thumb interworking |
+| 3.4 | P9–P10 | Instrument + QMP `.fdata` + optimize |
+| 3.5 | P11 | Upstream PRs to llvm-project `main` |
 
 ---
 
