@@ -22,9 +22,14 @@
 # fallback for a pod that must authorize a specific key.
 set -euo pipefail
 
-: "${RUNPOD_API_KEY:?Set RUNPOD_API_KEY (RunPod console -> Settings -> API Keys)}"
-
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+
+# Prefer the Python entry point (works on Windows; avoids jq; sets curl User-Agent).
+if command -v python3 >/dev/null && [[ -f "$ROOT/scripts/create-pod.py" ]]; then
+  exec python3 "$ROOT/scripts/create-pod.py"
+fi
+
+: "${RUNPOD_API_KEY:?Set RUNPOD_API_KEY (RunPod console -> Settings -> API Keys)}"
 
 POD_NAME="${POD_NAME:-llvm-bolt-builder}"
 NETWORK_VOLUME_ID="${NETWORK_VOLUME_ID:-j1d9e6wq5l}"

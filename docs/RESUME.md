@@ -15,13 +15,14 @@ All upstream sources, builds, and QEMU runs live on the **RunPod network volume*
 | Network volume | `j1d9e6wq5l` | 150 GB, EU-RO-1 — **keeps all work** (~$0.07/GB/mo storage) |
 | Region | EU-RO-1 | The volume only attaches to pods in its own region |
 | Image | `runpod/base:1.0.2-ubuntu2404` | Must be the 24.04 tag — see the traps below |
-| Compute | cpu5m / cpu3c, 4–8 vCPU | ~$0.12–0.52/hr while running |
+| Compute | cpu3c, 2 vCPU (default) | ~$0.06/hr while running |
 
 ### Recreating the pod
 
+See [RUNPOD.md](RUNPOD.md) for the full playbook (duplicate-pod traps, API shape).
+
 ```bash
-export RUNPOD_API_KEY=...        # RunPod -> Settings -> API Keys
-./scripts/create-pod.sh          # attaches j1d9e6wq5l, falls back 8 -> 4 -> 2 vCPU
+python3 scripts/create-pod.py    # attaches j1d9e6wq5l; reuses pod if already running
 ./scripts/pod-ssh.sh             # resolves the current host and port, then connects
 ./scripts/pod-ssh.sh 'cd /workspace/bolt-lk-overlay && git pull && ./scripts/bootstrap-pod.sh'
 ```
@@ -34,6 +35,7 @@ two scripts:
 
 | Trap | Consequence |
 |------|-------------|
+| RunPod MCP `create-pod` | No `networkVolumeId` — creates a billable pod without `/workspace` (scrap) |
 | Volume not attached at create | Unrecoverable — RunPod rejects adding a mount to a mountless pod and treats `volumeId` as immutable, so the pod is scrap |
 | Image other than `ubuntu2404` | `llvm-bolt` dies with `GLIBC_2.32 not found`; the toolchain was linked against glibc 2.39, and the console's `runpod-ubuntu` template defaults to 20.04 |
 | SSH key added inside the pod | Lost on the next deploy, because the container disk is ephemeral — add it under **Settings -> SSH Public Keys** so every new pod authorizes it |
