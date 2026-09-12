@@ -49,10 +49,18 @@ install_overlay_files "$ROOT/third_party/lk" "$ROOT/overlay/lk/files"
 
 add_bolt_bench_to_project() {
   local mk="$1"
-  if [[ -f "$mk" ]] && ! grep -q 'app/bolt_bench' "$mk"; then
-    sed -i '/app\/shell/a\\tapp/bolt_bench \\' "$mk"
-    echo "added app/bolt_bench to $(basename "$mk")"
+  if [[ ! -f "$mk" ]] || grep -q 'app/bolt_bench' "$mk"; then
+    return 0
   fi
+
+  # arm64 already lists "app/shell \\"; arm32 often ends with "app/shell" alone.
+  if grep -q $'app/shell \\' "$mk"; then
+    sed -i '/app\/shell/a\\tapp/bolt_bench \\' "$mk"
+  else
+    sed -i 's/^\([[:space:]]*app\/shell\)$/\1 \\/' "$mk"
+    sed -i '/app\/shell/a\\tapp/bolt_bench' "$mk"
+  fi
+  echo "added app/bolt_bench to $(basename "$mk")"
 }
 
 add_bolt_bench_to_project "$ROOT/third_party/lk/project/qemu-virt-arm64-test.mk"
