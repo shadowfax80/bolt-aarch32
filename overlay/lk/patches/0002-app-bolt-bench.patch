@@ -129,6 +129,7 @@ index 00000000..a1b2c3d4
 +APP_START(bolt_bench)
 +    .entry = bolt_bench_app_entry,
 +APP_END
++
 diff --git a/app/bolt_bench/rules.mk b/app/bolt_bench/rules.mk
 new file mode 100644
 index 00000000..b2c3d4e5
