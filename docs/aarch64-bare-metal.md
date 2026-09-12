@@ -93,20 +93,20 @@ Takes the instrumented ELF plus the raw dump, emits `.fdata`. Harness glue; not 
 
 ## Validation strategy (beyond boot)
 
-Booting proves the instrumented image links and runs. It does **not** prove the optimization works: boot is short, cold-cache, and mostly one-shot code, so there is almost no hot-edge mass for BOLT to act on.
+Boot alone is too short and cold-cache-heavy for BOLT to help. Add an LK app `bolt_bench` (`overlay/lk/patches/app-bolt-bench.patch`) with shell subcommands, instrument its entry functions, run before counter dump, and measure with the guest timer (`CNTVCT_EL0`) — not host wall-clock.
 
-| Tier | Workload | Validates |
-|------|----------|-----------|
-| T0 | Boot to shell prompt | No crash; counters non-zero |
-| T1 | `bolt_bench hot_loop` | Dominant edge counts match source |
-| T2 | `bolt_bench memcpy` | Function-level hot spots |
-| T3 | `bolt_bench threads` | Counter integrity across contexts |
-| T4 | Timer / IRQ handler | Short hot paths, not just `main` |
-| T5 | Re-run T1–T4 on `lk.bolt.elf` | Wall-clock and counter stability |
+**Phase 2 (build these first):**
 
-T0–T2 are Phase 2 scope; T3–T4 are stretch. **Faster boot is not the success criterion.**
+| Cmd | What it stresses | Pass criteria |
+|-----|------------------|---------------|
+| `hot_loop` | One dominant back-edge | Counter ≈ iterations; faster on `lk.bolt.elf` |
+| `hot_cold` | 99% fast / 1% cold path | Cold block split; icache win |
+| `branch_chain` | Long `TBZ`/`CBZ` chain | Edge weights match source |
+| `memcpy` | Straight-line memory loop | Hot function in `.fdata` |
 
-Measure inside the guest with the ARM generic timer (`CNTVCT_EL0`), not host wall-clock — QEMU's scheduling makes host timing far too noisy.
+**Stretch (after call-edge profiling works):** `threads` (LDXR/STXR atomics), `switch` (jump table), `timer_irq` (short handler).
+
+Pipeline per workload: instrument → boot → `bolt_bench <cmd>` → QMP dump → fdata → optimize → re-run with guest timer.
 
 ## Pipeline
 
