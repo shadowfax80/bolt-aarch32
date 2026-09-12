@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# Concise BOLT AArch64 verification: bolt_bench workloads → profile → optimize → boot.
+# End-to-end BOLT AArch64 verification on bare-metal LK.
+# Only bolt_bench synthetic workloads are instrumented — LK is the host platform.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"

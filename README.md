@@ -38,7 +38,7 @@ cd /workspace/bolt-lk-overlay
 ./scripts/build-llvm-bolt.sh       # Phase 1 — already done on volume
 ./scripts/apply-overlays.sh        # when overlay patches exist
 ./scripts/run-qemu-lk.sh             # boot LK in QEMU
-./scripts/verify-lk-bolt.sh          # instrument → profile → optimize → boot
+./scripts/verify-bolt-workloads.sh   # bolt_bench → profile → optimize → boot
 ```
 
 Copy `.env.example` to `.env` on the pod; set `NETWORK_VOLUME_ID=j1d9e6wq5l` to reattach the saved volume.

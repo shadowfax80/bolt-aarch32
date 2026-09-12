@@ -73,7 +73,7 @@ apt-get update -qq && apt-get install -y -qq qemu-system-arm
 **Phase 2 verified before pod delete:**
 
 - Bare-metal BOLT runtime built and used
-- Instrument → profile → optimize → boot (`./scripts/verify-lk-bolt.sh` passed)
+- Instrument → profile → optimize → boot (`./scripts/verify-bolt-workloads.sh` passed)
 
 **Still pending:**
 
@@ -129,7 +129,7 @@ Full end-to-end check:
 ```bash
 cd /workspace/bolt-lk-overlay
 git pull
-./scripts/verify-lk-bolt.sh
+./scripts/verify-bolt-workloads.sh
 ```
 
 Or step-by-step:
@@ -147,7 +147,7 @@ Remaining Phase 2 work:
 
 1. On-target `.fdata` serialization (port upstream `writeFunctionProfile` to UART)
 2. LK patches: dump hook, `bolt_bench` app (optional workloads)
-3. Broader instrumentation (`INSTRUMENT_FUNCS=all`) — needs MMU/hot-text mapping work
+3. On-target UART `.fdata` export (optional; QMP dump works today)
 
 Build LK (already works):
 

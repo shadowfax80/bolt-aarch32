@@ -60,7 +60,7 @@
 | 2.4 | `llvm-bolt -instrument --no-lse-atomics` | **Done** |
 | 2.5 | RAM dump → `.fdata` (host-side) | **Done** |
 | 2.6 | `llvm-bolt -data=prof.fdata` + boot fixes | **Done** |
-| 2.7 | End-to-end `verify-lk-bolt.sh` | **Done** |
+| 2.7 | End-to-end `verify-bolt-workloads.sh` | **Done** |
 | 2.8 | On-target UART `.fdata` export | Pending |
 
 ---
@@ -81,10 +81,10 @@ See [aarch32-bolt.md](aarch32-bolt.md).
 | `build-lk-aarch64.sh` | LK with `--emit-relocs` |
 | `run-qemu-lk.sh` | Boot LK in QEMU on pod |
 | `build-bolt-rt-baremetal.sh` | Bare-metal BOLT runtime library |
-| `instrument-lk-bolt.sh` | Instrument LK with llvm-bolt |
+| `instrument-lk-bolt.sh` | Instrument bolt_bench workloads in lk.elf |
 | `dump-bolt-counters.py` | QEMU QMP counter dump |
 | `ram-dump-to-fdata.sh` | Counter RAM → `.fdata` |
 | `optimize-lk-bolt.sh` | BOLT optimize pass |
-| `verify-lk-bolt.sh` | End-to-end pipeline check |
+| `verify-bolt-workloads.sh` | End-to-end pipeline (bolt_bench only) |
 | `apply-overlays.sh` | Apply `overlay/*/patches/` |
 | `create-pod.sh` / `destroy-pod.sh` | RunPod lifecycle |

@@ -374,7 +374,7 @@ def write_function_profile(
                 name_end = ctx.strings.index(b"\0", 0)
                 name = ctx.strings[:name_end].decode()
             else:
-                name = "lk_main"
+                name = "unknown"
             line = f"1 {name} 0 1 {name} 0 0 {freq}\n"
             out.write(line)
         return

@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
-# Instrument the LK AArch64 image with llvm-bolt using the bare-metal runtime.
+# Instrument bolt_bench synthetic workloads embedded in the LK image.
+#
+# LK itself is the bare-metal host only — do not instrument kernel or platform
+# functions. BOLT targets are the bolt_bench_* entry points from overlay/lk/files/.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
@@ -8,6 +11,9 @@ LK_DIR="${LK_DIR:-$ROOT/third_party/lk}"
 ELF="${ELF:-$LK_DIR/build-qemu-virt-arm64-test/lk.elf}"
 LIB="${BOLT_RT_LIB:-$ROOT/build/bolt-rt-baremetal/libbolt_rt_baremetal.a}"
 OUT="${OUT:-$ROOT/build/lk.instr.elf}"
+
+BOLT_BENCH_FUNCS="${BOLT_BENCH_FUNCS:-bolt_bench_hot_loop,bolt_bench_hot_cold,bolt_bench_branch_chain,bolt_bench_memcpy}"
+INSTRUMENT_FUNCS="${INSTRUMENT_FUNCS:-$BOLT_BENCH_FUNCS}"
 
 if [[ ! -f "$ELF" ]]; then
   echo "error: $ELF not found — run scripts/build-lk-aarch64.sh" >&2
@@ -18,31 +24,24 @@ if [[ ! -f "$LIB" ]]; then
   exit 1
 fi
 
-# Without relocations in the final image BOLT cannot move code. LK only emits
-# them with the overlay patch to make/build.mk, because engine.mk assigns
-# GLOBAL_LDFLAGS with := and ignores LDFLAGS from the environment.
-#
-# Read into a variable rather than piping: grep -q exits on the first match,
-# which sends SIGPIPE upstream and makes pipefail report the success as failure.
 SECTIONS="$("$TOOLCHAIN/llvm-readelf" --sections "$ELF")"
 if ! grep -q '\.rela\.text' <<<"$SECTIONS"; then
   echo "error: $ELF has no .rela.text — rebuild with WITH_BOLT_RELOCS=true" >&2
   exit 1
 fi
 
-mkdir -p "$(dirname "$OUT")"
+FUNCS_FILE="$(mktemp)"
+trap 'rm -f "$FUNCS_FILE"' EXIT
+tr ',' '\n' <<<"$INSTRUMENT_FUNCS" | sed '/^$/d' > "$FUNCS_FILE"
+while IFS= read -r func; do
+  if [[ "$func" != bolt_bench_* ]]; then
+    echo "error: only bolt_bench_* synthetic workloads may be instrumented (got: $func)" >&2
+    echo "LK kernel/platform code must stay out of the BOLT profile." >&2
+    exit 1
+  fi
+done < "$FUNCS_FILE"
 
-# Counters live at a high virtual address. Any store to them before the MMU
-# is on takes a fault at reset, so the default is to instrument only lk_main,
-# which runs after arch_early_init has enabled the MMU. Override with
-# INSTRUMENT_FUNCS=all to instrument everything (and then skip the boot path
-# some other way).
-FUNCS_FILE=""
-if [[ "${INSTRUMENT_FUNCS:-lk_main}" != "all" ]]; then
-  FUNCS_FILE="$(mktemp)"
-  tr ',' '\n' <<<"${INSTRUMENT_FUNCS:-lk_main}" > "$FUNCS_FILE"
-  trap 'rm -f "$FUNCS_FILE"' EXIT
-fi
+mkdir -p "$(dirname "$OUT")"
 
 # Static ET_EXEC images have no DT_FINI, so BOLT refuses to instrument them
 # unless a watchdog interval is set. The watchdog is a Linux fork path that
@@ -54,11 +53,9 @@ BOLT_ARGS=(
   --instrumentation-sleep-time=1
   --skip-funcs=_start,arm64_elX_to_el1,arm64_enable_mmu,arch_early_init,arm64_early_init_percpu,platform_early_init
   --runtime-instrumentation-lib="$LIB"
+  --instrument-funcs-file="$FUNCS_FILE"
   -o "$OUT"
 )
-if [[ -n "$FUNCS_FILE" ]]; then
-  BOLT_ARGS+=(--instrument-funcs-file="$FUNCS_FILE")
-fi
 
 "$TOOLCHAIN/llvm-bolt" "$ELF" "${BOLT_ARGS[@]}" "$@"
 
@@ -68,13 +65,7 @@ echo "instrumented image: $OUT"
 python3 "$ROOT/scripts/fix-kernel-elf-paddr.py" "$OUT"
 python3 "$ROOT/scripts/fix-kernel-elf-entry.py" "$OUT" --original "$ELF" \
   --readelf "$TOOLCHAIN/llvm-readelf"
-HOOK_FUNCS="${INSTRUMENT_FUNCS:-lk_main}"
-if [[ "$HOOK_FUNCS" == "all" ]]; then
-  HOOK_FUNCS=""
-fi
-SECTION_FIX=(python3 "$ROOT/scripts/fix-kernel-elf-sections.py" "$OUT" --original "$ELF"
-  --readelf "$TOOLCHAIN/llvm-readelf")
-if [[ -n "$HOOK_FUNCS" ]]; then
-  SECTION_FIX+=(--hook-funcs "$HOOK_FUNCS")
-fi
-"${SECTION_FIX[@]}"
+
+python3 "$ROOT/scripts/fix-kernel-elf-sections.py" "$OUT" --original "$ELF" \
+  --readelf "$TOOLCHAIN/llvm-readelf" \
+  --hook-funcs "$INSTRUMENT_FUNCS"

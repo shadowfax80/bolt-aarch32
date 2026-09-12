@@ -33,6 +33,7 @@ Then bootstrap container packages (QEMU etc., lost on every redeploy):
 | **Windows bash + `create-pod.sh`** | `jq` missing; `RUNPOD_API_KEY` not exported into bash from PowerShell | Use **`python scripts/create-pod.py`** on Windows |
 | **Python without User-Agent** | Cloudflare **403 / error 1010** on REST API | `create-pod.py` sends `User-Agent: curl/8.0` |
 | **No pre-flight check** | Recreated pod while one could be reused | Script **reuses** running pod if name + volume match |
+| **Wrong list API shape** | `GET /v2/pods` returns `{pods:[…]}` not `{items:[…]}` — reuse check silently missed existing pod | Fixed in `create-pod.py` |
 | **No mount verify** | Mountless pod looks “fine” until `/workspace` is empty | Script **aborts** if `mounts.network[0].volumeId != j1d9e6wq5l` |
 
 ## Correct API shape (v1 REST)
