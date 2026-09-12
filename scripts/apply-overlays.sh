@@ -54,7 +54,7 @@ add_bolt_bench_to_project() {
   fi
 
   # arm64 already lists "app/shell \\"; arm32 often ends with "app/shell" alone.
-  if grep -q $'app/shell \\' "$mk"; then
+  if grep -qE '[[:space:]]app/shell \\$' "$mk"; then
     sed -i '/app\/shell/a\\tapp/bolt_bench \\' "$mk"
   else
     sed -i 's/^\([[:space:]]*app\/shell\)$/\1 \\/' "$mk"

@@ -1,7 +1,7 @@
 # Project plan
 
 **Repo:** [somraj80/bolt-aarch32](https://github.com/somraj80/bolt-aarch32)  
-**Updated:** 2026-09-11 (paused — pod stopped)
+**Updated:** 2026-09-12
 
 **Resume:** [RESUME.md](RESUME.md)
 
@@ -24,10 +24,10 @@
 | 0 | Repo, scripts, RunPod | **Done** |
 | 1 | LLVM/BOLT toolchain | **Done** |
 | 2 | AArch64 bare-metal + LK | **Done** — instrument, profile, optimize, boot verified |
-| 3 | AArch32 BOLT → upstream | Not started |
+| 3 | AArch32 BOLT → upstream | **P0 done** — ARM32 LK + QEMU + bolt_bench |
 
-**Pod:** `kn1kscmdlxcvge` — **STOPPED**  
-**Volume:** `j1d9e6wq5l` @ `/workspace` (EU-RO-1)
+**Pod:** `ddib0g7kwvdk33` — **RUNNING**  
+**Volume:** `j1d9e6wq5l` @ `/workspace/bolt-lk-overlay` (EU-RO-1)
 
 ---
 
@@ -65,13 +65,13 @@
 
 ---
 
-## Phase 3 — AArch32 BOLT (not started)
+## Phase 3 — AArch32 BOLT (P0 done)
 
 LK stays the host; only `bolt_bench_*` is profiled. Details: [aarch32-bolt.md](aarch32-bolt.md).
 
 | # | Rung | What |
 |---|------|------|
-| 3.0 | P0 | ARM32 LK + QEMU + `bolt_bench` (no backend yet) |
+| 3.0 | P0 | ARM32 LK + QEMU + `bolt_bench` (no backend yet) | **Done** — `verify-bolt-arm32-harness.sh` |
 | 3.1 | P1–P4 | ELF32, ARM disasm, CFG, identity rewrite |
 | 3.2 | P5–P6 | Veneers, Thumb-2 without IT |
 | 3.3 | P7–P8 | IT blocks, ARM↔Thumb interworking |
