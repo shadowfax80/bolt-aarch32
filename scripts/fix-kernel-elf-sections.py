@@ -99,6 +99,22 @@ def vaddr_to_offset(section_map: dict[str, tuple[int, int, int]], vaddr: int) ->
     raise SystemExit(f"no section contains vaddr 0x{vaddr:x}")
 
 
+AARCH64_NOP = 0xD503201F
+
+
+def find_hook_site(
+    data: bytes, section_map: dict[str, tuple[int, int, int]], entry: int
+) -> int:
+    """Pick a NOP slot in org.text for the counter branch hook."""
+    for delta in range(0x4, 0x24, 4):
+        site = entry + delta
+        off = vaddr_to_offset(section_map, site)
+        insn = struct.unpack_from("<I", data, off)[0]
+        if insn == AARCH64_NOP:
+            return site
+    return entry + 0xC
+
+
 def patch_orgtext_counter_hook(
     data: bytearray,
     nm: str,
@@ -117,12 +133,15 @@ def patch_orgtext_counter_hook(
         org_addr, _, org_size = section_map[".bolt.org.text"]
         scratch = org_addr + org_size - 0x60
 
+    with open(original, "rb") as fh:
+        orig_bytes = fh.read()
+
     for func in funcs:
         entry = symbol_addr(nm, original, func)
         if entry is None:
             print(f"warning: skipping hook for missing symbol {func}", file=sys.stderr)
             continue
-        hook_site = entry + 0xC
+        hook_site = find_hook_site(orig_bytes, section_map, entry)
         resume = hook_site + 4
 
         stub = scratch

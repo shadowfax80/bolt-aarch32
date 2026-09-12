@@ -184,6 +184,11 @@ def main() -> int:
         default=5.0,
         help="seconds to let the workload run after boot before dumping",
     )
+    ap.add_argument(
+        "--append",
+        default="",
+        help="QEMU kernel cmdline (e.g. lk.bolt_bench=all for bolt_bench workloads)",
+    )
     args = ap.parse_args()
 
     readelf = os.path.join(args.toolchain, "llvm-readelf")
@@ -214,6 +219,8 @@ def main() -> int:
         "-qmp", f"unix:{qmp_path},server=on,wait=off",
         "-kernel", args.elf,
     ]
+    if args.append:
+        cmd.extend(["-append", args.append])
     print("launching:", " ".join(cmd))
     qemu_err = log + ".qemu-err"
     qemu = subprocess.Popen(
