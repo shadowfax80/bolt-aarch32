@@ -4,10 +4,10 @@
 
 set(LLVM_ENABLE_PROJECTS "clang;bolt;lld" CACHE STRING "" FORCE)
 
-# ARM is built so clang/lld can target AArch32 for the LK harness. BOLT itself has
-# no AArch32 backend yet (bolt/lib/Target has only AArch64, RISCV, X86) — that is
-# the Phase 3 deliverable.
+# ARM: clang/lld target AArch32; BOLT backend enabled via overlay patches
+# (0003–0007) adding ARM to BOLT_TARGETS_TO_BUILD.
 set(LLVM_TARGETS_TO_BUILD "X86;AArch64;ARM" CACHE STRING "" FORCE)
+set(BOLT_TARGETS_TO_BUILD "AArch64;ARM;X86;RISCV" CACHE STRING "" FORCE)
 
 set(CMAKE_BUILD_TYPE "Release" CACHE STRING "" FORCE)
 

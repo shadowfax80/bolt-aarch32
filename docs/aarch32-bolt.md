@@ -1,26 +1,55 @@
-# AArch32 BOLT — implementation and verification plan
+# AArch32 BOLT — plan (P0–P11)
 
-**Goal:** add an ARM/Thumb backend to LLVM BOLT, prove it on bare-metal LK in QEMU, then merge incremental PRs to llvm-project `main`.
+**Goal:** add an ARM/Thumb backend to LLVM BOLT, prove it on bare-metal LK in QEMU, and land it in llvm-project `main` as a series of small, reviewable PRs.
 
-**What Phase 2 already solved (reuse, do not redo):**
+**Authoritative checklist:** [PROJECT_PLAN.md](PROJECT_PLAN.md) Phase 3 table.
 
-- LK is the **host platform only**. BOLT never instruments kernel/boot code.
-- Synthetic `bolt_bench_*` functions are the only profiled targets.
-- Counters live in `.bolt.instr.counters`; host reads them over **QMP**.
-- `ram-dump-to-fdata.py` turns the dump into `.fdata`; `llvm-bolt -data=` optimizes.
+---
 
-**What Phase 3 must invent:** BOLT has no AArch32 target. `bolt/lib/Target/` is AArch64, X86, RISC-V only. `LLVM_TARGETS_TO_BUILD=…;ARM` gives clang/lld an ARM compiler, not a BOLT backend.
+## Principles
 
-**Base branch:** rebase LLVM onto `main` before backend work. Feature PRs go to `main`, not `release/23.x`.
+| Rule | Why |
+|------|-----|
+| **One upstream PR per rung (P1–P10)** | Small reviews; each PR has lit tests and a clear pass gate |
+| **Develop on the volume, stage in overlay** | Backend code lives in `third_party/llvm-project/` on the pod; export to `overlay/llvm/patches/` until merged |
+| **Lit in llvm-project; LK in this repo** | Upstream tests are `.s` snippets; QEMU/`bolt_bench` verification stays here |
+| **LK is host only** | Never instrument LK kernel/boot code — only synthetic `bolt_bench_*` workloads |
+| **Rebase to `main` before P1** | Phase 1–2 used `release/23.x`; upstream reviews target `main` |
+| **Delete overlay patch when merged** | Overlay repo shrinks as slices land upstream |
+
+**Phase 2 reuse (do not redo):** counters in `.bolt.instr.counters`, host reads via **QMP** (`dump-bolt-counters.py`), `ram-dump-to-fdata.py` → `.fdata`, `llvm-bolt -data=` optimizes.
+
+**What Phase 3 must invent:** BOLT has no AArch32 target. `bolt/lib/Target/` is AArch64, X86, RISC-V only. `LLVM_TARGETS_TO_BUILD=…;ARM` gives clang/lld ARM32 support, **not** a BOLT backend.
+
+---
+
+## Master status (P0–P11)
+
+| Rung | Focus | Upstream PR (draft title) | Lit | QEMU / LK | Status |
+|------|-------|---------------------------|-----|-------------|--------|
+| **P0** | ARM32 harness (no BOLT backend) | — (this repo only) | — | `verify-bolt-arm32-harness.sh` | **Done** |
+| **P1** | ELF32 reader | `[BOLT][ARM] Add ELF32 support for ARM executables` | Parse ARM32 ET_EXEC | `--print-sections` on `lk.elf` lists `.text` | **Done** — `0003` |
+| **P2** | ARM-mode disassembly | `[BOLT][ARM] Disassemble ARM-mode functions` | FileCheck on ARM `.s` | ARM `hot_loop` bytes match objdump | **In review** — `0004`, `0007` |
+| **P3** | CFG (ARM only) | `[BOLT][ARM] Build CFG for ARM-mode code` | `--print-cfg` FileCheck | CFG on ARM `hot_loop`/`hot_cold`/`branch_chain` | **In review** — `0004` |
+| **P4** | Identity rewrite | `[BOLT][ARM] Identity rewrite for ARM-mode binaries` | Rewritten lit ELF runs | Rewritten `lk.elf` boots + `bolt_bench all` | **In progress** — JITLink triple fix |
+| **P5** | Branch range / veneers | `[BOLT][ARM] Insert veneers for out-of-range branches` | Far `bl` lit test | `far_call` bench still returns | **In review** — `0004` |
+| **P6** | Thumb-2 (no IT) | `[BOLT][ARM] Thumb-2 disassembly, CFG, and rewrite` | Thumb `.s` CFG + rewrite | `-mthumb` `bolt_bench` identity rewrite boots | **In review** — `0004`, `0003` Thumb STI |
+| **P7** | IT blocks | `[BOLT][ARM] Treat IT bundles as atomic units` | IT bundle not split | `it_cond` identity rewrite correct | Pending |
+| **P8** | ARM↔Thumb interworking | `[BOLT][ARM] Interworking edges and veneers` | ARM↔Thumb CFG lit | `interwork` identity rewrite runs | Pending |
+| **P9** | Instrumentation + RAM profile | `[BOLT][ARM] Instrumentation for ARM/Thumb` | Counter-site FileCheck | `verify-bolt-workloads.sh` ARM32: all counters + `.fdata` | Pending |
+| **P10** | Layout optimize | `[BOLT][ARM] Profile-guided layout on ARM/Thumb` | Optimize lit + fake `.fdata` | `lk.bolt.elf` boots, reruns `all`, cycles logged | Pending |
+| **P11** | Upstream landing | Track/rebase/merge; overlay cleanup | All lit in tree | Full ARM32 pipeline green on `main` | Pending |
+
+**RFC:** post on [LLVM Discourse (BOLT)](https://discourse.llvm.org/c/subprojects/bolt/) **before opening P4** — `MCPlusBuilder` API shape is shared infrastructure.
 
 ---
 
 ## Complexity ladder
 
-Each rung is independently testable. Do not start the next rung until the previous one has lit tests **and** a QEMU check (except P0, which is harness only).
+Each rung is independently testable. Do not start the next until the previous has **lit tests and a QEMU check** (P0 is harness-only).
 
 ```text
-P0  Harness (no BOLT backend)
+P0  Harness (no BOLT backend)          ✓ Done
 P1  Read ELF32
 P2  Disassemble ARM-mode only
 P3  Build CFG (ARM)
@@ -31,185 +60,271 @@ P7  IT blocks
 P8  ARM↔Thumb interworking
 P9  Instrumentation + RAM profile
 P10 Layout optimize
-P11 Upstream docs + first PRs
+P11 Upstream landing (merge tracking, overlay cleanup)
 ```
 
 ---
 
-## Implementation plan
+## Where code lives
 
-### P0 — ARM32 harness (complexity: low)
+### Volume (persistent workspace)
 
-No BOLT backend yet. Proves the AArch64 collection path ports.
+```
+/workspace/bolt-lk-overlay/third_party/llvm-project/   ← branch + implement here
+/workspace/bolt-lk-overlay/build/                      ← rebuilt llvm-bolt after each slice
+/workspace/bolt-lk-overlay/third_party/lk/               ← ARM32/AArch64 harness builds
+```
 
-| Work | Where |
-|------|--------|
-| Rebase `third_party/llvm-project` to `main`; rebuild clang/lld/llvm-bolt with `X86;AArch64;ARM` | `scripts/build-llvm-bolt.sh` |
-| Build LK `qemu-virt-arm32-test` with `--emit-relocs` | `scripts/build-lk-aarch32.sh` (new) |
-| Boot in `qemu-system-arm -machine virt -cpu cortex-a15` | `scripts/run-qemu-lk.sh` variant |
-| Port `bolt_bench` as ARM32 C (same four functions; no kernel hooks) | `overlay/lk/files/app/bolt_bench/` |
-| Cross-build `libbolt_rt_baremetal.a` for `arm-none-eabi` | `scripts/build-bolt-rt-baremetal.sh` (`--target` switch) |
+Verify layout: `./scripts/verify-workspace.sh`
 
-**Pass:** original `lk.elf` reaches `entering main console loop`; `lk.bolt_bench=all` prints all four `bolt_bench: … done` lines.
+### Overlay repo (GitHub)
 
-### P1 — ELF32 reader (low)
+```
+overlay/llvm/patches/
+  0003-bolt-arm-elf32-and-target.patch   ← P1
+  0004-bolt-arm-mcplusbuilder.patch      ← P2–P6 (ARMMCPlusBuilder)
+  0005-bolt-arm-relocations.patch        ← P4 relocations
+  0006-bolt-arm-rewrite-dispatch.patch   ← RewriteInstance ARM dispatch
+  0007-bolt-arm-lit-tests.patch          ← bolt/test/ARM/
+overlay/llvm/tests/       ← legacy placeholder; lit tests now in 0007
+overlay/lk/files/app/bolt_bench/   ← synthetic workloads (never upstreamed)
+scripts/                    ← harness, verify, QMP dump, fdata conversion
+```
 
-BOLT today assumes ELF64 in several `BinaryContext` paths.
+### Upstream insertion points (llvm-project)
 
-- 32-bit addresses, `Elf32_Rel` (addend in-place) and `Elf32_Rela`
-- Mapping symbols `$a` / `$t` / `$d` stored per-section
-- `.ARM.attributes` recorded (arch, Thumb ISA) but not yet enforced
-- Triple `arm-none-eabi` / `armv7-unknown-none-eabi` accepted
+| Component | Path |
+|-----------|------|
+| Target registration | `bolt/CMakeLists.txt` — add `ARM` to `BOLT_TARGETS_TO_BUILD_all` |
+| New backend tree | `bolt/lib/Target/ARM/` — `ARMMCPlusBuilder.cpp`, `ARMMCSymbolizer.{cpp,h}`, `CMakeLists.txt` |
+| Arch dispatch | `bolt/lib/Core/BinaryContext.cpp` — accept `Triple::arm` |
+| MCPlusBuilder factory | `bolt/lib/Rewrite/RewriteInstance.cpp` — `createMCPlusBuilder()` |
+| Mapping symbols | `BinaryContext::getMarkerType()` — `$a` / `$t` / `$d` |
+| Relocations | `bolt/lib/Core/Relocation.cpp` — `R_ARM_*` |
+| Lit tests | `llvm/test/tools/llvm-bolt/ARM/` |
 
-**Pass:** `llvm-bolt --print-cfg` on a tiny ARM ELF prints functions without aborting. Lit: checked-in `arm32-empty.s` ET_EXEC.
-
-### P2 — ARM-mode disassembly (low–medium)
-
-ARM state only (LSB=0). No Thumb.
-
-- Use LLVM ARM disassembler with explicit ARM mode
-- Skip `$d` islands (literal pools) as data, not instructions
-- Reject Thumb functions with a clear error
-
-**Pass:** FileCheck on a `.s` with `add`/`b`/`bl`/`ldr pc-rel`. Wrong-mode input fails loudly.
-
-### P3 — CFG, ARM only (medium)
-
-- Basic blocks from branches (`B`, `BL`, `BX`, `LDR pc`, `POP {pc}`)
-- Direct call vs tail vs conditional
-- One function = one ISA state
-
-**Pass:** `--print-cfg` on `hot_loop` / `hot_cold` assembly matches expected edges.
-
-### P4 — `MCPlusBuilder` + identity rewrite (medium)
-
-The first “BOLT did something” milestone: rewrite the binary and it still runs.
-
-- Encode/decode ARM branches and PC-relative `LDR`
-- Relocs: `R_ARM_CALL`, `R_ARM_JUMP24`, `R_ARM_ABS32`, `R_ARM_REL32`
-- Identity layout: `llvm-bolt in.elf -o out.elf` (no `-instrument`, no `-data`)
-
-**Pass:** rewritten ELF boots LK and `bolt_bench all` still completes. No profile required.
-
-### P5 — Branch range / veneers (medium)
-
-ARM `B`/`BL` are ±32 MB. After layout, some edges will miss.
-
-- Insert veneers (`B` → far stub → target)
-- Treat existing `.glue_7` as synthetic blocks
-
-**Pass:** lit binary with a deliberately distant call; rewritten ELF still links/runs the call.
-
-### P6 — Thumb-2 without IT (high)
-
-Most LK user code and `bolt_bench` compiled `-mthumb` will land here.
-
-- Entry state from symbol LSB / `$t`
-- 16- and 32-bit mixed sizes; BB ends only from the disassembler
-- Relocs: `R_ARM_THM_CALL`, `R_ARM_THM_JUMP24`, `R_ARM_THM_JUMP11`, `R_ARM_THM_JUMP19`
-- Thumb `BL` ±16 MB — veneers from P5 reused
-- Functions that contain `IT` are **skipped** with a warning
-
-**Pass:** Thumb `hot_loop` identity-rewritten ELF runs on QEMU.
-
-### P7 — IT blocks (high)
-
-`IT` / `ITT` / `ITE` … make a 1–4 instruction bundle. Splitting or inserting a hook inside is illegal.
-
-- Detect `IT` header; treat the bundle as one atomic unit
-- Instrumentation (P9) may only attach **before** the `IT` or skip the function
-- Layout may move the whole bundle, never a subset
-
-**Pass:** FileCheck on IT-heavy `.s`; identity rewrite does not split the bundle.
-
-### P8 — Interworking (high)
-
-Edges that change ARM↔Thumb: `BLX`, `BX rm`, `LDR pc` with LSB, `POP {pc}`.
-
-- CFG edge carries **target state**
-- Veneers must set the correct state (`BX` / Thumb bit)
-- Linker `.glue_7` / `.glue_7t` followed, not ignored
-
-**Pass:** ARM caller → Thumb callee and reverse, both identity-rewritten, both run.
-
-### P9 — Instrumentation + RAM profile (high)
-
-Reuse Phase 2 collection. New work is **AArch32 probe emission**.
-
-- Insert counter bump at each leaf/edge site (outside IT)
-- 32-bit atomics: `ldrex`/`strex` loop (no LSE)
-- Link `libbolt_rt_baremetal.a` built for `arm-none-eabi`
-- `--instrument-funcs-file` lists **only** `bolt_bench_*`
-- Host: existing `dump-bolt-counters.py` + `ram-dump-to-fdata.py` (32-bit VA decode)
-
-Org.text / hot-text boot fixes from AArch64 may need an ARM32 twin if BOLT still relocates `.text`. Keep the same rule: **do not instrument LK**.
-
-**Pass:** QMP dump shows **N/N counters non-zero** across all four `bolt_bench` functions; `.fdata` names all four.
-
-### P10 — Layout optimize (medium, depends on P9)
-
-Stock passes: `-reorder-blocks=ext-tsp`, `-reorder-functions=hfsort+`.
-
-- Consume `.fdata` from P9
-- Re-apply ELF paddr/entry/section restore if LK still requires it
-- Measure with guest timer (`arch_cycle_count()` already in `bolt_bench`)
-
-**Pass:** `lk.bolt.elf` boots, reruns `bolt_bench all`, guest cycles for `hot_loop` / `hot_cold` are recorded (improvement is nice-to-have, not a gate).
-
-### P11 — Upstream (process, not ISA)
-
-| Rule | Why |
-|------|-----|
-| One PR per rung P1–P8 first | Reviews stay small; instrumentation can wait |
-| Lit tests in `llvm/test/tools/llvm-bolt/` | No LK in llvm-project |
-| RFC on Discourse (BOLT) before P4 API shape | `MCPlusBuilder` is shared |
-| Delete overlay patch when it merges | Overlay shrinks |
+Reference backend for scaffolding: **RISC-V** (`bolt/lib/Target/RISCV/`) — smallest existing target.
 
 ---
 
-## Verification plan (synthetic workloads)
+## P0 — ARM32 harness ✓
 
-Two layers at every rung: **lit ELF snippets** (upstream-shaped) and **LK `bolt_bench` on QEMU** (this repo).
+No BOLT backend. Proves the AArch64 collection path ports to ARM32.
+
+| Work | Where | Status |
+|------|--------|--------|
+| Build LK `qemu-virt-arm32-test` with `--emit-relocs` | `scripts/build-lk-aarch32.sh` | Done |
+| Boot `qemu-system-arm -machine virt -cpu cortex-a15` | `scripts/run-qemu-lk.sh` (`LK_PROJECT=qemu-virt-arm32-test`) | Done |
+| `bolt_bench` overlay on ARM32 project mk | `scripts/apply-overlays.sh` | Done |
+| P0 verify script | `scripts/verify-bolt-arm32-harness.sh` | Done |
+| Cross-build runtime for `arm-none-eabi` | `scripts/build-bolt-rt-baremetal.sh` | Pending (needed at P9) |
+| Rebase llvm-project to `main` | `scripts/ensure-llvm-source.sh` `LLVM_BRANCH=main` | Pending (before P1) |
+
+**Pass:** original `lk.elf` reaches `entering main console loop`; `lk.bolt_bench=all` prints all four `bolt_bench: … done` lines.
+
+---
+
+## P1 — ELF32 reader
+
+BOLT today rejects `Triple::arm` in `BinaryContext::createBinaryContext()` (`BOLT-ERROR: Unrecognized machine in ELF file`). ELF32 LE paths partially exist in `RewriteInstance.cpp`.
+
+| Work | Upstream files |
+|------|----------------|
+| Accept `Triple::arm`; `ArchName = "arm"` | `BinaryContext.cpp` |
+| Add `isARM()` | `BinaryContext.h` |
+| Mapping symbols `$a` / `$t` / `$d` | `BinaryContext::getMarkerType()` |
+| `Elf32_Rel` / `Elf32_Rela` (addend in-place vs explicit) | `RewriteInstance.cpp` (extend existing ELF32 paths) |
+| Record `.ARM.attributes` (arch, Thumb ISA); do not enforce yet | `BinaryContext` / section metadata |
+| Minimal `ARMMCPlusBuilder` stub (enough to construct `BinaryContext`) | `bolt/lib/Target/ARM/` skeleton |
+| Add `ARM` to `BOLT_TARGETS_TO_BUILD` | `bolt/CMakeLists.txt` |
+
+**Overlay staging:** `overlay/llvm/patches/0003-bolt-arm-elf32-and-target.patch`  
+**Lit fixture:** `overlay/llvm/tests/arm32-empty.s` → upstream `llvm/test/tools/llvm-bolt/ARM/elf32-parse.test`
+
+**Pass (lit):** `llvm-bolt --print-sections -o /dev/null` on tiny ARM ET_EXEC lists `.text` without abort.  
+**Pass (QEMU):** same on `third_party/lk/build-qemu-virt-arm32-test/lk.elf`.
+
+---
+
+## P2 — ARM-mode disassembly
+
+ARM state only (symbol LSB = 0). No Thumb yet.
+
+| Work | Detail |
+|------|--------|
+| LLVM ARM disassembler with explicit ARM mode | `ARMMCPlusBuilder` |
+| Skip `$d` literal pools as data | Mapping symbols from P1 |
+| Reject Thumb functions with clear error | Fail loud, not silent mis-decode |
+| New bench (optional) | `bolt_bench_literal` — `$d` pool + `ldr [pc]` |
+
+**Lit fixture:** `overlay/llvm/tests/arm32-add-bl.s` — `add`/`b`/`bl`/`ldr` pc-rel; wrong-mode input fails.
+
+**Pass:** FileCheck disassembly output; ARM-compiled `hot_loop` bytes match `llvm-objdump`.
+
+---
+
+## P3 — CFG (ARM only)
+
+| Work | Detail |
+|------|--------|
+| BB boundaries from branches | `B`, `BL`, `BX`, `LDR pc`, `POP {pc}` |
+| Edge kinds | Direct call, tail call, conditional branch |
+| One function = one ISA state | ARM only at this rung |
+
+**Pass:** `--print-cfg` on ARM `hot_loop` / `hot_cold` / `branch_chain` matches expected edges (lit FileCheck).
+
+---
+
+## P4 — Identity rewrite
+
+First “BOLT did something” milestone: rewrite the binary and it still runs.
+
+| Work | Detail |
+|------|--------|
+| Encode/decode ARM branches and PC-relative `LDR` | `ARMMCPlusBuilder` |
+| Relocations | `R_ARM_CALL`, `R_ARM_JUMP24`, `R_ARM_ABS32`, `R_ARM_REL32` |
+| Identity layout | `llvm-bolt in.elf -o out.elf` (no `-instrument`, no `-data`) |
+
+**Pass (lit):** rewritten lit ELF executes correctly.  
+**Pass (QEMU):** rewritten `lk.elf` boots; `lk.bolt_bench=all` completes.
+
+---
+
+## P5 — Branch range / veneers
+
+ARM `B`/`BL` are ±32 MB. After layout, some edges miss.
+
+| Work | Detail |
+|------|--------|
+| Insert veneers | `B` → far stub → target |
+| Linker glue | Treat `.glue_7` as synthetic blocks |
+| New bench | `bolt_bench_far_call` — deliberately distant call |
+
+**Pass:** lit binary with out-of-range `bl` gets a veneer; rewritten ELF still runs the call.
+
+---
+
+## P6 — Thumb-2 (no IT)
+
+Most LK user code and `bolt_bench` compiled `-mthumb` lands here.
+
+| Work | Detail |
+|------|--------|
+| Entry state | Symbol LSB / `$t` mapping symbol |
+| Mixed 16/32-bit insn sizes | BB ends from disassembler only |
+| Relocations | `R_ARM_THM_CALL`, `R_ARM_THM_JUMP24`, `R_ARM_THM_JUMP11`, `R_ARM_THM_JUMP19` |
+| Thumb `BL` ±16 MB | Reuse P5 veneers |
+| Functions with `IT` | **Skipped** with warning until P7 |
+
+**Pass:** Thumb `hot_loop` identity-rewritten ELF runs on QEMU; rebuild `bolt_bench` with `-mthumb`.
+
+---
+
+## P7 — IT blocks
+
+`IT` / `ITT` / `ITE` … form a 1–4 instruction bundle. Splitting or hooking inside is illegal.
+
+| Work | Detail |
+|------|--------|
+| Detect `IT` header | Treat bundle as one atomic unit |
+| Instrumentation (P9) | Hooks only **before** `IT`, or skip function |
+| Layout | Move whole bundle, never a subset |
+| New bench | `bolt_bench_it_cond` — Thumb-2 `IT`/`ITE` |
+
+**Pass:** FileCheck on IT-heavy `.s`; identity rewrite does not split the bundle; `it_cond` runs correctly.
+
+---
+
+## P8 — ARM↔Thumb interworking
+
+| Work | Detail |
+|------|--------|
+| Interworking edges | `BLX`, `BX rm`, `LDR pc` with LSB, `POP {pc}` |
+| CFG edge metadata | Target state (ARM vs Thumb) |
+| Veneers | Set correct state (`BX` / Thumb bit) |
+| Linker glue | Follow `.glue_7` / `.glue_7t` |
+| New bench | `bolt_bench_interwork` — ARM caller, Thumb callee |
+
+**Pass:** ARM→Thumb and Thumb→ARM calls identity-rewritten and both run.
+
+---
+
+## P9 — Instrumentation + RAM profile
+
+Reuse Phase 2 QMP collection path. New work is **AArch32 probe emission**.
+
+| Work | Where |
+|------|--------|
+| Counter bump at leaf/edge sites (outside IT) | `ARMMCPlusBuilder` |
+| 32-bit atomics (`ldrex`/`strex` loop; no LSE) | Instrumentation + runtime |
+| `libbolt_rt_baremetal.a` for `arm-none-eabi` | `scripts/build-bolt-rt-baremetal.sh` |
+| Instrument **only** `bolt_bench_*` | `scripts/instrument-lk-bolt.sh` (ARM32 paths) |
+| 32-bit VA decode in fdata converter | `scripts/ram-dump-to-fdata.py` |
+| End-to-end verify | `scripts/verify-bolt-workloads.sh` (ARM32 mode) |
+| Org.text counter hooks if hot `.text` not executable | `scripts/fix-kernel-elf-sections.py` ARM32 twin |
+
+**Pass:** QMP dump shows **N/N counters non-zero** for all four `bolt_bench` functions; `.fdata` names all four.
+
+---
+
+## P10 — Layout optimize
+
+| Work | Detail |
+|------|--------|
+| Stock passes | `-reorder-blocks=ext-tsp`, `-reorder-functions=hfsort+` |
+| Input | `.fdata` from P9 |
+| ELF fixes | Re-apply paddr/entry/section restore if LK requires (same as AArch64) |
+| Measurement | Guest timer via `arch_cycle_count()` in `bolt_bench` |
+
+**Pass:** `lk.bolt.elf` boots, reruns `bolt_bench all`; cycle lines printed (improvement nice-to-have, not a gate).
+
+---
+
+## P11 — Upstream landing
+
+Process rung — not new ISA features. PRs for P1–P10 are **opened as each rung completes**; P11 tracks them through merge.
+
+| Task | Detail |
+|------|--------|
+| RFC on Discourse | Before P4 (see above) |
+| PR hygiene | One rung per PR; lit + commit message explains pass gate |
+| Review feedback | Rebase slices onto llvm-project `main` |
+| Overlay cleanup | Delete `overlay/llvm/patches/000N-bolt-arm-*.patch` as each merges |
+| Volume rebase | Point volume checkout at merged `main`; rebuild toolchain |
+| Final gate | Full ARM32 pipeline green on upstream `main` + overlay bare-metal patches only |
+
+**Pass:** All P1–P10 PRs merged; no AArch32 backend patches remain in overlay; `verify-bolt-workloads.sh` ARM32 passes against volume-built upstream `llvm-bolt`.
+
+---
+
+## Verification layers
+
+Two layers at every rung (except P0):
+
+1. **Lit** — upstream-shaped `.s` / `.test` in `llvm/test/tools/llvm-bolt/ARM/`
+2. **QEMU / LK** — `bolt_bench` on `qemu-virt-arm32-test` (this repo)
 
 ### Workload set
 
-Keep the four Phase 2 functions. Add ARM-specific benches only when a rung needs them. Still **no LK kernel functions**.
-
-| Workload | Compiles as | Stresses | First required at |
-|----------|-------------|----------|-------------------|
-| `bolt_bench_hot_loop` | ARM then Thumb | One back-edge, dense loop | P3 / P6 |
+| Workload | Compiles as | Stresses | First at |
+|----------|-------------|----------|----------|
+| `bolt_bench_hot_loop` | ARM then Thumb | Dense back-edge loop | P3 / P6 |
 | `bolt_bench_hot_cold` | ARM then Thumb | Rare taken branch | P3 / P6 |
 | `bolt_bench_branch_chain` | ARM then Thumb | Many conditional edges | P3 / P6 |
-| `bolt_bench_memcpy` | ARM then Thumb | Straight-line + `bl` to libc | P4 / P6 |
-| `bolt_bench_it_cond` (new) | Thumb-2 | `IT`/`ITE` predicates | P7 |
-| `bolt_bench_interwork` (new) | ARM caller, Thumb callee | `blx` / state change | P8 |
+| `bolt_bench_memcpy` | ARM then Thumb | Straight-line + `bl` | P4 / P6 |
+| `bolt_bench_literal` (new) | either | `$d` pool + `ldr [pc]` | P2 |
 | `bolt_bench_far_call` (new) | either | Veneer / range | P5 |
-| `bolt_bench_literal` (new) | either | `$d` pool + `ldr [pc]` | P2 / P6 |
+| `bolt_bench_it_cond` (new) | Thumb-2 | `IT`/`ITE` | P7 |
+| `bolt_bench_interwork` (new) | ARM caller, Thumb callee | `blx` / state change | P8 |
 
-Lit equivalents live as `.s` under `overlay/llvm/` until they move into llvm-project tests.
+Still **no LK kernel functions** as instrumentation targets.
 
-### Per-rung gate
-
-| Rung | Lit | QEMU / LK |
-|------|-----|-----------|
-| P0 | — | `qemu-system-arm` boots; `bolt_bench all` prints four done lines |
-| P1 | Parse ARM32 ET_EXEC | `llvm-bolt --print-sections` on `lk.elf` lists `.text` |
-| P2 | Disasm ARM `.s` | Dump ARM-compiled `hot_loop` bytes match objdump |
-| P3 | CFG FileCheck ARM | `--print-cfg` on ARM `hot_loop`/`hot_cold`/`branch_chain` |
-| P4 | Identity rewrite lit ELF | Rewritten `lk.elf` boots + `bolt_bench all` |
-| P5 | Out-of-range `bl` gets veneer | `far_call` still returns |
-| P6 | Thumb `.s` CFG + rewrite | Rebuild `bolt_bench` `-mthumb`; identity rewrite boots |
-| P7 | IT bundle not split | `it_cond` identity rewrite + correct result |
-| P8 | ARM↔Thumb call CFG | `interwork` identity rewrite |
-| P9 | Counter sites FileCheck | `verify-bolt-workloads.sh` ARM32: all bench counters non-zero, `.fdata` has every `bolt_bench_*` |
-| P10 | Optimize lit with fake `.fdata` | `lk.bolt.elf` boots and reruns `all`; cycle lines printed |
-
-### End-to-end script (add when P9 starts)
+### End-to-end script (from P9)
 
 Mirror AArch64:
 
 ```bash
-./scripts/verify-bolt-workloads.sh   # detect ARCH=arm32
+./scripts/verify-bolt-workloads.sh   # ARCH=arm32 (to be added)
 # build LK arm32 + bolt_bench
 # instrument only bolt_bench_*
 # QEMU + QMP dump
@@ -218,34 +333,38 @@ Mirror AArch64:
 # boot lk.bolt.elf -append lk.bolt_bench=all
 ```
 
-### Out of scope for first complete pass
-
-- Cortex-M / Thumb-only M-profile
-- ThumbEE, Jazelle
-- ARMv8 AArch32 BTI/PAC
-- Shared libraries / PLT
-- Instrumenting any LK function outside `bolt_bench_*`
-- Making hot `.text` executable inside LK (AArch64 workaround stays host-side hooks if needed)
-
 ---
 
 ## Suggested calendar (serial)
 
 | Slice | Rungs | Outcome |
 |-------|-------|---------|
-| 1 | P0 | ARM32 LK + QEMU + `bolt_bench` green without BOLT |
-| 2 | P1–P4 | BOLT can **read, CFG, rewrite** ARM-mode binaries |
-| 3 | P5–P6 | Thumb-2 identity rewrite of the four original benches |
-| 4 | P7–P8 | IT + interworking benches |
-| 5 | P9–P10 | Full instrument → QMP → `.fdata` → optimize |
-| 6 | P11 | First upstream PRs (P1–P3), then the rest |
+| 1 | P0 | ARM32 LK + QEMU + `bolt_bench` green without BOLT — **done** |
+| 2 | P1–P4 | BOLT reads, CFG-builds, identity-rewrites ARM-mode binaries |
+| 3 | P5–P6 | Veneers + Thumb-2 identity rewrite of four benches |
+| 4 | P7–P8 | IT blocks + interworking |
+| 5 | P9–P10 | Instrument → QMP → `.fdata` → optimize |
+| 6 | P11 | All PRs merged; overlay backend patches deleted |
+
+---
+
+## Out of scope (first complete pass)
+
+- Cortex-M / Thumb-only M-profile
+- ThumbEE, Jazelle
+- ARMv8 AArch32 BTI/PAC
+- Shared libraries / PLT
+- Instrumenting any LK function outside `bolt_bench_*`
+- Making hot `.text` executable inside LK (AArch64 org.text workaround applies if needed)
 
 ---
 
 ## Success criteria
 
-- [ ] `llvm-bolt` identity-rewrites ARM and Thumb-2 `bolt_bench` ELFs that boot on QEMU
-- [ ] Instrumentation + QMP profile covers all `bolt_bench_*` sites
-- [ ] Optimized `lk.bolt.elf` boots and reruns the same workloads
-- [ ] Lit coverage for ARM, Thumb-2, IT, interworking, veneers
-- [ ] Core backend (at least P1–P4) submitted to llvm-project `main`
+- [x] P0: ARM32 LK boots; `bolt_bench all` prints four done lines
+- [x] P1: `llvm-bolt --print-sections` on ARM32 `lk.elf` lists `.text`
+- [ ] P2–P4: `llvm-bolt` identity-rewrites ARM-mode `bolt_bench` ELF that boots on QEMU
+- [ ] P5–P8: Thumb-2, IT, interworking identity rewrite on QEMU
+- [ ] P9–P10: Instrumentation + QMP profile + optimized `lk.bolt.elf` boots and reruns workloads
+- [ ] Lit coverage for ARM, Thumb-2, IT, interworking, veneers in llvm-project
+- [ ] P11: Core backend (P1–P10) merged to llvm-project `main`; overlay backend patches gone

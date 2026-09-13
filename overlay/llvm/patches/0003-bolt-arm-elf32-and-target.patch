@@ -1,0 +1,181 @@
+diff --git a/bolt/CMakeLists.txt b/bolt/CMakeLists.txt
+index 8deb5cea0401..65b744b52f16 100644
+--- a/bolt/CMakeLists.txt
++++ b/bolt/CMakeLists.txt
+@@ -69,7 +69,7 @@ endif() # standalone
+ 
+ # Determine default set of targets to build -- the intersection of
+ # those BOLT supports and those LLVM is targeting.
+-set(BOLT_TARGETS_TO_BUILD_all "AArch64;X86;RISCV")
++set(BOLT_TARGETS_TO_BUILD_all "AArch64;ARM;X86;RISCV")
+ set(BOLT_TARGETS_TO_BUILD_default)
+ foreach (tgt ${BOLT_TARGETS_TO_BUILD_all})
+   if (tgt IN_LIST LLVM_TARGETS_TO_BUILD)
+diff --git a/bolt/include/bolt/Core/BinaryContext.h b/bolt/include/bolt/Core/BinaryContext.h
+index 73ccb911039d..3b0d803e503e 100644
+--- a/bolt/include/bolt/Core/BinaryContext.h
++++ b/bolt/include/bolt/Core/BinaryContext.h
+@@ -651,6 +651,7 @@ public:
+   unsigned RegularPageSize{0x1000};
+   static constexpr unsigned RegularPageSizeX86 = 0x1000;
+   static constexpr unsigned RegularPageSizeAArch64 = 0x10000;
++  static constexpr unsigned RegularPageSizeARM = 0x1000;
+ 
+   /// Huge page size to use.
+   static constexpr unsigned HugePageSize = 0x200000;
+@@ -706,6 +707,11 @@ public:
+   /// Symbolic disassembler.
+   std::unique_ptr<MCDisassembler> SymbolicDisAsm;
+ 
++  /// Thumb-mode disassembler for AArch32 functions with LSB=1.
++  std::unique_ptr<const MCSubtargetInfo> ThumbSTI;
++  std::unique_ptr<MCDisassembler> ThumbDisAsm;
++  std::unique_ptr<MCDisassembler> ThumbSymbolicDisAsm;
++
+   std::unique_ptr<MCAsmBackend> MAB;
+ 
+   /// Allows BOLT to print to log whenever it is necessary (with or without
+@@ -941,6 +947,8 @@ public:
+ 
+   bool isRISCV() const { return TheTriple->isRISCV(); }
+ 
++  bool isARM() const { return TheTriple->getArch() == llvm::Triple::arm; }
++
+   // AArch64/RISC-V functions to check if symbol is used to delimit
+   // code/data in .text. Code is marked by $x, data by $d.
+   MarkerSymType getMarkerType(const SymbolRef &Symbol) const;
+diff --git a/bolt/include/bolt/Core/BinaryFunction.h b/bolt/include/bolt/Core/BinaryFunction.h
+index b3af846c4eb5..9e07a13f098e 100644
+--- a/bolt/include/bolt/Core/BinaryFunction.h
++++ b/bolt/include/bolt/Core/BinaryFunction.h
+@@ -315,6 +315,9 @@ private:
+   /// be not fully disassembled and will not be emitted.
+   bool IsIgnored{false};
+ 
++  /// True if this function is Thumb (AArch32 symbol LSB set).
++  bool IsARMThumb{false};
++
+   /// Pseudo functions should not be disassembled or emitted.
+   bool IsPseudo{false};
+ 
+@@ -1411,6 +1414,11 @@ public:
+   /// Return true if the function should be ignored for optimization purposes.
+   bool isIgnored() const { return IsIgnored; }
+ 
++  bool isARMThumb() const { return IsARMThumb; }
++  void setARMThumb(bool V = true) { IsARMThumb = V; }
++
++  MCDisassembler &getDisassembler() const;
++
+   /// Return true if the function should not be disassembled, emitted, or
+   /// otherwise processed.
+   bool isPseudo() const { return IsPseudo; }
+diff --git a/bolt/lib/Core/BinaryContext.cpp b/bolt/lib/Core/BinaryContext.cpp
+index 130c523bcda5..e0f72bda3d44 100644
+--- a/bolt/lib/Core/BinaryContext.cpp
++++ b/bolt/lib/Core/BinaryContext.cpp
+@@ -158,7 +158,12 @@ BinaryContext::BinaryContext(std::unique_ptr<MCContext> Ctx,
+       STI(std::move(STI)), InstPrinter(std::move(InstPrinter)),
+       MIA(std::move(MIA)), MIB(std::move(MIB)), MRI(std::move(MRI)),
+       DisAsm(std::move(DisAsm)), Logger(Logger), InitialDynoStats(isAArch64()) {
+-  RegularPageSize = isAArch64() ? RegularPageSizeAArch64 : RegularPageSizeX86;
++  if (isAArch64())
++    RegularPageSize = RegularPageSizeAArch64;
++  else if (isARM())
++    RegularPageSize = RegularPageSizeARM;
++  else
++    RegularPageSize = RegularPageSizeX86;
+   PageAlign = opts::NoHugePages ? RegularPageSize : HugePageSize;
+ }
+ 
+@@ -207,6 +212,13 @@ Expected<std::unique_ptr<BinaryContext>> BinaryContext::createBinaryContext(
+     FeaturesStr = Features->getString();
+     break;
+   }
++  case llvm::Triple::arm:
++    if (Features)
++      return createFatalBOLTError(
++          "ARM target does not use SubtargetFeatures");
++    ArchName = "armv7";
++    FeaturesStr = "";
++    break;
+   default:
+     return createStringError(std::errc::not_supported,
+                              "BOLT-ERROR: Unrecognized machine in ELF file");
+@@ -316,6 +328,17 @@ Expected<std::unique_ptr<BinaryContext>> BinaryContext::createBinaryContext(
+   BC->SymbolicDisAsm = std::unique_ptr<MCDisassembler>(
+       BC->TheTarget->createMCDisassembler(*BC->STI, *BC->Ctx));
+ 
++  if (TheTriple.getArch() == llvm::Triple::arm) {
++    BC->ThumbSTI.reset(BC->TheTarget->createMCSubtargetInfo(
++        TheTriple, "", "+thumb-mode"));
++    if (BC->ThumbSTI) {
++      BC->ThumbDisAsm = std::unique_ptr<MCDisassembler>(
++          BC->TheTarget->createMCDisassembler(*BC->ThumbSTI, *BC->Ctx));
++      BC->ThumbSymbolicDisAsm = std::unique_ptr<MCDisassembler>(
++          BC->TheTarget->createMCDisassembler(*BC->ThumbSTI, *BC->Ctx));
++    }
++  }
++
+   BC->updateLSDAEncoding();
+ 
+   if (!BC->SymbolicDisAsm)
+@@ -2069,6 +2092,13 @@ MarkerSymType BinaryContext::getMarkerType(unsigned SymbolType,
+   if (isRISCV() && SymbolName.starts_with("$x"))
+     return MarkerSymType::CODE;
+ 
++  if (isARM()) {
++    if (SymbolName == "$a" || SymbolName.starts_with("$a."))
++      return MarkerSymType::CODE;
++    if (SymbolName == "$t" || SymbolName.starts_with("$t."))
++      return MarkerSymType::CODE;
++  }
++
+   if (SymbolName == "$d" || SymbolName.starts_with("$d."))
+     return MarkerSymType::DATA;
+ 
+diff --git a/bolt/lib/Core/BinaryFunction.cpp b/bolt/lib/Core/BinaryFunction.cpp
+index 31828aafb95f..301cbbf9298e 100644
+--- a/bolt/lib/Core/BinaryFunction.cpp
++++ b/bolt/lib/Core/BinaryFunction.cpp
+@@ -167,6 +167,13 @@ bool shouldPrint(const BinaryFunction &Function) {
+ 
+ namespace llvm {
+ namespace bolt {
++MCDisassembler &BinaryFunction::getDisassembler() const {
++  if (BC.isARM() && IsARMThumb && BC.ThumbSymbolicDisAsm)
++    return *BC.ThumbSymbolicDisAsm;
++  return *BC.SymbolicDisAsm;
++}
++
++
+ 
+ template <typename R> static bool emptyRange(const R &Range) {
+   return Range.begin() == Range.end();
+@@ -1314,7 +1321,7 @@ Error BinaryFunction::disassemble() {
+   auto &Ctx = BC.Ctx;
+   auto &MIB = BC.MIB;
+ 
+-  BC.SymbolicDisAsm->setSymbolizer(MIB->createTargetSymbolizer(*this));
++  getDisassembler().setSymbolizer(MIB->createTargetSymbolizer(*this));
+ 
+   // Insert a label at the beginning of the function. This will be our first
+   // basic block.
+@@ -1338,7 +1345,7 @@ Error BinaryFunction::disassemble() {
+       continue;
+     }
+ 
+-    if (!BC.SymbolicDisAsm->getInstruction(Instruction, Size,
++    if (!getDisassembler().getInstruction(Instruction, Size,
+                                            FunctionData.slice(Offset),
+                                            AbsoluteInstrAddr, nulls())) {
+       // Functions with "soft" boundaries, e.g. coming from assembly source,
+@@ -1655,7 +1662,7 @@ bool BinaryFunction::scanExternalRefs() {
+ 
+     const uint64_t AbsoluteInstrAddr = getAddress() + Offset;
+     PrevInstruction = Instruction;
+-    if (!BC.SymbolicDisAsm->getInstruction(Instruction, Size,
++    if (!getDisassembler().getInstruction(Instruction, Size,
+                                            FunctionData.slice(Offset),
+                                            AbsoluteInstrAddr, nulls())) {
+       if (opts::Verbosity >= 1 && !isZeroPaddingAt(Offset)) {

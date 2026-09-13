@@ -1,0 +1,152 @@
+diff --git a/bolt/test/ARM/Inputs/arm32-add-bl.s b/bolt/test/ARM/Inputs/arm32-add-bl.s
+new file mode 100644
+index 000000000000..787a68ef3fd9
+--- /dev/null
++++ b/bolt/test/ARM/Inputs/arm32-add-bl.s
+@@ -0,0 +1,14 @@
++	.syntax unified
++	.arm
++	.text
++	.global _start
++	.type _start, %function
++_start:
++	add r0, r0, #1
++	bl target
++	b .Ldone
++target:
++	mov r0, #0
++	bx lr
++.Ldone:
++	b .
+diff --git a/bolt/test/ARM/Inputs/arm32-thumb-loop.s b/bolt/test/ARM/Inputs/arm32-thumb-loop.s
+new file mode 100644
+index 000000000000..67c5ce1e02f7
+--- /dev/null
++++ b/bolt/test/ARM/Inputs/arm32-thumb-loop.s
+@@ -0,0 +1,12 @@
++	.syntax unified
++	.thumb
++	.text
++	.global _start
++	.type _start, %function
++_start:
++	adds r0, #1
++	b .Lloop
++.Lloop:
++	subs r0, #1
++	bne .Lloop
++	bx lr
+diff --git a/bolt/test/ARM/Inputs/arm32.ld b/bolt/test/ARM/Inputs/arm32.ld
+new file mode 100644
+index 000000000000..159c05515978
+--- /dev/null
++++ b/bolt/test/ARM/Inputs/arm32.ld
+@@ -0,0 +1,5 @@
++ENTRY(_start)
++SECTIONS {
++  . = 0x8000;
++  .text : { *(.text*) }
++}
+diff --git a/bolt/test/ARM/Inputs/elf32-arm-empty.yaml b/bolt/test/ARM/Inputs/elf32-arm-empty.yaml
+new file mode 100644
+index 000000000000..9d60d68d0ca2
+--- /dev/null
++++ b/bolt/test/ARM/Inputs/elf32-arm-empty.yaml
+@@ -0,0 +1,25 @@
++!ELF
++FileHeader:
++  Class:           ELFCLASS32
++  Data:            ELFDATA2LSB
++  Type:            ET_EXEC
++  Machine:         EM_ARM
++  Entry:           0x8000
++Sections:
++  - Name:            .text
++    Type:            SHT_PROGBITS
++    Flags:           [ SHF_ALLOC, SHF_EXECINSTR ]
++    Address:         0x8000
++    AddressAlign:    0x4
++    Content:         "0000A0E1"
++  - Name:            .ARM.attributes
++    Type:            SHT_ARM_ATTRIBUTES
++    AddressAlign:    0x1
++    Content:         "41080000"
++
++Symbols:
++  - Name:    _start
++    Type:    STT_FUNC
++    Section: .text
++    Value:   0x8000
++    Size:    4
+diff --git a/bolt/test/ARM/arm-disasm.test b/bolt/test/ARM/arm-disasm.test
+new file mode 100644
+index 000000000000..2163ac634549
+--- /dev/null
++++ b/bolt/test/ARM/arm-disasm.test
+@@ -0,0 +1,8 @@
++## Disassemble a tiny ARM-mode function.
++
++RUN: %clang --target=armv7-none-eabi -c -o %t.o %p/Inputs/arm32-add-bl.s
++RUN: ld.lld --emit-relocs -T %p/Inputs/arm32.ld %t.o -o %t.exe
++RUN: llvm-bolt -print-disassembly -o %t.out %t.exe 2>&1 | FileCheck %s
++
++CHECK: mov
++CHECK-NOT: BOLT-ERROR
+diff --git a/bolt/test/ARM/arm-rewrite.test b/bolt/test/ARM/arm-rewrite.test
+new file mode 100644
+index 000000000000..c98ab3f2d5fe
+--- /dev/null
++++ b/bolt/test/ARM/arm-rewrite.test
+@@ -0,0 +1,9 @@
++## Identity rewrite of ARM-mode ET_EXEC.
++
++RUN: %clang --target=armv7-none-eabi -c -o %t.o %p/Inputs/arm32-add-bl.s
++RUN: ld.lld --emit-relocs -T %p/Inputs/arm32.ld %t.o -o %t.exe
++RUN: llvm-bolt %t.exe -o %t.bolt 2>&1 | FileCheck %s --check-prefix=CHECK-RUN
++RUN: llvm-readelf -h %t.bolt | FileCheck %s --check-prefix=CHECK-ELF
++
++CHECK-RUN-NOT: BOLT-ERROR
++CHECK-ELF: Type: EXEC
+diff --git a/bolt/test/ARM/elf32-parse.test b/bolt/test/ARM/elf32-parse.test
+new file mode 100644
+index 000000000000..d71c171de5fd
+--- /dev/null
++++ b/bolt/test/ARM/elf32-parse.test
+@@ -0,0 +1,7 @@
++## Verify that BOLT accepts ARM32 ELF executables and lists sections.
++
++RUN: yaml2obj %p/Inputs/elf32-arm-empty.yaml -o %t.exe
++RUN: llvm-bolt --print-sections -o %t.out %t.exe 2>&1 | FileCheck %s
++
++CHECK: .text
++CHECK-NOT: BOLT-ERROR: Unrecognized machine in ELF file
+diff --git a/bolt/test/ARM/lit.local.cfg b/bolt/test/ARM/lit.local.cfg
+new file mode 100644
+index 000000000000..52810609fb5d
+--- /dev/null
++++ b/bolt/test/ARM/lit.local.cfg
+@@ -0,0 +1,9 @@
++if 'ARM' not in config.root.targets:
++    config.unsupported = True
++
++flags = '--target=armv7-none-eabi -nostdlib -ffreestanding -Wl,--emit-relocs'
++thumb_flags = '--target=thumbv7-none-eabi -nostdlib -ffreestanding -Wl,--emit-relocs'
++
++config.substitutions.insert(0, ('%cflags', f'%cflags {flags}'))
++config.substitutions.insert(0, ('%cxxflags', f'%cxxflags {flags}'))
++config.substitutions.insert(0, ('%clang', config.clang.replace('clang', 'clang') if config.clang else 'clang'))
+diff --git a/bolt/test/ARM/thumb-rewrite.test b/bolt/test/ARM/thumb-rewrite.test
+new file mode 100644
+index 000000000000..f2becea1e149
+--- /dev/null
++++ b/bolt/test/ARM/thumb-rewrite.test
+@@ -0,0 +1,9 @@
++## Identity rewrite of Thumb-2 ET_EXEC.
++
++RUN: %clang --target=thumbv7-none-eabi -c -o %t.o %p/Inputs/arm32-thumb-loop.s
++RUN: ld.lld --emit-relocs -T %p/Inputs/arm32.ld %t.o -o %t.exe
++RUN: llvm-bolt %t.exe -o %t.bolt 2>&1 | FileCheck %s --check-prefix=CHECK-RUN
++RUN: llvm-readelf -h %t.bolt | FileCheck %s --check-prefix=CHECK-ELF
++
++CHECK-RUN-NOT: BOLT-ERROR
++CHECK-ELF: Type: EXEC

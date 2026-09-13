@@ -22,7 +22,7 @@ Upstream [llvm-project](https://github.com/llvm/llvm-project) and [lk](https://g
 | 0 | Repo, scripts, RunPod | Done |
 | 1 | LLVM + BOLT toolchain (`release/23.x`) | Done (on pod volume) |
 | 2 | AArch64 in-RAM profiling + BOLT optimize on LK | **Done** — instrument → fdata → optimize boots |
-| 3 | AArch32 backend → LLVM upstream | Not started |
+| 3 | AArch32 backend → LLVM upstream | **P1 done** — patches `0003`–`0007` staged |
 
 Phase 2 exists to prove bare-metal profiling on an architecture BOLT already supports, so that Phase 3 only has to solve the AArch32 problem.
 
