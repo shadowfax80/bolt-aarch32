@@ -29,9 +29,10 @@
 |------|-------|---------------------------|-----|-------------|--------|
 | **P0** | ARM32 harness (no BOLT backend) | — (this repo only) | — | `verify-bolt-arm32-harness.sh` | **Done** |
 | **P1** | ELF32 reader | `[BOLT][ARM] Add ELF32 support for ARM executables` | Parse ARM32 ET_EXEC | `--print-sections` on `lk.elf` lists `.text` | **Done** — `0003` |
-| **P2** | ARM-mode disassembly | `[BOLT][ARM] Disassemble ARM-mode functions` | FileCheck on ARM `.s` | ARM `hot_loop` bytes match objdump | **Staged** — `0004`, `0007`; lit not confirmed |
-| **P3** | CFG (ARM only) | `[BOLT][ARM] Build CFG for ARM-mode code` | `--print-cfg` FileCheck | CFG on ARM `hot_loop`/`hot_cold`/`branch_chain` | **Staged** — `0004`; no QEMU CFG check |
-| **P4** | Identity rewrite | `[BOLT][ARM] Identity rewrite for ARM-mode binaries` | Rewritten lit ELF runs | Rewritten `lk.elf` boots + `bolt_bench all` | **Partial** — emit + JITLink OK; 0 overwrite on Thumb benches |
+| **P2** | ARM-mode disassembly | `[BOLT][ARM] Disassemble ARM-mode functions` | FileCheck on ARM `.s` | ARM `hot_loop` bytes match objdump | **Done** — `0004`; QEMU gate via `--print-cfg` on ARM benches (`verify-bolt-arm32-milestones.sh`); lit not upstream-confirmed |
+| **P3** | CFG (ARM only) | `[BOLT][ARM] Build CFG for ARM-mode code` | `--print-cfg` FileCheck | CFG on ARM `hot_loop`/`hot_cold`/`branch_chain` | **Done** — `0004`; ARM bench CFG + successors green on pod |
+
+| **P4** | Identity rewrite | `[BOLT][ARM] Identity rewrite for ARM-mode binaries` | Rewritten lit ELF runs | Rewritten `lk.elf` boots + `bolt_bench all` | **Done** — `BOLT_BENCH_ISA=arm`, 4 funcs overwritten, QEMU green |
 | **P5** | Branch range / veneers | `[BOLT][ARM] Insert veneers for out-of-range branches` | Far `bl` lit test | `far_call` bench still returns | **Stub** in `0004` |
 | **P6** | Thumb-2 (no IT) | `[BOLT][ARM] Thumb-2 disassembly, CFG, and rewrite` | Thumb `.s` CFG + rewrite | `-mthumb` `bolt_bench` identity rewrite boots | **Partial** — STI/LSB/`$t`; disasm fails at +0x8 |
 | **P7** | IT blocks | `[BOLT][ARM] Treat IT bundles as atomic units` | IT bundle not split | `it_cond` identity rewrite correct | Pending — skipped as unsupported |
@@ -51,9 +52,10 @@ Each rung is independently testable. Do not start the next until the previous ha
 ```text
 P0  Harness (no BOLT backend)          ✓ Done
 P1  Read ELF32                         ✓ Done
-P2  Disassemble ARM-mode only          staged
-P3  Build CFG (ARM)                    staged
-P4  Identity rewrite (MCPlusBuilder)   emit only; overwrite pending `-marm`
+P2  Disassemble ARM-mode only          ✓ Done (ARM benches; lit TBD)
+P3  Build CFG (ARM)                    ✓ Done (ARM benches; lit TBD)
+P4  Identity rewrite (MCPlusBuilder)   ✓ Done (ARM-mode benches)
+
 P5  Branch range / veneers
 P6  Thumb-2, no IT
 P7  IT blocks
@@ -118,8 +120,9 @@ No BOLT backend. Proves the AArch64 collection path ports to ARM32.
 | Boot `qemu-system-arm -machine virt -cpu cortex-a15` | `scripts/run-qemu-lk.sh` (`LK_PROJECT=qemu-virt-arm32-test`) | Done |
 | `bolt_bench` overlay on ARM32 project mk | `scripts/apply-overlays.sh` | Done |
 | P0 verify script | `scripts/verify-bolt-arm32-harness.sh` | Done |
+| P0–P4 milestone gate | `scripts/verify-bolt-arm32-milestones.sh` | Done — all pass on pod |
 | Cross-build runtime for `arm-none-eabi` | `scripts/build-bolt-rt-baremetal.sh` | Pending (needed at P9) |
-| Rebase llvm-project to `main` | `scripts/ensure-llvm-source.sh` `LLVM_BRANCH=main` | Pending (before P1) |
+| Rebase llvm-project to `main` | `scripts/ensure-llvm-source.sh` `LLVM_BRANCH=main` | Pending (before upstream PRs) |
 
 **Pass:** original `lk.elf` reaches `entering main console loop`; `lk.bolt_bench=all` prints all four `bolt_bench: … done` lines.
 
@@ -189,14 +192,14 @@ First “BOLT did something” milestone: rewrite the binary and it still runs.
 **Pass (lit):** rewritten lit ELF executes correctly.  
 **Pass (QEMU):** rewritten `lk.elf` boots; `lk.bolt_bench=all` completes.
 
-P4 rewrites **ARM-mode** functions. Default `qemu-virt-arm32-test` compiles `bolt_bench_*` as Thumb, so those four functions are ignored (0 overwritten) until they are rebuilt with `-marm` or until P6. The QEMU gate is “image boots and benches run,” not “Thumb benches were rewritten.”
+P4 rewrites **ARM-mode** functions. Default `qemu-virt-arm32-test` compiles `bolt_bench_*` as Thumb; rebuild with `BOLT_BENCH_ISA=arm` for the P4 gate (Thumb rewrite is P6).
 
 ```bash
-# emit check (current default Thumb benches → overwrite 0 is expected)
-./scripts/verify-bolt-arm32-identity.sh
+# One-shot P0–P4 (expects ARM-mode benches already built)
+./scripts/verify-bolt-arm32-milestones.sh
 
-# actual P4 overwrite
-BOLT_BENCH_ISA=arm REBUILD_LK=1 REQUIRE_OVERWRITE=1 \
+# Or identity rewrite only
+BOLT_BENCH_ISA=arm REQUIRE_OVERWRITE=1 BOOT_REWRITTEN=1 \
   ./scripts/verify-bolt-arm32-identity.sh
 ```
 
@@ -375,7 +378,8 @@ Mirror AArch64:
 
 - [x] P0: ARM32 LK boots; `bolt_bench all` prints four done lines
 - [x] P1: `llvm-bolt --print-sections` on ARM32 `lk.elf` lists `.text`
-- [ ] P2–P4: `llvm-bolt` identity-rewrites ARM-mode `bolt_bench` (`BOLT_BENCH_ISA=arm`) and that ELF boots on QEMU
+- [x] P2–P4: `llvm-bolt` identity-rewrites ARM-mode `bolt_bench` (`BOLT_BENCH_ISA=arm`) and that ELF boots on QEMU
+  - Lit FileCheck still weak / not confirmed `check-bolt` green
 - [ ] P5–P8: Thumb-2, IT, interworking identity rewrite on QEMU
 - [ ] P9–P10: Instrumentation + QMP profile + optimized `lk.bolt.elf` boots and reruns workloads
 - [ ] Lit coverage for ARM, Thumb-2, IT, interworking, veneers in llvm-project

@@ -32,8 +32,12 @@ if [[ ! -f "$ELF" ]]; then
 fi
 
 echo "=== P1: print-sections ==="
-"$TOOLCHAIN/llvm-bolt" -o /tmp/lk.arm.sections.elf --print-sections "$ELF" \
-  > /tmp/bolt-arm32-sections.log 2>&1 || true
+"$TOOLCHAIN/llvm-bolt" -o /tmp/lk.arm.sections.elf --print-sections \
+  --funcs-file="$FUNCS_FILE" "$ELF" \
+  > /tmp/bolt-arm32-sections.log 2>&1 || {
+  echo "error: print-sections failed (see /tmp/bolt-arm32-sections.log)" >&2
+  exit 1
+}
 grep -q "Target architecture: arm" /tmp/bolt-arm32-sections.log
 grep -q "\.text" /tmp/bolt-arm32-sections.log
 echo "P1 print-sections OK"
@@ -71,14 +75,17 @@ else
   echo "P4 emit OK (set REQUIRE_OVERWRITE=1 after -marm benches)"
 fi
 
-if [[ "${BOOT_REWRITTEN:-0}" == 1 ]]; then
+if [[ "${BOOT_REWRITTEN:-1}" == 1 && "${REQUIRE_OVERWRITE:-0}" == 1 ]]; then
   echo "=== QEMU boot rewritten ELF ==="
   QEMU="${QEMU:-qemu-system-arm}"
   timeout 120 "$QEMU" -machine virt -cpu cortex-a15 -m 512 -smp 1 \
-    -display none -serial file:/tmp/bench-arm32-rewritten.log \
+    -nographic \
     -append "${BENCH_CMDLINE:-lk.bolt_bench=all}" \
-    -kernel "$OUT" || true
+    -kernel "$OUT" > /tmp/bench-arm32-rewritten.log 2>&1 || true
   grep -q "bolt_bench: hot_loop done" /tmp/bench-arm32-rewritten.log
+  grep -q "bolt_bench: hot_cold done" /tmp/bench-arm32-rewritten.log
+  grep -q "bolt_bench: branch_chain done" /tmp/bench-arm32-rewritten.log
   grep -q "bolt_bench: memcpy done" /tmp/bench-arm32-rewritten.log
-  echo "rewritten image booted and benches ran"
+  grep -q "entering main console loop" /tmp/bench-arm32-rewritten.log
+  echo "P4 rewritten image booted and benches ran"
 fi

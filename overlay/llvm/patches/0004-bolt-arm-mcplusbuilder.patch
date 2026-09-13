@@ -16,10 +16,10 @@ index aae520d5afe5..ce305c2f26cf 100644
  
 diff --git a/bolt/lib/Target/ARM/ARMMCPlusBuilder.cpp b/bolt/lib/Target/ARM/ARMMCPlusBuilder.cpp
 new file mode 100644
-index 000000000000..acc848d1e5bf
+index 000000000000..d51e13b5f4c0
 --- /dev/null
 +++ b/bolt/lib/Target/ARM/ARMMCPlusBuilder.cpp
-@@ -0,0 +1,665 @@
+@@ -0,0 +1,682 @@
 +//===- bolt/Target/ARM/ARMMCPlusBuilder.cpp ---------------------------===//
 +//
 +// Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
@@ -143,16 +143,25 @@ index 000000000000..acc848d1e5bf
 +    default:
 +      return false;
 +    case ARM::MOVr:
-+      return Inst.getOperand(0).getReg() == Inst.getOperand(1).getReg() &&
-+             Inst.getOperand(2).getImm() == ARMCC::AL &&
-+             Inst.getOperand(3).getReg() == 0;
++      if (Inst.getNumOperands() < 4)
++        return false;
++      return Inst.getOperand(0).isReg() && Inst.getOperand(1).isReg() &&
++             Inst.getOperand(0).getReg() == Inst.getOperand(1).getReg() &&
++             Inst.getOperand(2).isImm() && Inst.getOperand(2).getImm() == ARMCC::AL &&
++             Inst.getOperand(3).isReg() && Inst.getOperand(3).getReg() == 0;
 +    case ARM::tMOVr:
-+      return Inst.getOperand(0).getReg() == Inst.getOperand(1).getReg() &&
-+             Inst.getOperand(2).getImm() == ARMCC::AL;
++      if (Inst.getNumOperands() < 3)
++        return false;
++      return Inst.getOperand(0).isReg() && Inst.getOperand(1).isReg() &&
++             Inst.getOperand(0).getReg() == Inst.getOperand(1).getReg() &&
++             Inst.getOperand(2).isImm() && Inst.getOperand(2).getImm() == ARMCC::AL;
 +    case ARM::t2MOVr:
-+      return Inst.getOperand(0).getReg() == Inst.getOperand(1).getReg() &&
-+             Inst.getOperand(2).getImm() == ARMCC::AL &&
-+             Inst.getOperand(3).getReg() == 0;
++      if (Inst.getNumOperands() < 4)
++        return false;
++      return Inst.getOperand(0).isReg() && Inst.getOperand(1).isReg() &&
++             Inst.getOperand(0).getReg() == Inst.getOperand(1).getReg() &&
++             Inst.getOperand(2).isImm() && Inst.getOperand(2).getImm() == ARMCC::AL &&
++             Inst.getOperand(3).isReg() && Inst.getOperand(3).getReg() == 0;
 +    }
 +  }
 +
@@ -298,10 +307,11 @@ index 000000000000..acc848d1e5bf
 +      if (isIndirectBranch(*I))
 +        return false;
 +      if (CondBranch == nullptr) {
-+        TBB = getTargetSymbol(*I);
-+        if (!TBB)
++        const MCSymbol *TargetBB = getTargetSymbol(*I);
++        if (!TargetBB)
 +          return false;
 +        FBB = TBB;
++        TBB = TargetBB;
 +        CondBranch = &*I;
 +        continue;
 +      }
@@ -390,6 +400,13 @@ index 000000000000..acc848d1e5bf
 +    if (isTailCall(Inst))
 +      return false;
 +    setTailCall(Inst);
++    return true;
++  }
++
++  bool lowerTailCall(MCInst &Inst) override {
++    removeAnnotation(Inst, MCPlus::MCAnnotation::kTailCall);
++    if (getConditionalTailCall(Inst))
++      unsetConditionalTailCall(Inst);
 +    return true;
 +  }
 +

@@ -71,13 +71,16 @@ apt-get update -qq && apt-get install -y -qq qemu-system-arm
 - `llvm-bolt`, `clang`, `ld.lld`, llvm binutils — LLVM 23.1.2
 - LK `qemu-virt-arm64-test` — Phase 2 instrument → QMP → optimize → boot
 - LK `qemu-virt-arm32-test` — P0 boot + `lk.bolt_bench=all`
-- P1: `llvm-bolt --print-sections` on ARM32 `lk.elf` lists `.text`
-- P4 emit: `llvm-bolt -o … --funcs-file=bolt_bench_*` writes an ELF (JITLink generic `arm` → ARMv7-A). Overwrite count is 0 because those benches are Thumb (P6).
+- P1: `llvm-bolt --print-sections --funcs-file=bolt_bench_*` on ARM32 `lk.elf` lists `.text` (exit 0)
+- P2/P3: `--print-cfg` prints ARM `bolt_bench_hot_loop` CFG with successors
+- **P0–P4 one-shot:** `./scripts/verify-bolt-arm32-milestones.sh` → `ALL MILESTONES P0-P4 PASSED`
+- **P4 identity rewrite:** `BOLT_BENCH_ISA=arm` → **4/1389 overwritten**; QEMU boots rewritten ELF; all four `bolt_bench: … done` lines print
 
 **Still pending:**
 
-- P4 overwrite: `BOLT_BENCH_ISA=arm REBUILD_LK=1 REQUIRE_OVERWRITE=1 ./scripts/verify-bolt-arm32-identity.sh`
-- P6 Thumb disasm of current benches (fails at +0x8)
+- Lit FileCheck hardening for P2–P4 (`check-bolt`)
+- Full-binary rewrite without `--funcs-file` (kernel host functions)
+- P6 Thumb disasm of default `-mthumb` benches (fails at +0x8 without `-marm`)
 - On-target `.fdata` serialization over UART (optional; QMP works)
 - Rebase llvm-project to `main` before opening upstream PRs
 
@@ -151,14 +154,12 @@ Phase 3 next (on the volume, after `git pull`):
 # if llvm-project already has the backend, ninja will just rebuild dirty files
 ninja -C build bolt
 
-# P0
+# P0–P4 one-shot (ARM-mode benches already on volume)
+./scripts/verify-bolt-arm32-milestones.sh
+
+# Or stepwise:
 ./scripts/verify-bolt-arm32-harness.sh
-
-# P1 + P4 emit
-./scripts/verify-bolt-arm32-identity.sh
-
-# P4 overwrite (ARM-mode benches)
-BOLT_BENCH_ISA=arm REBUILD_LK=1 REQUIRE_OVERWRITE=1 \
+BOLT_BENCH_ISA=arm REQUIRE_OVERWRITE=1 BOOT_REWRITTEN=1 \
   ./scripts/verify-bolt-arm32-identity.sh
 ```
 

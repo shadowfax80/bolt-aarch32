@@ -24,7 +24,7 @@
 | 0 | Repo, scripts, RunPod | **Done** |
 | 1 | LLVM/BOLT toolchain | **Done** |
 | 2 | AArch64 bare-metal + LK | **Done** (2.8 optional UART export pending) |
-| 3 | AArch32 BOLT → upstream | **P0–P1 done** — P4 emit works, overwrite still 0 |
+| 3 | AArch32 BOLT → upstream | **P0–P1 + P4 done** — P2–P3 staged; P5 next |
 
 **Pod:** `ddib0g7kwvdk33` — check RunPod console for current state  
 **Volume:** `j1d9e6wq5l` @ `/workspace/bolt-lk-overlay` (EU-RO-1)
@@ -75,9 +75,9 @@ Each rung P1–P10 maps to **one upstream llvm-project PR** with lit tests. P11 
 |------|-------|-------------|-----|-----------|--------|
 | P0 | ARM32 harness | — | — | `verify-bolt-arm32-harness.sh` | **Done** |
 | P1 | ELF32 reader | `[BOLT][ARM] ELF32 support` | Parse ARM ET_EXEC | `--print-sections` on `lk.elf` | **Done** — `0003` |
-| P2 | ARM disassembly | `[BOLT][ARM] ARM-mode disasm` | ARM `.s` FileCheck | `hot_loop` vs objdump | **Staged** — code + lit; lit not confirmed green |
-| P3 | CFG (ARM) | `[BOLT][ARM] ARM CFG` | `--print-cfg` FileCheck | ARM bench CFG | **Staged** — in `0004`; no QEMU CFG check |
-| P4 | Identity rewrite | `[BOLT][ARM] ARM identity rewrite` | Rewritten lit ELF | Rewritten `lk.elf` + `bolt_bench all` | **Partial** — emit works; 0 funcs overwritten on Thumb benches |
+| P2 | ARM disassembly | `[BOLT][ARM] ARM-mode disasm` | ARM `.s` FileCheck | `hot_loop` vs objdump | **Done** — ARM benches via `--print-cfg`; lit TBD |
+| P3 | CFG (ARM) | `[BOLT][ARM] ARM CFG` | `--print-cfg` FileCheck | ARM bench CFG | **Done** — ARM bench CFG + successors; lit TBD |
+| P4 | Identity rewrite | `[BOLT][ARM] ARM identity rewrite` | Rewritten lit ELF | Rewritten `lk.elf` + `bolt_bench all` | **Done** — 4/1389 overwritten (`BOLT_BENCH_ISA=arm`); QEMU benches green |
 | P5 | Veneers | `[BOLT][ARM] Branch veneers` | Far `bl` lit | `far_call` bench | **Stub** in `0004` |
 | P6 | Thumb-2 (no IT) | `[BOLT][ARM] Thumb-2 rewrite` | Thumb `.s` lit | `-mthumb` benches boot | **Partial** — STI/LSB/`$t`; benches fail disasm at +0x8 |
 | P7 | IT blocks | `[BOLT][ARM] IT bundles` | IT not split | `it_cond` bench | Pending — skip as unsupported |
@@ -97,7 +97,7 @@ Each rung P1–P10 maps to **one upstream llvm-project PR** with lit tests. P11 
 | `0007-bolt-arm-lit-tests.patch` | Lit tests under `bolt/test/ARM/` |
 | `0008-jitlink-arm-generic-archkind.patch` | P4 emit — JITLink treats generic `arm` as ARMv7-A |
 
-**Next action:** rebuild `bolt_bench` with `BOLT_BENCH_ISA=arm`, confirm overwrite > 0 (`REQUIRE_OVERWRITE=1`), boot rewritten ELF; then lit. Do not treat current Thumb benches as the P4 rewrite target (that is P6).
+**Next action:** strengthen lit FileCheck for P2–P4; open upstream PRs starting at P1. P5 veneers next for backend features. Default Thumb benches remain a P6 rewrite target.
 
 ---
 
