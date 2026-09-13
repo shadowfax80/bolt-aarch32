@@ -11,7 +11,7 @@ index 2e63ca93c3e5..e427a32ffda4 100644
    /// Update loadable segment information based on new sections.
    void updateSegmentInfo();
 diff --git a/bolt/lib/Rewrite/RewriteInstance.cpp b/bolt/lib/Rewrite/RewriteInstance.cpp
-index a12b83859669..695b640335df 100644
+index a12b83859669..cac571ab031f 100644
 --- a/bolt/lib/Rewrite/RewriteInstance.cpp
 +++ b/bolt/lib/Rewrite/RewriteInstance.cpp
 @@ -370,6 +370,11 @@ MCPlusBuilder *createMCPlusBuilder(const Triple::ArchType Arch,
@@ -26,6 +26,15 @@ index a12b83859669..695b640335df 100644
    llvm_unreachable("architecture unsupported by MCPlusBuilder");
  }
  
+@@ -1012,7 +1017,7 @@ void RewriteInstance::discoverFileObjects() {
+     }
+   };
+ 
+-  if (BC->isAArch64() || BC->isRISCV()) {
++  if (BC->isAArch64() || BC->isRISCV() || BC->isARM()) {
+     addExtraDataMarkerPerSymbol();
+     LastSymbol = std::stable_partition(
+         SortedSymbols.begin(), SortedSymbols.end(),
 @@ -1028,7 +1033,12 @@ void RewriteInstance::discoverFileObjects() {
        LastSymbol == SortedSymbols.end() ? LastSymbol : std::next(LastSymbol);
    for (auto Iter = SortedSymbols.begin(); Iter != SortedSymbolsEnd; ++Iter) {
@@ -40,7 +49,16 @@ index a12b83859669..695b640335df 100644
      const auto SymbolFlags = cantFail(Symbol.getFlags());
      const SymbolRef::Type SymbolType = cantFail(Symbol.getType());
  
-@@ -1307,6 +1317,8 @@ void RewriteInstance::discoverFileObjects() {
+@@ -1036,6 +1046,8 @@ void RewriteInstance::discoverFileObjects() {
+       continue;
+ 
+     StringRef SymName = cantFail(Symbol.getName(), "cannot get symbol name");
++    if (BC->isARM() && SymName.starts_with("$t"))
++      IsARMThumb = true;
+     if (SymbolAddress == 0) {
+       if (opts::Verbosity >= 1 && SymbolType == SymbolRef::ST_Function)
+         BC->errs() << "BOLT-WARNING: function with 0 address seen\n";
+@@ -1307,6 +1319,8 @@ void RewriteInstance::discoverFileObjects() {
  
        BF = BC->createBinaryFunction(UniqueName, *Section, SymbolAddress,
                                      SymbolSize);
@@ -49,7 +67,23 @@ index a12b83859669..695b640335df 100644
        if (!IsSimple)
          BF->setSimple(false);
      }
-@@ -2042,6 +2054,12 @@ void RewriteInstance::disassemblePLTSectionX86(BinarySection &Section,
+@@ -1389,6 +1403,15 @@ void RewriteInstance::discoverFileObjects() {
+     const auto EntryOffset = Address - BF->getAddress();
+     if (Type == MarkerSymType::CODE) {
+       BF->markCodeAtOffset(EntryOffset);
++      if (BC->isARM() && EntryOffset == 0) {
++        for (const auto &SI :
++             llvm::make_range(FileSymRefs.equal_range(Address))) {
++          Expected<StringRef> Name = SI.second.getName();
++          if (Name && (*Name == "$t" || Name->starts_with("$t.") ||
++                       Name->starts_with("$t/")))
++            BF->setARMThumb(true);
++        }
++      }
+       continue;
+     }
+     if (Type == MarkerSymType::DATA) {
+@@ -2042,6 +2065,12 @@ void RewriteInstance::disassemblePLTSectionX86(BinarySection &Section,
    }
  }
  
@@ -62,3 +96,29 @@ index a12b83859669..695b640335df 100644
  void RewriteInstance::disassemblePLT() {
    auto analyzeOnePLTSection = [&](BinarySection &Section, uint64_t EntrySize) {
      if (BC->isAArch64())
+@@ -5527,11 +5556,20 @@ void RewriteInstance::updateELFSymbolTable(
+             });
+ 
+         if (FF == Function->getLayout().fragment_end()) {
+-          assert(
+-              OutputAddress >= Function->getCodeSection()->getOutputAddress() &&
+-              OutputAddress < (Function->getCodeSection()->getOutputAddress() +
+-                               Function->getCodeSection()->getOutputSize()) &&
+-              "Cannot locate fragment containing secondary entrypoint");
++          // LK keeps local labels inside hand-written assembly, and for a
++          // binary linked at a kernel address some of them translate to an
++          // address that falls outside every fragment and outside the
++          // function's code section. The assertion upstream places here
++          // compiles out under NDEBUG, so a release llvm-bolt already accepts
++          // this and attributes the label to the first fragment. Keep that
++          // behaviour and report it rather than aborting an assertions build.
++          if (OutputAddress < Function->getCodeSection()->getOutputAddress() ||
++              OutputAddress >= (Function->getCodeSection()->getOutputAddress() +
++                                Function->getCodeSection()->getOutputSize()))
++            BC->errs() << "BOLT-WARNING: secondary entry point at 0x"
++                       << Twine::utohexstr(OutputAddress) << " in "
++                       << Function->getPrintName()
++                       << " lies outside its code section\n";
+           FF = Function->getLayout().fragment_begin();
+         }
+ 

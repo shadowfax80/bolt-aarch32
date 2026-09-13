@@ -1,0 +1,26 @@
+diff --git a/llvm/lib/ExecutionEngine/JITLink/ELF_aarch32.cpp b/llvm/lib/ExecutionEngine/JITLink/ELF_aarch32.cpp
+index f5ca72796df5..7d3f3ec426c8 100644
+--- a/llvm/lib/ExecutionEngine/JITLink/ELF_aarch32.cpp
++++ b/llvm/lib/ExecutionEngine/JITLink/ELF_aarch32.cpp
+@@ -260,6 +260,10 @@ Expected<std::unique_ptr<LinkGraph>> createLinkGraphFromELFObject_aarch32(
+   // Find out what exact AArch32 instruction set and features we target.
+   auto TT = (*ELFObj)->makeTriple();
+   ARM::ArchKind AK = ARM::parseArch(TT.getArchName());
++  if (AK == ARM::ArchKind::INVALID &&
++      (TT.getArch() == Triple::arm || TT.getArch() == Triple::thumb ||
++       TT.getArch() == Triple::armeb || TT.getArch() == Triple::thumbeb))
++    AK = ARM::ArchKind::ARMV7A;
+   if (AK == ARM::ArchKind::INVALID)
+     return make_error<JITLinkError>(
+         "Failed to build ELF link graph: Invalid ARM ArchKind");
+@@ -301,6 +305,10 @@ void link_ELF_aarch32(std::unique_ptr<LinkGraph> G,
+ 
+   using namespace ARMBuildAttrs;
+   ARM::ArchKind AK = ARM::parseArch(TT.getArchName());
++  if (AK == ARM::ArchKind::INVALID &&
++      (TT.getArch() == Triple::arm || TT.getArch() == Triple::thumb ||
++       TT.getArch() == Triple::armeb || TT.getArch() == Triple::thumbeb))
++    AK = ARM::ArchKind::ARMV7A;
+   auto CPU = static_cast<CPUArch>(ARM::getArchAttr(AK));
+   aarch32::ArmConfig ArmCfg = aarch32::getArmConfigForCPUArch(CPU);
+ 

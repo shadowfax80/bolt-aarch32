@@ -1,5 +1,5 @@
 diff --git a/bolt/lib/Core/Relocation.cpp b/bolt/lib/Core/Relocation.cpp
-index 8788482675a4..2d41428c2cce 100644
+index 8788482675a4..55068571a53c 100644
 --- a/bolt/lib/Core/Relocation.cpp
 +++ b/bolt/lib/Core/Relocation.cpp
 @@ -100,6 +100,146 @@ static bool isSupportedAArch64(uint32_t Type) {
@@ -203,7 +203,43 @@ index 8788482675a4..2d41428c2cce 100644
    case Triple::riscv32:
      return extractValueRISCV(Type, Contents, PC);
    case Triple::x86_64:
-@@ -897,6 +1049,8 @@ uint32_t Relocation::getNone() {
+@@ -816,6 +968,8 @@ bool Relocation::isGOT(uint32_t Type) {
+   case Triple::riscv64:
+   case Triple::riscv32:
+     return isGOTRISCV(Type);
++  case Triple::arm:
++    return false;
+   case Triple::x86_64:
+     return isGOTX86(Type);
+   }
+@@ -844,6 +998,8 @@ bool Relocation::isRelative(uint32_t Type) {
+   case Triple::riscv64:
+   case Triple::riscv32:
+     return Type == ELF::R_RISCV_RELATIVE;
++  case Triple::arm:
++    return Type == ELF::R_ARM_RELATIVE;
+   case Triple::x86_64:
+     return Type == ELF::R_X86_64_RELATIVE;
+   }
+@@ -858,6 +1014,8 @@ bool Relocation::isIRelative(uint32_t Type) {
+   case Triple::riscv64:
+   case Triple::riscv32:
+     llvm_unreachable("not implemented");
++  case Triple::arm:
++    return Type == ELF::R_ARM_IRELATIVE;
+   case Triple::x86_64:
+     return Type == ELF::R_X86_64_IRELATIVE;
+   }
+@@ -872,6 +1030,8 @@ bool Relocation::isTLS(uint32_t Type) {
+   case Triple::riscv64:
+   case Triple::riscv32:
+     return isTLSRISCV(Type);
++  case Triple::arm:
++    return false;
+   case Triple::x86_64:
+     return isTLSX86(Type);
+   }
+@@ -897,6 +1057,8 @@ uint32_t Relocation::getNone() {
    case Triple::aarch64:
      return ELF::R_AARCH64_NONE;
    case Triple::riscv64:
@@ -212,7 +248,7 @@ index 8788482675a4..2d41428c2cce 100644
    case Triple::riscv32:
      return ELF::R_RISCV_NONE;
    case Triple::x86_64:
-@@ -911,6 +1065,8 @@ uint32_t Relocation::getPC32() {
+@@ -911,6 +1073,8 @@ uint32_t Relocation::getPC32() {
    case Triple::aarch64:
      return ELF::R_AARCH64_PREL32;
    case Triple::riscv64:
@@ -221,7 +257,7 @@ index 8788482675a4..2d41428c2cce 100644
    case Triple::riscv32:
      return ELF::R_RISCV_32_PCREL;
    case Triple::x86_64:
-@@ -925,6 +1081,8 @@ uint32_t Relocation::getPC64() {
+@@ -925,6 +1089,8 @@ uint32_t Relocation::getPC64() {
    case Triple::aarch64:
      return ELF::R_AARCH64_PREL64;
    case Triple::riscv64:
@@ -230,7 +266,7 @@ index 8788482675a4..2d41428c2cce 100644
    case Triple::riscv32:
      llvm_unreachable("not implemented");
    case Triple::x86_64:
-@@ -945,6 +1103,8 @@ bool Relocation::isPCRelative(uint32_t Type) {
+@@ -945,6 +1111,8 @@ bool Relocation::isPCRelative(uint32_t Type) {
    case Triple::aarch64:
      return isPCRelativeAArch64(Type);
    case Triple::riscv64:
@@ -239,3 +275,31 @@ index 8788482675a4..2d41428c2cce 100644
    case Triple::riscv32:
      return isPCRelativeRISCV(Type);
    case Triple::x86_64:
+@@ -961,6 +1129,8 @@ uint32_t Relocation::getAbs64() {
+   case Triple::riscv64:
+   case Triple::riscv32:
+     return ELF::R_RISCV_64;
++  case Triple::arm:
++    return ELF::R_ARM_ABS32;
+   case Triple::x86_64:
+     return ELF::R_X86_64_64;
+   }
+@@ -975,6 +1145,8 @@ uint32_t Relocation::getRelative() {
+   case Triple::riscv64:
+   case Triple::riscv32:
+     llvm_unreachable("not implemented");
++  case Triple::arm:
++    return ELF::R_ARM_RELATIVE;
+   case Triple::x86_64:
+     return ELF::R_X86_64_RELATIVE;
+   }
+@@ -1048,6 +1220,9 @@ void Relocation::print(raw_ostream &OS) const {
+   case Triple::riscv32:
+     OS << object::getELFRelocationTypeName(ELF::EM_RISCV, Type);
+     break;
++  case Triple::arm:
++    OS << object::getELFRelocationTypeName(ELF::EM_ARM, Type);
++    break;
+   case Triple::x86_64:
+     OS << object::getELFRelocationTypeName(ELF::EM_X86_64, Type);
+     break;

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# P0 gate: ARM32 LK + QEMU + bolt_bench workloads (no BOLT backend yet).
+# P0 gate: ARM32 LK + QEMU + bolt_bench workloads (no rewrite required).
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"

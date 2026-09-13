@@ -1,6 +1,6 @@
 # Resume guide
 
-**Saved:** 2026-09-11  
+**Saved:** 2026-09-13  
 **GitHub (overlay only):** [somraj80/bolt-aarch32](https://github.com/somraj80/bolt-aarch32)
 
 All upstream sources, builds, and QEMU runs live on the **RunPod network volume** — not on your laptop. The GitHub repo holds overlay patches, scripts, and docs only.
@@ -60,25 +60,26 @@ apt-get update -qq && apt-get install -y -qq qemu-system-arm
 ├── build/                           ← LLVM 23.1.2 toolchain (3.3 GB)
 ├── llvm-bolt-toolchain.tar.gz       ← packaged tools (167 MB)
 ├── third_party/llvm-project/        ← release/23.x @ 069ef0e7cb36
+│                                      branch bolt-arm-backend (local)
 └── third_party/lk/                  ← master @ 79d2f560
-    └── build-qemu-virt-arm64-test/
-        └── lk.elf                   ← LK AArch64, boots in QEMU ✓
+    ├── build-qemu-virt-arm64-test/lk.elf   ← AArch64 Phase 2 ✓
+    └── build-qemu-virt-arm32-test/lk.elf   ← ARM32 P0 harness ✓
 ```
 
-**Verified on pod before stop:**
+**Verified on volume:**
 
-- `llvm-bolt`, `clang`, `ld.lld`, llvm binutils — built
-- LK `qemu-virt-arm64-test` — built and booted to shell in QEMU (`cortex-a53`, 4 CPUs)
-
-**Phase 2 verified before pod delete:**
-
-- Bare-metal BOLT runtime built and used
-- Instrument → profile → optimize → boot (`./scripts/verify-bolt-workloads.sh` passed)
+- `llvm-bolt`, `clang`, `ld.lld`, llvm binutils — LLVM 23.1.2
+- LK `qemu-virt-arm64-test` — Phase 2 instrument → QMP → optimize → boot
+- LK `qemu-virt-arm32-test` — P0 boot + `lk.bolt_bench=all`
+- P1: `llvm-bolt --print-sections` on ARM32 `lk.elf` lists `.text`
+- P4 emit: `llvm-bolt -o … --funcs-file=bolt_bench_*` writes an ELF (JITLink generic `arm` → ARMv7-A). Overwrite count is 0 because those benches are Thumb (P6).
 
 **Still pending:**
 
-- On-target `.fdata` serialization over UART
-- LK overlay patches (dump hook, `bolt_bench` workloads)
+- P4 overwrite: `BOLT_BENCH_ISA=arm REBUILD_LK=1 REQUIRE_OVERWRITE=1 ./scripts/verify-bolt-arm32-identity.sh`
+- P6 Thumb disasm of current benches (fails at +0x8)
+- On-target `.fdata` serialization over UART (optional; QMP works)
+- Rebase llvm-project to `main` before opening upstream PRs
 
 ---
 
@@ -143,11 +144,29 @@ python3 scripts/dump-bolt-counters.py --elf build/lk.instr.elf --toolchain build
 ./scripts/run-qemu-lk.sh build/lk.bolt.elf
 ```
 
-Remaining Phase 2 work:
+Phase 3 next (on the volume, after `git pull`):
 
-1. On-target `.fdata` serialization (port upstream `writeFunctionProfile` to UART)
-2. LK patches: dump hook, `bolt_bench` app (optional workloads)
-3. On-target UART `.fdata` export (optional; QMP dump works today)
+```bash
+./scripts/apply-overlays.sh
+# if llvm-project already has the backend, ninja will just rebuild dirty files
+ninja -C build bolt
+
+# P0
+./scripts/verify-bolt-arm32-harness.sh
+
+# P1 + P4 emit
+./scripts/verify-bolt-arm32-identity.sh
+
+# P4 overwrite (ARM-mode benches)
+BOLT_BENCH_ISA=arm REBUILD_LK=1 REQUIRE_OVERWRITE=1 \
+  ./scripts/verify-bolt-arm32-identity.sh
+```
+
+Refresh overlay patches from the volume tree:
+
+```bash
+./scripts/export-llvm-arm-patches.sh
+```
 
 Build LK (already works):
 

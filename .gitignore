@@ -19,6 +19,9 @@ third_party/lk/
 __pycache__/
 *.py[cod]
 
+# Local scratch (pod export helpers; not overlay source)
+tmp-arm-backend/
+
 # Editor / OS
 .vscode/
 .idea/

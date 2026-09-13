@@ -10,7 +10,7 @@ For why a post-link optimizer earns its place after PGO and LTO at all, see [why
 |--------|-------|-----|
 | LLVM branch | `release/23.x` | `--no-lse-atomics` landed in LLVM 22; 19.x predates it. Phase 3 rebases onto `main`, which is what upstream reviews against. |
 | BOLT version | same as LLVM | BOLT is a monorepo subproject with no separate versioning |
-| LLVM targets | `X86;AArch64;ARM` | ARM lets clang/lld target AArch32; BOLT itself has no AArch32 backend — that is Phase 3 |
+| LLVM targets | `X86;AArch64;ARM` | clang/lld can target AArch32. BOLT ARM backend is Phase 3 (`BOLT_TARGETS_TO_BUILD` includes `ARM`; P0–P1 gated, P4 emit only) |
 | Assertions | off | Consumed toolchain, not an LLVM debugging build |
 
 ## End-to-end flow

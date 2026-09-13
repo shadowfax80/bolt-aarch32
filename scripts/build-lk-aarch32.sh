@@ -20,6 +20,11 @@ export CLANG_BINDIR
 export LD=ld.lld
 export PATH="$CLANG_BINDIR:$PATH"
 
-make "$LK_PROJECT" -j"${JOBS:-$(nproc)}"
+MAKE_ARGS=()
+if [[ -n "${BOLT_BENCH_ISA:-}" ]]; then
+  MAKE_ARGS+=("BOLT_BENCH_ISA=$BOLT_BENCH_ISA")
+fi
+
+make "$LK_PROJECT" "${MAKE_ARGS[@]}" -j"${JOBS:-$(nproc)}"
 
 echo "LK ARM32 build complete: build-$LK_PROJECT/lk.elf"
