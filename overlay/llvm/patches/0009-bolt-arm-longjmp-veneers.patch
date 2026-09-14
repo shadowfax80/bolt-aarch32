@@ -1,0 +1,77 @@
+diff --git a/bolt/lib/Passes/LongJmp.cpp b/bolt/lib/Passes/LongJmp.cpp
+index b771e6a8b120..96f178d9471d 100644
+--- a/bolt/lib/Passes/LongJmp.cpp
++++ b/bolt/lib/Passes/LongJmp.cpp
+@@ -531,9 +531,9 @@ Error LongJmpPass::relaxStub(BinaryBasicBlock &StubBB, bool &Modified) {
+     return Error::success();
+   }
+ 
+-  // The long jmp uses absolute address on AArch64
+-  // So we could not use it for PIC binaries
+-  if (BC.isAArch64() && !BC.HasFixedLoadAddress)
++  // Absolute long/short veneers (AArch64 ADRP/ADD or ARM movw/movt) need a
++  // fixed load address, so reject PIC.
++  if ((BC.isAArch64() || BC.isARM()) && !BC.HasFixedLoadAddress)
+     return createFatalBOLTError(
+         "BOLT-ERROR: Unable to relax stub for PIC binary\n");
+ 
+@@ -576,8 +576,8 @@ bool LongJmpPass::needsStub(const BinaryBasicBlock &BB, const MCInst &Inst,
+ Error LongJmpPass::relax(BinaryFunction &Func, bool &Modified) {
+   const BinaryContext &BC = Func.getBinaryContext();
+ 
+-  assert(BC.isAArch64() && "Unsupported arch");
+-  constexpr int InsnSize = 4; // AArch64
++  assert((BC.isAArch64() || BC.isARM()) && "Unsupported arch");
++  constexpr int InsnSize = 4; // AArch64 / ARM
+   std::vector<std::pair<BinaryBasicBlock *, std::unique_ptr<BinaryBasicBlock>>>
+       Insertions;
+ 
+diff --git a/bolt/lib/Passes/VeneerElimination.cpp b/bolt/lib/Passes/VeneerElimination.cpp
+index 9037390d06a4..60f7ad4ba001 100644
+--- a/bolt/lib/Passes/VeneerElimination.cpp
++++ b/bolt/lib/Passes/VeneerElimination.cpp
+@@ -36,7 +36,7 @@ namespace llvm {
+ namespace bolt {
+ 
+ Error VeneerElimination::runOnFunctions(BinaryContext &BC) {
+-  if (!opts::EliminateVeneers || !BC.isAArch64())
++  if (!opts::EliminateVeneers || !(BC.isAArch64() || BC.isARM()))
+     return Error::success();
+ 
+   std::unordered_map<const MCSymbol *, const MCSymbol *> VeneerDestinations;
+diff --git a/bolt/lib/Rewrite/BinaryPassManager.cpp b/bolt/lib/Rewrite/BinaryPassManager.cpp
+index 6e3022c491a7..df13ae16f66e 100644
+--- a/bolt/lib/Rewrite/BinaryPassManager.cpp
++++ b/bolt/lib/Rewrite/BinaryPassManager.cpp
+@@ -384,7 +384,9 @@ Error BinaryFunctionPassManager::runAllPasses(BinaryContext &BC) {
+ 
+   if (BC.isAArch64()) {
+     Manager.registerPass(std::make_unique<FixRelaxations>(PrintFixRelaxations));
++  }
+ 
++  if (BC.isAArch64() || BC.isARM()) {
+     Manager.registerPass(
+         std::make_unique<VeneerElimination>(PrintVeneerElimination));
+   }
+@@ -537,15 +539,16 @@ Error BinaryFunctionPassManager::runAllPasses(BinaryContext &BC) {
+     Manager.registerPass(
+         std::make_unique<AArch64RelaxationPass>(PrintAArch64Relaxation));
+ 
+-    // Tighten branches according to offset differences between branch and
+-    // targets. No extra instructions after this pass, otherwise we may have
+-    // relocations out of range and crash during linking.
+-    Manager.registerPass(std::make_unique<LongJmpPass>(PrintLongJmp));
+-
+     Manager.registerPass(
+         std::make_unique<PointerAuthCFIFixup>(PrintPAuthCFIFixup));
+   }
+ 
++  // Tighten branches according to offset differences between branch and
++  // targets. Shared by AArch64 and AArch32 (ARM-mode veneers / LongJmp).
++  if (BC.isAArch64() || BC.isARM()) {
++    Manager.registerPass(std::make_unique<LongJmpPass>(PrintLongJmp));
++  }
++
+   // This pass should always run last.*
+   Manager.registerPass(std::make_unique<FinalizeFunctions>(PrintFinalized));
+ 

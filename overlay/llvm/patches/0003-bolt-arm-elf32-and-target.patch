@@ -161,7 +161,7 @@ index 130c523bcda5..d43efdd84275 100644
      return MarkerSymType::DATA;
  
 diff --git a/bolt/lib/Core/BinaryFunction.cpp b/bolt/lib/Core/BinaryFunction.cpp
-index 31828aafb95f..6cef762e6123 100644
+index 31828aafb95f..0298212907c6 100644
 --- a/bolt/lib/Core/BinaryFunction.cpp
 +++ b/bolt/lib/Core/BinaryFunction.cpp
 @@ -167,6 +167,14 @@ bool shouldPrint(const BinaryFunction &Function) {
@@ -232,3 +232,24 @@ index 31828aafb95f..6cef762e6123 100644
  }
  
  MCSymbol *BinaryFunction::addEntryPointAtOffset(uint64_t Offset) {
+@@ -4879,10 +4897,16 @@ bool BinaryFunction::isAArch64Veneer() const {
+ }
+ 
+ bool BinaryFunction::isPossibleVeneer() const {
+-  return BC.isAArch64() &&
+-         (isAArch64Veneer() || getOneName().starts_with("__AArch64") ||
+-          getOneName().starts_with("e843419") ||
+-          getOneName().starts_with("__CortexA53843419_"));
++  if (BC.isAArch64())
++    return isAArch64Veneer() || getOneName().starts_with("__AArch64") ||
++           getOneName().starts_with("e843419") ||
++           getOneName().starts_with("__CortexA53843419_");
++  // LLD ARM long-branch thunks, e.g. __ARMv5LongLdrPcThunk_<sym>
++  if (BC.isARM())
++    return getOneName().starts_with("__ARMv") ||
++           getOneName().starts_with("__Thumb") ||
++           getOneName().starts_with("__ARMV");
++  return false;
+ }
+ 
+ void BinaryFunction::addRelocation(uint64_t Address, MCSymbol *Symbol,

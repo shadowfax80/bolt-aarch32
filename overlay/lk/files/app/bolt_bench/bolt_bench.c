@@ -65,6 +65,15 @@ __attribute__((noinline)) void bolt_bench_branch_chain(void) {
     (void)acc;
 }
 
+__attribute__((noinline)) void bolt_bench_far_target(void) {
+    /* Callee for P5 far-call experiments (optional BOLT_BENCH_FAR_PAD). */
+}
+
+__attribute__((noinline)) void bolt_bench_far_call(void) {
+    bolt_bench_far_target();
+    printf("bolt_bench: far_call done\n");
+}
+
 __attribute__((noinline)) void bolt_bench_memcpy(void) {
     lk_time_t t0 = arch_cycle_count();
     for (uint32_t r = 0; r < BOLT_BENCH_MEMCPY_ROUNDS; r++) {
@@ -82,11 +91,14 @@ static void run_one(const char *name) {
         bolt_bench_branch_chain();
     } else if (!strcmp(name, "memcpy")) {
         bolt_bench_memcpy();
+    } else if (!strcmp(name, "far_call")) {
+        bolt_bench_far_call();
     } else if (!strcmp(name, "all")) {
         bolt_bench_hot_loop();
         bolt_bench_hot_cold();
         bolt_bench_branch_chain();
         bolt_bench_memcpy();
+        bolt_bench_far_call();
     } else {
         printf("unknown workload %s\n", name);
     }
@@ -94,7 +106,7 @@ static void run_one(const char *name) {
 
 static int bolt_bench_cmd(int argc, const console_cmd_args *argv) {
     if (argc < 2) {
-        printf("usage: bolt_bench <hot_loop|hot_cold|branch_chain|memcpy|all>\n");
+        printf("usage: bolt_bench <hot_loop|hot_cold|branch_chain|memcpy|far_call|all>\n");
         return -1;
     }
     run_one(argv[1].str);

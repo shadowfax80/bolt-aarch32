@@ -46,4 +46,9 @@ export_one 0007-bolt-arm-lit-tests.patch \
 export_one 0008-jitlink-arm-generic-archkind.patch \
   llvm/lib/ExecutionEngine/JITLink/ELF_aarch32.cpp
 
+export_one 0009-bolt-arm-longjmp-veneers.patch \
+  bolt/lib/Passes/LongJmp.cpp \
+  bolt/lib/Passes/VeneerElimination.cpp \
+  bolt/lib/Rewrite/BinaryPassManager.cpp
+
 echo "ARM overlay patches refreshed from $LLVM"

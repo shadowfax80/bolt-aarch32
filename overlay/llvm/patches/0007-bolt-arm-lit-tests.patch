@@ -18,6 +18,31 @@ index 000000000000..787a68ef3fd9
 +	bx lr
 +.Ldone:
 +	b .
+diff --git a/bolt/test/ARM/Inputs/arm32-far-bl.s b/bolt/test/ARM/Inputs/arm32-far-bl.s
+new file mode 100644
+index 000000000000..e9e7987c3362
+--- /dev/null
++++ b/bolt/test/ARM/Inputs/arm32-far-bl.s
+@@ -0,0 +1,19 @@
++	.syntax unified
++	.arm
++	.text
++	.globl _start
++	.type _start, %function
++_start:
++	bl	far_away
++	b	.
++	@ Padding counted in _start's size so LongJmp tentative layout
++	@ keeps far_away beyond the +/-32MB ARM BL range.
++	.space	0x2100000
++	.size	_start, .-_start
++
++	.globl	far_away
++	.type	far_away, %function
++far_away:
++	mov	r0, #0
++	bx	lr
++	.size	far_away, .-far_away
 diff --git a/bolt/test/ARM/Inputs/arm32-thumb-loop.s b/bolt/test/ARM/Inputs/arm32-thumb-loop.s
 new file mode 100644
 index 000000000000..67c5ce1e02f7
@@ -91,6 +116,23 @@ index 000000000000..2163ac634549
 +RUN: llvm-bolt -print-disassembly -o %t.out %t.exe 2>&1 | FileCheck %s
 +
 +CHECK: mov
++CHECK-NOT: BOLT-ERROR
+diff --git a/bolt/test/ARM/arm-longjmp-veneer.test b/bolt/test/ARM/arm-longjmp-veneer.test
+new file mode 100644
+index 000000000000..2b496070fd88
+--- /dev/null
++++ b/bolt/test/ARM/arm-longjmp-veneer.test
+@@ -0,0 +1,11 @@
++## Out-of-range ARM BL: eliminate linker veneer, then LongJmp inserts a stub.
++
++# REQUIRES: system-linux
++
++RUN: llvm-mc -filetype=obj -triple=armv7-unknown-linux-gnueabi %p/Inputs/arm32-far-bl.s -o %t.o
++RUN: ld.lld --emit-relocs -T %p/Inputs/arm32.ld %t.o -o %t.exe
++RUN: llvm-bolt %t.exe -o %t.bolt 2>&1 | FileCheck %s
++
++CHECK: BOLT-INFO: number of removed linker-inserted veneers: {{[1-9][0-9]*}}
++CHECK: BOLT-INFO: Inserted {{[1-9][0-9]*}} stubs
 +CHECK-NOT: BOLT-ERROR
 diff --git a/bolt/test/ARM/arm-rewrite.test b/bolt/test/ARM/arm-rewrite.test
 new file mode 100644

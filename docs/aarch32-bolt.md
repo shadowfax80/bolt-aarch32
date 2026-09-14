@@ -33,7 +33,7 @@
 | **P3** | CFG (ARM only) | `[BOLT][ARM] Build CFG for ARM-mode code` | `--print-cfg` FileCheck | CFG on ARM `hot_loop`/`hot_cold`/`branch_chain` | **Done** — `0004`; ARM bench CFG + successors green on pod |
 
 | **P4** | Identity rewrite | `[BOLT][ARM] Identity rewrite for ARM-mode binaries` | Rewritten lit ELF runs | Rewritten `lk.elf` boots + `bolt_bench all` | **Done** — `BOLT_BENCH_ISA=arm`, 4 funcs overwritten, QEMU green |
-| **P5** | Branch range / veneers | `[BOLT][ARM] Insert veneers for out-of-range branches` | Far `bl` lit test | `far_call` bench still returns | **Stub** in `0004` |
+| **P5** | Branch range / veneers | `[BOLT][ARM] Insert veneers for out-of-range branches` | Far `bl` lit test | `verify-bolt-arm32-veneer.sh` | **Done** — `0009` + MOVW/MOVT exprs; linker veneer elim + LongJmp stubs |
 | **P6** | Thumb-2 (no IT) | `[BOLT][ARM] Thumb-2 disassembly, CFG, and rewrite` | Thumb `.s` CFG + rewrite | `-mthumb` `bolt_bench` identity rewrite boots | **Partial** — STI/LSB/`$t`; disasm fails at +0x8 |
 | **P7** | IT blocks | `[BOLT][ARM] Treat IT bundles as atomic units` | IT bundle not split | `it_cond` identity rewrite correct | Pending — skipped as unsupported |
 | **P8** | ARM↔Thumb interworking | `[BOLT][ARM] Interworking edges and veneers` | ARM↔Thumb CFG lit | `interwork` identity rewrite runs | Pending — LSB + BX/BLX only |
@@ -56,7 +56,7 @@ P2  Disassemble ARM-mode only          ✓ Done (ARM benches; lit TBD)
 P3  Build CFG (ARM)                    ✓ Done (ARM benches; lit TBD)
 P4  Identity rewrite (MCPlusBuilder)   ✓ Done (ARM-mode benches)
 
-P5  Branch range / veneers
+P5  Branch range / veneers             ✓ Done
 P6  Thumb-2, no IT
 P7  IT blocks
 P8  ARM↔Thumb interworking
@@ -215,7 +215,13 @@ ARM `B`/`BL` are ±32 MB. After layout, some edges miss.
 | Linker glue | Treat `.glue_7` as synthetic blocks |
 | New bench | `bolt_bench_far_call` — deliberately distant call |
 
-**Pass:** lit binary with out-of-range `bl` gets a veneer; rewritten ELF still runs the call.
+**Pass:** lit/binary with out-of-range `bl` — linker veneer removed, LongJmp inserts stub (`verify-bolt-arm32-veneer.sh`).
+
+```bash
+./scripts/verify-bolt-arm32-veneer.sh
+```
+
+Optional LK `bolt_bench_far_call` exists for smoke; the ±33MB pad is lit-only (`arm32-far-bl.s`), not in the default LK image.
 
 ---
 
@@ -380,7 +386,8 @@ Mirror AArch64:
 - [x] P1: `llvm-bolt --print-sections` on ARM32 `lk.elf` lists `.text`
 - [x] P2–P4: `llvm-bolt` identity-rewrites ARM-mode `bolt_bench` (`BOLT_BENCH_ISA=arm`) and that ELF boots on QEMU
   - Lit FileCheck still weak / not confirmed `check-bolt` green
-- [ ] P5–P8: Thumb-2, IT, interworking identity rewrite on QEMU
+- [x] P5: LongJmp veneers — `verify-bolt-arm32-veneer.sh` (linker veneer elim + stub insert)
+- [ ] P6–P8: Thumb-2, IT, interworking identity rewrite on QEMU
 - [ ] P9–P10: Instrumentation + QMP profile + optimized `lk.bolt.elf` boots and reruns workloads
 - [ ] Lit coverage for ARM, Thumb-2, IT, interworking, veneers in llvm-project
 - [ ] P11: Core backend (P1–P10) merged to llvm-project `main`; overlay backend patches gone

@@ -16,10 +16,10 @@ index aae520d5afe5..ce305c2f26cf 100644
  
 diff --git a/bolt/lib/Target/ARM/ARMMCPlusBuilder.cpp b/bolt/lib/Target/ARM/ARMMCPlusBuilder.cpp
 new file mode 100644
-index 000000000000..d51e13b5f4c0
+index 000000000000..8000941b8408
 --- /dev/null
 +++ b/bolt/lib/Target/ARM/ARMMCPlusBuilder.cpp
-@@ -0,0 +1,682 @@
+@@ -0,0 +1,738 @@
 +//===- bolt/Target/ARM/ARMMCPlusBuilder.cpp ---------------------------===//
 +//
 +// Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
@@ -348,6 +348,38 @@ index 000000000000..d51e13b5f4c0
 +
 +  int getShortJmpEncodingSize() const override { return 32; }
 +
++  int getUncondBranchEncodingSize() const override { return 26; }
++
++  /// Match LLD ARM absolute long veneer:
++  ///   ldr pc, [pc, #-4]
++  ///   .word Target
++  bool matchAbsLongVeneer(const BinaryFunction &BF,
++                          uint64_t &TargetAddress) const override {
++    if (BF.getSize() < 8 && BF.getMaxSize() < 8)
++      return false;
++    if (BF.empty())
++      return false;
++
++    // Prefer reading the absolute word at function+4.
++    ErrorOr<uint64_t> Contents = BF.getBinaryContext().getUnsignedValueAtAddress(
++        BF.getAddress() + 4, /*Size=*/4);
++    if (!Contents) {
++      // Fall back to disassembled constant-island path when available.
++      if (!BF.hasConstantIsland() || BF.size() != 1)
++        return false;
++      const BinaryBasicBlock &BB = BF.front();
++      if (BB.size() < 1)
++        return false;
++      const MCInst &Ldr = BB.getInstructionAtIndex(0);
++      if (Ldr.getOpcode() != ARM::LDRi12 && Ldr.getOpcode() != ARM::LDR_PRE_IMM &&
++          Ldr.getOpcode() != ARM::LDR_POST_IMM)
++        return false;
++      return false;
++    }
++    TargetAddress = *Contents;
++    return TargetAddress != 0;
++  }
++
 +  void createReturn(MCInst &Inst) const override {
 +    if (InThumbMode()) {
 +      Inst = MCInstBuilder(ARM::tBX).addReg(ARM::LR).addImm(ARMCC::AL);
@@ -415,6 +447,12 @@ index 000000000000..d51e13b5f4c0
 +    createShortJmp(Seq, Target, Ctx, /*IsTailCall*/ true);
 +  }
 +
++  void createLongJmp(InstructionListType &Seq, const MCSymbol *Target,
++                     MCContext *Ctx, bool IsTailCall) override {
++    // AArch32 VA fits in movw/movt; long == short absolute veneer.
++    createShortJmp(Seq, Target, Ctx, IsTailCall);
++  }
++
 +  void createShortJmp(InstructionListType &Seq, const MCSymbol *Target,
 +                      MCContext *Ctx, bool IsTailCall) override {
 +    MCPhysReg Reg = ARM::R12;
@@ -440,27 +478,37 @@ index 000000000000..d51e13b5f4c0
 +  InstructionListType materializeAddress(const MCSymbol *Target, MCContext *Ctx,
 +                                         MCPhysReg RegName,
 +                                         int64_t Addend = 0) const override {
++    // Prefer IP (r12), the AAPCS intra-procedure-call scratch, when callers
++    // pass it — matches linker veneers.
 +    InstructionListType Insts(2);
 +    if (InThumbMode()) {
 +      Insts[0] = MCInstBuilder(ARM::t2MOVi16)
 +                     .addReg(RegName)
-+                     .addImm(Addend & 0xffff);
++                     .addImm(Addend & 0xffff)
++                     .addImm(ARMCC::AL)
++                     .addReg(0);
 +      Insts[1] = MCInstBuilder(ARM::t2MOVTi16)
 +                     .addReg(RegName)
 +                     .addReg(RegName)
-+                     .addImm((Addend >> 16) & 0xffff);
++                     .addImm((Addend >> 16) & 0xffff)
++                     .addImm(ARMCC::AL)
++                     .addReg(0);
 +    } else {
 +      Insts[0] = MCInstBuilder(ARM::MOVi16)
 +                     .addReg(RegName)
-+                     .addImm(Addend & 0xffff);
++                     .addImm(Addend & 0xffff)
++                     .addImm(ARMCC::AL)
++                     .addReg(0);
 +      Insts[1] = MCInstBuilder(ARM::MOVTi16)
 +                     .addReg(RegName)
 +                     .addReg(RegName)
-+                     .addImm((Addend >> 16) & 0xffff);
++                     .addImm((Addend >> 16) & 0xffff)
++                     .addImm(ARMCC::AL)
++                     .addReg(0);
 +    }
-+    setOperandToSymbolRef(Insts[0], 1, Target, Addend, Ctx,
++    setOperandToSymbolRef(Insts[0], /*OpNum=*/1, Target, Addend, Ctx,
 +                          ELF::R_ARM_MOVW_ABS_NC);
-+    setOperandToSymbolRef(Insts[1], 2, Target, Addend, Ctx,
++    setOperandToSymbolRef(Insts[1], /*OpNum=*/2, Target, Addend, Ctx,
 +                          ELF::R_ARM_MOVT_ABS);
 +    return Insts;
 +  }
@@ -650,8 +698,16 @@ index 000000000000..d51e13b5f4c0
 +                                 MCContext &Ctx,
 +                                 uint32_t RelType) const override {
 +    (void)Inst;
-+    (void)RelType;
-+    return Expr;
++    switch (RelType) {
++    default:
++      return Expr;
++    case ELF::R_ARM_MOVW_ABS_NC:
++    case ELF::R_ARM_THM_MOVW_ABS_NC:
++      return MCSpecifierExpr::create(Expr, ARM::S_LO16, Ctx);
++    case ELF::R_ARM_MOVT_ABS:
++    case ELF::R_ARM_THM_MOVT_ABS:
++      return MCSpecifierExpr::create(Expr, ARM::S_HI16, Ctx);
++    }
 +  }
 +
 +  bool evaluateMemOperandTarget(const MCInst &Inst, uint64_t &Target,
@@ -704,10 +760,10 @@ index 000000000000..d51e13b5f4c0
 +} // namespace llvm
 diff --git a/bolt/lib/Target/ARM/ARMMCSymbolizer.cpp b/bolt/lib/Target/ARM/ARMMCSymbolizer.cpp
 new file mode 100644
-index 000000000000..09bc50fcc774
+index 000000000000..450fa7c5ac16
 --- /dev/null
 +++ b/bolt/lib/Target/ARM/ARMMCSymbolizer.cpp
-@@ -0,0 +1,91 @@
+@@ -0,0 +1,105 @@
 +//===- bolt/Target/ARM/ARMMCSymbolizer.cpp ------------------------------===//
 +//
 +// Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
@@ -737,11 +793,25 @@ index 000000000000..09bc50fcc774
 +  BinaryContext &BC = Function.getBinaryContext();
 +  MCContext *Ctx = BC.Ctx.get();
 +
-+  if (BC.MIB->isBranch(Inst) || BC.MIB->isCall(Inst))
-+    return false;
-+
 +  const uint64_t InstOffset = InstAddress - Function.getAddress();
 +  const Relocation *Relocation = Function.getRelocationAt(InstOffset);
++
++  // Linker veneers rewrite the BL immediate to a nearby thunk while keeping
++  // R_ARM_CALL/JUMP against the real callee. Prefer the reloc so LongJmp sees
++  // the out-of-range edge.
++  if (BC.MIB->isBranch(Inst) || BC.MIB->isCall(Inst)) {
++    if (Relocation && Relocation->Symbol) {
++      const MCExpr *Expr =
++          MCSymbolRefExpr::create(Relocation->Symbol, *Ctx);
++      if (Relocation->Addend)
++        Expr = MCBinaryExpr::createAdd(
++            Expr, MCConstantExpr::create(Relocation->Addend, *Ctx), *Ctx);
++      Inst.addOperand(MCOperand::createExpr(
++          BC.MIB->getTargetExprFor(Inst, Expr, *Ctx, Relocation->Type)));
++      return true;
++    }
++    return false;
++  }
 +
 +  auto addOperand = [&](const MCSymbol *Symbol, uint64_t Addend,
 +                        uint64_t RelType) {

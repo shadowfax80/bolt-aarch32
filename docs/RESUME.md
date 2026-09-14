@@ -11,7 +11,7 @@ All upstream sources, builds, and QEMU runs live on the **RunPod network volume*
 
 | Resource | ID / value | Notes |
 |----------|------------|-------|
-| Pod | `ddib0g7kwvdk33` | 2 vCPU cpu3c, Ubuntu 24.04 — **RUNNING** (~$0.06/hr) |
+| Pod | `i5dkz4se4q2qv0` | 2 vCPU cpu3c, Ubuntu 24.04 — recreate via `create-pod.py` if EXITED on a full host |
 | Network volume | `j1d9e6wq5l` | 150 GB, EU-RO-1 — **keeps all work** (~$0.07/GB/mo storage) |
 | Region | EU-RO-1 | The volume only attaches to pods in its own region |
 | Image | `runpod/base:1.0.2-ubuntu2404` | Must be the 24.04 tag — see the traps below |
@@ -75,6 +75,7 @@ apt-get update -qq && apt-get install -y -qq qemu-system-arm
 - P2/P3: `--print-cfg` prints ARM `bolt_bench_hot_loop` CFG with successors
 - **P0–P4 one-shot:** `./scripts/verify-bolt-arm32-milestones.sh` → `ALL MILESTONES P0-P4 PASSED`
 - **P4 identity rewrite:** `BOLT_BENCH_ISA=arm` → **4/1389 overwritten**; QEMU boots rewritten ELF; all four `bolt_bench: … done` lines print
+- **P5 veneers:** `./scripts/verify-bolt-arm32-veneer.sh` → linker veneer removed + LongJmp stub inserted
 
 **Still pending:**
 
