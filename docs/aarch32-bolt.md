@@ -122,7 +122,7 @@ No BOLT backend. Proves the AArch64 collection path ports to ARM32.
 | P0 verify script | `scripts/verify-bolt-arm32-harness.sh` | Done |
 | P0–P4 milestone gate | `scripts/verify-bolt-arm32-milestones.sh` | Done — all pass on pod |
 | Cross-build runtime for `arm-none-eabi` | `scripts/build-bolt-rt-baremetal.sh` | Pending (needed at P9) |
-| Rebase llvm-project to `main` | `scripts/ensure-llvm-source.sh` `LLVM_BRANCH=main` | Pending (before upstream PRs) |
+| Rebase llvm-project to `main` | `scripts/ensure-llvm-source.sh` `LLVM_COMMIT=<main tip>` | Pending (before upstream PRs) |
 
 **Pass:** original `lk.elf` reaches `entering main console loop`; `lk.bolt_bench=all` prints all four `bolt_bench: … done` lines.
 

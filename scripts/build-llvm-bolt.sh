@@ -4,7 +4,7 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
 
-export LLVM_BRANCH="${LLVM_BRANCH:-release/23.x}"
+export LLVM_COMMIT="${LLVM_COMMIT:-069ef0e7cb36ee1fcf3bfdad31533fd79ab85b58}"
 BUILD_DIR="${BUILD_DIR:-$ROOT/build}"
 JOBS="${JOBS:-$(nproc)}"
 

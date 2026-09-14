@@ -2,7 +2,7 @@
 # Populate third_party/ idempotently.
 #
 # These are plain clones, not git submodules: third_party/ is gitignored so the
-# overlay repo stays free of upstream history. Pinning lives in LLVM_BRANCH /
+# overlay repo stays free of upstream history. Pinning lives in LLVM_COMMIT /
 # LK_COMMIT and in each tree's .overlay-source-ok marker.
 set -euo pipefail
 
