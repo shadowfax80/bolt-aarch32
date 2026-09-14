@@ -42,6 +42,61 @@ index 000000000000..99d55c0c11e9
 +far_away:
 +	bx	lr
 +	.size	far_away, .-far_away
+diff --git a/bolt/test/ARM/Inputs/arm32-far.ld b/bolt/test/ARM/Inputs/arm32-far.ld
+new file mode 100644
+index 000000000000..e245199cfb74
+--- /dev/null
++++ b/bolt/test/ARM/Inputs/arm32-far.ld
+@@ -0,0 +1,9 @@
++ENTRY(_start)
++SECTIONS {
++  . = 0x10000;
++  .text : {
++    *(.text.start)
++    . = . + 0x2100000;
++    *(.text.far)
++  }
++}
+diff --git a/bolt/test/ARM/Inputs/arm32-thumb-exit.s b/bolt/test/ARM/Inputs/arm32-thumb-exit.s
+new file mode 100644
+index 000000000000..0aaa01448312
+--- /dev/null
++++ b/bolt/test/ARM/Inputs/arm32-thumb-exit.s
+@@ -0,0 +1,10 @@
++	.syntax unified
++	.thumb
++	.text
++	.globl _start
++	.type _start, %function
++_start:
++	movs	r0, #42
++	movs	r7, #1
++	svc	#0
++	.size	_start, .-_start
+diff --git a/bolt/test/ARM/Inputs/arm32-thumb-it.s b/bolt/test/ARM/Inputs/arm32-thumb-it.s
+new file mode 100644
+index 000000000000..e4c5da1a791e
+--- /dev/null
++++ b/bolt/test/ARM/Inputs/arm32-thumb-it.s
+@@ -0,0 +1,18 @@
++	.syntax unified
++	.thumb
++	.text
++	.global _start
++	.type _start, %function
++_start:
++	@ Force a real IT / ITE bundle (Thumb-2). Identity rewrite must keep
++	@ the IT header adjacent to its body — never split or insert between.
++	movs r0, #0
++	cmp r0, #0
++	ite eq
++	moveq r1, #1
++	movne r1, #2
++	cmp r0, #1
++	itt ne
++	addne r2, r2, #1
++	addne r2, r2, r0
++	bx lr
 diff --git a/bolt/test/ARM/Inputs/arm32-thumb-loop.s b/bolt/test/ARM/Inputs/arm32-thumb-loop.s
 new file mode 100644
 index 000000000000..67c5ce1e02f7
@@ -102,6 +157,23 @@ index 000000000000..9d60d68d0ca2
 +    Section: .text
 +    Value:   0x8000
 +    Size:    4
+diff --git a/bolt/test/ARM/arm-cfg.test b/bolt/test/ARM/arm-cfg.test
+new file mode 100644
+index 000000000000..7fe3d8e4b20e
+--- /dev/null
++++ b/bolt/test/ARM/arm-cfg.test
+@@ -0,0 +1,11 @@
++## CFG for ARM-mode add/bl/b.
++
++RUN: %clang --target=armv7-none-eabi -c -o %t.o %p/Inputs/arm32-add-bl.s
++RUN: ld.lld --emit-relocs -T %p/Inputs/arm32.ld %t.o -o %t.exe
++RUN: llvm-bolt --print-cfg -o %t.out %t.exe 2>&1 | FileCheck %s
++
++CHECK: Binary Function "_start
++CHECK: bl
++CHECK: Successors:
++CHECK-NOT: BOLT-ERROR
++CHECK-NOT: invalid CFG
 diff --git a/bolt/test/ARM/arm-disasm.test b/bolt/test/ARM/arm-disasm.test
 new file mode 100644
 index 000000000000..d8eba72e2c8a
@@ -195,6 +267,76 @@ index 000000000000..52810609fb5d
 +config.substitutions.insert(0, ('%cflags', f'%cflags {flags}'))
 +config.substitutions.insert(0, ('%cxxflags', f'%cxxflags {flags}'))
 +config.substitutions.insert(0, ('%clang', config.clang.replace('clang', 'clang') if config.clang else 'clang'))
+diff --git a/bolt/test/ARM/thumb-cfg.test b/bolt/test/ARM/thumb-cfg.test
+new file mode 100644
+index 000000000000..a9c70acf73ec
+--- /dev/null
++++ b/bolt/test/ARM/thumb-cfg.test
+@@ -0,0 +1,12 @@
++## CFG for Thumb-2 loop (no IT).
++
++RUN: llvm-mc -filetype=obj -triple=thumbv7-unknown-linux-gnueabi %p/Inputs/arm32-thumb-loop.s -o %t.o
++RUN: ld.lld --emit-relocs -T %p/Inputs/arm32.ld %t.o -o %t.exe
++RUN: llvm-bolt --print-cfg -o %t.out %t.exe 2>&1 | FileCheck %s
++
++CHECK: Binary Function "_start
++CHECK: Successors:
++CHECK-NOT: unable to disassemble
++CHECK-NOT: BOLT-ERROR
++CHECK-NOT: Assertion
++CHECK-NOT: invalid CFG
+diff --git a/bolt/test/ARM/thumb-disasm.test b/bolt/test/ARM/thumb-disasm.test
+new file mode 100644
+index 000000000000..40e09335ac40
+--- /dev/null
++++ b/bolt/test/ARM/thumb-disasm.test
+@@ -0,0 +1,12 @@
++## Disassemble a tiny Thumb-2 function (no IT).
++
++RUN: llvm-mc -filetype=obj -triple=thumbv7-unknown-linux-gnueabi %p/Inputs/arm32-thumb-loop.s -o %t.o
++RUN: ld.lld --emit-relocs -T %p/Inputs/arm32.ld %t.o -o %t.exe
++RUN: llvm-bolt --print-disasm -o %t.out %t.exe 2>&1 | FileCheck %s
++
++CHECK: Binary Function "_start
++CHECK-DAG: adds
++CHECK-DAG: bx
++CHECK-NOT: unable to disassemble
++CHECK-NOT: BOLT-ERROR
++CHECK-NOT: Assertion
+diff --git a/bolt/test/ARM/thumb-it.test b/bolt/test/ARM/thumb-it.test
+new file mode 100644
+index 000000000000..9101a826a0de
+--- /dev/null
++++ b/bolt/test/ARM/thumb-it.test
+@@ -0,0 +1,28 @@
++## Thumb-2 IT / ITE bundles stay atomic across identity rewrite.
++
++# RUN: llvm-mc -filetype=obj -triple=thumbv7-unknown-linux-gnueabi %p/Inputs/arm32-thumb-it.s -o %t.o
++# RUN: ld.lld --emit-relocs -T %p/Inputs/arm32.ld %t.o -o %t.exe
++# RUN: llvm-objdump -d --triple=thumbv7a-none-eabi %t.exe | FileCheck %s --check-prefix=CHECK-IN
++# RUN: llvm-bolt %t.exe -o %t.bolt --print-cfg 2>&1 | FileCheck %s --check-prefix=CHECK-LOG
++# RUN: llvm-objdump -s --section=.text %t.bolt | FileCheck %s --check-prefix=CHECK-OUT
++
++# Input contains IT / ITE headers (disasm of linked input has $t).
++# CHECK-IN: ite eq
++# CHECK-IN-NEXT: {{.*}}moveq
++# CHECK-IN-NEXT: {{.*}}movne
++# CHECK-IN: itt ne
++# CHECK-IN-NEXT: {{.*}}addne
++# CHECK-IN-NEXT: {{.*}}addne
++
++# CFG prints before the overwrite summary.
++# CHECK-LOG-DAG: Binary Function "_start
++# CHECK-LOG-DAG: {{[[:space:]]ite?[[:space:]]|[[:space:]]itt[[:space:]]}}
++# CHECK-LOG-DAG: BOLT: {{[1-9][0-9]*}} out of {{[0-9]+}} functions were overwritten
++# CHECK-LOG-NOT: BOLT-ERROR
++# CHECK-LOG-NOT: unable to disassemble
++
++# Raw .text must keep IT opcodes: ite eq = 0xbf0c, itt ne = 0xbf1c (LE).
++# Also keep surrounding mov/add immediates so the bundle was not split.
++# CHECK-OUT: 0cbf0121
++# CHECK-OUT: 1cbf521c
++# CHECK-OUT: 7047
 diff --git a/bolt/test/ARM/thumb-rewrite.test b/bolt/test/ARM/thumb-rewrite.test
 new file mode 100644
 index 000000000000..2adc0038e009

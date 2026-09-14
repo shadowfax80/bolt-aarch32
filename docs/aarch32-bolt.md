@@ -34,7 +34,7 @@
 | **P4** | Identity rewrite | `[BOLT][ARM] Identity rewrite for ARM-mode binaries` | Rewritten lit ELF runs | Rewritten `lk.elf` boots + `bolt_bench all` | **Done** — `BOLT_BENCH_ISA=arm`, 4 funcs overwritten, QEMU green |
 | **P5** | Branch range / veneers | `[BOLT][ARM] Insert veneers for out-of-range branches` | Far `bl` lit test | `verify-bolt-arm32-veneer.sh` | **Done** — stub in ELF + `qemu-arm` exit 42 |
 | **P6** | Thumb-2 (no IT) | `[BOLT][ARM] Thumb-2 disassembly, CFG, and rewrite` | Thumb `.s` CFG + rewrite | `-mthumb` `bolt_bench` identity rewrite boots | **Done** — lit 8/8; QEMU `hot_loop` + console |
-| **P7** | IT blocks | `[BOLT][ARM] Treat IT bundles as atomic units` | IT bundle not split | `it_cond` identity rewrite correct | Pending — skipped as unsupported |
+| **P7** | IT blocks | `[BOLT][ARM] Treat IT bundles as atomic units` | IT bundle not split | `it_cond` identity rewrite correct | **Done** — lit 9/9; QEMU `it_cond` + `all` |
 | **P8** | ARM↔Thumb interworking | `[BOLT][ARM] Interworking edges and veneers` | ARM↔Thumb CFG lit | `interwork` identity rewrite runs | Pending — LSB + BX/BLX only |
 | **P9** | Instrumentation + RAM profile | `[BOLT][ARM] Instrumentation for ARM/Thumb` | Counter-site FileCheck | `verify-bolt-workloads.sh` ARM32: all counters + `.fdata` | Pending |
 | **P10** | Layout optimize | `[BOLT][ARM] Profile-guided layout on ARM/Thumb` | Optimize lit + fake `.fdata` | `lk.bolt.elf` boots, reruns `all`, cycles logged | Pending |
@@ -234,7 +234,7 @@ Most LK user code and `bolt_bench` compiled `-mthumb` lands here.
 | Mixed 16/32-bit insn sizes | BB ends from disassembler only |
 | Relocations | `R_ARM_THM_CALL`, `R_ARM_THM_JUMP24`, `R_ARM_THM_JUMP11`, `R_ARM_THM_JUMP19` |
 | Thumb `BL` ±16 MB | Reuse P5 veneers |
-| Functions with `IT` | **Skipped** with warning until P7 |
+| Functions with `IT` | Deferred to P7 (now supported) |
 
 **Pass:** Thumb `hot_loop` identity-rewritten ELF runs on QEMU; rebuild `bolt_bench` with `-mthumb`.
 
@@ -248,12 +248,16 @@ Most LK user code and `bolt_bench` compiled `-mthumb` lands here.
 
 | Work | Detail |
 |------|--------|
-| Detect `IT` header | Treat bundle as one atomic unit |
+| Detect `IT` header | `isPrefix(t2IT)` + `getITBlockSize()` (1..4 from PredBlockMask) |
+| Stop skipping | `isUnsupportedInstruction` no longer rejects IT |
 | Instrumentation (P9) | Hooks only **before** `IT`, or skip function |
 | Layout | Move whole bundle, never a subset |
-| New bench | `bolt_bench_it_cond` — Thumb-2 `IT`/`ITE` |
+| New bench | `bolt_bench_it_cond` — Thumb-2 inline `ite`/`itt` |
+| Lit | `thumb-it.test` — CFG sees IT; rewritten `.text` keeps `0cbf`/`1cbf` |
 
 **Pass:** FileCheck on IT-heavy `.s`; identity rewrite does not split the bundle; `it_cond` runs correctly.
+
+**Verified (2026-09-14):** ARM lit 9/9 (`thumb-it` included); `--funcs-file-no-regex` rewrite of `bolt_bench_*` (incl. `it_cond`); qemu-system-arm `lk.bolt_bench=it_cond` and `=all` print `done` + console. New `.text` retains `ite`/`itt` encodings (`0cbf`/`1cbf`).
 
 ---
 
@@ -364,7 +368,7 @@ Mirror AArch64:
 | 1 | P0 | ARM32 LK + QEMU + `bolt_bench` green without BOLT — **done** |
 | 2 | P1–P4 | BOLT reads, CFG-builds, identity-rewrites ARM-mode binaries |
 | 3 | P5–P6 | Veneers + Thumb-2 identity rewrite of four benches |
-| 4 | P7–P8 | IT blocks + interworking |
+| 4 | P8 | Interworking |
 | 5 | P9–P10 | Instrument → QMP → `.fdata` → optimize |
 | 6 | P11 | All PRs merged; overlay backend patches deleted |
 
@@ -389,7 +393,8 @@ Mirror AArch64:
   - Lit FileCheck still weak / not confirmed `check-bolt` green
 - [x] P5: LongJmp veneers — `verify-bolt-arm32-veneer.sh` (linker veneer elim + stub insert)
 - [x] P6: Thumb-2 identity rewrite on QEMU (no IT)
-- [ ] P7–P8: IT, interworking identity rewrite on QEMU
+- [x] P7: IT bundles atomic; `bolt_bench_it_cond` identity rewrite on QEMU
+- [ ] P8: Interworking identity rewrite on QEMU
 - [ ] P9–P10: Instrumentation + QMP profile + optimized `lk.bolt.elf` boots and reruns workloads
 - [ ] Lit coverage for ARM, Thumb-2, IT, interworking, veneers in llvm-project
 - [ ] P11: Core backend (P1–P10) merged to llvm-project `main`; overlay backend patches gone

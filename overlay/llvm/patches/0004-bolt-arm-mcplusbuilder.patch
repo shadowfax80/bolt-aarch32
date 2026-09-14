@@ -26,10 +26,10 @@ index aae520d5afe5..64056ceb19d4 100644
  
 diff --git a/bolt/lib/Target/ARM/ARMMCPlusBuilder.cpp b/bolt/lib/Target/ARM/ARMMCPlusBuilder.cpp
 new file mode 100644
-index 000000000000..ac222217a86b
+index 000000000000..46faef134e36
 --- /dev/null
 +++ b/bolt/lib/Target/ARM/ARMMCPlusBuilder.cpp
-@@ -0,0 +1,840 @@
+@@ -0,0 +1,852 @@
 +//===- bolt/Target/ARM/ARMMCPlusBuilder.cpp ---------------------------===//
 +//
 +// Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
@@ -48,6 +48,7 @@ index 000000000000..ac222217a86b
 +#include "MCTargetDesc/ARMMCTargetDesc.h"
 +#include "MCTargetDesc/ARMFixupKinds.h"
 +#include "bolt/Core/MCPlusBuilder.h"
++#include "llvm/ADT/bit.h"
 +#include "llvm/BinaryFormat/ELF.h"
 +#include "llvm/MC/MCContext.h"
 +#include "llvm/MC/MCInst.h"
@@ -113,10 +114,21 @@ index 000000000000..ac222217a86b
 +    return isITOpcode(Inst.getOpcode());
 +  }
 +
-+  // True only for the IT instruction itself. Ordinary predicated Thumb
-+  // ops (tBcc, etc.) also carry a non-AL predicate operand and must not
-+  // be treated as IT-block members here — that wrongly setIgnored() them.
-+  bool isInITBlock(const MCInst &Inst) const {
++  /// Number of body instructions governed by a Thumb-2 IT header (1..4).
++  /// MC PredBlockMask: lowest set bit ends the mask; size = 4 - tzcnt(mask).
++  /// Callers must move/skip/instrument the whole group {IT + body}, never a
++  /// subset (splitting or inserting inside is architecturally illegal).
++  static unsigned getITBlockSize(const MCInst &IT) {
++    assert(isITOpcode(IT.getOpcode()) && "not an IT header");
++    assert(IT.getNumOperands() >= 2 && IT.getOperand(1).isImm());
++    unsigned Mask = static_cast<unsigned>(IT.getOperand(1).getImm());
++    assert(Mask != 0 && "invalid empty IT mask");
++    unsigned NumTZ = llvm::countr_zero(Mask);
++    assert(NumTZ <= 3 && "invalid IT mask");
++    return 4u - NumTZ;
++  }
++
++  bool isITInstruction(const MCInst &Inst) const {
 +    return isITOpcode(Inst.getOpcode());
 +  }
 +
@@ -142,8 +154,8 @@ index 000000000000..ac222217a86b
 +  }
 +
 +  bool isUnsupportedInstruction(const MCInst &Inst) const override {
-+    if (isInITBlock(Inst))
-+      return true;
++    // P7: IT headers are first-class. isPrefix(IT) + getITBlockSize() keep
++    // the {IT, body...} group atomic for layout and (later) instrumentation.
 +    if (!isSafeToEncodeARM(Inst))
 +      return true;
 +    return MCPlusBuilder::isUnsupportedInstruction(Inst);

@@ -74,6 +74,35 @@ __attribute__((noinline)) void bolt_bench_far_call(void) {
     printf("bolt_bench: far_call done\n");
 }
 
+__attribute__((noinline)) void bolt_bench_it_cond(void) {
+#if defined(__thumb__)
+    /* P7: explicit Thumb-2 IT/ITE — must survive identity rewrite intact. */
+    lk_time_t t0 = arch_cycle_count();
+    uint32_t y = 0, z = 0;
+    for (uint32_t i = 0; i < BOLT_BENCH_ITERS; i++) {
+        uint32_t v = i & 3u;
+        __asm__ volatile(
+            "cmp %[v], #0\n\t"
+            "ite eq\n\t"
+            "moveq %[y], #1\n\t"
+            "movne %[y], #2\n\t"
+            "cmp %[v], #1\n\t"
+            "itt ne\n\t"
+            "addne %[z], %[z], #1\n\t"
+            "addne %[z], %[z], %[v]\n\t"
+            : [y] "+l"(y), [z] "+l"(z)
+            : [v] "l"(v)
+            : "cc");
+    }
+    bench_banner("it_cond", arch_cycle_count() - t0);
+    (void)y;
+    (void)z;
+#else
+    /* IT encoding is Thumb-only; ARM-mode P4 builds skip this workload. */
+    printf("bolt_bench: it_cond skipped (ARM mode)\n");
+#endif
+}
+
 __attribute__((noinline)) void bolt_bench_memcpy(void) {
     lk_time_t t0 = arch_cycle_count();
     for (uint32_t r = 0; r < BOLT_BENCH_MEMCPY_ROUNDS; r++) {
@@ -93,12 +122,15 @@ static void run_one(const char *name) {
         bolt_bench_memcpy();
     } else if (!strcmp(name, "far_call")) {
         bolt_bench_far_call();
+    } else if (!strcmp(name, "it_cond")) {
+        bolt_bench_it_cond();
     } else if (!strcmp(name, "all")) {
         bolt_bench_hot_loop();
         bolt_bench_hot_cold();
         bolt_bench_branch_chain();
         bolt_bench_memcpy();
         bolt_bench_far_call();
+        bolt_bench_it_cond();
     } else {
         printf("unknown workload %s\n", name);
     }
@@ -106,7 +138,7 @@ static void run_one(const char *name) {
 
 static int bolt_bench_cmd(int argc, const console_cmd_args *argv) {
     if (argc < 2) {
-        printf("usage: bolt_bench <hot_loop|hot_cold|branch_chain|memcpy|far_call|all>\n");
+        printf("usage: bolt_bench <hot_loop|hot_cold|branch_chain|memcpy|far_call|it_cond|all>\n");
         return -1;
     }
     run_one(argv[1].str);

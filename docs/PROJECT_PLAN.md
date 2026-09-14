@@ -1,7 +1,7 @@
 # Project plan
 
 **Repo:** [somraj80/bolt-aarch32](https://github.com/somraj80/bolt-aarch32)  
-**Updated:** 2026-09-14 (P0–P6 gated; Thumb QEMU green)
+**Updated:** 2026-09-14 (P0–P7 gated; IT bundles QEMU green)
 
 **Resume:** [RESUME.md](RESUME.md)
 
@@ -24,7 +24,7 @@
 | 0 | Repo, scripts, RunPod | **Done** |
 | 1 | LLVM/BOLT toolchain | **Done** |
 | 2 | AArch64 bare-metal + LK | **Done** (2.8 optional UART export pending) |
-| 3 | AArch32 BOLT → upstream | **P0–P6 done** — P7 IT next |
+| 3 | AArch32 BOLT → upstream | **P0–P7 done** — P8 interworking next |
 
 **Pod:** `i5dkz4se4q2qv0` — check RunPod console for current state  
 **Volume:** `j1d9e6wq5l` @ `/workspace/bolt-lk-overlay` (EU-RO-1)
@@ -80,7 +80,7 @@ Each rung P1–P10 maps to **one upstream llvm-project PR** with lit tests. P11 
 | P4 | Identity rewrite | `[BOLT][ARM] ARM identity rewrite` | Rewritten lit ELF | Rewritten `lk.elf` + `bolt_bench all` | **Done** — 4/1389 overwritten (`BOLT_BENCH_ISA=arm`); QEMU benches green |
 | P5 | Veneers | `[BOLT][ARM] Branch veneers` | Far `bl` lit | `verify-bolt-arm32-veneer.sh` | **Done** — stub in output + `qemu-arm` exit 42 |
 | P6 | Thumb-2 (no IT) | `[BOLT][ARM] Thumb-2 rewrite` | Thumb `.s` lit | `-mthumb` benches boot | **Done** — lit 8/8; QEMU all benches + console |
-| P7 | IT blocks | `[BOLT][ARM] IT bundles` | IT not split | `it_cond` bench | Pending — skip as unsupported |
+| P7 | IT blocks | `[BOLT][ARM] IT bundles` | IT not split | `it_cond` bench | **Done** — lit 9/9; QEMU `it_cond` + `all` |
 | P8 | Interworking | `[BOLT][ARM] Interworking` | ARM↔Thumb lit | `interwork` bench | Pending — LSB + BX/BLX classify only |
 | P9 | Instrumentation | `[BOLT][ARM] Instrumentation` | Counter FileCheck | `verify-bolt-workloads.sh` ARM32 | Pending |
 | P10 | Layout optimize | `[BOLT][ARM] PGO layout` | Optimize lit | `lk.bolt.elf` boots + cycles | Pending |
@@ -91,14 +91,14 @@ Each rung P1–P10 maps to **one upstream llvm-project PR** with lit tests. P11 
 | Patch | Upstream PR scope |
 |-------|-------------------|
 | `0003-bolt-arm-elf32-and-target.patch` | P1/P6 — CMake, BinaryContext, BinaryFunction, BinarySection (Thumb ABS32 LSB), `$a/$t/$d` |
-| `0004-bolt-arm-mcplusbuilder.patch` | P2–P6 — `bolt/lib/Target/ARM/` |
+| `0004-bolt-arm-mcplusbuilder.patch` | P2–P7 — `bolt/lib/Target/ARM/` (incl. IT atomic helpers) |
 | `0005-bolt-arm-relocations.patch` | P4/P6 — `R_ARM_*` encode (incl. Thumb branch immediates) |
 | `0006-bolt-arm-rewrite-dispatch.patch` | P1/P6 — RewriteInstance (Thumb st_value, p_paddr skew, no force ARM veneers), JITLinkLinker stubs |
-| `0007-bolt-arm-lit-tests.patch` | Lit tests under `bolt/test/ARM/` (incl. Thumb rewrite) |
+| `0007-bolt-arm-lit-tests.patch` | Lit tests under `bolt/test/ARM/` (incl. Thumb rewrite + IT) |
 | `0008-jitlink-arm-generic-archkind.patch` | P4/P6 — JITLink `arm`→ARMv7-A; aarch32 stubs/Thumb pointer bit |
 | `0009-bolt-arm-longjmp-veneers.patch` | P5 — LongJmp + VeneerElimination for `Triple::arm` |
 
-**Next action:** P7 IT bundles. Upstream PRs can start at P1 in parallel. P0–P6 QEMU/lit gates are green on the volume.
+**Next action:** P8 interworking. Upstream PRs can start at P1 in parallel. P0–P7 QEMU/lit gates are green on the volume.
 
 ---
 
