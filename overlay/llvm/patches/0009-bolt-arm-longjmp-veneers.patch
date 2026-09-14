@@ -96,7 +96,7 @@ index b771e6a8b120..c762ecd39ea1 100644
        Insertions;
  
 diff --git a/bolt/lib/Passes/VeneerElimination.cpp b/bolt/lib/Passes/VeneerElimination.cpp
-index 9037390d06a4..a6f0b5981260 100644
+index 9037390d06a4..5a80ffb81989 100644
 --- a/bolt/lib/Passes/VeneerElimination.cpp
 +++ b/bolt/lib/Passes/VeneerElimination.cpp
 @@ -36,7 +36,7 @@ namespace llvm {
@@ -119,31 +119,60 @@ index 9037390d06a4..a6f0b5981260 100644
          auto It = VeneerDestinations.find(TargetSymbol);
          if (It == VeneerDestinations.end())
            continue;
-@@ -191,6 +193,30 @@ Error VeneerElimination::runOnFunctions(BinaryContext &BC) {
+@@ -191,6 +193,59 @@ Error VeneerElimination::runOnFunctions(BinaryContext &BC) {
        dbgs() << "BOLT-INFO: number of linker-inserted veneers call sites: "
               << VeneerCallers << "\n");
    (void)VeneerCallers;
 +
-+  // P8: pick BL vs BLX from caller/callee ARM↔Thumb mode.
++  // P8/P9 early pass: BL↔BLX and cross-mode tail B→BX (best-effort; targets
++  // may still be veneer symbols here — BinaryEmitter repeats this late).
 +  if (BC.isARM()) {
 +    for (BinaryFunction &BF :
 +         llvm::make_second_range(BC.getBinaryFunctions())) {
 +      if (!BF.isSimple() || BF.isIgnored())
 +        continue;
++      const MCSubtargetInfo *SavedSTI = BC.MIB->getSTI();
++      if (BF.isARMThumb() && BC.ThumbSTI)
++        BC.MIB->setSTI(BC.ThumbSTI.get());
 +      for (BinaryBasicBlock &BB : BF) {
-+        for (MCInst &Instr : BB) {
-+          if (!BC.MIB->isCall(Instr) || BC.MIB->isIndirectCall(Instr))
-+            continue;
++        for (auto II = BB.begin(); II != BB.end();) {
++          MCInst &Instr = *II;
 +          const MCSymbol *TSym = BC.MIB->getTargetSymbol(Instr);
-+          if (!TSym)
++          BinaryFunction *Tgt =
++              TSym ? BC.getFunctionForSymbol(TSym) : nullptr;
++          if (!Tgt) {
++            ++II;
 +            continue;
-+          BinaryFunction *Tgt = BC.getFunctionForSymbol(TSym);
-+          if (!Tgt)
++          }
++          const bool DstThumb = Tgt->isARMThumb();
++          const bool Cross = BF.isARMThumb() != DstThumb;
++          const bool DirectBr =
++              BC.MIB->isBranch(Instr) && !BC.MIB->isConditionalBranch(Instr) &&
++              !BC.MIB->isIndirectBranch(Instr);
++          const bool TailLike = BC.MIB->isTailCall(Instr) &&
++                                !BC.MIB->isIndirectCall(Instr) &&
++                                !BC.MIB->isIndirectBranch(Instr);
++          if (Cross && (DirectBr || TailLike) &&
++              !(BC.MIB->isCall(Instr) && !BC.MIB->isTailCall(Instr))) {
++            InstructionListType Seq;
++            BC.MIB->createShortJmp(Seq, TSym, BC.Ctx.get(),
++                                   /*IsTailCall=*/true);
++            II = BB.replaceInstruction(II, Seq);
++            II = std::next(II, static_cast<std::ptrdiff_t>(Seq.size()));
 +            continue;
-+          BC.MIB->adjustCallForTargetMode(Instr, BF.isARMThumb(),
-+                                          Tgt->isARMThumb(), BC.Ctx.get());
++          }
++          if (BC.MIB->isCall(Instr) && !BC.MIB->isIndirectCall(Instr) &&
++              !BC.MIB->isTailCall(Instr)) {
++            BC.MIB->adjustCallForTargetMode(Instr, BF.isARMThumb(), DstThumb,
++                                            BC.Ctx.get());
++            ++II;
++            continue;
++          }
++          ++II;
 +        }
 +      }
++      if (SavedSTI)
++        BC.MIB->setSTI(SavedSTI);
 +    }
 +  }
 +

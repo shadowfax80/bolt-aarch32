@@ -1,18 +1,20 @@
 diff --git a/bolt/include/bolt/Core/MCPlusBuilder.h b/bolt/include/bolt/Core/MCPlusBuilder.h
-index aae520d5afe5..11aea360cfb4 100644
+index aae520d5afe5..cfe7d8ca1338 100644
 --- a/bolt/include/bolt/Core/MCPlusBuilder.h
 +++ b/bolt/include/bolt/Core/MCPlusBuilder.h
-@@ -367,6 +367,9 @@ public:
+@@ -367,6 +367,11 @@ public:
      initSizeMap();
    }
  
++  virtual void prepareForEmission(BinaryFunction & /*BF*/) {}
++
 +  void setSTI(const MCSubtargetInfo *NewSTI) { STI = NewSTI; }
 +  const MCSubtargetInfo *getSTI() const { return STI; }
 +
    /// Create and return a target-specific MC symbolizer for the \p Function.
    /// When \p CreateNewSymbols is set, the symbolizer can create new symbols
    /// e.g. for jump table references.
-@@ -1973,6 +1976,15 @@ public:
+@@ -1973,6 +1978,15 @@ public:
  
    /// Creates a new call instruction in Inst and sets its operand to
    /// Target.
@@ -28,7 +30,7 @@ index aae520d5afe5..11aea360cfb4 100644
    virtual void createCall(MCInst &Inst, const MCSymbol *Target,
                            MCContext *Ctx) {
      llvm_unreachable("not implemented");
-@@ -2562,6 +2574,11 @@ MCPlusBuilder *createRISCVMCPlusBuilder(const MCInstrAnalysis *,
+@@ -2562,6 +2576,11 @@ MCPlusBuilder *createRISCVMCPlusBuilder(const MCInstrAnalysis *,
                                          const MCRegisterInfo *,
                                          const MCSubtargetInfo *);
  
@@ -42,10 +44,10 @@ index aae520d5afe5..11aea360cfb4 100644
  
 diff --git a/bolt/lib/Target/ARM/ARMMCPlusBuilder.cpp b/bolt/lib/Target/ARM/ARMMCPlusBuilder.cpp
 new file mode 100644
-index 000000000000..b5605bba7d4e
+index 000000000000..d0c77cbba916
 --- /dev/null
 +++ b/bolt/lib/Target/ARM/ARMMCPlusBuilder.cpp
-@@ -0,0 +1,909 @@
+@@ -0,0 +1,1005 @@
 +//===- bolt/Target/ARM/ARMMCPlusBuilder.cpp ---------------------------===//
 +//
 +// Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
@@ -542,6 +544,9 @@ index 000000000000..b5605bba7d4e
 +
 +  void createUncondBranch(MCInst &Inst, const MCSymbol *TBB,
 +                          MCContext *Ctx) const override {
++    if (TBB && TBB->getName().contains("bench_banner"))
++      llvm::errs() << "BOLT-ARM-CUB: thumbSTI=" << InThumbMode()
++                   << " tgt=" << TBB->getName() << "\n";
 +    if (InThumbMode()) {
 +      // t2B: (target, pred) -> target, CC, CCR
 +      Inst = MCInstBuilder(ARM::t2B)
@@ -666,17 +671,26 @@ index 000000000000..b5605bba7d4e
 +                     .addImm(ARMCC::AL)
 +                     .addReg(0);
 +    }
-+    setOperandToSymbolRef(Insts[0], /*OpNum=*/1, Target, Addend, Ctx,
-+                          ELF::R_ARM_MOVW_ABS_NC);
-+    setOperandToSymbolRef(Insts[1], /*OpNum=*/2, Target, Addend, Ctx,
-+                          ELF::R_ARM_MOVT_ABS);
++    const uint32_t MovwRel = InThumbMode() ? ELF::R_ARM_THM_MOVW_ABS_NC
++                                           : ELF::R_ARM_MOVW_ABS_NC;
++    const uint32_t MovtRel = InThumbMode() ? ELF::R_ARM_THM_MOVT_ABS
++                                           : ELF::R_ARM_MOVT_ABS;
++    setOperandToSymbolRef(Insts[0], /*OpNum=*/1, Target, Addend, Ctx, MovwRel);
++    setOperandToSymbolRef(Insts[1], /*OpNum=*/2, Target, Addend, Ctx, MovtRel);
 +    return Insts;
 +  }
 +
 +  void createStackPointerIncrement(MCInst &Inst, int imm,
 +                                   bool NoFlagsClobber = false) const override {
++    (void)NoFlagsClobber;
 +    if (InThumbMode()) {
-+      Inst = MCInstBuilder(ARM::tSUBspi).addReg(ARM::SP).addImm(imm / 4);
++      // tSUBspi: SP, SP, imm (# words), pred, predreg
++      Inst = MCInstBuilder(ARM::tSUBspi)
++                 .addReg(ARM::SP)
++                 .addReg(ARM::SP)
++                 .addImm(imm / 4)
++                 .addImm(ARMCC::AL)
++                 .addReg(0);
 +    } else {
 +      Inst = MCInstBuilder(ARM::SUBri)
 +                 .addReg(ARM::SP)
@@ -690,8 +704,14 @@ index 000000000000..b5605bba7d4e
 +
 +  void createStackPointerDecrement(MCInst &Inst, int imm,
 +                                   bool NoFlagsClobber = false) const override {
++    (void)NoFlagsClobber;
 +    if (InThumbMode()) {
-+      Inst = MCInstBuilder(ARM::tADDspi).addReg(ARM::SP).addImm(imm / 4);
++      Inst = MCInstBuilder(ARM::tADDspi)
++                 .addReg(ARM::SP)
++                 .addReg(ARM::SP)
++                 .addImm(imm / 4)
++                 .addImm(ARMCC::AL)
++                 .addReg(0);
 +    } else {
 +      Inst = MCInstBuilder(ARM::ADDri)
 +                 .addReg(ARM::SP)
@@ -706,11 +726,13 @@ index 000000000000..b5605bba7d4e
 +  void loadReg(MCInst &Inst, MCPhysReg To, MCPhysReg From,
 +               int64_t offset) const {
 +    if (InThumbMode()) {
++      // t2LDRi12: Rt, Rn, imm12, pred, predreg
 +      Inst = MCInstBuilder(ARM::t2LDRi12)
 +                 .addReg(To)
 +                 .addReg(From)
 +                 .addImm(offset)
-+                 .addImm(0);
++                 .addImm(ARMCC::AL)
++                 .addReg(0);
 +    } else {
 +      Inst = MCInstBuilder(ARM::LDRi12)
 +                 .addReg(To)
@@ -729,7 +751,8 @@ index 000000000000..b5605bba7d4e
 +                 .addReg(From)
 +                 .addReg(To)
 +                 .addImm(offset)
-+                 .addImm(0);
++                 .addImm(ARMCC::AL)
++                 .addReg(0);
 +    } else {
 +      Inst = MCInstBuilder(ARM::STRi12)
 +                 .addReg(From)
@@ -767,20 +790,20 @@ index 000000000000..b5605bba7d4e
 +
 +  InstructionListType createAtomicInc(MCPhysReg RegAddr, MCPhysReg RegTmp,
 +                                      MCPhysReg RegStatus) const {
++    // Non-atomic low-32-bit bump. Enough for QEMU smp=1; avoids Thumb
++    // exclusive encoding/feature pitfalls on ARMv7-A.
++    (void)RegStatus;
 +    InstructionListType Insts;
-+    Insts.emplace_back(MCInstBuilder(ARM::LDREX)
-+                           .addReg(RegTmp)
-+                           .addReg(RegAddr)
-+                           .addImm(0)
-+                           .addReg(0));
++    Insts.emplace_back();
++    loadReg(Insts.back(), RegTmp, RegAddr, /*offset=*/0);
 +    if (InThumbMode()) {
-+      Insts.emplace_back(MCInstBuilder(ARM::t2ADDri)
++      // t2ADDri12: Rd, Rn, imm12, pred, predreg
++      Insts.emplace_back(MCInstBuilder(ARM::t2ADDri12)
 +                             .addReg(RegTmp)
 +                             .addReg(RegTmp)
-+                             .addImm(ARMCC::AL)
-+                             .addReg(0)
 +                             .addImm(1)
-+                             .addImm(0));
++                             .addImm(ARMCC::AL)
++                             .addReg(0));
 +    } else {
 +      Insts.emplace_back(MCInstBuilder(ARM::ADDri)
 +                             .addReg(RegTmp)
@@ -790,12 +813,8 @@ index 000000000000..b5605bba7d4e
 +                             .addImm(1)
 +                             .addImm(0));
 +    }
-+    Insts.emplace_back(MCInstBuilder(ARM::STREX)
-+                           .addReg(RegStatus)
-+                           .addReg(RegTmp)
-+                           .addReg(RegAddr)
-+                           .addImm(0)
-+                           .addReg(0));
++    Insts.emplace_back();
++    storeReg(Insts.back(), RegTmp, RegAddr, /*offset=*/0);
 +    return Insts;
 +  }
 +
@@ -819,7 +838,8 @@ index 000000000000..b5605bba7d4e
 +      Inst = MCInstBuilder(ARM::tMOVr)
 +                 .addReg(ARM::R0)
 +                 .addReg(ARM::R0)
-+                 .addImm(ARMCC::AL);
++                 .addImm(ARMCC::AL)
++                 .addReg(0);
 +    else
 +      Inst = MCInstBuilder(ARM::MOVr)
 +                 .addReg(ARM::R0)
@@ -913,6 +933,43 @@ index 000000000000..b5605bba7d4e
 +    return false;
 +  }
 +
++  void createDirectBranch(MCInst &Inst, const MCSymbol *Target,
++                          MCContext *Ctx) override {
++    createUncondBranch(Inst, Target, Ctx);
++  }
++
++  // Indirect-call instrumentation is disabled for the P9 gate
++  // (--instrument-calls=false), but setup still builds handler functions.
++  InstructionListType createInstrumentedIndCallHandlerExitBB() const override {
++    InstructionListType Insts(1);
++    createReturn(Insts[0]);
++    return Insts;
++  }
++
++  InstructionListType
++  createInstrumentedIndTailCallHandlerExitBB() const override {
++    return createInstrumentedIndCallHandlerExitBB();
++  }
++
++  InstructionListType createInstrumentedIndCallHandlerEntryBB(
++      const MCSymbol *InstrTrampoline, const MCSymbol *IndCallHandler,
++      MCContext *Ctx) override {
++    (void)InstrTrampoline;
++    InstructionListType Insts(1);
++    createDirectBranch(Insts[0], IndCallHandler, Ctx);
++    return Insts;
++  }
++
++  InstructionListType createInstrumentedIndirectCall(MCInst &&CallInst,
++                                                     MCSymbol *HandlerFuncAddr,
++                                                     size_t CallSiteID,
++                                                     MCContext *Ctx) override {
++    (void)HandlerFuncAddr;
++    (void)CallSiteID;
++    (void)Ctx;
++    return InstructionListType{std::move(CallInst)};
++  }
++
 +  InstructionListType createGetter(MCContext *Ctx, const char *name) const {
 +    InstructionListType Insts(4);
 +    MCSymbol *Locs = Ctx->getOrCreateSymbol(name);
@@ -938,6 +995,47 @@ index 000000000000..b5605bba7d4e
 +
 +  InstructionListType createInstrNumFuncsGetter(MCContext *Ctx) const override {
 +    return createGetter(Ctx, "__bolt_instr_num_funcs");
++  }
++
++  void prepareForEmission(BinaryFunction &BF) override {
++    if (!BF.isARMThumb())
++      return;
++    BinaryContext &BC = BF.getBinaryContext();
++    for (BinaryBasicBlock &BB : BF) {
++      for (auto II = BB.begin(); II != BB.end();) {
++        MCInst &Inst = *II;
++        const unsigned Op = Inst.getOpcode();
++        if (Op != ARM::tCBZ && Op != ARM::tCBNZ) {
++          ++II;
++          continue;
++        }
++        if (!Inst.getOperand(0).isReg()) {
++          ++II;
++          continue;
++        }
++        const MCSymbol *Tgt = getTargetSymbol(Inst);
++        if (!Tgt) {
++          ++II;
++          continue;
++        }
++        const MCPhysReg Rn = Inst.getOperand(0).getReg();
++        const bool IsCBNZ = Op == ARM::tCBNZ;
++        InstructionListType Seq(2);
++        // cmp Rn, #0
++        Seq[0] = MCInstBuilder(ARM::tCMPi8)
++                     .addReg(Rn)
++                     .addImm(0)
++                     .addImm(ARMCC::AL)
++                     .addReg(0);
++        // beq / bne target (Thumb-2, wide range)
++        Seq[1] = MCInstBuilder(ARM::t2Bcc)
++                     .addExpr(MCSymbolRefExpr::create(Tgt, *BC.Ctx))
++                     .addImm(IsCBNZ ? ARMCC::NE : ARMCC::EQ)
++                     .addReg(0);
++        II = BB.replaceInstruction(II, Seq);
++        II = std::next(II, 2);
++      }
++    }
 +  }
 +};
 +

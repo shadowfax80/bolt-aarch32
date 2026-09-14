@@ -87,13 +87,7 @@ grep -q "bolt_bench_" "$FDATA"
 cat "$FDATA"
 
 echo "=== optimize ==="
-if [[ "$ARCH" == "arm32" ]]; then
-  echo "P10 optimize not wired for ARM32 yet — P9 profile gate OK"
-  echo "BOLT arm32 workload profile verification OK"
-  exit 0
-fi
-
-ARCH="$ARCH" INPUT="$INSTR_OUT" OUT="$BOLT_OUT" FDATA="$FDATA" \
+ARCH="$ARCH" ELF="$ELF" FDATA="$FDATA" OUT="$BOLT_OUT" \
   "$ROOT/scripts/optimize-lk-bolt.sh"
 
 echo "=== boot optimized + rerun workloads ==="

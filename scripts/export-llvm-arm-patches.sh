@@ -61,4 +61,10 @@ export_one 0009-bolt-arm-longjmp-veneers.patch \
   bolt/lib/Passes/VeneerElimination.cpp \
   bolt/lib/Rewrite/BinaryPassManager.cpp
 
+# P9: instrumentation emission (Thumb STI) + ELF instr tables for bare metal
+export_one 0010-bolt-arm-instrumentation.patch \
+  bolt/lib/Passes/Instrumentation.cpp \
+  bolt/lib/Passes/BinaryPasses.cpp \
+  bolt/lib/RuntimeLibs/InstrumentationRuntimeLibrary.cpp
+
 echo "ARM overlay patches refreshed from $LLVM"

@@ -83,7 +83,7 @@ Each rung P1–P10 maps to **one upstream llvm-project PR** with lit tests. P11 
 | P7 | IT blocks | `[BOLT][ARM] IT bundles` | IT not split | `it_cond` bench | **Done** — lit 9/9; QEMU `it_cond` + `all` |
 | P8 | Interworking | `[BOLT][ARM] Interworking` | ARM↔Thumb lit | `interwork` bench | **Done** — lit 10/10; narrow funcs rewrite + QEMU |
 | P9 | Instrumentation | `[BOLT][ARM] Instrumentation` | Counter FileCheck | `verify-bolt-workloads.sh` ARM32 | **Done** — 5/5 counters + `.fdata` |
-| P10 | Layout optimize | `[BOLT][ARM] PGO layout` | Optimize lit | `lk.bolt.elf` boots + cycles | Pending |
+| P10 | Layout optimize | `[BOLT][ARM] PGO layout` | Optimize lit | `lk.bolt.elf` boots + cycles | **Done** — `lk.bolt.arm32.elf` boots + `bolt_bench all` |
 | P11 | Upstream landing | Merge tracking | All lit in tree | Full pipeline on `main` | Pending — still `release/23.x`, no PRs |
 
 **Overlay patches (upstream staging):**
@@ -91,14 +91,15 @@ Each rung P1–P10 maps to **one upstream llvm-project PR** with lit tests. P11 
 | Patch | Upstream PR scope |
 |-------|-------------------|
 | `0003-bolt-arm-elf32-and-target.patch` | P1/P6 — CMake, BinaryContext, BinaryFunction, BinarySection (Thumb ABS32 LSB), `$a/$t/$d` |
-| `0004-bolt-arm-mcplusbuilder.patch` | P2–P7 — `bolt/lib/Target/ARM/` (incl. IT atomic helpers) |
+| `0004-bolt-arm-mcplusbuilder.patch` | P2–P7/P9 — `bolt/lib/Target/ARM/` (IT atomic, probe emit, CBZ expand) |
 | `0005-bolt-arm-relocations.patch` | P4/P6 — `R_ARM_*` encode (incl. Thumb branch immediates) |
 | `0006-bolt-arm-rewrite-dispatch.patch` | P1/P6 — RewriteInstance (Thumb st_value, p_paddr skew, no force ARM veneers), JITLinkLinker stubs |
 | `0007-bolt-arm-lit-tests.patch` | Lit tests under `bolt/test/ARM/` (incl. Thumb rewrite + IT) |
 | `0008-jitlink-arm-generic-archkind.patch` | P4/P6 — JITLink `arm`→ARMv7-A; aarch32 stubs/Thumb pointer bit |
 | `0009-bolt-arm-longjmp-veneers.patch` | P5 — LongJmp + VeneerElimination for `Triple::arm` |
+| `0010-bolt-arm-instrumentation.patch` | P9 — Thumb STI during instrument + ELF `__bolt_instr_tables` |
 
-**Next action:** P10 layout optimize from ARM32 `.fdata`. Upstream PRs can start at P1 in parallel. P0–P9 QEMU/lit/profile gates are green on the volume.
+**Next action:** P11 upstream landing (RFC + per-rung PRs). P0–P10 QEMU gates are green on the volume.
 
 ---
 
@@ -116,7 +117,7 @@ Each rung P1–P10 maps to **one upstream llvm-project PR** with lit tests. P11 
 | `verify-bolt-arm32-harness.sh` | P0 gate: ARM32 boot + `bolt_bench all` |
 | `verify-bolt-arm32-milestones.sh` | P0–P4 one-shot gate |
 | `verify-bolt-arm32-veneer.sh` | P5 LongJmp veneer gate |
-| `export-llvm-arm-patches.sh` | Refresh `overlay/llvm/patches/0003–0009` from the volume tree |
+| `export-llvm-arm-patches.sh` | Refresh `overlay/llvm/patches/0003–0010` from the volume tree |
 | `build-bolt-rt-baremetal.sh` | Bare-metal BOLT runtime (AArch64 + `ARCH=arm32`) |
 | `instrument-lk-bolt.sh` | Instrument bolt_bench workloads |
 | `dump-bolt-counters.py` | QEMU QMP counter dump |

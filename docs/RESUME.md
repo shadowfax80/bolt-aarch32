@@ -86,12 +86,13 @@ apt-get update -qq && apt-get install -y -qq qemu-system-arm
 
 - Full-binary rewrite without `--funcs-file` (kernel host functions; not a P4–P8 gate)
 - Full `bolt_bench_*` funcs-file rewrite breaks sequential `all` (trampoline; use narrow set for interwork)
-- P9 instrumentation + ARM32 bare-metal bolt-rt — **Done** (5/5 counters + named `.fdata`)
-- P10 layout optimize from ARM32 profile
 - On-target `.fdata` serialization over UART (optional; QMP works)
-- Rebase llvm-project to `main` before opening upstream PRs
+- Rebase llvm-project to `main` before opening upstream PRs (P11)
+- P11: open/merge upstream PRs; overlay patch cleanup
 
----
+**Done through P10:** instrumentation profile + optimize path on ARM32 (`0010` patch + `lk.bolt.arm32.elf` boots).
+
+**Next rung:** P11 upstream landing.
 
 ## How to resume
 

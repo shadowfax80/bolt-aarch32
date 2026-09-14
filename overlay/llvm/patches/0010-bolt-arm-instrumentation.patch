@@ -1,0 +1,69 @@
+diff --git a/bolt/lib/Passes/BinaryPasses.cpp b/bolt/lib/Passes/BinaryPasses.cpp
+index adf2bbae52d1..4e60b1cd964b 100644
+--- a/bolt/lib/Passes/BinaryPasses.cpp
++++ b/bolt/lib/Passes/BinaryPasses.cpp
+@@ -1039,7 +1039,13 @@ uint64_t SimplifyConditionalTailCalls::fixTailCalls(BinaryFunction &BF) {
+         MIB->replaceBranchTarget(*UncondBranch, CondSucc->getLabel(), Ctx);
+     } else if (!HasFallthrough) {
+       MCInst Branch;
++      BinaryContext &BCtx = BF.getBinaryContext();
++      const MCSubtargetInfo *SavedSTI = MIB->getSTI();
++      if (BCtx.isARM() && BF.isARMThumb() && BCtx.ThumbSTI)
++        MIB->setSTI(BCtx.ThumbSTI.get());
+       MIB->createUncondBranch(Branch, CondSucc->getLabel(), Ctx);
++      if (SavedSTI)
++        MIB->setSTI(SavedSTI);
+       PredBB->addInstruction(Branch);
+     }
+   }
+diff --git a/bolt/lib/Passes/Instrumentation.cpp b/bolt/lib/Passes/Instrumentation.cpp
+index ae9faf4e9cc2..d023c4977e98 100644
+--- a/bolt/lib/Passes/Instrumentation.cpp
++++ b/bolt/lib/Passes/Instrumentation.cpp
+@@ -11,6 +11,7 @@
+ //===----------------------------------------------------------------------===//
+ 
+ #include "bolt/Passes/Instrumentation.h"
++#include "llvm/ADT/ScopeExit.h"
+ #include "bolt/Core/ParallelUtilities.h"
+ #include "bolt/RuntimeLibs/InstrumentationRuntimeLibrary.h"
+ #include "bolt/Utils/CommandLineOpts.h"
+@@ -386,6 +387,15 @@ void Instrumentation::instrumentFunction(BinaryFunction &Function,
+     return;
+ 
+   BinaryContext &BC = Function.getBinaryContext();
++  // P9_THUMB_STI: probe emission uses MIB->InThumbMode() via STI. Thumb
++  // functions must see ThumbSTI so LDREX/SP/movw sequences match the body.
++  const MCSubtargetInfo *SavedSTI = BC.MIB->getSTI();
++  if (BC.isARM() && Function.isARMThumb() && BC.ThumbSTI.get())
++    BC.MIB->setSTI(BC.ThumbSTI.get());
++  auto RestoreSTI = llvm::make_scope_exit([&]() {
++    if (SavedSTI)
++      BC.MIB->setSTI(SavedSTI);
++  });
+   if (BC.isMachO() && Function.hasName("___GLOBAL_init_65535/1"))
+     return;
+ 
+diff --git a/bolt/lib/RuntimeLibs/InstrumentationRuntimeLibrary.cpp b/bolt/lib/RuntimeLibs/InstrumentationRuntimeLibrary.cpp
+index d71d8ef1c044..a91cf2377982 100644
+--- a/bolt/lib/RuntimeLibs/InstrumentationRuntimeLibrary.cpp
++++ b/bolt/lib/RuntimeLibs/InstrumentationRuntimeLibrary.cpp
+@@ -191,6 +191,18 @@ void InstrumentationRuntimeLibrary::emitBinary(BinaryContext &BC,
+     TablesSection->setAlignment(llvm::Align(BC.RegularPageSize));
+     Streamer.switchSection(TablesSection);
+     emitString("__bolt_instr_tables", buildTables(BC));
++  } else {
++    // Instrumentation always injects __bolt_instr_tables_getter, which takes
++    // the address of __bolt_instr_tables. On ELF that symbol was only ever
++    // defined for Mach-O, so it resolved to 0: harmless for a binary linked
++    // low, but on AArch64 the ADRP in the getter cannot reach 0 from a kernel
++    // address and JITLink rejects the fixup as out of range.
++    //
++    // Emitting the tables here also gives a freestanding runtime a way to
++    // reach them, which it otherwise lacks - upstream finds its own notes by
++    // reading /proc/self/map_files, and there is no /proc on bare metal.
++    emitPadding(BC.RegularPageSize);
++    emitString("__bolt_instr_tables", buildTables(BC));
+   }
+ }
+ 

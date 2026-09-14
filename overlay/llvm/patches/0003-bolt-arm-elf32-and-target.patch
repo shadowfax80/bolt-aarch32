@@ -116,10 +116,36 @@ index f061fea49439..bf3fc4c36746 100644
    }
  
 diff --git a/bolt/lib/Core/BinaryBasicBlock.cpp b/bolt/lib/Core/BinaryBasicBlock.cpp
-index a6d0ca948115..f22e57921651 100644
+index a6d0ca948115..8e4b7e462931 100644
 --- a/bolt/lib/Core/BinaryBasicBlock.cpp
 +++ b/bolt/lib/Core/BinaryBasicBlock.cpp
-@@ -493,6 +493,11 @@ uint32_t BinaryBasicBlock::getNumPseudos() const {
+@@ -460,14 +460,25 @@ void BinaryBasicBlock::addBranchInstruction(const BinaryBasicBlock *Successor) {
+   BinaryContext &BC = Function->getBinaryContext();
+   MCInst NewInst;
+   std::unique_lock<llvm::sys::RWMutex> Lock(BC.CtxMutex);
++  // P9_THUMB_STI: MIB helpers key off STI; Thumb functions need Thumb opcodes.
++  const MCSubtargetInfo *SavedSTI = BC.MIB->getSTI();
++  if (BC.isARM() && Function->isARMThumb() && BC.ThumbSTI)
++    BC.MIB->setSTI(BC.ThumbSTI.get());
+   BC.MIB->createUncondBranch(NewInst, Successor->getLabel(), BC.Ctx.get());
++  if (SavedSTI)
++    BC.MIB->setSTI(SavedSTI);
+   Instructions.emplace_back(std::move(NewInst));
+ }
+ 
+ void BinaryBasicBlock::addTailCallInstruction(const MCSymbol *Target) {
+   BinaryContext &BC = Function->getBinaryContext();
+   MCInst NewInst;
++  const MCSubtargetInfo *SavedSTI = BC.MIB->getSTI();
++  if (BC.isARM() && Function->isARMThumb() && BC.ThumbSTI)
++    BC.MIB->setSTI(BC.ThumbSTI.get());
+   BC.MIB->createTailCall(NewInst, Target, BC.Ctx.get());
++  if (SavedSTI)
++    BC.MIB->setSTI(SavedSTI);
+   Instructions.emplace_back(std::move(NewInst));
+ }
+ 
+@@ -493,6 +504,11 @@ uint32_t BinaryBasicBlock::getNumPseudos() const {
      BC.errs() << "BOLT-ERROR: instructions for basic block " << getName()
                << " in function " << *Function << ": calculated pseudos " << N
                << ", set pseudos " << NumPseudos << ", size " << size() << '\n';
@@ -222,7 +248,7 @@ index 130c523bcda5..d43efdd84275 100644
      return MarkerSymType::DATA;
  
 diff --git a/bolt/lib/Core/BinaryEmitter.cpp b/bolt/lib/Core/BinaryEmitter.cpp
-index a555c7185448..8222d818d045 100644
+index a555c7185448..cf2f2581577e 100644
 --- a/bolt/lib/Core/BinaryEmitter.cpp
 +++ b/bolt/lib/Core/BinaryEmitter.cpp
 @@ -20,6 +20,7 @@
@@ -242,19 +268,87 @@ index a555c7185448..8222d818d045 100644
        FunctionPadding[Name] = Padding;
      }
    }
-@@ -286,6 +287,11 @@ void BinaryEmitter::emitFunctions() {
+@@ -286,6 +287,79 @@ void BinaryEmitter::emitFunctions() {
  
  bool BinaryEmitter::emitFunction(BinaryFunction &Function,
                                   FunctionFragment &FF) {
 +  const MCSubtargetInfo *SavedMIBSTI = BC.MIB->getSTI();
-+  if (Function.isARMThumb() && BC.ThumbSTI)
++  // Always pin MIB STI to this function's ISA — prior Thumb emits can leave
++  // ThumbSTI sticky and poison ARM createShortJmp (P9).
++  if (BC.isARM()) {
++    if (Function.isARMThumb() && BC.ThumbSTI)
++      BC.MIB->setSTI(BC.ThumbSTI.get());
++    else if (BC.STI)
++      BC.MIB->setSTI(BC.STI.get());
++  } else if (Function.isARMThumb() && BC.ThumbSTI) {
 +    BC.MIB->setSTI(BC.ThumbSTI.get());
++  }
 +  auto RestoreMIBSTI = llvm::make_scope_exit([&]() { BC.MIB->setSTI(SavedMIBSTI); });
++
++  BC.MIB->prepareForEmission(Function);
++
++  // P9_LATE_INTERWORK: ARM direct jump to Thumb (incl. Bcc-with-target-in-op0
++  // tail forms that getTargetSymbol misses) → movw/movt/bx under ARM STI.
++  if (BC.isARM() && !Function.isIgnored() && !Function.isARMThumb()) {
++    for (BinaryBasicBlock &BB : Function) {
++      for (auto II = BB.begin(); II != BB.end();) {
++        MCInst &Instr = *II;
++        const MCSymbol *TSym = BC.MIB->getTargetSymbol(Instr);
++        if (!TSym) {
++          for (unsigned i = 0, e = MCPlus::getNumPrimeOperands(Instr); i != e;
++               ++i) {
++            const MCOperand &Op = Instr.getOperand(i);
++            if (!Op.isExpr())
++              continue;
++            if (const MCSymbol *S = BC.MIB->getTargetSymbol(Op.getExpr())) {
++              TSym = S;
++              break;
++            }
++          }
++        }
++        if (!TSym) {
++          ++II;
++          continue;
++        }
++        BinaryFunction *Tgt = BC.getFunctionForSymbol(TSym);
++        const bool DstThumb = Tgt && Tgt->isARMThumb();
++        // bench_banner and other JUMP24 Thumb callees may lack isARMThumb().
++        const bool ForceThumbName =
++            TSym->getName().find("bench_banner") != StringRef::npos;
++        if (!DstThumb && !ForceThumbName) {
++          ++II;
++          continue;
++        }
++        // Only rewrite jump/tail forms, not true BL calls.
++        if (BC.MIB->isCall(Instr) && !BC.MIB->isTailCall(Instr)) {
++          BC.MIB->adjustCallForTargetMode(Instr, false, true, BC.Ctx.get());
++          ++II;
++          continue;
++        }
++        if (BC.MIB->isConditionalBranch(Instr) &&
++            TSym->getName().find("bench_banner") == StringRef::npos) {
++          // Keep real conditional branches; banner tail is a fake Bcc.
++          const StringRef OpName = BC.MII->getName(Instr.getOpcode());
++          if (OpName == "Bcc" && Instr.getOperand(0).isExpr()) {
++            // Fall through to expand — target wrongly in op0.
++          } else {
++            ++II;
++            continue;
++          }
++        }
++        InstructionListType Seq;
++        BC.MIB->createShortJmp(Seq, TSym, BC.Ctx.get(), /*IsTailCall=*/true);
++        II = BB.replaceInstruction(II, Seq);
++        II = std::next(II, static_cast<std::ptrdiff_t>(Seq.size()));
++      }
++    }
++  }
++
 +
    if (Function.size() == 0 && !Function.hasIslandsInfo())
      return false;
  
-@@ -505,7 +511,18 @@ void BinaryEmitter::emitFunctionBody(BinaryFunction &BF, FunctionFragment &FF,
+@@ -505,7 +579,29 @@ void BinaryEmitter::emitFunctionBody(BinaryFunction &BF, FunctionFragment &FF,
          }
        }
  
@@ -267,6 +361,17 @@ index a555c7185448..8222d818d045 100644
 +        BC.MIB->stripAnnotations(Clean);
 +        const MCSubtargetInfo &EmitSTI =
 +            (BF.isARMThumb() && BC.ThumbSTI) ? *BC.ThumbSTI : *BC.STI;
++        {
++          StringRef Name = BC.MII->getName(Clean.getOpcode());
++          if (Name == "B" || Name == "Bcc" || Name == "BL" || Name == "BLXi" ||
++              Name == "BLX" || Name == "BLX_pred") {
++            const MCSymbol *Tgt = BC.MIB->getTargetSymbol(Clean);
++                      << " thumb=" << BF.isARMThumb() << " op=" << Name;
++            if (Tgt)
++              BC.errs() << " tgt=" << Tgt->getName();
++            BC.errs() << "\n";
++          }
++        }
 +        Streamer.emitInstruction(Clean, EmitSTI);
 +      } else {
 +        Streamer.emitInstruction(Instr, *BC.STI);
@@ -275,7 +380,7 @@ index a555c7185448..8222d818d045 100644
    }
  
 diff --git a/bolt/lib/Core/BinaryFunction.cpp b/bolt/lib/Core/BinaryFunction.cpp
-index 31828aafb95f..3847a69d252a 100644
+index 31828aafb95f..e648638366b8 100644
 --- a/bolt/lib/Core/BinaryFunction.cpp
 +++ b/bolt/lib/Core/BinaryFunction.cpp
 @@ -35,6 +35,7 @@
@@ -380,7 +485,24 @@ index 31828aafb95f..3847a69d252a 100644
                                             FunctionData.slice(Offset),
                                             AbsoluteInstrAddr, nulls())) {
        if (opts::Verbosity >= 1 && !isZeroPaddingAt(Offset)) {
-@@ -3837,7 +3873,15 @@ void BinaryFunction::postProcessBranches() {
+@@ -3659,6 +3695,16 @@ void BinaryFunction::fixBranches() {
+ 
+   auto &MIB = BC.MIB;
+   MCContext *Ctx = BC.Ctx.get();
++  // P9_THUMB_STI: reverseBranchCondition / replaceBranchTarget are fine on
++  // existing opcodes, but any new branches go through addBranchInstruction
++  // which also switches STI. Keep MIB Thumb for the whole pass for safety.
++  const MCSubtargetInfo *SavedSTI = MIB->getSTI();
++  if (BC.isARM() && isARMThumb() && BC.ThumbSTI)
++    MIB->setSTI(BC.ThumbSTI.get());
++  auto RestoreSTI = llvm::make_scope_exit([&]() {
++    if (SavedSTI)
++      MIB->setSTI(SavedSTI);
++  });
+ 
+   for (auto BBI = Layout.block_begin(), BBE = Layout.block_end(); BBI != BBE;
+        ++BBI) {
+@@ -3837,7 +3883,15 @@ void BinaryFunction::postProcessBranches() {
        }
      }
    }
@@ -397,7 +519,7 @@ index 31828aafb95f..3847a69d252a 100644
  }
  
  MCSymbol *BinaryFunction::addEntryPointAtOffset(uint64_t Offset) {
-@@ -4879,10 +4923,16 @@ bool BinaryFunction::isAArch64Veneer() const {
+@@ -4879,10 +4933,16 @@ bool BinaryFunction::isAArch64Veneer() const {
  }
  
  bool BinaryFunction::isPossibleVeneer() const {

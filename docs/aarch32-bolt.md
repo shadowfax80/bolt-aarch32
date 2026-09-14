@@ -37,7 +37,7 @@
 | **P7** | IT blocks | `[BOLT][ARM] Treat IT bundles as atomic units` | IT bundle not split | `it_cond` identity rewrite correct | **Done** — lit 9/9; QEMU `it_cond` + `all` |
 | **P8** | ARM↔Thumb interworking | `[BOLT][ARM] Interworking edges and veneers` | ARM↔Thumb CFG lit | `interwork` identity rewrite runs | **Done** — lit 10/10; QEMU `interwork` + narrow `all` |
 | **P9** | Instrumentation + RAM profile | `[BOLT][ARM] Instrumentation for ARM/Thumb` | Counter-site FileCheck | `verify-bolt-workloads.sh` ARM32: all counters + `.fdata` | **Done** — 5/5 counters + named `.fdata` (2026-09-14) |
-| **P10** | Layout optimize | `[BOLT][ARM] Profile-guided layout on ARM/Thumb` | Optimize lit + fake `.fdata` | `lk.bolt.elf` boots, reruns `all`, cycles logged | Pending |
+| **P10** | Layout optimize | `[BOLT][ARM] Profile-guided layout on ARM/Thumb` | Optimize lit + fake `.fdata` | `lk.bolt.elf` boots, reruns `all`, cycles logged | **Done** — `lk.bolt.arm32.elf` boots + `all` (2026-09-14) |
 | **P11** | Upstream landing | Track/rebase/merge; overlay cleanup | All lit in tree | Full ARM32 pipeline green on `main` | Pending |
 
 **RFC:** post on [LLVM Discourse (BOLT)](https://discourse.llvm.org/c/subprojects/bolt/) **before opening P4** — `MCPlusBuilder` API shape is shared infrastructure.
@@ -56,11 +56,11 @@ P3  Build CFG (ARM)                    ✓ Done (lit + benches)
 P4  Identity rewrite (MCPlusBuilder)   ✓ Done (ARM-mode benches)
 
 P5  Branch range / veneers             ✓ Done (stub in ELF + qemu 42)
-P6  Thumb-2, no IT
-P7  IT blocks
+P6  Thumb-2, no IT                     ✓ Done (lit + QEMU)
+P7  IT blocks                          ✓ Done (lit + QEMU)
 P8  ARM↔Thumb interworking             ✓ Done (lit 10/10; QEMU interwork)
-P9  Instrumentation + RAM profile
-P10 Layout optimize
+P9  Instrumentation + RAM profile      ✓ Done (5/5 counters + .fdata)
+P10 Layout optimize                    ✓ Done (lk.bolt.arm32.elf boots)
 P11 Upstream landing (merge tracking, overlay cleanup)
 ```
 
@@ -83,11 +83,13 @@ Verify layout: `./scripts/verify-workspace.sh`
 ```
 overlay/llvm/patches/
   0003-bolt-arm-elf32-and-target.patch   ← P1
-  0004-bolt-arm-mcplusbuilder.patch      ← P2–P6 (ARMMCPlusBuilder)
+  0004-bolt-arm-mcplusbuilder.patch      ← P2–P7/P9 (ARMMCPlusBuilder)
   0005-bolt-arm-relocations.patch        ← P4 relocations
   0006-bolt-arm-rewrite-dispatch.patch   ← RewriteInstance ARM dispatch
   0007-bolt-arm-lit-tests.patch          ← bolt/test/ARM/
   0008-jitlink-arm-generic-archkind.patch ← JITLink generic `arm` → ARMv7-A
+  0009-bolt-arm-longjmp-veneers.patch    ← P5
+  0010-bolt-arm-instrumentation.patch   ← P9 Thumb STI + ELF instr tables
 overlay/llvm/tests/       ← legacy placeholder; lit tests now in 0007
 overlay/lk/files/app/bolt_bench/   ← synthetic workloads (never upstreamed)
 scripts/                    ← harness, verify, QMP dump, fdata conversion
@@ -308,6 +310,8 @@ Reuse Phase 2 QMP collection path. New work is **AArch32 probe emission**.
 
 **Pass:** `lk.bolt.elf` boots, reruns `bolt_bench all`; cycle lines printed (improvement nice-to-have, not a gate).
 
+**Verified (2026-09-14):** `ARCH=arm32 ./scripts/optimize-lk-bolt.sh` with `prof-arm32.fdata` → `build/lk.bolt.arm32.elf`; section restore; qemu-system-arm prints all `bolt_bench: … done` + console. Full `ARCH=arm32 ./scripts/verify-bolt-workloads.sh` covers profile + optimize.
+
 ---
 
 ## P11 — Upstream landing
@@ -399,7 +403,7 @@ ARCH=arm32 ./scripts/verify-bolt-workloads.sh
 - [x] P6: Thumb-2 identity rewrite on QEMU (no IT)
 - [x] P7: IT bundles atomic; `bolt_bench_it_cond` identity rewrite on QEMU
 - [x] P8: Interworking identity rewrite on QEMU
-- [x] P9: Instrumentation + QMP profile (5/5 counters + named `.fdata`)
-- [ ] P10: Optimized `lk.bolt.elf` boots and reruns workloads
+- [x] P9: Instrumentation + QMP profile (5/5 counters + named `.fdata`); `0010-bolt-arm-instrumentation.patch` exported
+- [x] P10: Optimized `lk.bolt.arm32.elf` boots and reruns workloads
 - [x] Lit coverage for ARM, Thumb-2, IT, interworking, veneers in llvm-project
 - [ ] P11: Core backend (P1–P10) merged to llvm-project `main`; overlay backend patches gone
