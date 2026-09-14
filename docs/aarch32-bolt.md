@@ -36,7 +36,7 @@
 | **P6** | Thumb-2 (no IT) | `[BOLT][ARM] Thumb-2 disassembly, CFG, and rewrite` | Thumb `.s` CFG + rewrite | `-mthumb` `bolt_bench` identity rewrite boots | **Done** — lit 8/8; QEMU `hot_loop` + console |
 | **P7** | IT blocks | `[BOLT][ARM] Treat IT bundles as atomic units` | IT bundle not split | `it_cond` identity rewrite correct | **Done** — lit 9/9; QEMU `it_cond` + `all` |
 | **P8** | ARM↔Thumb interworking | `[BOLT][ARM] Interworking edges and veneers` | ARM↔Thumb CFG lit | `interwork` identity rewrite runs | **Done** — lit 10/10; QEMU `interwork` + narrow `all` |
-| **P9** | Instrumentation + RAM profile | `[BOLT][ARM] Instrumentation for ARM/Thumb` | Counter-site FileCheck | `verify-bolt-workloads.sh` ARM32: all counters + `.fdata` | Pending |
+| **P9** | Instrumentation + RAM profile | `[BOLT][ARM] Instrumentation for ARM/Thumb` | Counter-site FileCheck | `verify-bolt-workloads.sh` ARM32: all counters + `.fdata` | **Done** — 5/5 counters + named `.fdata` (2026-09-14) |
 | **P10** | Layout optimize | `[BOLT][ARM] Profile-guided layout on ARM/Thumb` | Optimize lit + fake `.fdata` | `lk.bolt.elf` boots, reruns `all`, cycles logged | Pending |
 | **P11** | Upstream landing | Track/rebase/merge; overlay cleanup | All lit in tree | Full ARM32 pipeline green on `main` | Pending |
 
@@ -120,7 +120,7 @@ No BOLT backend. Proves the AArch64 collection path ports to ARM32.
 | `bolt_bench` overlay on ARM32 project mk | `scripts/apply-overlays.sh` | Done |
 | P0 verify script | `scripts/verify-bolt-arm32-harness.sh` | Done |
 | P0–P4 milestone gate | `scripts/verify-bolt-arm32-milestones.sh` | Done — all pass on pod |
-| Cross-build runtime for `arm-none-eabi` | `scripts/build-bolt-rt-baremetal.sh` | Pending (needed at P9) |
+| Cross-build runtime for `arm-none-eabi` | `scripts/build-bolt-rt-baremetal.sh` | **Done** (`ARCH=arm32`) |
 | Rebase llvm-project to `main` | `scripts/ensure-llvm-source.sh` `LLVM_COMMIT=<main tip>` | Pending (before upstream PRs) |
 
 **Pass:** original `lk.elf` reaches `entering main console loop`; `lk.bolt_bench=all` prints all four `bolt_bench: … done` lines.
@@ -293,6 +293,8 @@ Reuse Phase 2 QMP collection path. New work is **AArch32 probe emission**.
 
 **Pass:** QMP dump shows **N/N counters non-zero** for all four `bolt_bench` functions; `.fdata` names all four.
 
+**Verified (2026-09-14):** BOLT `-instrument` emits ARM32 probes; post-pass restores `.bolt.org.text`/`.data` (BOLT trampolines smash ARM literal pools) and installs Thumb org.text counter hooks into unused hot `.text`. ELF32-safe `fix-kernel-elf-entry.py` / `fix-kernel-elf-paddr.py`. Gate: `dump-bolt-counters.py` → **5/5** non-zero; `ram-dump-to-fdata.py --funcs=…` names `hot_loop`/`hot_cold`/`branch_chain`/`memcpy`. `ARCH=arm32 ./scripts/verify-bolt-workloads.sh` (stops after `.fdata`; optimize = P10).
+
 ---
 
 ## P10 — Layout optimize
@@ -352,8 +354,8 @@ Still **no LK kernel functions** as instrumentation targets.
 Mirror AArch64:
 
 ```bash
-./scripts/verify-bolt-workloads.sh   # ARCH=arm32 (to be added)
-# build LK arm32 + bolt_bench
+ARCH=arm32 ./scripts/verify-bolt-workloads.sh
+# build LK arm32 + bolt_bench → instrument → QMP counters → .fdata
 # instrument only bolt_bench_*
 # QEMU + QMP dump
 # ram-dump-to-fdata
@@ -397,6 +399,7 @@ Mirror AArch64:
 - [x] P6: Thumb-2 identity rewrite on QEMU (no IT)
 - [x] P7: IT bundles atomic; `bolt_bench_it_cond` identity rewrite on QEMU
 - [x] P8: Interworking identity rewrite on QEMU
-- [ ] P9–P10: Instrumentation + QMP profile + optimized `lk.bolt.elf` boots and reruns workloads
+- [x] P9: Instrumentation + QMP profile (5/5 counters + named `.fdata`)
+- [ ] P10: Optimized `lk.bolt.elf` boots and reruns workloads
 - [x] Lit coverage for ARM, Thumb-2, IT, interworking, veneers in llvm-project
 - [ ] P11: Core backend (P1–P10) merged to llvm-project `main`; overlay backend patches gone

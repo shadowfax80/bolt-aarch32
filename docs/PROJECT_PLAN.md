@@ -24,7 +24,7 @@
 | 0 | Repo, scripts, RunPod | **Done** |
 | 1 | LLVM/BOLT toolchain | **Done** |
 | 2 | AArch64 bare-metal + LK | **Done** (2.8 optional UART export pending) |
-| 3 | AArch32 BOLT → upstream | **P0–P8 done** — P9 instrumentation next |
+| 3 | AArch32 BOLT → upstream | **P0–P9 done** — P10 layout optimize next |
 
 **Pod:** `i5dkz4se4q2qv0` — check RunPod console for current state  
 **Volume:** `j1d9e6wq5l` @ `/workspace/bolt-lk-overlay` (EU-RO-1)
@@ -82,7 +82,7 @@ Each rung P1–P10 maps to **one upstream llvm-project PR** with lit tests. P11 
 | P6 | Thumb-2 (no IT) | `[BOLT][ARM] Thumb-2 rewrite` | Thumb `.s` lit | `-mthumb` benches boot | **Done** — lit 8/8; QEMU all benches + console |
 | P7 | IT blocks | `[BOLT][ARM] IT bundles` | IT not split | `it_cond` bench | **Done** — lit 9/9; QEMU `it_cond` + `all` |
 | P8 | Interworking | `[BOLT][ARM] Interworking` | ARM↔Thumb lit | `interwork` bench | **Done** — lit 10/10; narrow funcs rewrite + QEMU |
-| P9 | Instrumentation | `[BOLT][ARM] Instrumentation` | Counter FileCheck | `verify-bolt-workloads.sh` ARM32 | Pending |
+| P9 | Instrumentation | `[BOLT][ARM] Instrumentation` | Counter FileCheck | `verify-bolt-workloads.sh` ARM32 | **Done** — 5/5 counters + `.fdata` |
 | P10 | Layout optimize | `[BOLT][ARM] PGO layout` | Optimize lit | `lk.bolt.elf` boots + cycles | Pending |
 | P11 | Upstream landing | Merge tracking | All lit in tree | Full pipeline on `main` | Pending — still `release/23.x`, no PRs |
 
@@ -98,7 +98,7 @@ Each rung P1–P10 maps to **one upstream llvm-project PR** with lit tests. P11 
 | `0008-jitlink-arm-generic-archkind.patch` | P4/P6 — JITLink `arm`→ARMv7-A; aarch32 stubs/Thumb pointer bit |
 | `0009-bolt-arm-longjmp-veneers.patch` | P5 — LongJmp + VeneerElimination for `Triple::arm` |
 
-**Next action:** P9 instrumentation + RAM profile. Upstream PRs can start at P1 in parallel. P0–P8 QEMU/lit gates are green on the volume.
+**Next action:** P10 layout optimize from ARM32 `.fdata`. Upstream PRs can start at P1 in parallel. P0–P9 QEMU/lit/profile gates are green on the volume.
 
 ---
 
@@ -117,11 +117,11 @@ Each rung P1–P10 maps to **one upstream llvm-project PR** with lit tests. P11 
 | `verify-bolt-arm32-milestones.sh` | P0–P4 one-shot gate |
 | `verify-bolt-arm32-veneer.sh` | P5 LongJmp veneer gate |
 | `export-llvm-arm-patches.sh` | Refresh `overlay/llvm/patches/0003–0009` from the volume tree |
-| `build-bolt-rt-baremetal.sh` | Bare-metal BOLT runtime (AArch64; ARM32 at P9) |
+| `build-bolt-rt-baremetal.sh` | Bare-metal BOLT runtime (AArch64 + `ARCH=arm32`) |
 | `instrument-lk-bolt.sh` | Instrument bolt_bench workloads |
 | `dump-bolt-counters.py` | QEMU QMP counter dump |
 | `ram-dump-to-fdata.sh` | Counter RAM → `.fdata` |
 | `optimize-lk-bolt.sh` | BOLT optimize pass |
-| `verify-bolt-workloads.sh` | End-to-end pipeline (AArch64; ARM32 at P9) |
+| `verify-bolt-workloads.sh` | End-to-end pipeline (`ARCH=aarch64` or `ARCH=arm32`) |
 | `apply-overlays.sh` | Apply `overlay/*/patches/` |
 | `create-pod.sh` / `create-pod.py` / `destroy-pod.sh` | RunPod lifecycle |

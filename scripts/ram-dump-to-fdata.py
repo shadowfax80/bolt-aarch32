@@ -19,9 +19,14 @@ SECTION_RE = re.compile(
     r"\[\s*\d+\]\s+(?P<name>\S+)\s+\S+\s+(?P<addr>[0-9a-fA-F]+)\s+"
     r"(?P<off>[0-9a-fA-F]+)\s+(?P<size>[0-9a-fA-F]+)"
 )
-GETTER_RE = re.compile(
+GETTER_RE_AARCH64 = re.compile(
     r"adrp\s+x0,\s+0x([0-9a-fA-F]+).*\n\s*[0-9a-fA-F]+:\s+add\s+x0,\s+x0,\s+#0x([0-9a-fA-F]+)",
     re.MULTILINE,
+)
+GETTER_RE_ARM = re.compile(
+    r"movw\s+r0,\s+#(?:0x)?([0-9a-fA-F]+).*\n"
+    r"\s*[0-9a-fA-F]+:\s+movt\s+r0,\s+#(?:0x)?([0-9a-fA-F]+)",
+    re.MULTILINE | re.IGNORECASE,
 )
 INFERRED = 0xFFFFFFFF
 
@@ -181,17 +186,20 @@ def getter_address(toolchain: str, elf: str, name: str) -> int:
             "-d",
             "--no-show-raw-insn",
             f"--start-address={hex(start)}",
-            f"--stop-address={hex(start + 16)}",
+            f"--stop-address={hex(start + 24)}",
             elf,
         ],
         check=True,
         capture_output=True,
         text=True,
     ).stdout
-    m = GETTER_RE.search(out)
-    if not m:
-        raise SystemExit(f"could not decode {name} from:\n{out}")
-    return int(m.group(1), 16) + int(m.group(2), 16)
+    m = GETTER_RE_AARCH64.search(out)
+    if m:
+        return int(m.group(1), 16) + int(m.group(2), 16)
+    m = GETTER_RE_ARM.search(out)
+    if m:
+        return (int(m.group(2), 16) << 16) | int(m.group(1), 16)
+    raise SystemExit(f"could not decode {name} from:\n{out}")
 
 
 def parse_tables_note(elf_data: bytes, file_off: int, size: int) -> ProfileWriterContext:
@@ -347,6 +355,7 @@ def write_function_profile(
     func: FunctionDescription,
     counters: list[int],
     call_flow: dict[int, int],
+    leaf_name: str | None = None,
 ) -> None:
     counters_freq = 0
     for n in func.leaf_nodes:
@@ -366,15 +375,17 @@ def write_function_profile(
         freq = sum(counters[n.counter] for n in func.leaf_nodes)
         if freq == 0:
             return
+        if leaf_name:
+            name = leaf_name
+        elif ctx.strings:
+            name_end = ctx.strings.index(b"\0", 0)
+            name = ctx.strings[:name_end].decode()
+        else:
+            name = "unknown"
         for n in func.leaf_nodes:
             freq = counters[n.counter]
             if freq == 0:
                 continue
-            if ctx.strings:
-                name_end = ctx.strings.index(b"\0", 0)
-                name = ctx.strings[:name_end].decode()
-            else:
-                name = "unknown"
             line = f"1 {name} 0 1 {name} 0 0 {freq}\n"
             out.write(line)
         return
@@ -433,6 +444,12 @@ def main() -> int:
         help="directory containing llvm-readelf/llvm-nm/llvm-objdump",
     )
     ap.add_argument("-o", "--output", default="-", help="fdata output (default stdout)")
+    ap.add_argument(
+        "--funcs",
+        default="",
+        help="comma-separated instrumented function names in BOLT order "
+        "(labels leaf-only descriptors that omit a name string)",
+    )
     args = ap.parse_args()
 
     readelf = f"{args.toolchain}/llvm-readelf"
@@ -449,6 +466,9 @@ def main() -> int:
     )
     counters = load_counters(args.dump, dump_base, locations, num_counters_addr)
 
+    funcs = [f.strip() for f in args.funcs.split(",") if f.strip()]
+    leaf_names = list(funcs)
+
     call_flow: dict[int, int] = {}
     off = 0
     func_blob = ctx.func_descriptions
@@ -458,7 +478,12 @@ def main() -> int:
             if off >= len(func_blob):
                 break
             func, next_off = FunctionDescription.parse(func_blob, off)
-            write_function_profile(out, ctx, func, counters, call_flow)
+            leaf_name = None
+            if func.num_edges == 0 and func.num_calls == 0 and leaf_names:
+                leaf_name = leaf_names.pop(0)
+            write_function_profile(
+                out, ctx, func, counters, call_flow, leaf_name=leaf_name
+            )
             if next_off <= off:
                 break
             off = next_off

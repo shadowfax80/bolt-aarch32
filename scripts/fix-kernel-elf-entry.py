@@ -32,8 +32,22 @@ def section_addr(readelf: str, elf: str, name: str) -> int:
     raise SystemExit(f"{elf} has no {name} section")
 
 
+def elf_class(elf: bytes) -> int:
+    """EI_CLASS: 1=ELF32, 2=ELF64."""
+    return elf[4]
+
+
 def read_entry(elf: bytes) -> int:
+    if elf_class(elf) == 1:
+        return struct.unpack_from("<I", elf, 24)[0]
     return struct.unpack_from("<Q", elf, 24)[0]
+
+
+def write_entry(data: bytearray, entry: int) -> None:
+    if elf_class(data) == 1:
+        struct.pack_into("<I", data, 24, entry & 0xFFFFFFFF)
+    else:
+        struct.pack_into("<Q", data, 24, entry)
 
 
 def main() -> int:
@@ -57,6 +71,9 @@ def main() -> int:
     if data[:4] != b"\x7fELF":
         print("not an ELF file", file=sys.stderr)
         return 1
+    if data[4] not in (1, 2) or data[5] != 1:
+        print("expected ELF32/ELF64 little-endian", file=sys.stderr)
+        return 1
 
     old_entry = read_entry(data)
     if args.original:
@@ -72,7 +89,7 @@ def main() -> int:
         print(f"e_entry already 0x{old_entry:x} ({source})")
         return 0
 
-    struct.pack_into("<Q", data, 24, new_entry)
+    write_entry(data, new_entry)
     out = args.output or args.elf
     with open(out, "wb") as fh:
         fh.write(data)

@@ -1,18 +1,38 @@
 #!/usr/bin/env bash
-# Cross-build the bare-metal BOLT instrumentation runtime for AArch64.
+# Cross-build the bare-metal BOLT instrumentation runtime (AArch64 or ARM32).
 #
 # The runtime that ships with llvm-bolt is built for the host only (our pod
-# reports "Building BOLT runtime libraries for X86"), so instrumenting an
-# AArch64 image needs its own archive passed via
-# --runtime-instrumentation-lib. See docs/aarch64-bare-metal.md.
+# reports "Building BOLT runtime libraries for X86"), so instrumenting a
+# guest image needs its own archive passed via --runtime-instrumentation-lib.
+# See docs/aarch64-bare-metal.md / docs/aarch32-bolt.md P9.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 TOOLCHAIN="${TOOLCHAIN:-$ROOT/build/bin}"
-OUT_DIR="${OUT_DIR:-$ROOT/build/bolt-rt-baremetal}"
 SRC="$ROOT/overlay/llvm/bolt-rt-baremetal/instr_baremetal.cpp"
+ARCH="${ARCH:-aarch64}"
+
+case "$ARCH" in
+  aarch64|arm64)
+    OUT_DIR="${OUT_DIR:-$ROOT/build/bolt-rt-baremetal}"
+    TARGET="${TARGET:-aarch64-none-elf}"
+    CPU="${QEMU_CPU:-cortex-a53}"
+    EXTRA_FLAGS=()
+    ;;
+  arm|arm32|aarch32)
+    OUT_DIR="${OUT_DIR:-$ROOT/build/bolt-rt-baremetal-arm}"
+    TARGET="${TARGET:-arm-none-eabi}"
+    CPU="${QEMU_CPU:-cortex-a15}"
+    # ARM-state entry stubs (e_entry). Do not compile as Thumb.
+    EXTRA_FLAGS=(-marm)
+    ;;
+  *)
+    echo "error: ARCH must be aarch64 or arm32 (got: $ARCH)" >&2
+    exit 1
+    ;;
+esac
+
 LIB="$OUT_DIR/libbolt_rt_baremetal.a"
-CPU="${QEMU_CPU:-cortex-a53}"
 
 for tool in clang llvm-ar llvm-nm; do
   if [[ ! -x "$TOOLCHAIN/$tool" ]]; then
@@ -23,15 +43,21 @@ done
 
 mkdir -p "$OUT_DIR"
 
-# -mgeneral-regs-only: counter updates land inside interrupt paths where LK has
-# not saved FP/SIMD state. -fno-builtin keeps clang from calling into a libc
-# that is not there; BOLT links this with its own minimal ORC linker, which
-# resolves nothing beyond the instrumented binary itself.
+# -mgeneral-regs-only (AArch64): counter updates can land where FP/SIMD is not
+# saved. ARM32 clang rejects that flag; -marm entry stubs are enough for LK.
+CLANG_COMMON=(
+  --target="$TARGET" -mcpu="$CPU"
+  "${EXTRA_FLAGS[@]}"
+  -ffreestanding -fno-builtin -fno-exceptions -fno-rtti
+  -fno-stack-protector -fomit-frame-pointer
+  -std=c++17 -O2 -Wall -Wextra
+)
+if [[ "$TARGET" == aarch64-none-elf ]]; then
+  CLANG_COMMON+=(-mgeneral-regs-only)
+fi
+
 "$TOOLCHAIN/clang" \
-  --target=aarch64-none-elf -mcpu="$CPU" \
-  -ffreestanding -fno-builtin -fno-exceptions -fno-rtti \
-  -fno-stack-protector -fomit-frame-pointer -mgeneral-regs-only \
-  -std=c++17 -O2 -Wall -Wextra \
+  "${CLANG_COMMON[@]}" \
   -c "$SRC" -o "$OUT_DIR/instr_baremetal.o"
 
 rm -f "$LIB"
@@ -56,4 +82,4 @@ if grep -qE " [bB] " <<<"$SYMS"; then
   exit 1
 fi
 
-echo "built $LIB"
+echo "built $LIB ($ARCH / $TARGET / $CPU)"

@@ -217,9 +217,9 @@ def function_name_from_blob(func_blob: bytes, strings: bytes, off: int) -> str |
     if num_calls:
         fn = struct.unpack_from("<I", func_blob, call_base + 4)[0]
         return decode_table_name(strings, fn)
-    if num_leaf == 0:
-        return None
-    return decode_table_name(strings, 0)
+    # Leaf-only descriptors omit a name offset; do not assume strings[0]
+    # (that falsely labels every unnamed leaf as the first string).
+    return None
 
 
 def function_counter_map(
@@ -246,7 +246,11 @@ def function_counter_map(
             unnamed.append(indices)
         off = next_off
     if unnamed and funcs:
-        if len(unnamed) == len(funcs):
+        missing = [f for f in funcs if f not in result]
+        if len(unnamed) == len(missing):
+            for func, indices in zip(missing, unnamed):
+                result[func] = indices
+        elif len(unnamed) == len(funcs):
             for func, indices in zip(funcs, unnamed):
                 result[func] = indices
         elif len(unnamed) == 1 and len(funcs) == 1:
@@ -267,7 +271,47 @@ def find_hook_site(
     return entry + 0xC
 
 
-def patch_orgtext_counter_hook(
+def encode_thumb_movw(rd: int, imm16: int) -> bytes:
+    i = (imm16 >> 11) & 1
+    imm4 = (imm16 >> 12) & 0xF
+    imm3 = (imm16 >> 8) & 0x7
+    imm8 = imm16 & 0xFF
+    hw1 = 0xF240 | (i << 10) | imm4
+    hw2 = (imm3 << 12) | (rd << 8) | imm8
+    return struct.pack("<HH", hw1, hw2)
+
+
+def encode_thumb_movt(rd: int, imm16: int) -> bytes:
+    i = (imm16 >> 11) & 1
+    imm4 = (imm16 >> 12) & 0xF
+    imm3 = (imm16 >> 8) & 0x7
+    imm8 = imm16 & 0xFF
+    hw1 = 0xF2C0 | (i << 10) | imm4
+    hw2 = (imm3 << 12) | (rd << 8) | imm8
+    return struct.pack("<HH", hw1, hw2)
+
+
+def encode_thumb_bw(pc: int, target: int) -> bytes:
+    """Unconditional Thumb-2 B.W (encoding T4)."""
+    offset = target - pc - 4
+    if offset % 2:
+        raise SystemExit(f"thumb b.w to odd offset from 0x{pc:x} -> 0x{target:x}")
+    imm = offset >> 1
+    if imm < -(1 << 23) or imm >= (1 << 23):
+        raise SystemExit(f"thumb b.w from 0x{pc:x} to 0x{target:x} out of range")
+    s = (imm >> 23) & 1
+    i1 = (imm >> 22) & 1
+    i2 = (imm >> 21) & 1
+    imm10 = (imm >> 11) & 0x3FF
+    imm11 = imm & 0x7FF
+    j1 = (s ^ i1 ^ 1) & 1
+    j2 = (s ^ i2 ^ 1) & 1
+    hw1 = 0xF000 | (s << 10) | imm10
+    hw2 = 0x9000 | (j1 << 13) | (1 << 12) | (j2 << 11) | imm11
+    return struct.pack("<HH", hw1, hw2)
+
+
+def patch_orgtext_counter_hook_thumb(
     data: bytearray,
     nm: str,
     section_map: dict[str, tuple[int, int, int]],
@@ -275,7 +319,67 @@ def patch_orgtext_counter_hook(
     funcs: list[str],
     counter_indices: dict[str, list[int]],
 ) -> None:
-    """Bump bolt_bench BOLT counter slots from org.text.
+    """Thumb org.text entry hooks that bump BOLT counter slots once per call."""
+    counter_base = section_map[".bolt.instr.counters"][0]
+    # Prefer unused hot .text (org.text is what actually runs). Falling back to
+    # the org.text tail risks overwriting live helpers like print_fault_msg.
+    if ".text" in section_map:
+        scratch = section_map[".text"][0] & ~1
+    else:
+        org_addr, _, org_size = section_map[".bolt.org.text"]
+        scratch = (org_addr + org_size - 0x200) & ~1
+
+    for func in funcs:
+        entry = symbol_addr(nm, original, func)
+        if entry is None:
+            print(f"warning: skipping hook for missing symbol {func}", file=sys.stderr)
+            continue
+        entry &= ~1
+        if func not in counter_indices:
+            print(
+                f"warning: no BOLT counter indices for {func}, skipping hook",
+                file=sys.stderr,
+            )
+            continue
+        indices = counter_indices[func]
+        hook_off = vaddr_to_offset(section_map, entry)
+        orig_bytes = bytes(data[hook_off : hook_off + 4])
+        resume = entry + 4
+        stub = scratch & ~1
+
+        body = bytearray()
+        body += struct.pack("<H", 0xB403)  # push {r0, r1}
+        for counter_index in indices:
+            counter_addr = counter_base + counter_index * 8
+            body += encode_thumb_movw(0, counter_addr & 0xFFFF)
+            body += encode_thumb_movt(0, (counter_addr >> 16) & 0xFFFF)
+            body += struct.pack("<H", 0x6801)  # ldr r1, [r0]
+            body += struct.pack("<H", 0x3101)  # adds r1, #1
+            body += struct.pack("<H", 0x6001)  # str r1, [r0]
+        body += struct.pack("<H", 0xBC03)  # pop {r0, r1}
+        body += orig_bytes
+        body += encode_thumb_bw(stub + len(body), resume)
+
+        stub_off = vaddr_to_offset(section_map, stub)
+        data[stub_off : stub_off + len(body)] = body
+        data[hook_off : hook_off + 4] = encode_thumb_bw(entry, stub)
+        scratch = (stub + len(body) + 15) & ~15
+        addrs = ", ".join(f"{idx}->0x{counter_base + idx * 8:x}" for idx in indices)
+        print(
+            f"org.text thumb hook {func}: entry 0x{entry:x} -> stub 0x{stub:x}, "
+            f"counters [{addrs}]"
+        )
+
+
+def patch_orgtext_counter_hook_aarch64(
+    data: bytearray,
+    nm: str,
+    section_map: dict[str, tuple[int, int, int]],
+    original: str,
+    funcs: list[str],
+    counter_indices: dict[str, list[int]],
+) -> None:
+    """Bump bolt_bench BOLT counter slots from org.text (AArch64).
 
     LK runs the org.text copy; hot .text is not used on this bare-metal path.
     Each hooked function bumps every counter index BOLT assigned to it.
@@ -323,6 +427,24 @@ def patch_orgtext_counter_hook(
         print(
             f"org.text hook {func}: nop at 0x{hook_site:x} -> stub 0x{stub:x}, "
             f"counters [{addrs}]"
+        )
+
+
+def patch_orgtext_counter_hook(
+    data: bytearray,
+    nm: str,
+    section_map: dict[str, tuple[int, int, int]],
+    original: str,
+    funcs: list[str],
+    counter_indices: dict[str, list[int]],
+) -> None:
+    if data[4] == 1:
+        patch_orgtext_counter_hook_thumb(
+            data, nm, section_map, original, funcs, counter_indices
+        )
+    else:
+        patch_orgtext_counter_hook_aarch64(
+            data, nm, section_map, original, funcs, counter_indices
         )
 
 

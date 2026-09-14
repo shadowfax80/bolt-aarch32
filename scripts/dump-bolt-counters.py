@@ -42,17 +42,24 @@ def counter_range(readelf: str, elf: str) -> tuple[int, int]:
     )
 
 
-GETTER_RE = re.compile(
+GETTER_RE_AARCH64 = re.compile(
     r"adrp\s+x0,\s+0x([0-9a-fA-F]+).*\n\s*[0-9a-fA-F]+:\s+add\s+x0,\s+x0,\s+#0x([0-9a-fA-F]+)",
     re.MULTILINE,
+)
+# ARM/Thumb: movw r0, #lo ; movt r0, #hi  (objdump may print #imm or #0ximm)
+GETTER_RE_ARM = re.compile(
+    r"movw\s+r0,\s+#(?:0x)?([0-9a-fA-F]+).*\n"
+    r"\s*[0-9a-fA-F]+:\s+movt\s+r0,\s+#(?:0x)?([0-9a-fA-F]+)",
+    re.MULTILINE | re.IGNORECASE,
 )
 
 
 def getter_address(objdump: str, elf: str, name: str) -> int:
-    """Decode the ADRP+ADD pair BOLT injects as __bolt_*_getter.
+    """Decode the address materialization BOLT injects as __bolt_*_getter.
 
     The data symbols themselves are not exported in the rewritten ELF, so
     the getter is the only host-visible record of where the array lives.
+    AArch64: ADRP+ADD. ARM/Thumb: MOVW+MOVT.
     """
     nm = subprocess.run(
         [objdump.replace("llvm-objdump", "llvm-nm"), elf],
@@ -74,17 +81,22 @@ def getter_address(objdump: str, elf: str, name: str) -> int:
             "-d",
             "--no-show-raw-insn",
             f"--start-address={hex(start)}",
-            f"--stop-address={hex(start + 16)}",
+            f"--stop-address={hex(start + 24)}",
             elf,
         ],
         check=True,
         capture_output=True,
         text=True,
     ).stdout
-    m = GETTER_RE.search(out)
-    if not m:
-        raise SystemExit(f"could not decode {name} from:\n{out}")
-    return int(m.group(1), 16) + int(m.group(2), 16)
+    m = GETTER_RE_AARCH64.search(out)
+    if m:
+        return int(m.group(1), 16) + int(m.group(2), 16)
+    m = GETTER_RE_ARM.search(out)
+    if m:
+        lo = int(m.group(1), 16)
+        hi = int(m.group(2), 16)
+        return (hi << 16) | lo
+    raise SystemExit(f"could not decode {name} from:\n{out}")
 
 
 class Qmp:

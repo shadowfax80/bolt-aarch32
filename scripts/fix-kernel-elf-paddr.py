@@ -31,22 +31,34 @@ def main() -> int:
     if data[:4] != b"\x7fELF":
         print("not an ELF file", file=sys.stderr)
         return 1
-    if data[4] != 2 or data[5] != 1:
-        print("expected ELF64 little-endian", file=sys.stderr)
+    if data[4] not in (1, 2) or data[5] != 1:
+        print("expected ELF32/ELF64 little-endian", file=sys.stderr)
         return 1
 
-    e_phoff = struct.unpack_from("<Q", data, 32)[0]
-    e_phentsize, e_phnum = struct.unpack_from("<HH", data, 54)
+    elf32 = data[4] == 1
+    if elf32:
+        e_phoff = struct.unpack_from("<I", data, 28)[0]
+        e_phentsize, e_phnum = struct.unpack_from("<HH", data, 42)
+    else:
+        e_phoff = struct.unpack_from("<Q", data, 32)[0]
+        e_phentsize, e_phnum = struct.unpack_from("<HH", data, 54)
 
     loads = []
     for i in range(e_phnum):
         off = e_phoff + i * e_phentsize
-        p_type, p_flags = struct.unpack_from("<II", data, off)
-        p_offset, p_vaddr, p_paddr, p_filesz, p_memsz, p_align = struct.unpack_from(
-            "<QQQQQQ", data, off + 8
-        )
-        if p_type == PT_LOAD:
-            loads.append((off, p_vaddr, p_paddr))
+        if elf32:
+            # Elf32_Phdr: type, offset, vaddr, paddr, filesz, memsz, flags, align
+            p_type = struct.unpack_from("<I", data, off)[0]
+            p_offset, p_vaddr, p_paddr = struct.unpack_from("<III", data, off + 4)
+            if p_type == PT_LOAD:
+                loads.append((off, p_vaddr, p_paddr, True))
+        else:
+            p_type, p_flags = struct.unpack_from("<II", data, off)
+            p_offset, p_vaddr, p_paddr, p_filesz, p_memsz, p_align = struct.unpack_from(
+                "<QQQQQQ", data, off + 8
+            )
+            if p_type == PT_LOAD:
+                loads.append((off, p_vaddr, p_paddr, False))
 
     if not loads:
         print("no PT_LOAD segments", file=sys.stderr)
@@ -59,10 +71,15 @@ def main() -> int:
     delta = orig_paddr - orig_vaddr
 
     rewritten = 0
-    for off, vaddr, paddr in loads:
+    for off, vaddr, paddr, is32 in loads:
         if vaddr == paddr:
-            new_paddr = (vaddr + delta) & 0xFFFFFFFFFFFFFFFF
-            struct.pack_into("<Q", data, off + 24, new_paddr)
+            if is32:
+                new_paddr = (vaddr + delta) & 0xFFFFFFFF
+                # Elf32_Phdr.p_paddr at +12
+                struct.pack_into("<I", data, off + 12, new_paddr)
+            else:
+                new_paddr = (vaddr + delta) & 0xFFFFFFFFFFFFFFFF
+                struct.pack_into("<Q", data, off + 24, new_paddr)
             print(f"LOAD vaddr 0x{vaddr:x}: paddr 0x{paddr:x} -> 0x{new_paddr:x}")
             rewritten += 1
 
