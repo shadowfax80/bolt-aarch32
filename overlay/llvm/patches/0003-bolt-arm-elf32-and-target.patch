@@ -70,6 +70,67 @@ index b3af846c4eb5..9e07a13f098e 100644
    /// Return true if the function should not be disassembled, emitted, or
    /// otherwise processed.
    bool isPseudo() const { return IsPseudo; }
+diff --git a/bolt/lib/Core/AddressMap.cpp b/bolt/lib/Core/AddressMap.cpp
+index f061fea49439..bf3fc4c36746 100644
+--- a/bolt/lib/Core/AddressMap.cpp
++++ b/bolt/lib/Core/AddressMap.cpp
+@@ -70,8 +70,12 @@ std::optional<AddressMap> AddressMap::parse(BinaryContext &BC) {
+ 
+   AddressMap Parsed;
+ 
+-  unsigned CodePointerSize = BC.AsmInfo->getCodePointerSize();
+-  const size_t EntrySize = 2 * CodePointerSize;
++  // emitAddress/emitLabel always write two 8-byte fields (host MCSymbol*
++  // pointer + output address), including on ELF32. Parsing with the target
++  // pointer size splits each record and treats the unresolved high half
++  // (often 0) as a second label — aborting ARM32 rewrite.
++  const unsigned FieldSize = 8;
++  const size_t EntrySize = 2 * FieldSize;
+   auto parseSection =
+       [&](BinarySection &Section,
+           function_ref<void(uint64_t, uint64_t)> InsertCallback) {
+@@ -82,8 +86,8 @@ std::optional<AddressMap> AddressMap::parse(BinaryContext &BC) {
+         DataExtractor::Cursor Cursor(0);
+ 
+         while (Cursor && !DE.eof(Cursor)) {
+-          const uint64_t Input = DE.getUnsigned(Cursor, CodePointerSize);
+-          const uint64_t Output = DE.getUnsigned(Cursor, CodePointerSize);
++          const uint64_t Input = DE.getUnsigned(Cursor, FieldSize);
++          const uint64_t Output = DE.getUnsigned(Cursor, FieldSize);
+           InsertCallback(Input, Output);
+         }
+ 
+@@ -103,11 +107,9 @@ std::optional<AddressMap> AddressMap::parse(BinaryContext &BC) {
+   if (LabelMapSection) {
+     Parsed.Label2AddrMap.reserve(LabelMapSection->getOutputSize() / EntrySize);
+     parseSection(*LabelMapSection, [&](uint64_t Input, uint64_t Output) {
+-      assert(!Parsed.Label2AddrMap.count(
+-                 reinterpret_cast<const MCSymbol *>(Input)) &&
+-             "Duplicate label entry detected.");
+-      Parsed.Label2AddrMap.insert(
+-          {reinterpret_cast<const MCSymbol *>(Input), Output});
++      const auto *Sym = reinterpret_cast<const MCSymbol *>(Input);
++      if (!Parsed.Label2AddrMap.count(Sym))
++        Parsed.Label2AddrMap.insert({Sym, Output});
+     });
+   }
+ 
+diff --git a/bolt/lib/Core/BinaryBasicBlock.cpp b/bolt/lib/Core/BinaryBasicBlock.cpp
+index a6d0ca948115..f22e57921651 100644
+--- a/bolt/lib/Core/BinaryBasicBlock.cpp
++++ b/bolt/lib/Core/BinaryBasicBlock.cpp
+@@ -493,6 +493,11 @@ uint32_t BinaryBasicBlock::getNumPseudos() const {
+     BC.errs() << "BOLT-ERROR: instructions for basic block " << getName()
+               << " in function " << *Function << ": calculated pseudos " << N
+               << ", set pseudos " << NumPseudos << ", size " << size() << '\n';
++    if (BC.isARM()) {
++      const_cast<BinaryBasicBlock *>(this)->NumPseudos = N;
++      Function->setIgnored();
++      return N;
++    }
+     llvm_unreachable("pseudos mismatch");
+   }
+ #endif
 diff --git a/bolt/lib/Core/BinaryContext.cpp b/bolt/lib/Core/BinaryContext.cpp
 index 130c523bcda5..d43efdd84275 100644
 --- a/bolt/lib/Core/BinaryContext.cpp
@@ -160,11 +221,72 @@ index 130c523bcda5..d43efdd84275 100644
    if (SymbolName == "$d" || SymbolName.starts_with("$d."))
      return MarkerSymType::DATA;
  
+diff --git a/bolt/lib/Core/BinaryEmitter.cpp b/bolt/lib/Core/BinaryEmitter.cpp
+index a555c7185448..8222d818d045 100644
+--- a/bolt/lib/Core/BinaryEmitter.cpp
++++ b/bolt/lib/Core/BinaryEmitter.cpp
+@@ -20,6 +20,7 @@
+ #include "bolt/Utils/Utils.h"
+ #include "llvm/DebugInfo/DWARF/DWARFCompileUnit.h"
+ #include "llvm/MC/MCSection.h"
++#include "llvm/ADT/ScopeExit.h"
+ #include "llvm/MC/MCStreamer.h"
+ #include "llvm/Support/CommandLine.h"
+ #include "llvm/Support/LEB128.h"
+@@ -73,7 +74,7 @@ size_t padFunction(std::map<std::string, size_t> &FunctionPadding,
+       if (N == std::string::npos)
+         continue;
+       std::string Name = Spec.substr(0, N);
+-      size_t Padding = std::stoull(Spec.substr(N + 1));
++      size_t Padding = std::stoull(Spec.substr(N + 1), nullptr, 0);
+       FunctionPadding[Name] = Padding;
+     }
+   }
+@@ -286,6 +287,11 @@ void BinaryEmitter::emitFunctions() {
+ 
+ bool BinaryEmitter::emitFunction(BinaryFunction &Function,
+                                  FunctionFragment &FF) {
++  const MCSubtargetInfo *SavedMIBSTI = BC.MIB->getSTI();
++  if (Function.isARMThumb() && BC.ThumbSTI)
++    BC.MIB->setSTI(BC.ThumbSTI.get());
++  auto RestoreMIBSTI = llvm::make_scope_exit([&]() { BC.MIB->setSTI(SavedMIBSTI); });
++
+   if (Function.size() == 0 && !Function.hasIslandsInfo())
+     return false;
+ 
+@@ -505,7 +511,18 @@ void BinaryEmitter::emitFunctionBody(BinaryFunction &BF, FunctionFragment &FF,
+         }
+       }
+ 
+-      Streamer.emitInstruction(Instr, *BC.STI);
++      // ARM LDM/STM encoders walk every trailing operand as a register.
++      // BOLT annotations are extra non-reg operands and abort CheckLargeFunctions
++      // / emit unless stripped first.
++      if (BC.isARM()) {
++        MCInst Clean = Instr;
++        BC.MIB->stripAnnotations(Clean);
++        const MCSubtargetInfo &EmitSTI =
++            (BF.isARMThumb() && BC.ThumbSTI) ? *BC.ThumbSTI : *BC.STI;
++        Streamer.emitInstruction(Clean, EmitSTI);
++      } else {
++        Streamer.emitInstruction(Instr, *BC.STI);
++      }
+     }
+   }
+ 
 diff --git a/bolt/lib/Core/BinaryFunction.cpp b/bolt/lib/Core/BinaryFunction.cpp
-index 31828aafb95f..0298212907c6 100644
+index 31828aafb95f..3847a69d252a 100644
 --- a/bolt/lib/Core/BinaryFunction.cpp
 +++ b/bolt/lib/Core/BinaryFunction.cpp
-@@ -167,6 +167,14 @@ bool shouldPrint(const BinaryFunction &Function) {
+@@ -35,6 +35,7 @@
+ #include "llvm/Object/ObjectFile.h"
+ #include "llvm/Support/CommandLine.h"
+ #include "llvm/Support/Debug.h"
++#include "llvm/ADT/ScopeExit.h"
+ #include "llvm/Support/GenericDomTreeConstruction.h"
+ #include "llvm/Support/GenericLoopInfoImpl.h"
+ #include "llvm/Support/GraphWriter.h"
+@@ -167,6 +168,14 @@ bool shouldPrint(const BinaryFunction &Function) {
  
  namespace llvm {
  namespace bolt {
@@ -179,16 +301,30 @@ index 31828aafb95f..0298212907c6 100644
  
  template <typename R> static bool emptyRange(const R &Range) {
    return Range.begin() == Range.end();
-@@ -1314,7 +1322,7 @@ Error BinaryFunction::disassemble() {
+@@ -1305,6 +1314,7 @@ BinaryFunction::getInstructionSequenceLength(uint64_t Offset,
+ Error BinaryFunction::disassemble() {
+   NamedRegionTimer T("disassemble", "Disassemble function", "buildfuncs",
+                      "Build Binary Functions", opts::TimeBuild);
++
+   ErrorOr<ArrayRef<uint8_t>> ErrorOrFunctionData = getData();
+   assert(ErrorOrFunctionData && "function data is not available");
+   ArrayRef<uint8_t> FunctionData = *ErrorOrFunctionData;
+@@ -1314,7 +1324,13 @@ Error BinaryFunction::disassemble() {
    auto &Ctx = BC.Ctx;
    auto &MIB = BC.MIB;
  
 -  BC.SymbolicDisAsm->setSymbolizer(MIB->createTargetSymbolizer(*this));
++  // Thumb helpers (createBranch, InThumbMode, sizes) key off MIB STI.
++  const MCSubtargetInfo *SavedSTI = MIB->getSTI();
++  if (BC.isARM() && isARMThumb() && BC.ThumbSTI)
++    MIB->setSTI(BC.ThumbSTI.get());
++  auto RestoreSTI = llvm::make_scope_exit([&]() { MIB->setSTI(SavedSTI); });
++
 +  getDisassembler().setSymbolizer(MIB->createTargetSymbolizer(*this));
  
    // Insert a label at the beginning of the function. This will be our first
    // basic block.
-@@ -1338,7 +1346,7 @@ Error BinaryFunction::disassemble() {
+@@ -1338,7 +1354,7 @@ Error BinaryFunction::disassemble() {
        continue;
      }
  
@@ -197,16 +333,45 @@ index 31828aafb95f..0298212907c6 100644
                                             FunctionData.slice(Offset),
                                             AbsoluteInstrAddr, nulls())) {
        // Functions with "soft" boundaries, e.g. coming from assembly source,
-@@ -1415,6 +1423,8 @@ Error BinaryFunction::disassemble() {
+@@ -1413,8 +1429,26 @@ Error BinaryFunction::disassemble() {
+ 
+     if (MIB->isBranch(Instruction) || MIB->isCall(Instruction)) {
        uint64_t TargetAddress = 0;
-       if (MIB->evaluateBranch(Instruction, AbsoluteInstrAddr, Size,
-                               TargetAddress)) {
+-      if (MIB->evaluateBranch(Instruction, AbsoluteInstrAddr, Size,
+-                              TargetAddress)) {
++      bool EvaluatedBranch = MIB->evaluateBranch(
++          Instruction, AbsoluteInstrAddr, Size, TargetAddress);
++      // ARM symbolizer replaces BL/B immediates with reloc symbols. The
++      // encoded displacement may be a linker veneer (OOR for MC) even though
++      // the reloc names the real callee — resolve the already-symbolized
++      // operand so reloc-mode disassembly stays non-fatal.
++      if (!EvaluatedBranch && BC.isARM()) {
++        if (const MCSymbol *TgtSym = MIB->getTargetSymbol(Instruction)) {
++          if (ErrorOr<uint64_t> Val = BC.getSymbolValue(*TgtSym)) {
++            TargetAddress = *Val;
++            EvaluatedBranch = true;
++          } else if (BinaryFunction *TgtBF = BC.getFunctionForSymbol(TgtSym)) {
++            TargetAddress = TgtBF->getAddress();
++            EvaluatedBranch = true;
++          }
++        }
++      }
++      if (EvaluatedBranch) {
 +        if (BC.isARM())
 +          TargetAddress &= ~1ULL;
          // Check if the target is within the same function. Otherwise it's
          // a call, possibly a tail call.
          //
-@@ -1655,7 +1665,7 @@ bool BinaryFunction::scanExternalRefs() {
+@@ -1573,6 +1607,8 @@ add_instruction:
+ 
+   // Reset symbolizer for the disassembler.
+   BC.SymbolicDisAsm->setSymbolizer(nullptr);
++  if (BC.ThumbSymbolicDisAsm)
++    BC.ThumbSymbolicDisAsm->setSymbolizer(nullptr);
+ 
+   if (uint64_t Offset = getFirstInstructionOffset())
+     Labels[Offset] = BC.Ctx->createNamedTempSymbol();
+@@ -1655,7 +1691,7 @@ bool BinaryFunction::scanExternalRefs() {
  
      const uint64_t AbsoluteInstrAddr = getAddress() + Offset;
      PrevInstruction = Instruction;
@@ -215,7 +380,7 @@ index 31828aafb95f..0298212907c6 100644
                                             FunctionData.slice(Offset),
                                             AbsoluteInstrAddr, nulls())) {
        if (opts::Verbosity >= 1 && !isZeroPaddingAt(Offset)) {
-@@ -3837,7 +3847,15 @@ void BinaryFunction::postProcessBranches() {
+@@ -3837,7 +3873,15 @@ void BinaryFunction::postProcessBranches() {
        }
      }
    }
@@ -232,7 +397,7 @@ index 31828aafb95f..0298212907c6 100644
  }
  
  MCSymbol *BinaryFunction::addEntryPointAtOffset(uint64_t Offset) {
-@@ -4879,10 +4897,16 @@ bool BinaryFunction::isAArch64Veneer() const {
+@@ -4879,10 +4923,16 @@ bool BinaryFunction::isAArch64Veneer() const {
  }
  
  bool BinaryFunction::isPossibleVeneer() const {
@@ -253,3 +418,44 @@ index 31828aafb95f..0298212907c6 100644
  }
  
  void BinaryFunction::addRelocation(uint64_t Address, MCSymbol *Symbol,
+diff --git a/bolt/lib/Core/BinarySection.cpp b/bolt/lib/Core/BinarySection.cpp
+index e803d17021f8..66f10e4ceb97 100644
+--- a/bolt/lib/Core/BinarySection.cpp
++++ b/bolt/lib/Core/BinarySection.cpp
+@@ -11,6 +11,8 @@
+ //===----------------------------------------------------------------------===//
+ 
+ #include "bolt/Core/BinarySection.h"
++#include "bolt/Core/BinaryFunction.h"
++#include "llvm/BinaryFormat/ELF.h"
+ #include "bolt/Core/BinaryContext.h"
+ #include "bolt/Utils/CommandLineOpts.h"
+ #include "bolt/Utils/Utils.h"
+@@ -183,6 +185,27 @@ void BinarySection::flushPendingRelocations(raw_pwrite_stream &OS,
+     if (Reloc.Symbol)
+       Value += Resolver(Reloc.Symbol);
+ 
++    // ARM/Thumb: absolute addresses of Thumb functions must have bit0 set so
++    // BX/BLX and function-pointer calls enter Thumb state.
++    if (Reloc.Symbol && BC.isARM()) {
++      switch (Reloc.Type) {
++      case ELF::R_ARM_ABS32:
++      case ELF::R_ARM_TARGET1:
++      case ELF::R_ARM_MOVW_ABS_NC:
++      case ELF::R_ARM_MOVT_ABS:
++      case ELF::R_ARM_THM_MOVW_ABS_NC:
++      case ELF::R_ARM_THM_MOVT_ABS: {
++        if (BinaryFunction *BF = BC.getFunctionForSymbol(Reloc.Symbol)) {
++          if (BF->isARMThumb())
++            Value |= 1ULL;
++        }
++        break;
++      }
++      default:
++        break;
++      }
++    }
++
+     // Safely skip any optional pending relocation that cannot be encoded.
+     if (Reloc.isOptional() &&
+         !Relocation::canEncodeValue(Reloc.Type, Value,

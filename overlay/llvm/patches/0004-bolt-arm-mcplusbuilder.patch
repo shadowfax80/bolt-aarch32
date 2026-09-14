@@ -1,8 +1,18 @@
 diff --git a/bolt/include/bolt/Core/MCPlusBuilder.h b/bolt/include/bolt/Core/MCPlusBuilder.h
-index aae520d5afe5..ce305c2f26cf 100644
+index aae520d5afe5..64056ceb19d4 100644
 --- a/bolt/include/bolt/Core/MCPlusBuilder.h
 +++ b/bolt/include/bolt/Core/MCPlusBuilder.h
-@@ -2562,6 +2562,11 @@ MCPlusBuilder *createRISCVMCPlusBuilder(const MCInstrAnalysis *,
+@@ -367,6 +367,9 @@ public:
+     initSizeMap();
+   }
+ 
++  void setSTI(const MCSubtargetInfo *NewSTI) { STI = NewSTI; }
++  const MCSubtargetInfo *getSTI() const { return STI; }
++
+   /// Create and return a target-specific MC symbolizer for the \p Function.
+   /// When \p CreateNewSymbols is set, the symbolizer can create new symbols
+   /// e.g. for jump table references.
+@@ -2562,6 +2565,11 @@ MCPlusBuilder *createRISCVMCPlusBuilder(const MCInstrAnalysis *,
                                          const MCRegisterInfo *,
                                          const MCSubtargetInfo *);
  
@@ -16,10 +26,10 @@ index aae520d5afe5..ce305c2f26cf 100644
  
 diff --git a/bolt/lib/Target/ARM/ARMMCPlusBuilder.cpp b/bolt/lib/Target/ARM/ARMMCPlusBuilder.cpp
 new file mode 100644
-index 000000000000..8000941b8408
+index 000000000000..ac222217a86b
 --- /dev/null
 +++ b/bolt/lib/Target/ARM/ARMMCPlusBuilder.cpp
-@@ -0,0 +1,738 @@
+@@ -0,0 +1,840 @@
 +//===- bolt/Target/ARM/ARMMCPlusBuilder.cpp ---------------------------===//
 +//
 +// Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
@@ -36,6 +46,7 @@ index 000000000000..8000941b8408
 +#include "MCTargetDesc/ARMBaseInfo.h"
 +#include "MCTargetDesc/ARMMCAsmInfo.h"
 +#include "MCTargetDesc/ARMMCTargetDesc.h"
++#include "MCTargetDesc/ARMFixupKinds.h"
 +#include "bolt/Core/MCPlusBuilder.h"
 +#include "llvm/BinaryFormat/ELF.h"
 +#include "llvm/MC/MCContext.h"
@@ -102,19 +113,38 @@ index 000000000000..8000941b8408
 +    return isITOpcode(Inst.getOpcode());
 +  }
 +
++  // True only for the IT instruction itself. Ordinary predicated Thumb
++  // ops (tBcc, etc.) also carry a non-AL predicate operand and must not
++  // be treated as IT-block members here — that wrongly setIgnored() them.
 +  bool isInITBlock(const MCInst &Inst) const {
-+    if (!isThumbInst(Inst))
-+      return false;
-+    if (Inst.getNumOperands() == 0)
-+      return false;
-+    const MCOperand &Op0 = Inst.getOperand(0);
-+    if (!Op0.isImm())
-+      return false;
-+    return Op0.getImm() != ARMCC::AL;
++    return isITOpcode(Inst.getOpcode());
++  }
++
++  bool isSafeToEncodeARM(const MCInst &Inst) const {
++    MCInst Clean(Inst);
++    stripAnnotations(Clean);
++    const MCInstrDesc &Desc = Info->get(Clean.getOpcode());
++    for (unsigned I = 0, E = Desc.getNumOperands(); I != E; ++I) {
++      if (I >= Clean.getNumOperands())
++        return false;
++      const MCOperandInfo &OI = Desc.operands()[I];
++      const MCOperand &Op = Clean.getOperand(I);
++      if (OI.OperandType == MCOI::OPERAND_REGISTER && !Op.isReg())
++        return false;
++    }
++    // Variadic GPR/VFP register lists (LDM/STM/VLDM/VSTM).
++    const unsigned Prime = MCPlus::getNumPrimeOperands(Clean);
++    for (unsigned I = Desc.getNumOperands(); I < Prime; ++I) {
++      if (!Clean.getOperand(I).isReg())
++        return false;
++    }
++    return true;
 +  }
 +
 +  bool isUnsupportedInstruction(const MCInst &Inst) const override {
 +    if (isInITBlock(Inst))
++      return true;
++    if (!isSafeToEncodeARM(Inst))
 +      return true;
 +    return MCPlusBuilder::isUnsupportedInstruction(Inst);
 +  }
@@ -171,12 +201,42 @@ index 000000000000..8000941b8408
 +    switch (Inst.getOpcode()) {
 +    default:
 +      return false;
-+    case ARM::BX:
 +    case ARM::BLX:
 +    case ARM::BLX_pred:
-+    case ARM::tBX:
 +    case ARM::tBLXr:
 +    case ARM::tBLXi:
++      return true;
++    }
++  }
++
++  bool isReturn(const MCInst &Inst) const override {
++    switch (Inst.getOpcode()) {
++    default:
++      break;
++    case ARM::BX:
++    case ARM::tBX: {
++      // BX/tBX lr is the standard return; BX rm is interworking (P8).
++      if (Inst.getNumOperands() == 0 || !Inst.getOperand(0).isReg())
++        return false;
++      return Inst.getOperand(0).getReg() == ARM::LR;
++    }
++    case ARM::MOVPCLR:
++      return true;
++    }
++    return Analysis->isReturn(Inst);
++  }
++
++  bool isIndirectBranch(const MCInst &Inst) const override {
++    // Returns are terminators, not indirect CFG edges.
++    if (isReturn(Inst))
++      return false;
++    switch (Inst.getOpcode()) {
++    default:
++      return false;
++    case ARM::BX:
++    case ARM::tBX:
++    case ARM::BLX:
++    case ARM::BLX_pred:
 +      return true;
 +    }
 +  }
@@ -201,21 +261,11 @@ index 000000000000..8000941b8408
 +  }
 +
 +  bool hasPCRelOperand(const MCInst &Inst) const override {
-+    switch (Inst.getOpcode()) {
-+    default:
-+      return false;
-+    case ARM::B:
-+    case ARM::BL:
-+    case ARM::Bcc:
-+    case ARM::tB:
-+    case ARM::tBL:
-+    case ARM::tBcc:
-+    case ARM::t2B:
-+    case ARM::t2Bcc:
-+    case ARM::tCBZ:
-+    case ARM::tCBNZ:
-+      return true;
-+    }
++    // Direct B/BL are handled as branches (evaluateBranch / getTargetSymbol),
++    // not as x86-style PC-relative memory operands. Returning true here makes
++    // reloc-mode disassembly fatal when the BL target is a far symbol.
++    (void)Inst;
++    return false;
 +  }
 +
 +  bool getSymbolRefOperandNum(const MCInst &Inst, unsigned &OpNum) const {
@@ -229,14 +279,19 @@ index 000000000000..8000941b8408
 +    case ARM::Bcc:
 +      OpNum = 2;
 +      return true;
++    // tB / tBcc / t2B / t2Bcc: target is the first in-operand.
 +    case ARM::tB:
-+    case ARM::tBL:
 +    case ARM::tBcc:
-+      OpNum = 1;
-+      return true;
 +    case ARM::t2B:
 +    case ARM::t2Bcc:
 +      OpNum = 0;
++      return true;
++    // tBL / tBLXi: (pred:$p, target) — pred expands to (CC, CCR), so
++    // target is operand 2. Same for tBLXr (pred, Rm).
++    case ARM::tBL:
++    case ARM::tBLXi:
++    case ARM::tBLXr:
++      OpNum = 2;
 +      return true;
 +    case ARM::tCBZ:
 +    case ARM::tCBNZ:
@@ -350,6 +405,14 @@ index 000000000000..8000941b8408
 +
 +  int getUncondBranchEncodingSize() const override { return 26; }
 +
++  std::optional<uint32_t> getInstructionSize(const MCInst &Inst) const override {
++    unsigned Size = Info->get(Inst.getOpcode()).getSize();
++    if (Size)
++      return Size;
++    return isThumbInst(Inst) ? 2u : 4u;
++  }
++
++
 +  /// Match LLD ARM absolute long veneer:
 +  ///   ldr pc, [pc, #-4]
 +  ///   .word Target
@@ -382,7 +445,11 @@ index 000000000000..8000941b8408
 +
 +  void createReturn(MCInst &Inst) const override {
 +    if (InThumbMode()) {
-+      Inst = MCInstBuilder(ARM::tBX).addReg(ARM::LR).addImm(ARMCC::AL);
++      // tBX: (Rm, pred) -> Rm, CC, CCR
++      Inst = MCInstBuilder(ARM::tBX)
++                 .addReg(ARM::LR)
++                 .addImm(ARMCC::AL)
++                 .addReg(0);
 +    } else {
 +      Inst = MCInstBuilder(ARM::BX).addReg(ARM::LR);
 +    }
@@ -391,7 +458,11 @@ index 000000000000..8000941b8408
 +  void createUncondBranch(MCInst &Inst, const MCSymbol *TBB,
 +                          MCContext *Ctx) const override {
 +    if (InThumbMode()) {
-+      Inst = MCInstBuilder(ARM::t2B).addExpr(MCSymbolRefExpr::create(TBB, *Ctx));
++      // t2B: (target, pred) -> target, CC, CCR
++      Inst = MCInstBuilder(ARM::t2B)
++                 .addExpr(MCSymbolRefExpr::create(TBB, *Ctx))
++                 .addImm(ARMCC::AL)
++                 .addReg(0);
 +    } else {
 +      Inst = MCInstBuilder(ARM::B).addExpr(MCSymbolRefExpr::create(TBB, *Ctx));
 +    }
@@ -415,6 +486,7 @@ index 000000000000..8000941b8408
 +    if (InThumbMode()) {
 +      Inst = MCInstBuilder(ARM::tBL)
 +                 .addImm(ARMCC::AL)
++                 .addReg(0)
 +                 .addExpr(MCSymbolRefExpr::create(Target, *Ctx));
 +    } else {
 +      Inst = MCInstBuilder(ARM::BL).addExpr(MCSymbolRefExpr::create(Target, *Ctx));
@@ -459,7 +531,10 @@ index 000000000000..8000941b8408
 +    InstructionListType Insts = materializeAddress(Target, Ctx, Reg);
 +    Insts.emplace_back();
 +    if (InThumbMode()) {
-+      Insts.back() = MCInstBuilder(ARM::tBX).addReg(Reg).addImm(ARMCC::AL);
++      Insts.back() = MCInstBuilder(ARM::tBX)
++                         .addReg(Reg)
++                         .addImm(ARMCC::AL)
++                         .addReg(0);
 +    } else {
 +      Insts.back() = MCInstBuilder(ARM::BX).addReg(Reg);
 +    }
@@ -710,6 +785,43 @@ index 000000000000..8000941b8408
 +    }
 +  }
 +
++  std::optional<Relocation>
++  createRelocation(const MCFixup &Fixup,
++                   const MCAsmBackend &MAB) const override {
++    (void)MAB;
++    const uint64_t RelOffset = Fixup.getOffset();
++    const unsigned Kind = Fixup.getKind();
++    uint32_t RelType;
++    if (Kind == ARM::fixup_arm_uncondbl || Kind == ARM::fixup_arm_condbl ||
++        Kind == ARM::fixup_arm_blx)
++      RelType = ELF::R_ARM_CALL;
++    else if (Kind == ARM::fixup_arm_condbranch ||
++             Kind == ARM::fixup_arm_uncondbranch)
++      RelType = ELF::R_ARM_JUMP24;
++    else if (Kind == ARM::fixup_arm_movw_lo16)
++      RelType = ELF::R_ARM_MOVW_ABS_NC;
++    else if (Kind == ARM::fixup_arm_movt_hi16)
++      RelType = ELF::R_ARM_MOVT_ABS;
++    else if (Kind == ARM::fixup_t2_movw_lo16)
++      RelType = ELF::R_ARM_THM_MOVW_ABS_NC;
++    else if (Kind == ARM::fixup_t2_movt_hi16)
++      RelType = ELF::R_ARM_THM_MOVT_ABS;
++    else if (Kind == ARM::fixup_arm_thumb_br ||
++             Kind == ARM::fixup_arm_thumb_bcc ||
++             Kind == ARM::fixup_t2_uncondbranch ||
++             Kind == ARM::fixup_t2_condbranch)
++      RelType = ELF::R_ARM_THM_JUMP24;
++    else if (Kind == ARM::fixup_arm_thumb_bl ||
++             Kind == ARM::fixup_arm_thumb_blx)
++      RelType = ELF::R_ARM_THM_CALL;
++    else if (Kind == FK_Data_4)
++      RelType = Fixup.isPCRel() ? ELF::R_ARM_REL32 : ELF::R_ARM_ABS32;
++    else
++      return std::nullopt;
++    auto [RelSymbol, RelAddend] = extractFixupExpr(Fixup);
++    return Relocation({RelOffset, RelSymbol, RelType, RelAddend, 0});
++  }
++
 +  bool evaluateMemOperandTarget(const MCInst &Inst, uint64_t &Target,
 +                                uint64_t Address,
 +                                uint64_t Size) const override {
@@ -760,10 +872,10 @@ index 000000000000..8000941b8408
 +} // namespace llvm
 diff --git a/bolt/lib/Target/ARM/ARMMCSymbolizer.cpp b/bolt/lib/Target/ARM/ARMMCSymbolizer.cpp
 new file mode 100644
-index 000000000000..450fa7c5ac16
+index 000000000000..13df12f27623
 --- /dev/null
 +++ b/bolt/lib/Target/ARM/ARMMCSymbolizer.cpp
-@@ -0,0 +1,105 @@
+@@ -0,0 +1,135 @@
 +//===- bolt/Target/ARM/ARMMCSymbolizer.cpp ------------------------------===//
 +//
 +// Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
@@ -773,6 +885,7 @@ index 000000000000..450fa7c5ac16
 +//===----------------------------------------------------------------------===//
 +
 +#include "ARMMCSymbolizer.h"
++#include "MCTargetDesc/ARMMCTargetDesc.h"
 +#include "bolt/Core/BinaryContext.h"
 +#include "bolt/Core/BinaryFunction.h"
 +#include "bolt/Core/MCPlusBuilder.h"
@@ -797,8 +910,8 @@ index 000000000000..450fa7c5ac16
 +  const Relocation *Relocation = Function.getRelocationAt(InstOffset);
 +
 +  // Linker veneers rewrite the BL immediate to a nearby thunk while keeping
-+  // R_ARM_CALL/JUMP against the real callee. Prefer the reloc so LongJmp sees
-+  // the out-of-range edge.
++  // R_ARM_CALL/JUMP against the real callee. Replace the encoded immediate
++  // (do not append) so getTargetSymbol() sees the real callee.
 +  if (BC.MIB->isBranch(Inst) || BC.MIB->isCall(Inst)) {
 +    if (Relocation && Relocation->Symbol) {
 +      const MCExpr *Expr =
@@ -806,8 +919,37 @@ index 000000000000..450fa7c5ac16
 +      if (Relocation->Addend)
 +        Expr = MCBinaryExpr::createAdd(
 +            Expr, MCConstantExpr::create(Relocation->Addend, *Ctx), *Ctx);
-+      Inst.addOperand(MCOperand::createExpr(
-+          BC.MIB->getTargetExprFor(Inst, Expr, *Ctx, Relocation->Type)));
++      const MCOperand SymOp = MCOperand::createExpr(
++          BC.MIB->getTargetExprFor(Inst, Expr, *Ctx, Relocation->Type));
++      unsigned OpNum = 0;
++      switch (Inst.getOpcode()) {
++      case ARM::Bcc:
++        OpNum = 2;
++        break;
++      case ARM::tB:
++      case ARM::tBcc:
++      case ARM::t2B:
++      case ARM::t2Bcc:
++        OpNum = 0;
++        break;
++      case ARM::tBL:
++      case ARM::tBLXi:
++      case ARM::tBLXr:
++        // pred expands to (CC, CCR); target/Rm is operand 2.
++        OpNum = 2;
++        break;
++      case ARM::tCBZ:
++      case ARM::tCBNZ:
++        OpNum = 1;
++        break;
++      default:
++        OpNum = 0;
++        break;
++      }
++      if (Inst.getNumOperands() > OpNum)
++        Inst.getOperand(OpNum) = SymOp;
++      else
++        Inst.addOperand(SymOp);
 +      return true;
 +    }
 +    return false;

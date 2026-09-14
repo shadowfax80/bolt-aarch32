@@ -1,6 +1,6 @@
 # Resume guide
 
-**Saved:** 2026-09-13  
+**Saved:** 2026-09-14  
 **GitHub (overlay only):** [somraj80/bolt-aarch32](https://github.com/somraj80/bolt-aarch32)
 
 All upstream sources, builds, and QEMU runs live on the **RunPod network volume** — not on your laptop. The GitHub repo holds overlay patches, scripts, and docs only.
@@ -71,17 +71,19 @@ apt-get update -qq && apt-get install -y -qq qemu-system-arm
 - `llvm-bolt`, `clang`, `ld.lld`, llvm binutils — LLVM 23.1.2
 - LK `qemu-virt-arm64-test` — Phase 2 instrument → QMP → optimize → boot
 - LK `qemu-virt-arm32-test` — P0 boot + `lk.bolt_bench=all`
-- P1: `llvm-bolt --print-sections --funcs-file=bolt_bench_*` on ARM32 `lk.elf` lists `.text` (exit 0)
-- P2/P3: `--print-cfg` prints ARM `bolt_bench_hot_loop` CFG with successors
+- P1: `llvm-bolt --print-sections` on full ARM32 `lk.elf` lists `.text` (exit 0; no `--funcs-file`)
+- P2/P3: `--print-cfg` prints ARM `bolt_bench_hot_loop` CFG with successors; ARM lit green
 - **P0–P4 one-shot:** `./scripts/verify-bolt-arm32-milestones.sh` → `ALL MILESTONES P0-P4 PASSED`
 - **P4 identity rewrite:** `BOLT_BENCH_ISA=arm` → **4/1389 overwritten**; QEMU boots rewritten ELF; all four `bolt_bench: … done` lines print
-- **P5 veneers:** `./scripts/verify-bolt-arm32-veneer.sh` → linker veneer removed + LongJmp stub inserted
+- **P5 veneers:** `./scripts/verify-bolt-arm32-veneer.sh` → linker veneer removed, LongJmp stub in output (`movw`/`movt`/`bx`), **`qemu-arm` exit 42**
+- **ARM lit:** `llvm-lit bolt/test/ARM` — 8/8 passed
+- **`check-bolt`:** 658 passed, 0 failed (754 discovered; skips/unsupported expected)
+- **P6 Thumb:** default `-mthumb` benches identity-rewritten; qemu-system-arm `lk.bolt_bench=all` prints all `done` lines + console
 
 **Still pending:**
 
-- Lit FileCheck hardening for P2–P4 (`check-bolt`)
-- Full-binary rewrite without `--funcs-file` (kernel host functions)
-- P6 Thumb disasm of default `-mthumb` benches (fails at +0x8 without `-marm`)
+- Full-binary rewrite without `--funcs-file` (kernel host functions; not a P4–P6 gate)
+- P7 IT bundles; P8 interworking benches
 - On-target `.fdata` serialization over UART (optional; QMP works)
 - Rebase llvm-project to `main` before opening upstream PRs
 

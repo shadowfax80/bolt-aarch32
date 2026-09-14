@@ -28,13 +28,12 @@
 | Rung | Focus | Upstream PR (draft title) | Lit | QEMU / LK | Status |
 |------|-------|---------------------------|-----|-------------|--------|
 | **P0** | ARM32 harness (no BOLT backend) | — (this repo only) | — | `verify-bolt-arm32-harness.sh` | **Done** |
-| **P1** | ELF32 reader | `[BOLT][ARM] Add ELF32 support for ARM executables` | Parse ARM32 ET_EXEC | `--print-sections` on `lk.elf` lists `.text` | **Done** — `0003` |
-| **P2** | ARM-mode disassembly | `[BOLT][ARM] Disassemble ARM-mode functions` | FileCheck on ARM `.s` | ARM `hot_loop` bytes match objdump | **Done** — `0004`; QEMU gate via `--print-cfg` on ARM benches (`verify-bolt-arm32-milestones.sh`); lit not upstream-confirmed |
-| **P3** | CFG (ARM only) | `[BOLT][ARM] Build CFG for ARM-mode code` | `--print-cfg` FileCheck | CFG on ARM `hot_loop`/`hot_cold`/`branch_chain` | **Done** — `0004`; ARM bench CFG + successors green on pod |
-
+| **P1** | ELF32 reader | `[BOLT][ARM] Add ELF32 support for ARM executables` | Parse ARM32 ET_EXEC | `--print-sections` on `lk.elf` lists `.text` | **Done** — full-image exit 0 |
+| **P2** | ARM-mode disassembly | `[BOLT][ARM] Disassemble ARM-mode functions` | FileCheck on ARM `.s` | ARM `hot_loop` bytes match objdump | **Done** — `0004`; lit + QEMU CFG |
+| **P3** | CFG (ARM only) | `[BOLT][ARM] Build CFG for ARM-mode code` | `--print-cfg` FileCheck | CFG on ARM `hot_loop`/`hot_cold`/`branch_chain` | **Done** — `0004`; lit + benches |
 | **P4** | Identity rewrite | `[BOLT][ARM] Identity rewrite for ARM-mode binaries` | Rewritten lit ELF runs | Rewritten `lk.elf` boots + `bolt_bench all` | **Done** — `BOLT_BENCH_ISA=arm`, 4 funcs overwritten, QEMU green |
-| **P5** | Branch range / veneers | `[BOLT][ARM] Insert veneers for out-of-range branches` | Far `bl` lit test | `verify-bolt-arm32-veneer.sh` | **Done** — `0009` + MOVW/MOVT exprs; linker veneer elim + LongJmp stubs |
-| **P6** | Thumb-2 (no IT) | `[BOLT][ARM] Thumb-2 disassembly, CFG, and rewrite` | Thumb `.s` CFG + rewrite | `-mthumb` `bolt_bench` identity rewrite boots | **Partial** — STI/LSB/`$t`; disasm fails at +0x8 |
+| **P5** | Branch range / veneers | `[BOLT][ARM] Insert veneers for out-of-range branches` | Far `bl` lit test | `verify-bolt-arm32-veneer.sh` | **Done** — stub in ELF + `qemu-arm` exit 42 |
+| **P6** | Thumb-2 (no IT) | `[BOLT][ARM] Thumb-2 disassembly, CFG, and rewrite` | Thumb `.s` CFG + rewrite | `-mthumb` `bolt_bench` identity rewrite boots | **Done** — lit 8/8; QEMU `hot_loop` + console |
 | **P7** | IT blocks | `[BOLT][ARM] Treat IT bundles as atomic units` | IT bundle not split | `it_cond` identity rewrite correct | Pending — skipped as unsupported |
 | **P8** | ARM↔Thumb interworking | `[BOLT][ARM] Interworking edges and veneers` | ARM↔Thumb CFG lit | `interwork` identity rewrite runs | Pending — LSB + BX/BLX only |
 | **P9** | Instrumentation + RAM profile | `[BOLT][ARM] Instrumentation for ARM/Thumb` | Counter-site FileCheck | `verify-bolt-workloads.sh` ARM32: all counters + `.fdata` | Pending |
@@ -51,12 +50,12 @@ Each rung is independently testable. Do not start the next until the previous ha
 
 ```text
 P0  Harness (no BOLT backend)          ✓ Done
-P1  Read ELF32                         ✓ Done
-P2  Disassemble ARM-mode only          ✓ Done (ARM benches; lit TBD)
-P3  Build CFG (ARM)                    ✓ Done (ARM benches; lit TBD)
+P1  Read ELF32                         ✓ Done (full-image --print-sections)
+P2  Disassemble ARM-mode only          ✓ Done (lit + benches)
+P3  Build CFG (ARM)                    ✓ Done (lit + benches)
 P4  Identity rewrite (MCPlusBuilder)   ✓ Done (ARM-mode benches)
 
-P5  Branch range / veneers             ✓ Done
+P5  Branch range / veneers             ✓ Done (stub in ELF + qemu 42)
 P6  Thumb-2, no IT
 P7  IT blocks
 P8  ARM↔Thumb interworking
@@ -215,13 +214,13 @@ ARM `B`/`BL` are ±32 MB. After layout, some edges miss.
 | Linker glue | Treat `.glue_7` as synthetic blocks |
 | New bench | `bolt_bench_far_call` — deliberately distant call |
 
-**Pass:** lit/binary with out-of-range `bl` — linker veneer removed, LongJmp inserts stub (`verify-bolt-arm32-veneer.sh`).
+**Pass:** rewritten far ELF contains a LongJmp stub (`movw`/`movt`/`bx` or encoding), `qemu-arm` exit 42, and lit `arm-longjmp-veneer.test` FileChecks both. Gate: `verify-bolt-arm32-veneer.sh` (uses `--pad-funcs-before=far_away:0x2100000` so the final layout stays OOR).
 
 ```bash
 ./scripts/verify-bolt-arm32-veneer.sh
 ```
 
-Optional LK `bolt_bench_far_call` exists for smoke; the ±33MB pad is lit-only (`arm32-far-bl.s`), not in the default LK image.
+Optional LK `bolt_bench_far_call` exists for smoke; the ±33MB pad is lit-only (`arm32-far.ld`), not in the default LK image.
 
 ---
 
@@ -238,6 +237,8 @@ Most LK user code and `bolt_bench` compiled `-mthumb` lands here.
 | Functions with `IT` | **Skipped** with warning until P7 |
 
 **Pass:** Thumb `hot_loop` identity-rewritten ELF runs on QEMU; rebuild `bolt_bench` with `-mthumb`.
+
+**Verified (2026-09-14):** default `-mthumb` LK benches; `llvm-bolt --funcs-file=bolt_bench_*` → `/tmp/lk.bolt.thumb`; qemu-system-arm prints all `bolt_bench: … done` and `entering main console loop`. ARM lit `bolt/test/ARM` 8/8. Fixes included Thumb ABS32 LSB, new-segment `p_paddr` skew, Thumb/ARM branch reloc encode, skip force-rewrite of LLD ARM veneers, JITLink aarch32 stubs + Thumb bit on pointers.
 
 ---
 
@@ -387,7 +388,8 @@ Mirror AArch64:
 - [x] P2–P4: `llvm-bolt` identity-rewrites ARM-mode `bolt_bench` (`BOLT_BENCH_ISA=arm`) and that ELF boots on QEMU
   - Lit FileCheck still weak / not confirmed `check-bolt` green
 - [x] P5: LongJmp veneers — `verify-bolt-arm32-veneer.sh` (linker veneer elim + stub insert)
-- [ ] P6–P8: Thumb-2, IT, interworking identity rewrite on QEMU
+- [x] P6: Thumb-2 identity rewrite on QEMU (no IT)
+- [ ] P7–P8: IT, interworking identity rewrite on QEMU
 - [ ] P9–P10: Instrumentation + QMP profile + optimized `lk.bolt.elf` boots and reruns workloads
 - [ ] Lit coverage for ARM, Thumb-2, IT, interworking, veneers in llvm-project
 - [ ] P11: Core backend (P1–P10) merged to llvm-project `main`; overlay backend patches gone

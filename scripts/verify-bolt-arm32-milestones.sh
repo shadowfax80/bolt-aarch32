@@ -31,12 +31,14 @@ grep -q "bolt_bench: memcpy done" /tmp/p0-arm32.log || fail "P0 memcpy"
 grep -q "entering main console loop" /tmp/p0-arm32.log || fail "P0 console"
 pass "P0"
 
-echo "=== P1: print-sections (bench funcs only) ==="
+echo "=== P1: print-sections (full image) ==="
 "$TOOLCHAIN/llvm-bolt" "$ELF" -o /tmp/lk.arm.sections.elf \
-  --funcs-file="$FUNCS_FILE" --print-sections \
+  --print-sections \
   > /tmp/p1-arm32.log 2>&1 || fail "P1 llvm-bolt exited $?"
 grep -q "Target architecture: arm" /tmp/p1-arm32.log || fail "P1 arch"
+grep -q "Sections from original binary" /tmp/p1-arm32.log || fail "P1 sections header"
 grep -q "\.text" /tmp/p1-arm32.log || fail "P1 .text"
+grep -qE 'Aborted|UNREACHABLE executed|BOLT-ERROR: Unrecognized machine' /tmp/p1-arm32.log && fail "P1 abort"
 pass "P1"
 
 echo "=== P2/P3: disasm + CFG on bolt_bench_hot_loop ==="

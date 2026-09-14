@@ -23,8 +23,12 @@ export_one 0003-bolt-arm-elf32-and-target.patch \
   bolt/CMakeLists.txt \
   bolt/include/bolt/Core/BinaryContext.h \
   bolt/include/bolt/Core/BinaryFunction.h \
+  bolt/lib/Core/AddressMap.cpp \
+  bolt/lib/Core/BinaryBasicBlock.cpp \
   bolt/lib/Core/BinaryContext.cpp \
-  bolt/lib/Core/BinaryFunction.cpp
+  bolt/lib/Core/BinaryEmitter.cpp \
+  bolt/lib/Core/BinaryFunction.cpp \
+  bolt/lib/Core/BinarySection.cpp
 
 export_one 0004-bolt-arm-mcplusbuilder.patch \
   bolt/include/bolt/Core/MCPlusBuilder.h \
@@ -38,13 +42,19 @@ export_one 0005-bolt-arm-relocations.patch \
 
 export_one 0006-bolt-arm-rewrite-dispatch.patch \
   bolt/include/bolt/Rewrite/RewriteInstance.h \
-  bolt/lib/Rewrite/RewriteInstance.cpp
+  bolt/lib/Rewrite/RewriteInstance.cpp \
+  bolt/lib/Rewrite/JITLinkLinker.cpp
 
 export_one 0007-bolt-arm-lit-tests.patch \
-  bolt/test/ARM
+  bolt/test/ARM \
+  bolt/test/elf32-basic.test \
+  bolt/test/Inputs/elf32-basic.yaml
 
 export_one 0008-jitlink-arm-generic-archkind.patch \
-  llvm/lib/ExecutionEngine/JITLink/ELF_aarch32.cpp
+  llvm/include/llvm/ExecutionEngine/JITLink/aarch32.h \
+  llvm/lib/ExecutionEngine/JITLink/ELF_aarch32.cpp \
+  llvm/lib/ExecutionEngine/JITLink/aarch32.cpp \
+  llvm/lib/Target/ARM/MCTargetDesc/ARMELFObjectWriter.cpp
 
 export_one 0009-bolt-arm-longjmp-veneers.patch \
   bolt/lib/Passes/LongJmp.cpp \

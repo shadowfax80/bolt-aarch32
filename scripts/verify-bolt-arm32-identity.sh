@@ -31,15 +31,20 @@ if [[ ! -f "$ELF" ]]; then
   exit 1
 fi
 
-echo "=== P1: print-sections ==="
+echo "=== P1: print-sections (full image) ==="
 "$TOOLCHAIN/llvm-bolt" -o /tmp/lk.arm.sections.elf --print-sections \
-  --funcs-file="$FUNCS_FILE" "$ELF" \
+  "$ELF" \
   > /tmp/bolt-arm32-sections.log 2>&1 || {
   echo "error: print-sections failed (see /tmp/bolt-arm32-sections.log)" >&2
   exit 1
 }
 grep -q "Target architecture: arm" /tmp/bolt-arm32-sections.log
+grep -q "Sections from original binary" /tmp/bolt-arm32-sections.log
 grep -q "\.text" /tmp/bolt-arm32-sections.log
+grep -qE 'Aborted|UNREACHABLE executed|BOLT-ERROR: Unrecognized machine' /tmp/bolt-arm32-sections.log && {
+  echo "error: print-sections aborted (see /tmp/bolt-arm32-sections.log)" >&2
+  exit 1
+}
 echo "P1 print-sections OK"
 
 printf '%s\n' ${BOLT_BENCH_FUNCS//,/ } > "$FUNCS_FILE"

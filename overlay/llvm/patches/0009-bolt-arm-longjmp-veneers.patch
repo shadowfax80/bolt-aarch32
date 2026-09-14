@@ -1,8 +1,63 @@
 diff --git a/bolt/lib/Passes/LongJmp.cpp b/bolt/lib/Passes/LongJmp.cpp
-index b771e6a8b120..96f178d9471d 100644
+index b771e6a8b120..c762ecd39ea1 100644
 --- a/bolt/lib/Passes/LongJmp.cpp
 +++ b/bolt/lib/Passes/LongJmp.cpp
-@@ -531,9 +531,9 @@ Error LongJmpPass::relaxStub(BinaryBasicBlock &StubBB, bool &Modified) {
+@@ -11,6 +11,7 @@
+ //===----------------------------------------------------------------------===//
+ 
+ #include "bolt/Passes/LongJmp.h"
++#include "llvm/ADT/ScopeExit.h"
+ #include "bolt/Core/ParallelUtilities.h"
+ #include "bolt/Utils/CommandLineOpts.h"
+ #include "llvm/Support/MathExtras.h"
+@@ -24,6 +25,8 @@ extern cl::OptionCategory BoltCategory;
+ extern cl::OptionCategory BoltOptCategory;
+ extern cl::opt<bool> UseOldText;
+ extern cl::opt<bool> HotFunctionsAtEnd;
++extern size_t padFunctionBefore(const bolt::BinaryFunction &Function);
++extern size_t padFunctionAfter(const bolt::BinaryFunction &Function);
+ 
+ static cl::opt<bool> GroupStubs("group-stubs",
+                                 cl::desc("share stubs across functions"),
+@@ -323,7 +326,7 @@ uint64_t LongJmpPass::tentativeLayoutRelocColdPart(
+       continue;
+     DotAddress = alignTo(DotAddress, Func->getMinAlignment());
+     uint64_t Pad =
+-        offsetToAlignment(DotAddress, llvm::Align(Func->getAlignment()));
++        offsetToAlignment(DotAddress, llvm::Align(std::max<uint64_t>(Func->getAlignment(), 1)));
+     if (Pad <= Func->getMaxColdAlignmentBytes())
+       DotAddress += Pad;
+     ColdAddresses[Func] = DotAddress;
+@@ -390,9 +393,10 @@ LongJmpPass::tentativeLayoutRelocMode(const BinaryContext &BC,
+ 
+     DotAddress = alignTo(DotAddress, Func->getMinAlignment());
+     uint64_t Pad =
+-        offsetToAlignment(DotAddress, llvm::Align(Func->getAlignment()));
++        offsetToAlignment(DotAddress, llvm::Align(std::max<uint64_t>(Func->getAlignment(), 1)));
+     if (Pad <= Func->getMaxAlignmentBytes())
+       DotAddress += Pad;
++    DotAddress += opts::padFunctionBefore(*Func);
+     HotAddresses[Func] = DotAddress;
+     LLVM_DEBUG(dbgs() << Func->getPrintName() << " tentative: "
+                       << Twine::utohexstr(DotAddress) << "\n");
+@@ -400,6 +404,7 @@ LongJmpPass::tentativeLayoutRelocMode(const BinaryContext &BC,
+       DotAddress += Func->estimateSize();
+     else
+       DotAddress += Func->estimateHotSize();
++    DotAddress += opts::padFunctionAfter(*Func);
+ 
+     if (uint64_t IslandSize = Func->estimateConstantIslandSize()) {
+       DotAddress = alignTo(DotAddress, Func->getConstantIslandAlignment());
+@@ -444,7 +449,7 @@ void LongJmpPass::tentativeLayout(const BinaryContext &BC,
+     // Initial padding
+     if (EstimatedTextSize <= BC.OldTextSectionSize) {
+       DotAddress = BC.OldTextSectionAddress;
+-      uint64_t Pad = offsetToAlignment(DotAddress, llvm::Align(BC.AlignText));
++      uint64_t Pad = offsetToAlignment(DotAddress, llvm::Align(std::max<uint64_t>(BC.AlignText, 1)));
+       if (Pad + EstimatedTextSize <= BC.OldTextSectionSize) {
+         DotAddress += Pad;
+       }
+@@ -531,9 +536,9 @@ Error LongJmpPass::relaxStub(BinaryBasicBlock &StubBB, bool &Modified) {
      return Error::success();
    }
  
@@ -15,14 +70,28 @@ index b771e6a8b120..96f178d9471d 100644
      return createFatalBOLTError(
          "BOLT-ERROR: Unable to relax stub for PIC binary\n");
  
-@@ -576,8 +576,8 @@ bool LongJmpPass::needsStub(const BinaryBasicBlock &BB, const MCInst &Inst,
+@@ -551,7 +556,8 @@ bool LongJmpPass::needsStub(const BinaryBasicBlock &BB, const MCInst &Inst,
+   const BinaryFunction &Func = *BB.getFunction();
+   const BinaryContext &BC = Func.getBinaryContext();
+   const MCSymbol *TgtSym = BC.MIB->getTargetSymbol(Inst);
+-  assert(TgtSym && "getTargetSymbol failed");
++  if (!TgtSym)
++    return false;
+ 
+   const BinaryBasicBlock *TgtBB = Func.getBasicBlockForLabel(TgtSym);
+   // Check for shared stubs from foreign functions
+@@ -576,8 +582,12 @@ bool LongJmpPass::needsStub(const BinaryBasicBlock &BB, const MCInst &Inst,
  Error LongJmpPass::relax(BinaryFunction &Func, bool &Modified) {
    const BinaryContext &BC = Func.getBinaryContext();
  
 -  assert(BC.isAArch64() && "Unsupported arch");
 -  constexpr int InsnSize = 4; // AArch64
 +  assert((BC.isAArch64() || BC.isARM()) && "Unsupported arch");
-+  constexpr int InsnSize = 4; // AArch64 / ARM
++  const MCSubtargetInfo *SavedSTI = BC.MIB->getSTI();
++  if (Func.isARMThumb() && BC.ThumbSTI)
++    BC.MIB->setSTI(BC.ThumbSTI.get());
++  auto RestoreSTI = llvm::make_scope_exit([&]() { BC.MIB->setSTI(SavedSTI); });
++  constexpr int InsnSize = 4; // AArch64 / ARM (Thumb-2 branches also 4)
    std::vector<std::pair<BinaryBasicBlock *, std::unique_ptr<BinaryBasicBlock>>>
        Insertions;
  
