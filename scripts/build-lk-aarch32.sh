@@ -24,6 +24,11 @@ MAKE_ARGS=()
 if [[ -n "${BOLT_BENCH_ISA:-}" ]]; then
   MAKE_ARGS+=("BOLT_BENCH_ISA=$BOLT_BENCH_ISA")
 fi
+# LK's build.mk resolves SIZE via TOOLCHAIN_PREFIX (arm-eabi-size) even under
+# TOOLCHAIN=clang, unlike its other post-link tools. No arm-eabi- binutils are
+# installed here (this project only uses clang/lld), so default to the host's
+# generic `size` — it reads any ELF's section headers fine regardless of arch.
+MAKE_ARGS+=("SIZE=${SIZE:-size}")
 
 make "$LK_PROJECT" "${MAKE_ARGS[@]}" -j"${JOBS:-$(nproc)}"
 
