@@ -61,7 +61,7 @@ apt-get update -qq && apt-get install -y -qq qemu-system-arm
 ├── llvm-bolt-toolchain.tar.gz       ← packaged tools (167 MB)
 ├── third_party/llvm-project/        ← release/23.x @ 069ef0e7cb36
 │                                      branch bolt-arm-backend (local)
-└── third_party/lk/                  ← master @ 79d2f560
+└── third_party/lk/                  ← pinned @ 79d2f560 (LK_COMMIT)
     ├── build-qemu-virt-arm64-test/lk.elf   ← AArch64 Phase 2 ✓
     └── build-qemu-virt-arm32-test/lk.elf   ← ARM32 P0 harness ✓
 ```
