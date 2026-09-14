@@ -8,7 +8,7 @@ LLVM_DIR="${LLVM_DIR:-$ROOT/third_party/llvm-project}"
 LLVM_COMMIT="${LLVM_COMMIT:-069ef0e7cb36ee1fcf3bfdad31533fd79ab85b58}"
 LLVM_REMOTE="${LLVM_REMOTE:-https://github.com/llvm/llvm-project.git}"
 MARKER="$LLVM_DIR/.overlay-source-ok"
-LOCKFILE="$LLVM_DIR/.overlay-clone.lock"
+LOCKFILE="$(dirname "$LLVM_DIR")/.overlay-clone.lock"
 
 llvm_tree_ok() {
   [[ -d "$LLVM_DIR/llvm/utils/TableGen" ]] \
