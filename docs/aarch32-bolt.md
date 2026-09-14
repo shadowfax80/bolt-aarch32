@@ -35,7 +35,7 @@
 | **P5** | Branch range / veneers | `[BOLT][ARM] Insert veneers for out-of-range branches` | Far `bl` lit test | `verify-bolt-arm32-veneer.sh` | **Done** — stub in ELF + `qemu-arm` exit 42 |
 | **P6** | Thumb-2 (no IT) | `[BOLT][ARM] Thumb-2 disassembly, CFG, and rewrite` | Thumb `.s` CFG + rewrite | `-mthumb` `bolt_bench` identity rewrite boots | **Done** — lit 8/8; QEMU `hot_loop` + console |
 | **P7** | IT blocks | `[BOLT][ARM] Treat IT bundles as atomic units` | IT bundle not split | `it_cond` identity rewrite correct | **Done** — lit 9/9; QEMU `it_cond` + `all` |
-| **P8** | ARM↔Thumb interworking | `[BOLT][ARM] Interworking edges and veneers` | ARM↔Thumb CFG lit | `interwork` identity rewrite runs | Pending — LSB + BX/BLX only |
+| **P8** | ARM↔Thumb interworking | `[BOLT][ARM] Interworking edges and veneers` | ARM↔Thumb CFG lit | `interwork` identity rewrite runs | **Done** — lit 10/10; QEMU `interwork` + narrow `all` |
 | **P9** | Instrumentation + RAM profile | `[BOLT][ARM] Instrumentation for ARM/Thumb` | Counter-site FileCheck | `verify-bolt-workloads.sh` ARM32: all counters + `.fdata` | Pending |
 | **P10** | Layout optimize | `[BOLT][ARM] Profile-guided layout on ARM/Thumb` | Optimize lit + fake `.fdata` | `lk.bolt.elf` boots, reruns `all`, cycles logged | Pending |
 | **P11** | Upstream landing | Track/rebase/merge; overlay cleanup | All lit in tree | Full ARM32 pipeline green on `main` | Pending |
@@ -58,7 +58,7 @@ P4  Identity rewrite (MCPlusBuilder)   ✓ Done (ARM-mode benches)
 P5  Branch range / veneers             ✓ Done (stub in ELF + qemu 42)
 P6  Thumb-2, no IT
 P7  IT blocks
-P8  ARM↔Thumb interworking
+P8  ARM↔Thumb interworking             ✓ Done (lit 10/10; QEMU interwork)
 P9  Instrumentation + RAM profile
 P10 Layout optimize
 P11 Upstream landing (merge tracking, overlay cleanup)
@@ -273,6 +273,8 @@ Most LK user code and `bolt_bench` compiled `-mthumb` lands here.
 
 **Pass:** ARM→Thumb and Thumb→ARM calls identity-rewritten and both run.
 
+**Verified (2026-09-14):** ARM lit 10/10 (`arm-interwork` + longjmp veneer). `matchAbsLongVeneer` uses symbol size + resolves only to real functions (avoids MaxSize fill). `adjustCallForTargetMode` rebuilds BL/BLX after veneer redirect. QEMU: `--funcs-file-no-regex` of `bolt_bench_interwork` + callees → `interwork done` + console; same narrow set runs `lk.bolt_bench=all`. Full `bolt_bench_*` rewrite still breaks sequential `all` (trampoline leftover; not a P8 gate).
+
 ---
 
 ## P9 — Instrumentation + RAM profile
@@ -394,7 +396,7 @@ Mirror AArch64:
 - [x] P5: LongJmp veneers — `verify-bolt-arm32-veneer.sh` (linker veneer elim + stub insert)
 - [x] P6: Thumb-2 identity rewrite on QEMU (no IT)
 - [x] P7: IT bundles atomic; `bolt_bench_it_cond` identity rewrite on QEMU
-- [ ] P8: Interworking identity rewrite on QEMU
+- [x] P8: Interworking identity rewrite on QEMU
 - [ ] P9–P10: Instrumentation + QMP profile + optimized `lk.bolt.elf` boots and reruns workloads
-- [ ] Lit coverage for ARM, Thumb-2, IT, interworking, veneers in llvm-project
+- [x] Lit coverage for ARM, Thumb-2, IT, interworking, veneers in llvm-project
 - [ ] P11: Core backend (P1–P10) merged to llvm-project `main`; overlay backend patches gone

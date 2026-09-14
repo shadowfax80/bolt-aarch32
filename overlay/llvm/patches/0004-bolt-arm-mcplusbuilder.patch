@@ -1,5 +1,5 @@
 diff --git a/bolt/include/bolt/Core/MCPlusBuilder.h b/bolt/include/bolt/Core/MCPlusBuilder.h
-index aae520d5afe5..64056ceb19d4 100644
+index aae520d5afe5..11aea360cfb4 100644
 --- a/bolt/include/bolt/Core/MCPlusBuilder.h
 +++ b/bolt/include/bolt/Core/MCPlusBuilder.h
 @@ -367,6 +367,9 @@ public:
@@ -12,7 +12,23 @@ index aae520d5afe5..64056ceb19d4 100644
    /// Create and return a target-specific MC symbolizer for the \p Function.
    /// When \p CreateNewSymbols is set, the symbolizer can create new symbols
    /// e.g. for jump table references.
-@@ -2562,6 +2565,11 @@ MCPlusBuilder *createRISCVMCPlusBuilder(const MCInstrAnalysis *,
+@@ -1973,6 +1976,15 @@ public:
+ 
+   /// Creates a new call instruction in Inst and sets its operand to
+   /// Target.
++  /// ARM/Thumb: rewrite a direct call as BL or BLX to match Src/Dst modes.
++  virtual void adjustCallForTargetMode(MCInst &Inst, bool SrcThumb,
++                                       bool DstThumb, MCContext *Ctx) const {
++    (void)Inst;
++    (void)SrcThumb;
++    (void)DstThumb;
++    (void)Ctx;
++  }
++
+   virtual void createCall(MCInst &Inst, const MCSymbol *Target,
+                           MCContext *Ctx) {
+     llvm_unreachable("not implemented");
+@@ -2562,6 +2574,11 @@ MCPlusBuilder *createRISCVMCPlusBuilder(const MCInstrAnalysis *,
                                          const MCRegisterInfo *,
                                          const MCSubtargetInfo *);
  
@@ -26,10 +42,10 @@ index aae520d5afe5..64056ceb19d4 100644
  
 diff --git a/bolt/lib/Target/ARM/ARMMCPlusBuilder.cpp b/bolt/lib/Target/ARM/ARMMCPlusBuilder.cpp
 new file mode 100644
-index 000000000000..46faef134e36
+index 000000000000..b5605bba7d4e
 --- /dev/null
 +++ b/bolt/lib/Target/ARM/ARMMCPlusBuilder.cpp
-@@ -0,0 +1,852 @@
+@@ -0,0 +1,909 @@
 +//===- bolt/Target/ARM/ARMMCPlusBuilder.cpp ---------------------------===//
 +//
 +// Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
@@ -47,6 +63,8 @@ index 000000000000..46faef134e36
 +#include "MCTargetDesc/ARMMCAsmInfo.h"
 +#include "MCTargetDesc/ARMMCTargetDesc.h"
 +#include "MCTargetDesc/ARMFixupKinds.h"
++#include "bolt/Core/BinaryContext.h"
++#include "bolt/Core/BinaryFunction.h"
 +#include "bolt/Core/MCPlusBuilder.h"
 +#include "llvm/ADT/bit.h"
 +#include "llvm/BinaryFormat/ELF.h"
@@ -55,6 +73,7 @@ index 000000000000..46faef134e36
 +#include "llvm/MC/MCInstBuilder.h"
 +#include "llvm/MC/MCSubtargetInfo.h"
 +#include "llvm/Support/ErrorHandling.h"
++#include <algorithm>
 +
 +#define DEBUG_TYPE "mcplus"
 +
@@ -210,13 +229,13 @@ index 000000000000..46faef134e36
 +  bool isIndirectCall(const MCInst &Inst) const override {
 +    if (!isCall(Inst))
 +      return false;
++    // Register-form BLX only. BLXi / tBLXi are direct interworking calls (P8).
 +    switch (Inst.getOpcode()) {
 +    default:
 +      return false;
 +    case ARM::BLX:
 +    case ARM::BLX_pred:
 +    case ARM::tBLXr:
-+    case ARM::tBLXi:
 +      return true;
 +    }
 +  }
@@ -242,13 +261,12 @@ index 000000000000..46faef134e36
 +    // Returns are terminators, not indirect CFG edges.
 +    if (isReturn(Inst))
 +      return false;
++    // BX rm is an interworking jump. BLX* are calls.
 +    switch (Inst.getOpcode()) {
 +    default:
 +      return false;
 +    case ARM::BX:
 +    case ARM::tBX:
-+    case ARM::BLX:
-+    case ARM::BLX_pred:
 +      return true;
 +    }
 +  }
@@ -286,6 +304,7 @@ index 000000000000..46faef134e36
 +      return false;
 +    case ARM::B:
 +    case ARM::BL:
++    case ARM::BLXi:
 +      OpNum = 0;
 +      return true;
 +    case ARM::Bcc:
@@ -430,29 +449,83 @@ index 000000000000..46faef134e36
 +  ///   .word Target
 +  bool matchAbsLongVeneer(const BinaryFunction &BF,
 +                          uint64_t &TargetAddress) const override {
-+    if (BF.getSize() < 8 && BF.getMaxSize() < 8)
-+      return false;
 +    if (BF.empty())
 +      return false;
++    const BinaryContext &BC = BF.getBinaryContext();
++    const uint64_t Addr = BF.getAddress();
++    // Prefer symbol size: MaxSize often spans linker fill to a far callee
++    // (e.g. LongLdrPcThunk), so probing MaxSize would hit padding words.
++    const uint64_t SymSize = BF.getSize() ? BF.getSize() : BF.getMaxSize();
++    const uint64_t ScanSize = std::max(SymSize, BF.getMaxSize());
 +
-+    // Prefer reading the absolute word at function+4.
-+    ErrorOr<uint64_t> Contents = BF.getBinaryContext().getUnsignedValueAtAddress(
-+        BF.getAddress() + 4, /*Size=*/4);
-+    if (!Contents) {
-+      // Fall back to disassembled constant-island path when available.
-+      if (!BF.hasConstantIsland() || BF.size() != 1)
++    auto tryWordAt = [&](uint64_t Off, uint64_t Limit) -> bool {
++      if (Off + 4 > Limit)
 +        return false;
-+      const BinaryBasicBlock &BB = BF.front();
-+      if (BB.size() < 1)
++      ErrorOr<uint64_t> Word =
++          BC.getUnsignedValueAtAddress(Addr + Off, /*Size=*/4);
++      if (!Word || !*Word)
 +        return false;
-+      const MCInst &Ldr = BB.getInstructionAtIndex(0);
-+      if (Ldr.getOpcode() != ARM::LDRi12 && Ldr.getOpcode() != ARM::LDR_PRE_IMM &&
-+          Ldr.getOpcode() != ARM::LDR_POST_IMM)
++      // Clear Thumb LSB so getBinaryFunctionAtAddress can resolve the callee.
++      const uint64_t Cand = *Word & ~1ULL;
++      if (!Cand || !BC.getBinaryFunctionAtAddress(Cand))
 +        return false;
-+      return false;
++      TargetAddress = Cand;
++      return true;
++    };
++
++    // LLD ARM/Thumb absolute veneer literal slots:
++    // ARM:    ldr pc,[pc,#-4]; .word               -> +4 (sym size 8)
++    // ARM:    ldr r12,[pc]; bx r12; .word          -> +8 (sym size 12)
++    // Thumb:  bx pc; …; ldr pc,[pc,#-4]; .word     -> +8 or +12
++    if (!BF.isARMThumb()) {
++      if (tryWordAt(4, SymSize) || tryWordAt(8, SymSize))
++        return true;
++      // Fall back only if symbol size is missing/wrong.
++      if (ScanSize != SymSize &&
++          (tryWordAt(4, ScanSize) || tryWordAt(8, ScanSize)))
++        return true;
++    } else {
++      if (tryWordAt(8, SymSize) || tryWordAt(12, SymSize) ||
++          (SymSize >= 8 && tryWordAt(SymSize - 4, SymSize)))
++        return true;
++      if (ScanSize != SymSize &&
++          (tryWordAt(8, ScanSize) || tryWordAt(12, ScanSize) ||
++           (ScanSize >= 8 && tryWordAt(ScanSize - 4, ScanSize))))
++        return true;
 +    }
-+    TargetAddress = *Contents;
-+    return TargetAddress != 0;
++    if (SymSize >= 8 && SymSize <= 20 && tryWordAt(SymSize - 4, SymSize))
++      return true;
++    return false;
++  }
++
++  void adjustCallForTargetMode(MCInst &Inst, bool SrcThumb, bool DstThumb,
++                               MCContext *Ctx) const override {
++    const MCSymbol *Target = getTargetSymbol(Inst);
++    if (!Target || !Ctx)
++      return;
++    const bool Cross = SrcThumb != DstThumb;
++    const bool WasTail = isTailCall(Inst);
++    if (SrcThumb) {
++      if (Cross)
++        Inst = MCInstBuilder(ARM::tBLXi)
++                   .addImm(ARMCC::AL)
++                   .addReg(0)
++                   .addExpr(MCSymbolRefExpr::create(Target, *Ctx));
++      else
++        Inst = MCInstBuilder(ARM::tBL)
++                   .addImm(ARMCC::AL)
++                   .addReg(0)
++                   .addExpr(MCSymbolRefExpr::create(Target, *Ctx));
++    } else {
++      if (Cross)
++        Inst = MCInstBuilder(ARM::BLXi)
++                   .addExpr(MCSymbolRefExpr::create(Target, *Ctx));
++      else
++        Inst = MCInstBuilder(ARM::BL).addExpr(
++            MCSymbolRefExpr::create(Target, *Ctx));
++    }
++    if (WasTail)
++      setTailCall(Inst);
 +  }
 +
 +  void createReturn(MCInst &Inst) const override {

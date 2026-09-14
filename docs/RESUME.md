@@ -76,15 +76,17 @@ apt-get update -qq && apt-get install -y -qq qemu-system-arm
 - **P0–P4 one-shot:** `./scripts/verify-bolt-arm32-milestones.sh` → `ALL MILESTONES P0-P4 PASSED`
 - **P4 identity rewrite:** `BOLT_BENCH_ISA=arm` → **4/1389 overwritten**; QEMU boots rewritten ELF; all four `bolt_bench: … done` lines print
 - **P5 veneers:** `./scripts/verify-bolt-arm32-veneer.sh` → linker veneer removed, LongJmp stub in output (`movw`/`movt`/`bx`), **`qemu-arm` exit 42**
-- **ARM lit:** `llvm-lit bolt/test/ARM` — 9/9 passed (incl. `thumb-it`)
+- **ARM lit:** `llvm-lit bolt/test/ARM` — 10/10 passed (incl. `thumb-it`, `arm-interwork`)
 - **`check-bolt`:** 658 passed, 0 failed (754 discovered; skips/unsupported expected)
 - **P6 Thumb:** default `-mthumb` benches identity-rewritten; qemu-system-arm `lk.bolt_bench=all` prints all `done` lines + console
 - **P7 IT:** `bolt_bench_it_cond` with inline `ite`/`itt`; identity rewrite; QEMU `it_cond` + `all` green
+- **P8 interwork:** `bolt_bench_interwork` (ARM↔Thumb callees); lit + narrow funcs rewrite; QEMU `interwork` + `all` green
 
 **Still pending:**
 
-- Full-binary rewrite without `--funcs-file` (kernel host functions; not a P4–P7 gate)
-- P8 interworking benches
+- Full-binary rewrite without `--funcs-file` (kernel host functions; not a P4–P8 gate)
+- Full `bolt_bench_*` funcs-file rewrite breaks sequential `all` (trampoline; use narrow set for interwork)
+- P9 instrumentation + ARM32 bare-metal bolt-rt
 - On-target `.fdata` serialization over UART (optional; QMP works)
 - Rebase llvm-project to `main` before opening upstream PRs
 
@@ -170,7 +172,7 @@ BOLT_BENCH_ISA=arm REQUIRE_OVERWRITE=1 BOOT_REWRITTEN=1 \
 # bolt_bench_.* (shell glob bolt_bench_* is NOT a valid regex for --funcs-file).
 ```
 
-**Next rung:** P8 interworking.
+**Next rung:** P9 instrumentation + RAM profile.
 
 Refresh overlay patches from the volume tree:
 

@@ -96,7 +96,7 @@ index b771e6a8b120..c762ecd39ea1 100644
        Insertions;
  
 diff --git a/bolt/lib/Passes/VeneerElimination.cpp b/bolt/lib/Passes/VeneerElimination.cpp
-index 9037390d06a4..60f7ad4ba001 100644
+index 9037390d06a4..a6f0b5981260 100644
 --- a/bolt/lib/Passes/VeneerElimination.cpp
 +++ b/bolt/lib/Passes/VeneerElimination.cpp
 @@ -36,7 +36,7 @@ namespace llvm {
@@ -108,6 +108,48 @@ index 9037390d06a4..60f7ad4ba001 100644
      return Error::success();
  
    std::unordered_map<const MCSymbol *, const MCSymbol *> VeneerDestinations;
+@@ -176,7 +176,9 @@ Error VeneerElimination::runOnFunctions(BinaryContext &BC) {
+         if (!BC.MIB->isCall(Instr) || BC.MIB->isIndirectCall(Instr))
+           continue;
+ 
+-        const MCSymbol *TargetSymbol = BC.MIB->getTargetSymbol(Instr, 0);
++        const MCSymbol *TargetSymbol = BC.MIB->getTargetSymbol(Instr);
++        if (!TargetSymbol)
++          continue;
+         auto It = VeneerDestinations.find(TargetSymbol);
+         if (It == VeneerDestinations.end())
+           continue;
+@@ -191,6 +193,30 @@ Error VeneerElimination::runOnFunctions(BinaryContext &BC) {
+       dbgs() << "BOLT-INFO: number of linker-inserted veneers call sites: "
+              << VeneerCallers << "\n");
+   (void)VeneerCallers;
++
++  // P8: pick BL vs BLX from caller/callee ARM↔Thumb mode.
++  if (BC.isARM()) {
++    for (BinaryFunction &BF :
++         llvm::make_second_range(BC.getBinaryFunctions())) {
++      if (!BF.isSimple() || BF.isIgnored())
++        continue;
++      for (BinaryBasicBlock &BB : BF) {
++        for (MCInst &Instr : BB) {
++          if (!BC.MIB->isCall(Instr) || BC.MIB->isIndirectCall(Instr))
++            continue;
++          const MCSymbol *TSym = BC.MIB->getTargetSymbol(Instr);
++          if (!TSym)
++            continue;
++          BinaryFunction *Tgt = BC.getFunctionForSymbol(TSym);
++          if (!Tgt)
++            continue;
++          BC.MIB->adjustCallForTargetMode(Instr, BF.isARMThumb(),
++                                          Tgt->isARMThumb(), BC.Ctx.get());
++        }
++      }
++    }
++  }
++
+   return Error::success();
+ }
+ 
 diff --git a/bolt/lib/Rewrite/BinaryPassManager.cpp b/bolt/lib/Rewrite/BinaryPassManager.cpp
 index 6e3022c491a7..df13ae16f66e 100644
 --- a/bolt/lib/Rewrite/BinaryPassManager.cpp

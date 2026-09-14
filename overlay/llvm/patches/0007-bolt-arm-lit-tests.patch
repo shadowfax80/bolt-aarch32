@@ -57,6 +57,51 @@ index 000000000000..e245199cfb74
 +    *(.text.far)
 +  }
 +}
+diff --git a/bolt/test/ARM/Inputs/arm32-interwork.s b/bolt/test/ARM/Inputs/arm32-interwork.s
+new file mode 100644
+index 000000000000..43e129c306a6
+--- /dev/null
++++ b/bolt/test/ARM/Inputs/arm32-interwork.s
+@@ -0,0 +1,39 @@
++	.syntax unified
++	.text
++	.global _start
++	.type _start, %function
++	.arm
++_start:
++	@ ARM caller → Thumb callee (must encode BLX / survive identity rewrite)
++	blx thumb_add1
++	@ r0 should be 43
++	cmp r0, #43
++	bne .Lfail
++	blx thumb_to_arm
++	cmp r0, #42
++	bne .Lfail
++	mov r0, #0
++	bx lr
++.Lfail:
++	mov r0, #1
++	bx lr
++
++	.thumb
++	.thumb_func
++	.type thumb_add1, %function
++thumb_add1:
++	adds r0, #1
++	bx lr
++
++	.thumb_func
++	.type thumb_to_arm, %function
++thumb_to_arm:
++	@ Thumb caller → ARM callee
++	blx arm_ret42
++	bx lr
++
++	.arm
++	.type arm_ret42, %function
++arm_ret42:
++	mov r0, #42
++	bx lr
 diff --git a/bolt/test/ARM/Inputs/arm32-thumb-exit.s b/bolt/test/ARM/Inputs/arm32-thumb-exit.s
 new file mode 100644
 index 000000000000..0aaa01448312
@@ -191,6 +236,36 @@ index 000000000000..d8eba72e2c8a
 +CHECK: bl
 +CHECK: b
 +CHECK-NOT: BOLT-ERROR
+diff --git a/bolt/test/ARM/arm-interwork.test b/bolt/test/ARM/arm-interwork.test
+new file mode 100644
+index 000000000000..8a7a4fe1fc97
+--- /dev/null
++++ b/bolt/test/ARM/arm-interwork.test
+@@ -0,0 +1,24 @@
++## ARM↔Thumb interworking calls survive identity rewrite.
++
++# RUN: llvm-mc -filetype=obj -triple=armv7-unknown-linux-gnueabi %p/Inputs/arm32-interwork.s -o %t.o
++# RUN: ld.lld --emit-relocs -T %p/Inputs/arm32.ld %t.o -o %t.exe
++# RUN: llvm-bolt %t.exe -o %t.bolt --print-cfg 2>&1 | FileCheck %s --check-prefix=CHECK-LOG
++# RUN: llvm-objdump -d --triple=armv7a-none-eabi %t.bolt | FileCheck %s --check-prefix=CHECK-OUT
++# RUN: llvm-objdump -s --section=.text %t.bolt | FileCheck %s --check-prefix=CHECK-HEX
++
++# CHECK-LOG-DAG: Binary Function "_start
++# CHECK-LOG-DAG: Binary Function "thumb_add1
++# CHECK-LOG-DAG: Binary Function "arm_ret42
++# CHECK-LOG-DAG: Binary Function "thumb_to_arm
++# CHECK-LOG-NOT: BOLT-ERROR
++# CHECK-LOG-NOT: Assertion
++
++# ARM→Thumb uses BLX; ARM callee retained.
++# CHECK-OUT: <_start>
++# CHECK-OUT: {{[[:space:]]}}blx{{[[:space:]]}}
++# CHECK-OUT: <arm_ret42>
++
++# LE encodings: ARM BLX (..0000fa), ARM bx lr (1eff2fe1), Thumb bx lr (7047).
++# CHECK-HEX: 0000fa
++# CHECK-HEX: 1eff2fe1
++# CHECK-HEX: 7047
 diff --git a/bolt/test/ARM/arm-longjmp-veneer.test b/bolt/test/ARM/arm-longjmp-veneer.test
 new file mode 100644
 index 000000000000..d7c3c0b33271
