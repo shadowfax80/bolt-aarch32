@@ -44,10 +44,10 @@ index aae520d5afe5..cfe7d8ca1338 100644
  
 diff --git a/bolt/lib/Target/ARM/ARMMCPlusBuilder.cpp b/bolt/lib/Target/ARM/ARMMCPlusBuilder.cpp
 new file mode 100644
-index 000000000000..d0c77cbba916
+index 000000000000..742161c16a9a
 --- /dev/null
 +++ b/bolt/lib/Target/ARM/ARMMCPlusBuilder.cpp
-@@ -0,0 +1,1005 @@
+@@ -0,0 +1,1248 @@
 +//===- bolt/Target/ARM/ARMMCPlusBuilder.cpp ---------------------------===//
 +//
 +// Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
@@ -255,6 +255,31 @@ index 000000000000..d0c77cbba916
 +    }
 +    case ARM::MOVPCLR:
 +      return true;
++    // POP {..., pc} / LDM ...!, {..., pc} -- the standard epilogue for any
++    // function that spills callee-saved registers. Dual-purpose opcodes:
++    // whether a given instance is a return depends on whether PC happens to
++    // be in the register list, not on the opcode alone, so this has to be
++    // checked here dynamically rather than as a static MCInstrDesc property.
++    //
++    // NOTE: this recognition feeds isIndirectBranch()'s suppression check
++    // below. Deliberately NOT also wired into isTerminator(): doing so is
++    // semantically correct (a POP{pc} really does end a basic block) but
++    // empirically corrupts emission for any relocated function using it --
++    // confirmed by a reproducible before/after test (hot_loop stopped
++    // printing its result after rewrite, byte-identical function body
++    // otherwise). That appears to be a latent BOLT-core CFG/emission issue
++    // this dynamic-terminator case exposes, not something fixable from this
++    // target file alone; see README's known-limitations section.
++    case ARM::LDMIA_UPD:
++    case ARM::LDMDB_UPD:
++    case ARM::tPOP:
++    case ARM::t2LDMIA_UPD:
++    case ARM::t2LDMDB_UPD: {
++      for (const MCOperand &Op : Inst)
++        if (Op.isReg() && Op.getReg() == ARM::PC)
++          return true;
++      return false;
++    }
 +    }
 +    return Analysis->isReturn(Inst);
 +  }
@@ -266,7 +291,15 @@ index 000000000000..d0c77cbba916
 +    // BX rm is an interworking jump. BLX* are calls.
 +    switch (Inst.getOpcode()) {
 +    default:
-+      return false;
++      // t2TBB/t2TBH (Thumb-2 table branch byte/halfword -- the standard
++      // codegen for a switch statement with enough cases) are already
++      // flagged isBranch/isTerminator/isIndirectBranch at the MCInstrDesc
++      // level upstream (ARMInstrThumb2.td), so the generic Analysis-based
++      // fallback below gets this right on its own; this switch used to
++      // hard-return false for every opcode but BX/tBX, silently overriding
++      // that correct upstream answer back to false. Route unrecognized
++      // opcodes through the base class instead of assuming "not a branch".
++      return MCPlusBuilder::isIndirectBranch(Inst);
 +    case ARM::BX:
 +    case ARM::tBX:
 +      return true;
@@ -289,15 +322,141 @@ index 000000000000..d0c77cbba916
 +    if (isTailCall(Instruction))
 +      return IndirectBranchType::POSSIBLE_TAIL_CALL;
 +
++    switch (Instruction.getOpcode()) {
++    case ARM::t2TBB:
++    case ARM::t2TBH:
++      // A real table-branch jump table: entries are 1-byte (TBB) or 2-byte
++      // (TBH) unsigned halfword-counts, doubled and added to the PC value
++      // of the instruction after this one -- not the fixed-width
++      // pointer/PC-relative-delta array BOLT's generic jump-table reader
++      // (BinaryFunction::analyzeJumpTable) assumes for every other target.
++      // Decoding entries correctly needs that reader to support a
++      // sub-word, TBB/TBH-specific entry format, which is BOLT-core work,
++      // not something expressible from this target file alone.
++      //
++      // Returning UNKNOWN here (rather than leaving the caller in the
++      // isIndirectBranch()==false state this had before) is still the
++      // change that matters: since isIndirectBranch() above now correctly
++      // reports true for these two opcodes, BinaryFunction::disassemble()
++      // calls handleIndirectBranch() for them, which -- for UNKNOWN --
++      // records the offset and safely stops treating the instruction as
++      // fall-through, rather than continuing linear disassembly into the
++      // jump-table data bytes that immediately follow it. The function
++      // still won't get switch-aware layout optimization, but it no
++      // longer risks disassembling its own jump table as code.
++      //
++      // Verified: the compiler emits real $d/$t ELF mapping symbols
++      // bracketing the table (confirmed via readelf -s on a real TBB
++      // site), and BOLT's generic BinaryContext::getMarkerType() already
++      // classifies ARM's $a/$t/$d correctly and feeds
++      // BinaryFunction::markDataAtOffset/markCodeAtOffset from them -- so
++      // the disassembly loop's getSizeOfDataInCodeAt() skip already
++      // protects the table bytes independently of this indirect-branch
++      // classification. This fix's contribution is specifically making
++      // isIndirectBranch() stop lying about what kind of instruction a
++      // TBB/TBH is, not the data-skip itself (which was already correct).
++      return IndirectBranchType::UNKNOWN;
++    default:
++      break;
++    }
++
 +    return IndirectBranchType::UNKNOWN;
 +  }
 +
++  // True only for a literal-pool / constant-island *load* (base register is
++  // PC): ARM::LDRi12 / ARM::t2LDRi12 with Rn=PC, or the compact
++  // ARM::tLDRpci / ARM::t2LDRpci literal-load forms the assembler prefers
++  // when the base register isn't spelled out explicitly. Direct B/BL are
++  // NOT included here -- they're handled as branches (evaluateBranch /
++  // getTargetSymbol), and returning true for them here would make
++  // reloc-mode disassembly fatal when the BL target is a far symbol (this
++  // scoping was already correct in the version of this function that
++  // always returned false; the bug was that literal loads returned false
++  // too, so BOLT never adjusted their PC-relative offset when a function
++  // moved -- see the literal-pool bug in docs/KNOWN_LIMITATIONS.md).
++  bool isLiteralLoad(const MCInst &Inst) const {
++    switch (Inst.getOpcode()) {
++    case ARM::LDRi12:
++    case ARM::t2LDRi12:
++      return Inst.getOperand(1).isReg() &&
++             Inst.getOperand(1).getReg() == ARM::PC;
++    case ARM::tLDRpci:
++    case ARM::t2LDRpci:
++      return true;
++    default:
++      return false;
++    }
++  }
++
 +  bool hasPCRelOperand(const MCInst &Inst) const override {
-+    // Direct B/BL are handled as branches (evaluateBranch / getTargetSymbol),
-+    // not as x86-style PC-relative memory operands. Returning true here makes
-+    // reloc-mode disassembly fatal when the BL target is a far symbol.
-+    (void)Inst;
-+    return false;
++    return isLiteralLoad(Inst);
++  }
++
++  // Operand index of the displacement/offset field for each literal-load
++  // opcode -- verified against `llvm-mc -show-inst`: LDRi12/t2LDRi12 with
++  // an explicit PC base have (Rt, Rn, imm, pred, predreg), so the
++  // displacement is operand 2; tLDRpci/t2LDRpci have no explicit base
++  // register operand at all (Rt, imm, pred, predreg), so it is operand 1.
++  MCInst::iterator getMemOperandDisp(MCInst &Inst) const override {
++    if (!isLiteralLoad(Inst))
++      return Inst.end();
++    switch (Inst.getOpcode()) {
++    case ARM::LDRi12:
++    case ARM::t2LDRi12:
++      return Inst.begin() + 2;
++    case ARM::tLDRpci:
++    case ARM::t2LDRpci:
++      return Inst.begin() + 1;
++    default:
++      return Inst.end();
++    }
++  }
++
++  // Compute the address a literal-pool load actually reads from, following
++  // the two distinct "PC read-ahead" conventions the architecture defines:
++  // ARM state reads PC as the current instruction's address + 8 (the
++  // classic 3-stage-pipeline convention; ARM instructions are always
++  // 4-byte aligned already, so no explicit re-alignment is needed). Thumb
++  // state (both the compact 16-bit tLDRpci and the 32-bit Thumb-2
++  // t2LDRpci/t2LDRi12) instead reads PC as (current instruction's address
++  // + 4), word-aligned down -- this holds for 32-bit Thumb-2 instructions
++  // too, not just 16-bit ones, since it is a property of Thumb *state*,
++  // not of any specific instruction's encoding width. Verified operand
++  // sign/scale via llvm-mc: LDRi12/t2LDRpci decode their immediate as an
++  // already-signed byte offset (negative means subtract); tLDRpci decodes
++  // its immediate as an already-scaled (x4), unsigned, byte offset;
++  // t2LDRi12 (explicit PC base, wide encoding) only supports a positive
++  // offset. All four are handled uniformly below as "base + signed imm".
++  bool evaluateMemOperandTarget(const MCInst &Inst, uint64_t &Target,
++                                uint64_t Address,
++                                uint64_t Size) const override {
++    (void)Size;
++    if (!isLiteralLoad(Inst))
++      return false;
++    int64_t Imm;
++    uint64_t Base;
++    switch (Inst.getOpcode()) {
++    case ARM::LDRi12:
++      Imm = Inst.getOperand(2).getImm();
++      Base = Address + 8;
++      break;
++    case ARM::t2LDRi12:
++      Imm = Inst.getOperand(2).getImm();
++      Base = (Address + 4) & ~uint64_t(3);
++      break;
++    case ARM::tLDRpci:
++      Imm = Inst.getOperand(1).getImm();
++      Base = (Address + 4) & ~uint64_t(3);
++      break;
++    case ARM::t2LDRpci:
++      Imm = Inst.getOperand(1).getImm();
++      Base = (Address + 4) & ~uint64_t(3);
++      break;
++    default:
++      return false;
++    }
++    Target = Base + Imm;
++    return true;
 +  }
 +
 +  bool getSymbolRefOperandNum(const MCInst &Inst, unsigned &OpNum) const {
@@ -544,9 +703,6 @@ index 000000000000..d0c77cbba916
 +
 +  void createUncondBranch(MCInst &Inst, const MCSymbol *TBB,
 +                          MCContext *Ctx) const override {
-+    if (TBB && TBB->getName().contains("bench_banner"))
-+      llvm::errs() << "BOLT-ARM-CUB: thumbSTI=" << InThumbMode()
-+                   << " tgt=" << TBB->getName() << "\n";
 +    if (InThumbMode()) {
 +      // t2B: (target, pred) -> target, CC, CCR
 +      Inst = MCInstBuilder(ARM::t2B)
@@ -692,13 +848,18 @@ index 000000000000..d0c77cbba916
 +                 .addImm(ARMCC::AL)
 +                 .addReg(0);
 +    } else {
++      // SUBri operand order verified via `llvm-mc -show-inst`: Rd, Rn,
++      // imm, pred, predreg, S-flag-def-reg (6 operands) -- pred/predreg do
++      // NOT come before the immediate, unlike an earlier, wrong version of
++      // this helper that silently mis-encoded predicate=EQ and a bogus
++      // immediate by feeding the encoder operands in the wrong slots.
 +      Inst = MCInstBuilder(ARM::SUBri)
 +                 .addReg(ARM::SP)
 +                 .addReg(ARM::SP)
++                 .addImm(imm)
 +                 .addImm(ARMCC::AL)
 +                 .addReg(0)
-+                 .addImm(imm)
-+                 .addImm(0);
++                 .addReg(0);
 +    }
 +  }
 +
@@ -713,13 +874,15 @@ index 000000000000..d0c77cbba916
 +                 .addImm(ARMCC::AL)
 +                 .addReg(0);
 +    } else {
++      // Same fix as SUBri above: imm before pred/predreg, plus the
++      // trailing S-flag-def-reg operand ADDri actually needs.
 +      Inst = MCInstBuilder(ARM::ADDri)
 +                 .addReg(ARM::SP)
 +                 .addReg(ARM::SP)
++                 .addImm(imm)
 +                 .addImm(ARMCC::AL)
 +                 .addReg(0)
-+                 .addImm(imm)
-+                 .addImm(0);
++                 .addReg(0);
 +    }
 +  }
 +
@@ -734,13 +897,21 @@ index 000000000000..d0c77cbba916
 +                 .addImm(ARMCC::AL)
 +                 .addReg(0);
 +    } else {
++      // LDRi12 verified via `llvm-mc -show-inst`: Rt, Rn, imm12, pred,
++      // predreg (5 operands) -- same fix as SUBri/ADDri above. The old
++      // 6-operand wrong-order version fed the encoder AL(14) as the
++      // immediate and 0 as the predicate, producing "ldreq ...,#0xe"
++      // instead of "ldr ...,#0" -- confirmed via a real instrumented ARM
++      // boot: the reload of spilled registers after a counter-increment
++      // snippet silently executed conditionally (predicate EQ, usually
++      // false) with the wrong offset, corrupting whatever register/stack
++      // state depended on it.
 +      Inst = MCInstBuilder(ARM::LDRi12)
 +                 .addReg(To)
 +                 .addReg(From)
-+                 .addImm(ARMCC::AL)
-+                 .addReg(0)
 +                 .addImm(offset)
-+                 .addImm(0);
++                 .addImm(ARMCC::AL)
++                 .addReg(0);
 +    }
 +  }
 +
@@ -754,13 +925,13 @@ index 000000000000..d0c77cbba916
 +                 .addImm(ARMCC::AL)
 +                 .addReg(0);
 +    } else {
++      // Same fix as LDRi12 above.
 +      Inst = MCInstBuilder(ARM::STRi12)
 +                 .addReg(From)
 +                 .addReg(To)
-+                 .addImm(ARMCC::AL)
-+                 .addReg(0)
 +                 .addImm(offset)
-+                 .addImm(0);
++                 .addImm(ARMCC::AL)
++                 .addReg(0);
 +    }
 +  }
 +
@@ -788,45 +959,123 @@ index 000000000000..d0c77cbba916
 +    createStackPointerDecrement(Insts.back(), Regs.size() * 4);
 +  }
 +
-+  InstructionListType createAtomicInc(MCPhysReg RegAddr, MCPhysReg RegTmp,
-+                                      MCPhysReg RegStatus) const {
-+    // Non-atomic low-32-bit bump. Enough for QEMU smp=1; avoids Thumb
-+    // exclusive encoding/feature pitfalls on ARMv7-A.
-+    (void)RegStatus;
-+    InstructionListType Insts;
-+    Insts.emplace_back();
-+    loadReg(Insts.back(), RegTmp, RegAddr, /*offset=*/0);
-+    if (InThumbMode()) {
-+      // t2ADDri12: Rd, Rn, imm12, pred, predreg
-+      Insts.emplace_back(MCInstBuilder(ARM::t2ADDri12)
-+                             .addReg(RegTmp)
-+                             .addReg(RegTmp)
-+                             .addImm(1)
-+                             .addImm(ARMCC::AL)
-+                             .addReg(0));
-+    } else {
-+      Insts.emplace_back(MCInstBuilder(ARM::ADDri)
-+                             .addReg(RegTmp)
-+                             .addReg(RegTmp)
-+                             .addImm(ARMCC::AL)
-+                             .addReg(0)
-+                             .addImm(1)
-+                             .addImm(0));
-+    }
-+    Insts.emplace_back();
-+    storeReg(Insts.back(), RegTmp, RegAddr, /*offset=*/0);
-+    return Insts;
-+  }
-+
++  // The retry loop needs its load instruction labeled so the trailing
++  // conditional branch can target it on failure; MCInst has no room for a
++  // label, so the loop is built as its own basic block inside an injected
++  // helper function (mirrors AArch64MCPlusBuilder's non-LSE
++  // createInstrCounterIncrFunc). This also keeps createInstrIncMemory's
++  // return value a flat instruction sequence, since it is spliced inline at
++  // arbitrary call sites with no CFG of its own.
++  //
++  // Operand orders below are verified against `llvm-mc -show-inst` output
++  // for each opcode, not assumed from other call sites in this file --
++  // ADDri in particular has its immediate BEFORE the predicate pair, not
++  // after (confirmed the previous non-atomic version got this backwards in
++  // the ARM, non-Thumb encoding path; that path was never exercised by any
++  // test here since all instrumentation testing used the default Thumb LK
++  // build).
++  // Bare-metal, single-core (this target is never run SMP) atomic counter
++  // bump via IRQ masking rather than an ldrex/strex retry loop.
++  //
++  // An ldrex/strex loop needs a backward branch, which -- since this
++  // function's return value is a flat instruction sequence spliced inline
++  // at an arbitrary point in an existing basic block, not a CFG node of
++  // its own -- has no instruction-level home for a label to branch back
++  // to. AArch64MCPlusBuilder's equivalent solves this by building the
++  // retry loop as a real basic block in a separate injected helper
++  // function (createInstrCounterIncrFunc), called via BL from here. That
++  // pattern does not transfer to this target: BOLT-core's
++  // Instrumentation.cpp calls createInstrCounterIncrFunc() from exactly
++  // one call site, gated `if (BC.isAArch64())` -- unconditionally false
++  // for AArch32, so an ARM override of that hook is simply never invoked,
++  // confirmed via direct instrumentation of a real LK binary (segfaults
++  // dereferencing a still-null helper-function pointer otherwise; this
++  // was an earlier version of this fix's own bug, not a hypothetical).
++  //
++  // The actual atomicity requirement here is also different from
++  // AArch64/x86's: this counter is bumped from bare-metal instrumented
++  // code with no other CPU ever running concurrently (LK is only ever
++  // built and run here with smp=1) -- ldrex/strex solves multi-core cache
++  // coherency, which does not apply. The real hazard is an ISR reading or
++  // writing the same counter while the mainline increment is
++  // mid-sequence, which CPSID/CPSIE (IRQ masking) around the
++  // load-modify-store solves directly, with straight-line code and no
++  // control flow at all. As a further benefit, CPS does not touch NZCV,
++  // so (unlike CMP+Bcc) it needs no flag save/restore either.
 +  InstructionListType createInstrIncMemory(const MCSymbol *Target,
 +                                           MCContext *Ctx, bool IsLeaf,
 +                                           unsigned CodePointerSize) override {
++    (void)IsLeaf;
++    (void)CodePointerSize;
 +    InstructionListType Insts;
 +    spillRegs(Insts, {ARM::R0, ARM::R1, ARM::R2});
 +    InstructionListType Addr = materializeAddress(Target, Ctx, ARM::R0);
 +    Insts.insert(Insts.end(), Addr.begin(), Addr.end());
-+    InstructionListType Inc = createAtomicInc(ARM::R0, ARM::R1, ARM::R2);
-+    Insts.insert(Insts.end(), Inc.begin(), Inc.end());
++
++    // Save CPSR (R2) before disabling IRQs, and restore it afterward
++    // (rather than unconditionally re-enabling with cpsie) -- this
++    // snippet can land inside code that was already running with
++    // interrupts disabled (a boot-critical section, say), and
++    // unconditionally forcing them back on at the end would break that
++    // invariant. An earlier version of this fix did exactly that and
++    // crashed shortly after a correctly-completed instrumented call,
++    // confirmed via a direct before/after boot test.
++    Insts.emplace_back();
++    if (InThumbMode())
++      Insts.back() =
++          MCInstBuilder(ARM::t2MRS_AR).addReg(ARM::R2).addImm(ARMCC::AL).addReg(0);
++    else
++      Insts.back() =
++          MCInstBuilder(ARM::MRS).addReg(ARM::R2).addImm(ARMCC::AL).addReg(0);
++
++    // cpsid i: imod=3 (ID, disable), iflags=2 (I, IRQ only). No predicate
++    // operand -- CPS cannot be conditionally executed at all.
++    Insts.emplace_back();
++    if (InThumbMode())
++      Insts.back() = MCInstBuilder(ARM::tCPS).addImm(3).addImm(2);
++    else
++      Insts.back() = MCInstBuilder(ARM::CPS2p).addImm(3).addImm(2);
++
++    Insts.emplace_back();
++    loadReg(Insts.back(), ARM::R1, ARM::R0, /*offset=*/0);
++    if (InThumbMode()) {
++      // t2ADDri12: Rd, Rn, imm12, pred, predreg
++      Insts.emplace_back(MCInstBuilder(ARM::t2ADDri12)
++                             .addReg(ARM::R1)
++                             .addReg(ARM::R1)
++                             .addImm(1)
++                             .addImm(ARMCC::AL)
++                             .addReg(0));
++    } else {
++      // ADDri: Rd, Rn, imm(shifter), pred, predreg, s-flag-def-reg
++      Insts.emplace_back(MCInstBuilder(ARM::ADDri)
++                             .addReg(ARM::R1)
++                             .addReg(ARM::R1)
++                             .addImm(1)
++                             .addImm(ARMCC::AL)
++                             .addReg(0)
++                             .addReg(0));
++    }
++    Insts.emplace_back();
++    storeReg(Insts.back(), ARM::R1, ARM::R0, /*offset=*/0);
++
++    // MSR CPSR_c, R2 (mask=1, control field only: mode/T/F/I bits, not
++    // NZCV) -- restores exactly the interrupt-enable state (and nothing
++    // else) that was captured before cpsid, whatever it was.
++    Insts.emplace_back();
++    if (InThumbMode())
++      Insts.back() = MCInstBuilder(ARM::t2MSR_AR)
++                          .addImm(1)
++                          .addReg(ARM::R2)
++                          .addImm(ARMCC::AL)
++                          .addReg(0);
++    else
++      Insts.back() = MCInstBuilder(ARM::MSR)
++                          .addImm(1)
++                          .addReg(ARM::R2)
++                          .addImm(ARMCC::AL)
++                          .addReg(0);
++
 +    reloadRegs(Insts, {ARM::R0, ARM::R1, ARM::R2});
 +    return Insts;
 +  }
@@ -925,12 +1174,6 @@ index 000000000000..d0c77cbba916
 +      return std::nullopt;
 +    auto [RelSymbol, RelAddend] = extractFixupExpr(Fixup);
 +    return Relocation({RelOffset, RelSymbol, RelType, RelAddend, 0});
-+  }
-+
-+  bool evaluateMemOperandTarget(const MCInst &Inst, uint64_t &Target,
-+                                uint64_t Address,
-+                                uint64_t Size) const override {
-+    return false;
 +  }
 +
 +  void createDirectBranch(MCInst &Inst, const MCSymbol *Target,

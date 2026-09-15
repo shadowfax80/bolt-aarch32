@@ -1,5 +1,5 @@
 diff --git a/bolt/lib/Passes/LongJmp.cpp b/bolt/lib/Passes/LongJmp.cpp
-index b771e6a8b120..c762ecd39ea1 100644
+index b771e6a8b120..02f2a944e52f 100644
 --- a/bolt/lib/Passes/LongJmp.cpp
 +++ b/bolt/lib/Passes/LongJmp.cpp
 @@ -11,6 +11,7 @@
@@ -80,23 +80,43 @@ index b771e6a8b120..c762ecd39ea1 100644
  
    const BinaryBasicBlock *TgtBB = Func.getBasicBlockForLabel(TgtSym);
    // Check for shared stubs from foreign functions
-@@ -576,8 +582,12 @@ bool LongJmpPass::needsStub(const BinaryBasicBlock &BB, const MCInst &Inst,
+@@ -576,8 +582,11 @@ bool LongJmpPass::needsStub(const BinaryBasicBlock &BB, const MCInst &Inst,
  Error LongJmpPass::relax(BinaryFunction &Func, bool &Modified) {
    const BinaryContext &BC = Func.getBinaryContext();
  
 -  assert(BC.isAArch64() && "Unsupported arch");
 -  constexpr int InsnSize = 4; // AArch64
 +  assert((BC.isAArch64() || BC.isARM()) && "Unsupported arch");
-+  const MCSubtargetInfo *SavedSTI = BC.MIB->getSTI();
-+  if (Func.isARMThumb() && BC.ThumbSTI)
-+    BC.MIB->setSTI(BC.ThumbSTI.get());
-+  auto RestoreSTI = llvm::make_scope_exit([&]() { BC.MIB->setSTI(SavedSTI); });
++  // Select the ARM- or Thumb-mode builder for this function rather than
++  // mutating the shared MIB's STI in place -- see BinaryContext::getMIBFor().
++  MCPlusBuilder *MIB = BC.getMIBFor(BC.isARM() && Func.isARMThumb());
 +  constexpr int InsnSize = 4; // AArch64 / ARM (Thumb-2 branches also 4)
    std::vector<std::pair<BinaryBasicBlock *, std::unique_ptr<BinaryBasicBlock>>>
        Insertions;
  
+@@ -595,7 +604,7 @@ Error LongJmpPass::relax(BinaryFunction &Func, bool &Modified) {
+       continue;
+ 
+     for (MCInst &Inst : BB) {
+-      if (BC.MIB->isPseudo(Inst))
++      if (MIB->isPseudo(Inst))
+         continue;
+ 
+       if (!mayNeedStub(BC, Inst)) {
+@@ -614,9 +623,9 @@ Error LongJmpPass::relax(BinaryFunction &Func, bool &Modified) {
+       // hot path if a branch, since this branch target is the cold region
+       // (but first check that the far away stub will be in range).
+       BinaryBasicBlock *InsertionPoint = &BB;
+-      if (Func.isSimple() && !BC.MIB->isCall(Inst) && FrontierAddress &&
++      if (Func.isSimple() && !MIB->isCall(Inst) && FrontierAddress &&
+           !BB.isCold()) {
+-        int BitsAvail = BC.MIB->getPCRelEncodingSize(Inst) - 1;
++        int BitsAvail = MIB->getPCRelEncodingSize(Inst) - 1;
+         uint64_t Mask = ~((1ULL << BitsAvail) - 1);
+         assert(FrontierAddress > DotAddress &&
+                "Hot code should be before the frontier");
 diff --git a/bolt/lib/Passes/VeneerElimination.cpp b/bolt/lib/Passes/VeneerElimination.cpp
-index 9037390d06a4..5a80ffb81989 100644
+index 9037390d06a4..d367944fb852 100644
 --- a/bolt/lib/Passes/VeneerElimination.cpp
 +++ b/bolt/lib/Passes/VeneerElimination.cpp
 @@ -36,7 +36,7 @@ namespace llvm {
@@ -119,7 +139,7 @@ index 9037390d06a4..5a80ffb81989 100644
          auto It = VeneerDestinations.find(TargetSymbol);
          if (It == VeneerDestinations.end())
            continue;
-@@ -191,6 +193,59 @@ Error VeneerElimination::runOnFunctions(BinaryContext &BC) {
+@@ -191,6 +193,56 @@ Error VeneerElimination::runOnFunctions(BinaryContext &BC) {
        dbgs() << "BOLT-INFO: number of linker-inserted veneers call sites: "
               << VeneerCallers << "\n");
    (void)VeneerCallers;
@@ -131,13 +151,12 @@ index 9037390d06a4..5a80ffb81989 100644
 +         llvm::make_second_range(BC.getBinaryFunctions())) {
 +      if (!BF.isSimple() || BF.isIgnored())
 +        continue;
-+      const MCSubtargetInfo *SavedSTI = BC.MIB->getSTI();
-+      if (BF.isARMThumb() && BC.ThumbSTI)
-+        BC.MIB->setSTI(BC.ThumbSTI.get());
++      // BC.isARM() is already guaranteed by the enclosing `if` above.
++      MCPlusBuilder *MIB = BC.getMIBFor(BF.isARMThumb());
 +      for (BinaryBasicBlock &BB : BF) {
 +        for (auto II = BB.begin(); II != BB.end();) {
 +          MCInst &Instr = *II;
-+          const MCSymbol *TSym = BC.MIB->getTargetSymbol(Instr);
++          const MCSymbol *TSym = MIB->getTargetSymbol(Instr);
 +          BinaryFunction *Tgt =
 +              TSym ? BC.getFunctionForSymbol(TSym) : nullptr;
 +          if (!Tgt) {
@@ -147,23 +166,23 @@ index 9037390d06a4..5a80ffb81989 100644
 +          const bool DstThumb = Tgt->isARMThumb();
 +          const bool Cross = BF.isARMThumb() != DstThumb;
 +          const bool DirectBr =
-+              BC.MIB->isBranch(Instr) && !BC.MIB->isConditionalBranch(Instr) &&
-+              !BC.MIB->isIndirectBranch(Instr);
-+          const bool TailLike = BC.MIB->isTailCall(Instr) &&
-+                                !BC.MIB->isIndirectCall(Instr) &&
-+                                !BC.MIB->isIndirectBranch(Instr);
++              MIB->isBranch(Instr) && !MIB->isConditionalBranch(Instr) &&
++              !MIB->isIndirectBranch(Instr);
++          const bool TailLike = MIB->isTailCall(Instr) &&
++                                !MIB->isIndirectCall(Instr) &&
++                                !MIB->isIndirectBranch(Instr);
 +          if (Cross && (DirectBr || TailLike) &&
-+              !(BC.MIB->isCall(Instr) && !BC.MIB->isTailCall(Instr))) {
++              !(MIB->isCall(Instr) && !MIB->isTailCall(Instr))) {
 +            InstructionListType Seq;
-+            BC.MIB->createShortJmp(Seq, TSym, BC.Ctx.get(),
++            MIB->createShortJmp(Seq, TSym, BC.Ctx.get(),
 +                                   /*IsTailCall=*/true);
 +            II = BB.replaceInstruction(II, Seq);
 +            II = std::next(II, static_cast<std::ptrdiff_t>(Seq.size()));
 +            continue;
 +          }
-+          if (BC.MIB->isCall(Instr) && !BC.MIB->isIndirectCall(Instr) &&
-+              !BC.MIB->isTailCall(Instr)) {
-+            BC.MIB->adjustCallForTargetMode(Instr, BF.isARMThumb(), DstThumb,
++          if (MIB->isCall(Instr) && !MIB->isIndirectCall(Instr) &&
++              !MIB->isTailCall(Instr)) {
++            MIB->adjustCallForTargetMode(Instr, BF.isARMThumb(), DstThumb,
 +                                            BC.Ctx.get());
 +            ++II;
 +            continue;
@@ -171,8 +190,6 @@ index 9037390d06a4..5a80ffb81989 100644
 +          ++II;
 +        }
 +      }
-+      if (SavedSTI)
-+        BC.MIB->setSTI(SavedSTI);
 +    }
 +  }
 +

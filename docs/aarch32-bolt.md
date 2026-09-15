@@ -4,6 +4,38 @@
 
 **Authoritative checklist:** [PROJECT_PLAN.md](PROJECT_PLAN.md) Phase 3 table.
 
+## Sibling repo: atfe-bolt-aarch32
+
+[`somraj80/atfe-bolt-aarch32`](https://github.com/somraj80/atfe-bolt-aarch32)
+carries the **same** BOLT AArch32 backend work, pinned to `arm/arm-toolchain`'s
+`arm-software` branch instead of a fixed `llvm/llvm-project` commit. The two
+repos have no shared git history, so nothing merges automatically -- **a fix
+made in one must be deliberately ported to the other**, every time, or they
+silently re-diverge. Both checkouts live on the same RunPod network volume
+(`j1d9e6wq5l`: `/workspace/bolt-lk-overlay` here, `/workspace/atfe-bolt-aarch32`
+there), so `diff` the two `third_party/llvm-project` trees directly rather than
+relying on commit messages.
+
+**2026-09-15 reconciliation pass:** the two repos had drifted across ~8 core
+BOLT files. Ported from atfe-bolt-aarch32 into this repo: the `setSTI()`
+race-condition fix (replaced with `BinaryContext::getMIBFor(bool IsThumb)` +
+a separate `ThumbMIB`), the D1 literal-pool/constant-island fix (JITLink
+`Thumb_LdrPcRel` relocation support + the `handleAddressRef` `isARM()` gate),
+the D2 instrumentation ARM/Thumb dispatch fix in
+`scripts/fix-kernel-elf-sections.py`, the TBB/TBH `isIndirectBranch` fix, the
+ARM-mode register-spill operand-order fix, and the IRQ-masking atomic-counter
+rewrite. Verified via P0-P4 (full identity-rewrite + boot, all benchmarks)
+and a 4x-repeat instrumented ARM-mode determinism check (was previously
+untested here -- P9 was only ever verified with Thumb hooks).
+
+That reconciliation also surfaced a **new** bug present in *both* repos:
+`llvm-nm`'s default output filters `$t`/`$d` ELF mapping symbols, so
+`is_thumb_symbol()` in `fix-kernel-elf-sections.py` could never actually see
+them and always returned "ARM" -- silently broken on both, just never
+visibly wrong on atfe-bolt-aarch32 because the one function it happened to
+test there was genuinely ARM-mode already. Fixed here (and ported back to
+atfe-bolt-aarch32) by adding `-a`/`--special-syms` to the `nm` invocation.
+
 ---
 
 ## Principles

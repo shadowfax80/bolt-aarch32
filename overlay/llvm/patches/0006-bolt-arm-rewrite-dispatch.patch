@@ -75,7 +75,7 @@ index c287dc002623..5f501fda0b0f 100644
    }
  
 diff --git a/bolt/lib/Rewrite/RewriteInstance.cpp b/bolt/lib/Rewrite/RewriteInstance.cpp
-index a12b83859669..6d556f6d3b58 100644
+index a12b83859669..4e8f3ea093e2 100644
 --- a/bolt/lib/Rewrite/RewriteInstance.cpp
 +++ b/bolt/lib/Rewrite/RewriteInstance.cpp
 @@ -370,6 +370,11 @@ MCPlusBuilder *createMCPlusBuilder(const Triple::ArchType Arch,
@@ -90,7 +90,18 @@ index a12b83859669..6d556f6d3b58 100644
    llvm_unreachable("architecture unsupported by MCPlusBuilder");
  }
  
-@@ -1012,7 +1017,7 @@ void RewriteInstance::discoverFileObjects() {
+@@ -455,6 +460,10 @@ RewriteInstance::RewriteInstance(ELFObjectFileBase *File, const int Argc,
+   BC->initializeTarget(std::unique_ptr<MCPlusBuilder>(
+       createMCPlusBuilder(BC->TheTriple->getArch(), BC->MIA.get(),
+                           BC->MII.get(), BC->MRI.get(), BC->STI.get())));
++  if (BC->isARM() && BC->ThumbSTI)
++    BC->initializeThumbTarget(std::unique_ptr<MCPlusBuilder>(createMCPlusBuilder(
++        BC->TheTriple->getArch(), BC->MIA.get(), BC->MII.get(), BC->MRI.get(),
++        BC->ThumbSTI.get())));
+ 
+   BAT = std::make_unique<BoltAddressTranslation>();
+ 
+@@ -1012,7 +1021,7 @@ void RewriteInstance::discoverFileObjects() {
      }
    };
  
@@ -99,7 +110,7 @@ index a12b83859669..6d556f6d3b58 100644
      addExtraDataMarkerPerSymbol();
      LastSymbol = std::stable_partition(
          SortedSymbols.begin(), SortedSymbols.end(),
-@@ -1028,14 +1033,23 @@ void RewriteInstance::discoverFileObjects() {
+@@ -1028,14 +1037,23 @@ void RewriteInstance::discoverFileObjects() {
        LastSymbol == SortedSymbols.end() ? LastSymbol : std::next(LastSymbol);
    for (auto Iter = SortedSymbols.begin(); Iter != SortedSymbolsEnd; ++Iter) {
      const SymbolRef &Symbol = Iter->Symbol;
@@ -124,7 +135,7 @@ index a12b83859669..6d556f6d3b58 100644
      if (SymbolAddress == 0) {
        if (opts::Verbosity >= 1 && SymbolType == SymbolRef::ST_Function)
          BC->errs() << "BOLT-WARNING: function with 0 address seen\n";
-@@ -1290,6 +1304,9 @@ void RewriteInstance::discoverFileObjects() {
+@@ -1290,6 +1308,9 @@ void RewriteInstance::discoverFileObjects() {
          BC->setBinaryDataSize(SymbolAddress, BF->getSize());
        }
        BF->addAlternativeName(UniqueName);
@@ -134,7 +145,7 @@ index a12b83859669..6d556f6d3b58 100644
      } else {
        ErrorOr<BinarySection &> Section =
            BC->getSectionForAddress(SymbolAddress);
-@@ -1307,6 +1324,8 @@ void RewriteInstance::discoverFileObjects() {
+@@ -1307,6 +1328,8 @@ void RewriteInstance::discoverFileObjects() {
  
        BF = BC->createBinaryFunction(UniqueName, *Section, SymbolAddress,
                                      SymbolSize);
@@ -143,7 +154,7 @@ index a12b83859669..6d556f6d3b58 100644
        if (!IsSimple)
          BF->setSimple(false);
      }
-@@ -1389,6 +1408,17 @@ void RewriteInstance::discoverFileObjects() {
+@@ -1389,6 +1412,17 @@ void RewriteInstance::discoverFileObjects() {
      const auto EntryOffset = Address - BF->getAddress();
      if (Type == MarkerSymType::CODE) {
        BF->markCodeAtOffset(EntryOffset);
@@ -161,7 +172,7 @@ index a12b83859669..6d556f6d3b58 100644
        continue;
      }
      if (Type == MarkerSymType::DATA) {
-@@ -2042,6 +2072,12 @@ void RewriteInstance::disassemblePLTSectionX86(BinarySection &Section,
+@@ -2042,6 +2076,12 @@ void RewriteInstance::disassemblePLTSectionX86(BinarySection &Section,
    }
  }
  
@@ -174,7 +185,7 @@ index a12b83859669..6d556f6d3b58 100644
  void RewriteInstance::disassemblePLT() {
    auto analyzeOnePLTSection = [&](BinarySection &Section, uint64_t EntrySize) {
      if (BC->isAArch64())
-@@ -2258,9 +2294,12 @@ Error RewriteInstance::readSpecialSections() {
+@@ -2258,9 +2298,12 @@ Error RewriteInstance::readSpecialSections() {
      BC->updateLSDAEncoding();
    }
  
@@ -187,7 +198,7 @@ index a12b83859669..6d556f6d3b58 100644
        (bool)BC->getUniqueSectionByName(std::string(".crel") +
                                         BC->getMainCodeSectionName());
    HasSymbolTable = (bool)BC->getUniqueSectionByName(".symtab");
-@@ -2662,7 +2701,7 @@ bool RewriteInstance::analyzeRelocation(
+@@ -2662,7 +2705,7 @@ bool RewriteInstance::analyzeRelocation(
      if (SkipVerification)
        return true;
  
@@ -196,7 +207,7 @@ index a12b83859669..6d556f6d3b58 100644
        return true;
  
      if (SymbolName == "__hot_start" || SymbolName == "__hot_end")
-@@ -3280,7 +3319,7 @@ void RewriteInstance::handleRelocation(const SectionRef &RelocatedSection,
+@@ -3280,7 +3323,7 @@ void RewriteInstance::handleRelocation(const SectionRef &RelocatedSection,
        // creation of sections and whose symbol address is not really what should
        // be encoded in the instruction). So we essentially disabled this check
        // for AArch64 and live with bogus names for objects.
@@ -205,7 +216,7 @@ index a12b83859669..6d556f6d3b58 100644
                BD->nameStartsWith(SymbolName) ||
                BD->nameStartsWith("PG" + SymbolName) ||
                (BD->nameStartsWith("ANONYMOUS") &&
-@@ -3300,7 +3339,7 @@ void RewriteInstance::handleRelocation(const SectionRef &RelocatedSection,
+@@ -3300,7 +3343,7 @@ void RewriteInstance::handleRelocation(const SectionRef &RelocatedSection,
        // These are mostly local data symbols but undefined symbols
        // in relocation sections can get through here too, from .plt.
        assert(
@@ -214,7 +225,7 @@ index a12b83859669..6d556f6d3b58 100644
             BC->getSectionNameForAddress(SymbolAddress)->starts_with(".plt")) &&
            "known symbols should not resolve to anonymous locals");
  
-@@ -3310,7 +3349,7 @@ void RewriteInstance::handleRelocation(const SectionRef &RelocatedSection,
+@@ -3310,7 +3353,7 @@ void RewriteInstance::handleRelocation(const SectionRef &RelocatedSection,
        } else {
          SymbolRef Symbol = *Rel.getSymbol();
          const uint64_t SymbolSize =
@@ -223,7 +234,7 @@ index a12b83859669..6d556f6d3b58 100644
          const uint64_t SymbolAlignment = IsAArch64 ? 1 : Symbol.getAlignment();
          const uint32_t SymbolFlags = cantFail(Symbol.getFlags());
          std::string Name;
-@@ -3469,9 +3508,12 @@ void RewriteInstance::selectFunctionsToProcess() {
+@@ -3469,9 +3512,12 @@ void RewriteInstance::selectFunctionsToProcess() {
      if (mustSkip(Function))
        return false;
  
@@ -239,7 +250,7 @@ index a12b83859669..6d556f6d3b58 100644
        return true;
  
      // If the list is not empty, only process functions from the list.
-@@ -4678,12 +4720,23 @@ void RewriteInstance::patchELFPHDRTable(ELFObjectFile<ELFT> *File) {
+@@ -4678,12 +4724,23 @@ void RewriteInstance::patchELFPHDRTable(ELFObjectFile<ELFT> *File) {
    const uint64_t SavedPos = OS.tell();
    OS.seek(PHDRTableOffset);
  
@@ -265,7 +276,7 @@ index a12b83859669..6d556f6d3b58 100644
      Phdr.p_filesz = SI.FileSize;
      Phdr.p_memsz = SI.Size;
      Phdr.p_flags = ELF::PF_R;
-@@ -4716,7 +4769,7 @@ void RewriteInstance::patchELFPHDRTable(ELFObjectFile<ELFT> *File) {
+@@ -4716,7 +4773,7 @@ void RewriteInstance::patchELFPHDRTable(ELFObjectFile<ELFT> *File) {
        if (PHDRTableAddress) {
          NewPhdr.p_offset = PHDRTableOffset;
          NewPhdr.p_vaddr = PHDRTableAddress;
@@ -274,7 +285,7 @@ index a12b83859669..6d556f6d3b58 100644
          NewPhdr.p_filesz = sizeof(PhdrTy) * Phnum;
          NewPhdr.p_memsz = sizeof(PhdrTy) * Phnum;
        }
-@@ -4728,7 +4781,7 @@ void RewriteInstance::patchELFPHDRTable(ELFObjectFile<ELFT> *File) {
+@@ -4728,7 +4785,7 @@ void RewriteInstance::patchELFPHDRTable(ELFObjectFile<ELFT> *File) {
            EHFrameHdrSec->isFinalized()) {
          NewPhdr.p_offset = EHFrameHdrSec->getOutputFileOffset();
          NewPhdr.p_vaddr = EHFrameHdrSec->getOutputAddress();
@@ -283,7 +294,7 @@ index a12b83859669..6d556f6d3b58 100644
          NewPhdr.p_filesz = EHFrameHdrSec->getOutputSize();
          NewPhdr.p_memsz = EHFrameHdrSec->getOutputSize();
        }
-@@ -4952,7 +5005,8 @@ bool RewriteInstance::shouldStrip(const ELFShdrTy &Section,
+@@ -4952,7 +5009,8 @@ bool RewriteInstance::shouldStrip(const ELFShdrTy &Section,
                                    StringRef SectionName) {
    // Strip non-allocatable relocation sections.
    if (!(Section.sh_flags & ELF::SHF_ALLOC) &&
@@ -293,7 +304,7 @@ index a12b83859669..6d556f6d3b58 100644
      return true;
  
    // Strip debug sections if not updating them.
-@@ -5470,7 +5524,10 @@ void RewriteInstance::updateELFSymbolTable(
+@@ -5470,7 +5528,10 @@ void RewriteInstance::updateELFSymbolTable(
        // If the symbol matched a function that was not emitted, update the
        // corresponding section index but otherwise leave it unchanged.
        if (Function->isEmitted()) {
@@ -304,7 +315,7 @@ index a12b83859669..6d556f6d3b58 100644
          NewSymbol.st_size = Function->getOutputSize();
          NewSymbol.st_shndx = Function->getCodeSection()->getIndex();
        } else if (Symbol.st_shndx < ELF::SHN_LORESERVE) {
-@@ -5515,6 +5572,8 @@ void RewriteInstance::updateELFSymbolTable(
+@@ -5515,6 +5576,8 @@ void RewriteInstance::updateELFSymbolTable(
            continue;
  
          NewSymbol.st_value = OutputAddress;
@@ -313,7 +324,7 @@ index a12b83859669..6d556f6d3b58 100644
          // Force secondary entry points to have zero size.
          NewSymbol.st_size = 0;
  
-@@ -5527,11 +5586,20 @@ void RewriteInstance::updateELFSymbolTable(
+@@ -5527,11 +5590,20 @@ void RewriteInstance::updateELFSymbolTable(
              });
  
          if (FF == Function->getLayout().fragment_end()) {
@@ -339,7 +350,7 @@ index a12b83859669..6d556f6d3b58 100644
            FF = Function->getLayout().fragment_begin();
          }
  
-@@ -5599,6 +5667,8 @@ void RewriteInstance::updateELFSymbolTable(
+@@ -5599,6 +5671,8 @@ void RewriteInstance::updateELFSymbolTable(
              ? getNewSectionIndex(OriginSection->getSectionRef().getIndex())
              : Function->getCodeSection()->getIndex();
      NewSymbol.st_value = Function->getOutputAddress();

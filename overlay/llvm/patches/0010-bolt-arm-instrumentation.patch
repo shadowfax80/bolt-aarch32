@@ -1,23 +1,22 @@
 diff --git a/bolt/lib/Passes/BinaryPasses.cpp b/bolt/lib/Passes/BinaryPasses.cpp
-index adf2bbae52d1..4e60b1cd964b 100644
+index adf2bbae52d1..b4ba2ec6654d 100644
 --- a/bolt/lib/Passes/BinaryPasses.cpp
 +++ b/bolt/lib/Passes/BinaryPasses.cpp
-@@ -1039,7 +1039,13 @@ uint64_t SimplifyConditionalTailCalls::fixTailCalls(BinaryFunction &BF) {
+@@ -1039,7 +1039,11 @@ uint64_t SimplifyConditionalTailCalls::fixTailCalls(BinaryFunction &BF) {
          MIB->replaceBranchTarget(*UncondBranch, CondSucc->getLabel(), Ctx);
      } else if (!HasFallthrough) {
        MCInst Branch;
+-      MIB->createUncondBranch(Branch, CondSucc->getLabel(), Ctx);
 +      BinaryContext &BCtx = BF.getBinaryContext();
-+      const MCSubtargetInfo *SavedSTI = MIB->getSTI();
-+      if (BCtx.isARM() && BF.isARMThumb() && BCtx.ThumbSTI)
-+        MIB->setSTI(BCtx.ThumbSTI.get());
-       MIB->createUncondBranch(Branch, CondSucc->getLabel(), Ctx);
-+      if (SavedSTI)
-+        MIB->setSTI(SavedSTI);
++      // BF is fixed for this whole function, so a local selection (rather
++      // than mutating the shared MIB) is all that's needed here.
++      MCPlusBuilder *BranchMIB = BCtx.getMIBFor(BCtx.isARM() && BF.isARMThumb());
++      BranchMIB->createUncondBranch(Branch, CondSucc->getLabel(), Ctx);
        PredBB->addInstruction(Branch);
      }
    }
 diff --git a/bolt/lib/Passes/Instrumentation.cpp b/bolt/lib/Passes/Instrumentation.cpp
-index ae9faf4e9cc2..d023c4977e98 100644
+index ae9faf4e9cc2..697bfcf7c781 100644
 --- a/bolt/lib/Passes/Instrumentation.cpp
 +++ b/bolt/lib/Passes/Instrumentation.cpp
 @@ -11,6 +11,7 @@
@@ -28,22 +27,93 @@ index ae9faf4e9cc2..d023c4977e98 100644
  #include "bolt/Core/ParallelUtilities.h"
  #include "bolt/RuntimeLibs/InstrumentationRuntimeLibrary.h"
  #include "bolt/Utils/CommandLineOpts.h"
-@@ -386,6 +387,15 @@ void Instrumentation::instrumentFunction(BinaryFunction &Function,
+@@ -386,6 +387,12 @@ void Instrumentation::instrumentFunction(BinaryFunction &Function,
      return;
  
    BinaryContext &BC = Function.getBinaryContext();
-+  // P9_THUMB_STI: probe emission uses MIB->InThumbMode() via STI. Thumb
-+  // functions must see ThumbSTI so LDREX/SP/movw sequences match the body.
-+  const MCSubtargetInfo *SavedSTI = BC.MIB->getSTI();
-+  if (BC.isARM() && Function.isARMThumb() && BC.ThumbSTI.get())
-+    BC.MIB->setSTI(BC.ThumbSTI.get());
-+  auto RestoreSTI = llvm::make_scope_exit([&]() {
-+    if (SavedSTI)
-+      BC.MIB->setSTI(SavedSTI);
-+  });
++  // Select the ARM- or Thumb-mode builder for this function's probes
++  // rather than mutating the shared MIB's STI in place -- instrumentation
++  // runs this per function and BOLT's other passes already showed this
++  // pattern races under concurrent per-function processing (see
++  // docs/KNOWN_LIMITATIONS.md).
++  MCPlusBuilder *MIB = BC.getMIBFor(BC.isARM() && Function.isARMThumb());
    if (BC.isMachO() && Function.hasName("___GLOBAL_init_65535/1"))
      return;
  
+@@ -460,10 +467,10 @@ void Instrumentation::instrumentFunction(BinaryFunction &Function,
+   DenseSet<const BinaryBasicBlock *> InvokeBlocks;
+   for (const BinaryBasicBlock &BB : Function) {
+     for (const MCInst &Inst : BB) {
+-      if (BC.MIB->isCall(Inst)) {
+-        if (BC.MIB->isInvoke(Inst))
++      if (MIB->isCall(Inst)) {
++        if (MIB->isInvoke(Inst))
+           InvokeBlocks.insert(&BB);
+-        if (!BC.MIB->isTailCall(Inst))
++        if (!MIB->isTailCall(Inst))
+           IsLeafFunction = false;
+       }
+     }
+@@ -482,24 +489,24 @@ void Instrumentation::instrumentFunction(BinaryFunction &Function,
+ 
+     for (auto I = BB.begin(); I != BB.end(); ++I) {
+       const MCInst &Inst = *I;
+-      if (!BC.MIB->getOffset(Inst))
++      if (!MIB->getOffset(Inst))
+         continue;
+ 
+       const bool IsJumpTable = Function.getJumpTable(Inst);
+       if (IsJumpTable)
+         HasJumpTable = true;
+-      else if (BC.MIB->isUnconditionalBranch(Inst))
++      else if (MIB->isUnconditionalBranch(Inst))
+         HasUnconditionalBranch = true;
+-      else if (!(BC.MIB->isCall(Inst) || BC.MIB->isConditionalBranch(Inst)))
++      else if (!(MIB->isCall(Inst) || MIB->isConditionalBranch(Inst)))
+         continue;
+ 
+-      const uint32_t FromOffset = *BC.MIB->getOffset(Inst);
+-      const MCSymbol *Target = BC.MIB->getTargetSymbol(Inst);
++      const uint32_t FromOffset = *MIB->getOffset(Inst);
++      const MCSymbol *Target = MIB->getTargetSymbol(Inst);
+       BinaryBasicBlock *TargetBB = Function.getBasicBlockForLabel(Target);
+       uint32_t ToOffset = TargetBB ? TargetBB->getInputOffset() : 0;
+       BinaryFunction *TargetFunc =
+           TargetBB ? &Function : BC.getFunctionForSymbol(Target);
+-      if (TargetFunc && BC.MIB->isCall(Inst)) {
++      if (TargetFunc && MIB->isCall(Inst)) {
+         if (opts::InstrumentCalls) {
+           const BinaryBasicBlock *ForeignBB =
+               TargetFunc->getBasicBlockForLabel(Target);
+@@ -553,7 +560,7 @@ void Instrumentation::instrumentFunction(BinaryFunction &Function,
+       // Handle indirect calls -- could be direct calls with unknown targets
+       // or secondary entry points of known functions, so check it is indirect
+       // to be sure.
+-      if (opts::InstrumentCalls && BC.MIB->isIndirectCall(*I))
++      if (opts::InstrumentCalls && MIB->isIndirectCall(*I))
+         instrumentIndirectTarget(BB, I, Function, FromOffset);
+ 
+     } // End of instructions loop
+@@ -566,16 +573,16 @@ void Instrumentation::instrumentFunction(BinaryFunction &Function,
+       auto I = BB.begin();
+       auto LastInstr = BB.end();
+       --LastInstr;
+-      while (LastInstr != I && BC.MIB->isPseudo(*LastInstr))
++      while (LastInstr != I && MIB->isPseudo(*LastInstr))
+         --LastInstr;
+       uint32_t FromOffset = 0;
+       // The last instruction in the BB should have an annotation, except
+       // if it was branching to the end of the function as a result of
+       // __builtin_unreachable(), in which case it was deleted by fixBranches.
+       // Ignore this case. FIXME: force fixBranches() to preserve the offset.
+-      if (!BC.MIB->getOffset(*LastInstr))
++      if (!MIB->getOffset(*LastInstr))
+         continue;
+-      FromOffset = *BC.MIB->getOffset(*LastInstr);
++      FromOffset = *MIB->getOffset(*LastInstr);
+ 
+       // Do not instrument edges in the spanning tree
+       auto STIt = STOutSet.find(&BB);
 diff --git a/bolt/lib/RuntimeLibs/InstrumentationRuntimeLibrary.cpp b/bolt/lib/RuntimeLibs/InstrumentationRuntimeLibrary.cpp
 index d71d8ef1c044..a91cf2377982 100644
 --- a/bolt/lib/RuntimeLibs/InstrumentationRuntimeLibrary.cpp

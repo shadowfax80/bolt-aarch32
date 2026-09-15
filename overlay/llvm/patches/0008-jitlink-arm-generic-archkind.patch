@@ -1,8 +1,23 @@
 diff --git a/llvm/include/llvm/ExecutionEngine/JITLink/aarch32.h b/llvm/include/llvm/ExecutionEngine/JITLink/aarch32.h
-index 9479c107447d..c46d0afe11b5 100644
+index 9479c107447d..30fdf27ffb05 100644
 --- a/llvm/include/llvm/ExecutionEngine/JITLink/aarch32.h
 +++ b/llvm/include/llvm/ExecutionEngine/JITLink/aarch32.h
-@@ -209,7 +209,8 @@ struct FixupInfoArmBranch : public FixupInfoArm {
+@@ -104,7 +104,13 @@ enum EdgeKind_aarch32 : Edge::Kind {
+   /// register
+   Thumb_MovtPrel,
+ 
+-  LastThumbRelocation = Thumb_MovtPrel,
++  /// Write signed 13-bit byte-granular PC-relative offset (U-bit + imm12)
++  /// for the Thumb32 `ldr Rt, [pc, #imm]` literal-pool load (LDR (literal),
++  /// T2 encoding). Range [-4095, 4095]; sign is an explicit U bit, not two's
++  /// complement.
++  Thumb_LdrPcRel,
++
++  LastThumbRelocation = Thumb_LdrPcRel,
+ 
+   /// No-op relocation
+   None,
+@@ -209,7 +215,8 @@ struct FixupInfoArmBranch : public FixupInfoArm {
  };
  
  template <> struct FixupInfo<Arm_Jump24> : public FixupInfoArmBranch {
@@ -12,11 +27,51 @@ index 9479c107447d..c46d0afe11b5 100644
  };
  
  template <> struct FixupInfo<Arm_Call> : public FixupInfoArmBranch {
+@@ -270,6 +277,21 @@ template <> struct FixupInfo<Thumb_MovwPrelNC> : public FixupInfoThumbMov {
+   static constexpr HalfWords Opcode{0xf240, 0x0000};
+ };
+ 
++/// LDR (literal) T2 (32-bit): Hi = 1111100:U:101 1111, Lo = Rt(4):imm12(12).
++/// Byte-granular (not word-scaled like T1) with an explicit sign (U) bit:
++/// U=1 adds imm12 to the PC-aligned base, U=0 subtracts it. The U bit lives
++/// in Hi but is excluded from OpcodeMask (its value is data, not opcode) and
++/// included in ImmMask so writeImmediate() updates it.
++struct FixupInfoThumbLdrPcRel : public FixupInfoThumb {
++  static constexpr HalfWords OpcodeMask{0xff7f, 0x0000};
++  static constexpr HalfWords ImmMask{0x0080, 0x0fff};
++  static constexpr HalfWords RegMask{0x0000, 0xf000};
++};
++
++template <> struct FixupInfo<Thumb_LdrPcRel> : public FixupInfoThumbLdrPcRel {
++  static constexpr HalfWords Opcode{0xf85f, 0x0000};
++};
++
+ /// Helper function to read the initial addend for Data-class relocations.
+ LLVM_ABI Expected<int64_t>
+ readAddendData(LinkGraph &G, Block &B, Edge::OffsetT Offset, Edge::Kind Kind);
 diff --git a/llvm/lib/ExecutionEngine/JITLink/ELF_aarch32.cpp b/llvm/lib/ExecutionEngine/JITLink/ELF_aarch32.cpp
-index f5ca72796df5..7d3f3ec426c8 100644
+index f5ca72796df5..d622056446dc 100644
 --- a/llvm/lib/ExecutionEngine/JITLink/ELF_aarch32.cpp
 +++ b/llvm/lib/ExecutionEngine/JITLink/ELF_aarch32.cpp
-@@ -260,6 +260,10 @@ Expected<std::unique_ptr<LinkGraph>> createLinkGraphFromELFObject_aarch32(
+@@ -68,6 +68,8 @@ getJITLinkEdgeKind(uint32_t ELFType, const aarch32::ArmConfig &ArmCfg) {
+     return aarch32::Thumb_MovwPrelNC;
+   case ELF::R_ARM_THM_MOVT_PREL:
+     return aarch32::Thumb_MovtPrel;
++  case ELF::R_ARM_THM_PC12:
++    return aarch32::Thumb_LdrPcRel;
+   }
+ 
+   return make_error<JITLinkError>(
+@@ -106,6 +108,8 @@ LLVM_ABI Expected<uint32_t> getELFRelocationType(Edge::Kind Kind) {
+     return ELF::R_ARM_THM_MOVW_PREL_NC;
+   case aarch32::Thumb_MovtPrel:
+     return ELF::R_ARM_THM_MOVT_PREL;
++  case aarch32::Thumb_LdrPcRel:
++    return ELF::R_ARM_THM_PC12;
+   case aarch32::None:
+     return ELF::R_ARM_NONE;
+   }
+@@ -260,6 +264,10 @@ Expected<std::unique_ptr<LinkGraph>> createLinkGraphFromELFObject_aarch32(
    // Find out what exact AArch32 instruction set and features we target.
    auto TT = (*ELFObj)->makeTriple();
    ARM::ArchKind AK = ARM::parseArch(TT.getArchName());
@@ -27,7 +82,7 @@ index f5ca72796df5..7d3f3ec426c8 100644
    if (AK == ARM::ArchKind::INVALID)
      return make_error<JITLinkError>(
          "Failed to build ELF link graph: Invalid ARM ArchKind");
-@@ -301,6 +305,10 @@ void link_ELF_aarch32(std::unique_ptr<LinkGraph> G,
+@@ -301,6 +309,10 @@ void link_ELF_aarch32(std::unique_ptr<LinkGraph> G,
  
    using namespace ARMBuildAttrs;
    ARM::ArchKind AK = ARM::parseArch(TT.getArchName());
@@ -39,10 +94,47 @@ index f5ca72796df5..7d3f3ec426c8 100644
    aarch32::ArmConfig ArmCfg = aarch32::getArmConfigForCPUArch(CPU);
  
 diff --git a/llvm/lib/ExecutionEngine/JITLink/aarch32.cpp b/llvm/lib/ExecutionEngine/JITLink/aarch32.cpp
-index cc606b8278d2..5b956e0455dd 100644
+index cc606b8278d2..80a3e8389e5b 100644
 --- a/llvm/lib/ExecutionEngine/JITLink/aarch32.cpp
 +++ b/llvm/lib/ExecutionEngine/JITLink/aarch32.cpp
-@@ -471,6 +471,8 @@ Error applyFixupData(LinkGraph &G, Block &B, const Edge &E) {
+@@ -130,6 +130,24 @@ LLVM_ABI uint16_t decodeImmMovtT1MovwT3(uint32_t Hi, uint32_t Lo) {
+   return Imm16;
+ }
+ 
++/// Encode signed byte offset [-4095, 4095] as U-bit + imm12 for the
++/// Thumb32 LDR (literal) T2 instruction format.
++HalfWords encodeImmLdrLiteralT2(int64_t Value) {
++  assert(Value >= -4095 && Value <= 4095 &&
++         "LDR (literal) T2 offset out of representable range");
++  bool U = Value >= 0;
++  uint32_t Imm12 = static_cast<uint32_t>(U ? Value : -Value);
++  return HalfWords{U ? 0x0080u : 0x0000u, Imm12};
++}
++
++/// Decode U-bit + imm12 from the Thumb32 LDR (literal) T2 instruction format
++/// back into a signed byte offset.
++int64_t decodeImmLdrLiteralT2(uint32_t Hi, uint32_t Lo) {
++  bool U = (Hi & 0x0080) != 0;
++  uint32_t Imm12 = Lo & 0x0fff;
++  return U ? static_cast<int64_t>(Imm12) : -static_cast<int64_t>(Imm12);
++}
++
+ /// Encode register ID for instruction formats MOVT T1 and MOVW T3.
+ ///
+ ///   Rd4 -> [0000000000000000, 0000:Rd4:00000000]
+@@ -436,6 +454,11 @@ Expected<int64_t> readAddendThumb(LinkGraph &G, Block &B, Edge::OffsetT Offset,
+     // Initial addend is interpreted as a signed value
+     return SignExtend64<16>(decodeImmMovtT1MovwT3(R.Hi, R.Lo));
+ 
++  case Thumb_LdrPcRel:
++    // Initial addend is the signed byte offset already encoded by the
++    // assembler/MC layer, if any.
++    return decodeImmLdrLiteralT2(R.Hi, R.Lo);
++
+   default:
+     return make_error<JITLinkError>(
+         "In graph " + G.getName() + ", section " + B.getSection().getName() +
+@@ -471,6 +494,8 @@ Error applyFixupData(LinkGraph &G, Block &B, const Edge &E) {
    }
    case Data_Pointer32: {
      int64_t Value = TargetAddress + Addend;
@@ -51,7 +143,7 @@ index cc606b8278d2..5b956e0455dd 100644
      if (!isUInt<32>(Value))
        return makeTargetOutOfRangeError(G, B, E);
      if (LLVM_LIKELY(G.getEndianness() == endianness::little))
-@@ -559,12 +561,18 @@ Error applyFixupArm(LinkGraph &G, Block &B, const Edge &E) {
+@@ -559,12 +584,18 @@ Error applyFixupArm(LinkGraph &G, Block &B, const Edge &E) {
      return Error::success();
    }
    case Arm_MovwAbsNC: {
@@ -72,7 +164,7 @@ index cc606b8278d2..5b956e0455dd 100644
      writeImmediate<Arm_MovtAbs>(R, encodeImmMovtA1MovwA2(Value));
      return Error::success();
    }
-@@ -623,13 +631,20 @@ Error applyFixupThumb(LinkGraph &G, Block &B, const Edge &E,
+@@ -623,13 +654,20 @@ Error applyFixupThumb(LinkGraph &G, Block &B, const Edge &E,
          // aligned destination while instruction may only be 2-byte aligned
          R.Lo = R.Lo & ~FixupInfo<Thumb_Call>::LoBitNoBlx;
          R.Lo = R.Lo & ~FixupInfo<Thumb_Call>::LoBitH;
@@ -95,7 +187,7 @@ index cc606b8278d2..5b956e0455dd 100644
      if (LLVM_LIKELY(ArmCfg.J1J2BranchEncoding)) {
        if (!isInt<25>(Value))
          return makeTargetOutOfRangeError(G, B, E);
-@@ -640,6 +655,9 @@ Error applyFixupThumb(LinkGraph &G, Block &B, const Edge &E,
+@@ -640,6 +678,9 @@ Error applyFixupThumb(LinkGraph &G, Block &B, const Edge &E,
        writeImmediate<Thumb_Call>(R, encodeImmBT4BlT1BlxT2(Value));
      }
  
@@ -105,7 +197,7 @@ index cc606b8278d2..5b956e0455dd 100644
      assert(((R.Lo & FixupInfo<Thumb_Call>::LoBitNoBlx) ||
              (R.Lo & FixupInfo<Thumb_Call>::LoBitH) == 0) &&
             "Opcode BLX implies H bit is clear (avoid UB in BLX T2)");
-@@ -647,12 +665,18 @@ Error applyFixupThumb(LinkGraph &G, Block &B, const Edge &E,
+@@ -647,12 +688,18 @@ Error applyFixupThumb(LinkGraph &G, Block &B, const Edge &E,
    }
  
    case Thumb_MovwAbsNC: {
@@ -126,6 +218,32 @@ index cc606b8278d2..5b956e0455dd 100644
      writeImmediate<Thumb_MovtAbs>(R, encodeImmMovtT1MovwT3(Value));
      return Error::success();
    }
+@@ -667,6 +714,17 @@ Error applyFixupThumb(LinkGraph &G, Block &B, const Edge &E,
+     return Error::success();
+   }
+ 
++  case Thumb_LdrPcRel: {
++    // LDR (literal) T2 reads PC as align(FixupAddress + 4, 4); the encoded
++    // U-bit + imm12 then adds or subtracts to reach the target.
++    uint64_t PCBias = alignTo(FixupAddress + 4, 4);
++    int64_t Value = TargetAddress + Addend - PCBias;
++    if (Value < -4095 || Value > 4095)
++      return makeTargetOutOfRangeError(G, B, E);
++    writeImmediate<Thumb_LdrPcRel>(R, encodeImmLdrLiteralT2(Value));
++    return Error::success();
++  }
++
+   default:
+     return make_error<JITLinkError>(
+         "In graph " + G.getName() + ", section " + B.getSection().getName() +
+@@ -931,6 +989,7 @@ const char *getEdgeKindName(Edge::Kind K) {
+     KIND_NAME_CASE(Thumb_MovtAbs)
+     KIND_NAME_CASE(Thumb_MovwPrelNC)
+     KIND_NAME_CASE(Thumb_MovtPrel)
++    KIND_NAME_CASE(Thumb_LdrPcRel)
+     KIND_NAME_CASE(None)
+   default:
+     return getGenericEdgeKindName(K);
 diff --git a/llvm/lib/Target/ARM/MCTargetDesc/ARMELFObjectWriter.cpp b/llvm/lib/Target/ARM/MCTargetDesc/ARMELFObjectWriter.cpp
 index d914f6e830cf..67701f8d0e21 100644
 --- a/llvm/lib/Target/ARM/MCTargetDesc/ARMELFObjectWriter.cpp

@@ -57,12 +57,50 @@ def sections(readelf: str, elf: str) -> dict[str, tuple[int, int, int]]:
 
 
 def symbol_addr(nm: str, elf: str, name: str) -> int | None:
-    out = subprocess.run([nm, elf], check=True, capture_output=True, text=True).stdout
+    out = subprocess.run([nm, "-a", elf], check=True, capture_output=True, text=True).stdout
     for line in out.splitlines():
         parts = line.split()
         if len(parts) == 3 and parts[2] == name:
             return int(parts[0], 16)
     return None
+
+
+def is_thumb_symbol(nm: str, elf: str, name: str) -> bool:
+    """Per-function ARM/Thumb detection for AArch32, mirroring what BOLT
+    itself does (RewriteInstance.cpp): a function is Thumb if a $t mapping
+    symbol sits at its exact entry address. ELFObjectFile::getSymbolAddress()
+    clears the Thumb LSB for STT_FUNC symbols before nm ever sees them, so
+    the symbol's own address can't be used -- only a co-located $t marker
+    tells you. Defaults to ARM (False) when no marker is found there, same
+    as BOLT's own default.
+
+    This exists because a prior version of this script decided ARM vs Thumb
+    encoding from the ELF's EI_CLASS byte (data[4] == 1 for any 32-bit ELF,
+    including AArch32-ARM-mode binaries) instead of from the actual target
+    function's ISA mode -- always Thumb-encoding the hook for AArch32,
+    corrupting ARM-mode functions' entry points with Thumb bytes that get
+    misdecoded as garbage the instant the CPU arrives there in ARM state.
+    """
+    out = subprocess.run([nm, "-a", elf], check=True, capture_output=True, text=True).stdout
+    rows: list[tuple[int, str]] = []
+    addr = None
+    for line in out.splitlines():
+        parts = line.split()
+        if len(parts) != 3:
+            continue
+        try:
+            value = int(parts[0], 16)
+        except ValueError:
+            continue
+        rows.append((value, parts[2]))
+        if parts[2] == name:
+            addr = value
+    if addr is None:
+        raise SystemExit(f"symbol {name} not found in {elf}")
+    for value, sym_name in rows:
+        if value == addr and (sym_name == "$t" or sym_name.startswith("$t.")):
+            return True
+    return False
 
 
 def encode_bl(pc: int, target: int) -> int:
@@ -318,16 +356,15 @@ def patch_orgtext_counter_hook_thumb(
     original: str,
     funcs: list[str],
     counter_indices: dict[str, list[int]],
-) -> None:
-    """Thumb org.text entry hooks that bump BOLT counter slots once per call."""
+    scratch: int,
+) -> int:
+    """Thumb org.text entry hooks that bump BOLT counter slots once per call.
+
+    Returns the next free scratch address, so a mixed ARM+Thumb batch can
+    hand off to patch_orgtext_counter_hook_arm32 without colliding stubs.
+    """
     counter_base = section_map[".bolt.instr.counters"][0]
-    # Prefer unused hot .text (org.text is what actually runs). Falling back to
-    # the org.text tail risks overwriting live helpers like print_fault_msg.
-    if ".text" in section_map:
-        scratch = section_map[".text"][0] & ~1
-    else:
-        org_addr, _, org_size = section_map[".bolt.org.text"]
-        scratch = (org_addr + org_size - 0x200) & ~1
+    scratch &= ~1
 
     for func in funcs:
         entry = symbol_addr(nm, original, func)
@@ -369,6 +406,104 @@ def patch_orgtext_counter_hook_thumb(
             f"org.text thumb hook {func}: entry 0x{entry:x} -> stub 0x{stub:x}, "
             f"counters [{addrs}]"
         )
+    return scratch
+
+
+def encode_arm_movw(rd: int, imm16: int) -> int:
+    imm4 = (imm16 >> 12) & 0xF
+    imm12 = imm16 & 0xFFF
+    return 0xE3000000 | (imm4 << 16) | (rd << 12) | imm12
+
+
+def encode_arm_movt(rd: int, imm16: int) -> int:
+    imm4 = (imm16 >> 12) & 0xF
+    imm12 = imm16 & 0xFFF
+    return 0xE3400000 | (imm4 << 16) | (rd << 12) | imm12
+
+
+def encode_arm_b(pc: int, target: int) -> bytes:
+    """Unconditional ARM B. ARM state reads PC as the branch's own address
+    + 8 (classic 3-stage-pipeline convention); ARM instructions are always
+    4-byte aligned so the low 2 bits of the offset are always zero.
+    Verified against llvm-mc ground truth: `b target` at pc=0 -> 0x1000
+    encodes as 0xea0003fe, matching offset=(0x1000-8)>>2=0x3fe exactly.
+    """
+    offset = target - (pc + 8)
+    if offset % 4:
+        raise SystemExit(f"arm b to unaligned offset from 0x{pc:x} -> 0x{target:x}")
+    imm = offset >> 2
+    if imm < -(1 << 23) or imm >= (1 << 23):
+        raise SystemExit(f"arm b from 0x{pc:x} to 0x{target:x} out of range")
+    return struct.pack("<I", 0xEA000000 | (imm & 0xFFFFFF))
+
+
+def patch_orgtext_counter_hook_arm32(
+    data: bytearray,
+    nm: str,
+    section_map: dict[str, tuple[int, int, int]],
+    original: str,
+    funcs: list[str],
+    counter_indices: dict[str, list[int]],
+    scratch: int,
+) -> int:
+    """ARM-mode (non-Thumb) org.text entry hooks, for AArch32 functions
+    compiled without -mthumb (e.g. BOLT_BENCH_ISA=arm test builds). Same
+    push/counter-bump/pop/orig/branch-back structure as the Thumb version,
+    but every instruction is 4 bytes and ARM-encoded throughout -- entering
+    a Thumb-encoded stub in ARM state (or vice versa) misdecodes every byte
+    that follows, which is exactly the bug this function exists to avoid.
+
+    ldr/add/str encodings below (0xe5901000 / 0xe2811001 / 0xe5801000) were
+    independently confirmed correct via a real instrumented-ARM boot
+    earlier in this investigation (see docs/KNOWN_LIMITATIONS.md, the
+    register-spill operand-order fix); push/pop/movw/movt/b were verified
+    here against llvm-mc -show-encoding ground truth.
+    """
+    counter_base = section_map[".bolt.instr.counters"][0]
+    scratch &= ~3
+
+    for func in funcs:
+        entry = symbol_addr(nm, original, func)
+        if entry is None:
+            print(f"warning: skipping hook for missing symbol {func}", file=sys.stderr)
+            continue
+        entry &= ~3
+        if func not in counter_indices:
+            print(
+                f"warning: no BOLT counter indices for {func}, skipping hook",
+                file=sys.stderr,
+            )
+            continue
+        indices = counter_indices[func]
+        hook_off = vaddr_to_offset(section_map, entry)
+        orig_bytes = bytes(data[hook_off : hook_off + 4])
+        resume = entry + 4
+        stub = scratch & ~3
+
+        insns: list[int] = [0xE92D0003]  # push {r0, r1}
+        for counter_index in indices:
+            counter_addr = counter_base + counter_index * 8
+            insns.append(encode_arm_movw(0, counter_addr & 0xFFFF))
+            insns.append(encode_arm_movt(0, (counter_addr >> 16) & 0xFFFF))
+            insns.append(0xE5901000)  # ldr r1, [r0]
+            insns.append(0xE2811001)  # add r1, r1, #1
+            insns.append(0xE5801000)  # str r1, [r0]
+        insns.append(0xE8BD0003)  # pop {r0, r1}
+
+        body = struct.pack("<" + "I" * len(insns), *insns)
+        body += orig_bytes
+        body += encode_arm_b(stub + len(body), resume)
+
+        stub_off = vaddr_to_offset(section_map, stub)
+        data[stub_off : stub_off + len(body)] = body
+        data[hook_off : hook_off + 4] = encode_arm_b(entry, stub)
+        scratch = (stub + len(body) + 15) & ~15
+        addrs = ", ".join(f"{idx}->0x{counter_base + idx * 8:x}" for idx in indices)
+        print(
+            f"org.text arm hook {func}: entry 0x{entry:x} -> stub 0x{stub:x}, "
+            f"counters [{addrs}]"
+        )
+    return scratch
 
 
 def patch_orgtext_counter_hook_aarch64(
@@ -438,13 +573,40 @@ def patch_orgtext_counter_hook(
     funcs: list[str],
     counter_indices: dict[str, list[int]],
 ) -> None:
-    if data[4] == 1:
-        patch_orgtext_counter_hook_thumb(
-            data, nm, section_map, original, funcs, counter_indices
-        )
-    else:
+    if data[4] != 1:
+        # EI_CLASS == 2 (ELFCLASS64): genuinely AArch64, no ARM/Thumb split.
         patch_orgtext_counter_hook_aarch64(
             data, nm, section_map, original, funcs, counter_indices
+        )
+        return
+
+    # EI_CLASS == 1 covers every 32-bit ARM ELF, but that says nothing about
+    # whether any given function within it is ARM-mode or Thumb-mode code --
+    # AArch32 mixes both freely, and this project's own bolt_bench harness
+    # builds ARM-mode test binaries (BOLT_BENCH_ISA=arm) as well as the
+    # default Thumb ones. Route each function to the encoder matching its
+    # own ISA mode (detected via its $t mapping symbol, the same mechanism
+    # BOLT itself uses), instead of assuming one mode for the whole ELF.
+    thumb_funcs = [f for f in funcs if is_thumb_symbol(nm, original, f)]
+    arm_funcs = [f for f in funcs if f not in thumb_funcs]
+
+    if ".text" in section_map:
+        scratch = section_map[".text"][0] & ~1
+    else:
+        org_addr, _, org_size = section_map[".bolt.org.text"]
+        scratch = (org_addr + org_size - 0x200) & ~1
+
+    # Prefer unused hot .text (org.text is what actually runs). Falling back
+    # to the org.text tail risks overwriting live helpers like
+    # print_fault_msg -- shared across both encoders via the threaded
+    # scratch cursor so a mixed ARM+Thumb batch never collides stubs.
+    if thumb_funcs:
+        scratch = patch_orgtext_counter_hook_thumb(
+            data, nm, section_map, original, thumb_funcs, counter_indices, scratch
+        )
+    if arm_funcs:
+        patch_orgtext_counter_hook_arm32(
+            data, nm, section_map, original, arm_funcs, counter_indices, scratch
         )
 
 
