@@ -36,6 +36,76 @@ visibly wrong on atfe-bolt-aarch32 because the one function it happened to
 test there was genuinely ARM-mode already. Fixed here (and ported back to
 atfe-bolt-aarch32) by adding `-a`/`--special-syms` to the `nm` invocation.
 
+Also found and fixed while rebuilding for the pass below: patch 0003's
+`BinaryEmitter.cpp` hunk carried a leftover debug-print with a missing
+`BC.errs() << "..."` left-hand expression -- a bare `<< " thumb=" << ...`
+that doesn't compile. The overlay patches as committed did not build
+clean from a fresh checkout; fixed by removing the (unconditional, no
+verbosity gate) dead debug scaffolding and keeping the real fix around it
+(`commit 125acd5`).
+
+**2026-09-15 P1 investigation (D4, D6) -- same-day follow-up, this repo
+only, not yet ported to atfe-bolt-aarch32:**
+
+- **D4 (multi-function identity-rewrite non-determinism): characterized,
+  confirmed harmless.** Running the same `--funcs-file` identity rewrite
+  repeatedly against a fixed `-o` path (an earlier pass of this test
+  falsely "found" 100% non-determinism -- an artifact of using a
+  different `-o` filename per run, which BOLT embeds verbatim in
+  `.note.bolt_info`'s argv record; re-run with a fixed path to get a real
+  signal) shows genuine, low-rate non-determinism: ~10-20% of runs differ
+  (9/10 identical under `--thread-count=1`, 8/10 under default
+  threading -- **non-zero in both**, which rules out `parallel::for_each`
+  thread-scheduling as the sole cause). Byte-diffing a divergent pair
+  shows the difference is localized to a JITLink-materialized absolute
+  address (a `MOVW`/`MOVT` stub picking between two different but
+  in-range addresses inside `.bolt.org.text`, ~6.5KB apart) plus a few
+  downstream veneer branch-offset bytes that shift to match. **Both
+  variants boot and run all seven `bolt_bench_*` workloads to completion
+  in QEMU** -- functionally harmless despite being non-deterministic.
+  `setarch -R` (the originally-proposed test) could not be run: this
+  container has neither `CAP_SYS_ADMIN` for the `personality()` syscall
+  nor a writable `/proc/sys/kernel/randomize_va_space`, both blocked by
+  container hardening. The observed signature (changes on a meaningful
+  fraction of execs, not thread-count-dependent, localized to a
+  pointer-identity-sensitive code path) is consistent with ASLR-driven
+  container/map iteration order feeding a symbol tie-break, matching the
+  "pre-existing, BOLT-core, not AArch32" attribution, though this
+  wasn't independently confirmed via the ASLR-disabling test itself.
+
+- **D6 (`--instrument` JITLink `Thumb_MovwAbsNC` failure): narrowed,
+  not resolved.** Confirmed reproducible on this repo post-reconciliation
+  (`ARCH=arm32 scripts/instrument-lk-bolt.sh`, default `BOLT_BENCH_FUNCS`)
+  and confirmed **not function-specific** -- each of the four default
+  `bolt_bench_*` functions fails identically when instrumented alone.
+  The fixup-site bytes (`[0xe300, 0x0000]`) decode as a valid 16-bit
+  Thumb `B` instruction, not the expected 32-bit `MOVW` -- JITLink is
+  applying the relocation at a stale/wrong offset, not encountering
+  corrupted data. Traced to the counter-bump sequence
+  `createInstrIncMemory` splices in (`spillRegs` -> `materializeAddress`
+  -> MRS/CPS -> counter load-increment-store -> MSR -> `reloadRegs`),
+  specifically the `movw r0, :lower16:.LInstrEntry0` /
+  `movt r0, :upper16:.LInstrEntry0` pair from `materializeAddress`.
+  Hypothesized that `createStackPointerIncrement`/`Decrement`'s Thumb
+  path (`tSUBspi`/`tADDspi`, verified via `llvm-mc -show-inst
+  -show-encoding` to be genuine 16-bit encodings) and `createInstrIncMemory`'s
+  `tCPS` were under-reported in size relative to the uniformly-4-byte
+  `t2LDRi12`/`t2STRi12` used elsewhere in the same sequence, corrupting a
+  downstream fixup offset -- **tested and disproved**: switching all
+  three to their 32-bit `t2SUBspImm`/`t2ADDspImm`/`t2CPS2p` forms
+  (verified correct operand shapes via `llvm-mc`) produced the *exact
+  byte-for-byte identical* JITLink error, meaning BOLT's real layout
+  machinery already accounts for true Thumb1 instruction sizes correctly
+  and this hypothesis was wrong; reverted (kept as a documented dead end,
+  not carried into the tree, since it would only add code-size regression
+  with no fix). Root cause remains open. Next step for whoever picks
+  this up: the failure survives a size-uniform rewrite, so look beyond
+  `ARMMCPlusBuilder`'s helpers -- likely either the relocation-edge
+  creation in `setOperandToSymbolRef`/`MCELFStreamer` for this specific
+  fixup, or something in how `.LInstrEntry0`'s symbol offset is resolved
+  relative to the counter-descriptor table BOLT-core (not
+  target-specific code) builds for `-instrument` mode.
+
 ---
 
 ## Principles
