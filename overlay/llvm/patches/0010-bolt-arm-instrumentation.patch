@@ -1,3 +1,25 @@
+diff --git a/bolt/include/bolt/Passes/Instrumentation.h b/bolt/include/bolt/Passes/Instrumentation.h
+index 76ffcf41db6e..878776f8f653 100644
+--- a/bolt/include/bolt/Passes/Instrumentation.h
++++ b/bolt/include/bolt/Passes/Instrumentation.h
+@@ -63,9 +63,15 @@ private:
+                              uint32_t ToNodeID, bool Instrumented);
+   void createLeafNodeDescription(FunctionDescription &FuncDesc, uint32_t Node);
+ 
+-  /// Create the sequence of instructions to increment a counter
++  /// Create the sequence of instructions to increment a counter. \p MIB
++  /// must be the ARM- or Thumb-mode builder selected for the function this
++  /// snippet will be spliced into (BC.getMIBFor(...)) -- this helper is
++  /// itself target-generic (shared by X86/AArch64/RISCV/ARM) and has no
++  /// other way to know the caller's ISA mode; passing plain BC.MIB here
++  /// silently mis-selects ARM-mode encoding for Thumb functions.
+   InstructionListType createInstrumentationSnippet(BinaryContext &BC,
+-                                                   bool IsLeaf);
++                                                   bool IsLeaf,
++                                                   MCPlusBuilder *MIB);
+ 
+   // Critical edges worklist
+   // This worklist keeps track of CFG edges <From-To> that needs to be split.
 diff --git a/bolt/lib/Passes/BinaryPasses.cpp b/bolt/lib/Passes/BinaryPasses.cpp
 index adf2bbae52d1..b4ba2ec6654d 100644
 --- a/bolt/lib/Passes/BinaryPasses.cpp
@@ -16,7 +38,7 @@ index adf2bbae52d1..b4ba2ec6654d 100644
      }
    }
 diff --git a/bolt/lib/Passes/Instrumentation.cpp b/bolt/lib/Passes/Instrumentation.cpp
-index ae9faf4e9cc2..697bfcf7c781 100644
+index ae9faf4e9cc2..84b4d0d27466 100644
 --- a/bolt/lib/Passes/Instrumentation.cpp
 +++ b/bolt/lib/Passes/Instrumentation.cpp
 @@ -11,6 +11,7 @@
@@ -27,7 +49,50 @@ index ae9faf4e9cc2..697bfcf7c781 100644
  #include "bolt/Core/ParallelUtilities.h"
  #include "bolt/RuntimeLibs/InstrumentationRuntimeLibrary.h"
  #include "bolt/Utils/CommandLineOpts.h"
-@@ -386,6 +387,12 @@ void Instrumentation::instrumentFunction(BinaryFunction &Function,
+@@ -273,12 +274,13 @@ void Instrumentation::createLeafNodeDescription(FunctionDescription &FuncDesc,
+ }
+ 
+ InstructionListType
+-Instrumentation::createInstrumentationSnippet(BinaryContext &BC, bool IsLeaf) {
++Instrumentation::createInstrumentationSnippet(BinaryContext &BC, bool IsLeaf,
++                                              MCPlusBuilder *MIB) {
+   auto L = BC.scopeLock();
+   MCSymbol *Label = BC.Ctx->createNamedTempSymbol("InstrEntry");
+   Summary->Counters.emplace_back(Label);
+-  return BC.MIB->createInstrIncMemory(Label, BC.Ctx.get(), IsLeaf,
+-                                      BC.AsmInfo->getCodePointerSize());
++  return MIB->createInstrIncMemory(Label, BC.Ctx.get(), IsLeaf,
++                                   BC.AsmInfo->getCodePointerSize());
+ }
+ 
+ // Helper instruction sequence insertion function
+@@ -298,8 +300,11 @@ void Instrumentation::instrumentLeafNode(BinaryBasicBlock &BB,
+                                          FunctionDescription &FuncDesc,
+                                          uint32_t Node) {
+   createLeafNodeDescription(FuncDesc, Node);
+-  InstructionListType CounterInstrs = createInstrumentationSnippet(
+-      BB.getFunction()->getBinaryContext(), IsLeaf);
++  BinaryFunction *BF = BB.getFunction();
++  BinaryContext &BC = BF->getBinaryContext();
++  MCPlusBuilder *MIB = BC.getMIBFor(BC.isARM() && BF->isARMThumb());
++  InstructionListType CounterInstrs =
++      createInstrumentationSnippet(BC, IsLeaf, MIB);
+   insertInstructions(CounterInstrs, BB, Iter);
+ }
+ 
+@@ -345,7 +350,10 @@ bool Instrumentation::instrumentOneTarget(
+       return false;
+   }
+ 
+-  InstructionListType CounterInstrs = createInstrumentationSnippet(BC, IsLeaf);
++  MCPlusBuilder *MIB =
++      BC.getMIBFor(BC.isARM() && FromFunction.isARMThumb());
++  InstructionListType CounterInstrs =
++      createInstrumentationSnippet(BC, IsLeaf, MIB);
+ 
+   const MCInst &Inst = *Iter;
+   if (BC.MIB->isCall(Inst)) {
+@@ -386,6 +394,12 @@ void Instrumentation::instrumentFunction(BinaryFunction &Function,
      return;
  
    BinaryContext &BC = Function.getBinaryContext();
@@ -40,7 +105,7 @@ index ae9faf4e9cc2..697bfcf7c781 100644
    if (BC.isMachO() && Function.hasName("___GLOBAL_init_65535/1"))
      return;
  
-@@ -460,10 +467,10 @@ void Instrumentation::instrumentFunction(BinaryFunction &Function,
+@@ -460,10 +474,10 @@ void Instrumentation::instrumentFunction(BinaryFunction &Function,
    DenseSet<const BinaryBasicBlock *> InvokeBlocks;
    for (const BinaryBasicBlock &BB : Function) {
      for (const MCInst &Inst : BB) {
@@ -54,7 +119,7 @@ index ae9faf4e9cc2..697bfcf7c781 100644
            IsLeafFunction = false;
        }
      }
-@@ -482,24 +489,24 @@ void Instrumentation::instrumentFunction(BinaryFunction &Function,
+@@ -482,24 +496,24 @@ void Instrumentation::instrumentFunction(BinaryFunction &Function,
  
      for (auto I = BB.begin(); I != BB.end(); ++I) {
        const MCInst &Inst = *I;
@@ -85,7 +150,7 @@ index ae9faf4e9cc2..697bfcf7c781 100644
          if (opts::InstrumentCalls) {
            const BinaryBasicBlock *ForeignBB =
                TargetFunc->getBasicBlockForLabel(Target);
-@@ -553,7 +560,7 @@ void Instrumentation::instrumentFunction(BinaryFunction &Function,
+@@ -553,7 +567,7 @@ void Instrumentation::instrumentFunction(BinaryFunction &Function,
        // Handle indirect calls -- could be direct calls with unknown targets
        // or secondary entry points of known functions, so check it is indirect
        // to be sure.
@@ -94,7 +159,7 @@ index ae9faf4e9cc2..697bfcf7c781 100644
          instrumentIndirectTarget(BB, I, Function, FromOffset);
  
      } // End of instructions loop
-@@ -566,16 +573,16 @@ void Instrumentation::instrumentFunction(BinaryFunction &Function,
+@@ -566,16 +580,16 @@ void Instrumentation::instrumentFunction(BinaryFunction &Function,
        auto I = BB.begin();
        auto LastInstr = BB.end();
        --LastInstr;

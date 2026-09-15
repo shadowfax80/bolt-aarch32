@@ -63,6 +63,7 @@ export_one 0009-bolt-arm-longjmp-veneers.patch \
 
 # P9: instrumentation emission (Thumb STI) + ELF instr tables for bare metal
 export_one 0010-bolt-arm-instrumentation.patch \
+  bolt/include/bolt/Passes/Instrumentation.h \
   bolt/lib/Passes/Instrumentation.cpp \
   bolt/lib/Passes/BinaryPasses.cpp \
   bolt/lib/RuntimeLibs/InstrumentationRuntimeLibrary.cpp

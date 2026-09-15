@@ -297,7 +297,7 @@ index 130c523bcda5..a56d77f30deb 100644
      return MarkerSymType::DATA;
  
 diff --git a/bolt/lib/Core/BinaryEmitter.cpp b/bolt/lib/Core/BinaryEmitter.cpp
-index a555c7185448..7ba8d544b9e7 100644
+index a555c7185448..93b8528b135a 100644
 --- a/bolt/lib/Core/BinaryEmitter.cpp
 +++ b/bolt/lib/Core/BinaryEmitter.cpp
 @@ -20,6 +20,7 @@
@@ -404,7 +404,7 @@ index a555c7185448..7ba8d544b9e7 100644
 @@ -505,7 +574,18 @@ void BinaryEmitter::emitFunctionBody(BinaryFunction &BF, FunctionFragment &FF,
          }
        }
-
+ 
 -      Streamer.emitInstruction(Instr, *BC.STI);
 +      // ARM LDM/STM encoders walk every trailing operand as a register.
 +      // BOLT annotations are extra non-reg operands and abort CheckLargeFunctions
