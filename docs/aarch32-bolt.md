@@ -73,38 +73,52 @@ only, not yet ported to atfe-bolt-aarch32:**
   "pre-existing, BOLT-core, not AArch32" attribution, though this
   wasn't independently confirmed via the ASLR-disabling test itself.
 
-- **D6 (`--instrument` JITLink `Thumb_MovwAbsNC` failure): narrowed,
-  not resolved.** Confirmed reproducible on this repo post-reconciliation
+- **D6 (`--instrument` JITLink `Thumb_MovwAbsNC` failure): RESOLVED.**
+  Confirmed reproducible on this repo post-reconciliation
   (`ARCH=arm32 scripts/instrument-lk-bolt.sh`, default `BOLT_BENCH_FUNCS`)
   and confirmed **not function-specific** -- each of the four default
   `bolt_bench_*` functions fails identically when instrumented alone.
   The fixup-site bytes (`[0xe300, 0x0000]`) decode as a valid 16-bit
-  Thumb `B` instruction, not the expected 32-bit `MOVW` -- JITLink is
+  Thumb `B` instruction, not the expected 32-bit `MOVW` -- JITLink was
   applying the relocation at a stale/wrong offset, not encountering
   corrupted data. Traced to the counter-bump sequence
   `createInstrIncMemory` splices in (`spillRegs` -> `materializeAddress`
   -> MRS/CPS -> counter load-increment-store -> MSR -> `reloadRegs`),
   specifically the `movw r0, :lower16:.LInstrEntry0` /
   `movt r0, :upper16:.LInstrEntry0` pair from `materializeAddress`.
-  Hypothesized that `createStackPointerIncrement`/`Decrement`'s Thumb
-  path (`tSUBspi`/`tADDspi`, verified via `llvm-mc -show-inst
-  -show-encoding` to be genuine 16-bit encodings) and `createInstrIncMemory`'s
-  `tCPS` were under-reported in size relative to the uniformly-4-byte
-  `t2LDRi12`/`t2STRi12` used elsewhere in the same sequence, corrupting a
-  downstream fixup offset -- **tested and disproved**: switching all
-  three to their 32-bit `t2SUBspImm`/`t2ADDspImm`/`t2CPS2p` forms
-  (verified correct operand shapes via `llvm-mc`) produced the *exact
-  byte-for-byte identical* JITLink error, meaning BOLT's real layout
-  machinery already accounts for true Thumb1 instruction sizes correctly
-  and this hypothesis was wrong; reverted (kept as a documented dead end,
-  not carried into the tree, since it would only add code-size regression
-  with no fix). Root cause remains open. Next step for whoever picks
-  this up: the failure survives a size-uniform rewrite, so look beyond
-  `ARMMCPlusBuilder`'s helpers -- likely either the relocation-edge
-  creation in `setOperandToSymbolRef`/`MCELFStreamer` for this specific
-  fixup, or something in how `.LInstrEntry0`'s symbol offset is resolved
-  relative to the counter-descriptor table BOLT-core (not
-  target-specific code) builds for `-instrument` mode.
+  One sizing hypothesis (`createStackPointerIncrement`/`Decrement`'s
+  Thumb path and `createInstrIncMemory`'s `tCPS` under-reporting their
+  real 16-bit size relative to the 4-byte `t2LDRi12`/`t2STRi12` used
+  elsewhere in the sequence) was tested and disproved -- switching all
+  three to 32-bit forms produced the byte-for-byte identical error.
+
+  **Actual root cause:** `instrumentFunction()` already selects the
+  correct per-function builder (`MCPlusBuilder *MIB =
+  BC.getMIBFor(BC.isARM() && Function.isARMThumb())`, from the setSTI-race
+  fix), but that selection was never threaded through to
+  `createInstrumentationSnippet()` -- the BOLT-core (target-generic,
+  shared with X86/AArch64/RISCV) helper that actually builds the
+  counter-bump sequence via `createInstrIncMemory`. Both of its call
+  sites (`instrumentLeafNode`, `instrumentOneTarget`) called it with
+  plain `BC.MIB` -- always the ARM-mode instance, regardless of the
+  target function's real ISA mode. All four default bench functions are
+  Thumb and single-basic-block (leaf nodes), so every one of them hit
+  `materializeAddress`'s `InThumbMode()` check reading the *wrong*
+  MIB instance's STI.
+
+  Fix: `createInstrumentationSnippet()` now takes an explicit
+  `MCPlusBuilder *` parameter; both call sites compute it the same way
+  `instrumentFunction()` does instead of reaching for `BC.MIB` directly.
+  `bolt/include/bolt/Passes/Instrumentation.h` had never been touched by
+  this overlay before (only its `.cpp` counterpart was in patch 0010's
+  export list) -- added.
+
+  **Verified:** full instrument-lk-bolt.sh run now succeeds end to end --
+  JITLink no longer errors, the instrumented image boots cleanly, all
+  seven `bolt_bench_*` workloads complete, and `dump-bolt-counters.py`
+  confirms **5/5 counters non-zero** (the instrumentation is genuinely
+  counting, not just avoiding the crash). Repeated 4x (fresh instrument +
+  boot each time): 4/4 clean.
 
 ---
 
