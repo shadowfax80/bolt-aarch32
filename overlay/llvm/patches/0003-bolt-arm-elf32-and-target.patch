@@ -401,10 +401,10 @@ index a555c7185448..7ba8d544b9e7 100644
  
    // Emit CFI end
    if (NeedsFDE)
-@@ -505,7 +574,29 @@ void BinaryEmitter::emitFunctionBody(BinaryFunction &BF, FunctionFragment &FF,
+@@ -505,7 +574,18 @@ void BinaryEmitter::emitFunctionBody(BinaryFunction &BF, FunctionFragment &FF,
          }
        }
- 
+
 -      Streamer.emitInstruction(Instr, *BC.STI);
 +      // ARM LDM/STM encoders walk every trailing operand as a register.
 +      // BOLT annotations are extra non-reg operands and abort CheckLargeFunctions
@@ -414,17 +414,6 @@ index a555c7185448..7ba8d544b9e7 100644
 +        BC.MIB->stripAnnotations(Clean);
 +        const MCSubtargetInfo &EmitSTI =
 +            (BF.isARMThumb() && BC.ThumbSTI) ? *BC.ThumbSTI : *BC.STI;
-+        {
-+          StringRef Name = BC.MII->getName(Clean.getOpcode());
-+          if (Name == "B" || Name == "Bcc" || Name == "BL" || Name == "BLXi" ||
-+              Name == "BLX" || Name == "BLX_pred") {
-+            const MCSymbol *Tgt = BC.MIB->getTargetSymbol(Clean);
-+                      << " thumb=" << BF.isARMThumb() << " op=" << Name;
-+            if (Tgt)
-+              BC.errs() << " tgt=" << Tgt->getName();
-+            BC.errs() << "\n";
-+          }
-+        }
 +        Streamer.emitInstruction(Clean, EmitSTI);
 +      } else {
 +        Streamer.emitInstruction(Instr, *BC.STI);
