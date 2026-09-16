@@ -349,6 +349,41 @@ def encode_thumb_bw(pc: int, target: int) -> bytes:
     return struct.pack("<HH", hw1, hw2)
 
 
+def thumb_insn_len(hw: int) -> int:
+    """Length in bytes of the Thumb instruction starting with halfword `hw`."""
+    return 4 if (hw >> 11) in (0b11101, 0b11110, 0b11111) else 2
+
+
+def thumb_displaced_len(data: bytearray, off: int, minimum: int = 4) -> int:
+    """Whole Thumb instructions covering at least `minimum` bytes.
+
+    Thumb-2 mixes 2- and 4-byte encodings, so displacing a fixed 4 bytes can cut
+    a 32-bit instruction in half: the stub then decodes the orphaned halfword
+    against whatever follows it, and the branch-back lands mid-instruction.
+    """
+    n = 0
+    while n < minimum:
+        n += thumb_insn_len(struct.unpack_from("<H", data, off + n)[0])
+    return n
+
+
+def thumb_insn_is_pc_relative(data: bytearray, off: int) -> bool:
+    """Best-effort check for encodings that break when moved to a stub."""
+    hw = struct.unpack_from("<H", data, off)[0]
+    if thumb_insn_len(hw) == 2:
+        return (
+            hw >> 11 in (0b01001, 0b10100, 0b11100)  # LDR literal, ADR, B T2
+            or hw >> 12 == 0b1101  # B<cond> T1
+            or hw & 0xF500 == 0xB100  # CBZ/CBNZ
+        )
+    hw2 = struct.unpack_from("<H", data, off + 2)[0]
+    if hw >> 11 == 0b11110 and hw2 & 0x8000:  # B.W / BL / BLX
+        return True
+    if hw & 0xFF7F == 0xF85F:  # LDR (literal) T2
+        return True
+    return hw & 0xFBFF == 0xF2AF  # ADR T2/T3
+
+
 def patch_orgtext_counter_hook_thumb(
     data: bytearray,
     nm: str,
@@ -380,8 +415,18 @@ def patch_orgtext_counter_hook_thumb(
             continue
         indices = counter_indices[func]
         hook_off = vaddr_to_offset(section_map, entry)
-        orig_bytes = bytes(data[hook_off : hook_off + 4])
-        resume = entry + 4
+        displaced = thumb_displaced_len(data, hook_off)
+        probe = 0
+        while probe < displaced:
+            if thumb_insn_is_pc_relative(data, hook_off + probe):
+                raise SystemExit(
+                    f"error: {func} entry 0x{entry:x} displaces a PC-relative "
+                    f"instruction at +{probe}; it would break when relocated "
+                    f"into the stub"
+                )
+            probe += thumb_insn_len(struct.unpack_from("<H", data, hook_off + probe)[0])
+        orig_bytes = bytes(data[hook_off : hook_off + displaced])
+        resume = entry + displaced
         stub = scratch & ~1
 
         body = bytearray()

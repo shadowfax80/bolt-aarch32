@@ -44,16 +44,22 @@ BOLT_ARGS=(
   --no-lse-atomics
   -reorder-blocks=ext-tsp
   -reorder-functions=hfsort+
-  # Confirmed ARM-compatible 2026-09-16 (run clean on this target, no
-  # errors): identical-code-folding, generic peepholes, hot/cold splitting.
   -icf=all
-  -peepholes=all
-  -split-functions
   # NOT included -- confirmed hard-gated to X86/AArch64 only in this LLVM
   # version, not merely untested (each errors out immediately rather than
   # silently no-op'ing): -indirect-call-promotion ("supported only on X86
   # and AArch64"), -reg-reassign ("specific to X86"), -frame-opt / shrink-
   # wrapping ("frame-optimizer is supported only on X86").
+  #
+  # Also NOT included -- these run clean in isolation but break once a real
+  # profile makes -reorder-blocks actually move Thumb/ARM blocks (2026-09-16):
+  #   -peepholes=all    corrupts pseudo accounting on ARM-mode functions --
+  #                     "calculated pseudos 1, set pseudos 0" on
+  #                     bolt_bench_interwork, then asserts in
+  #                     BinaryBasicBlock::size() (hasInstructions()).
+  #   -split-functions  widens a Thumb conditional branch to B<cond>.W, whose
+  #                     R_ARM_THM_JUMP19 relocation the aarch32 JITLink
+  #                     backend rejects ("Unsupported aarch32 relocation 51").
 )
 
 # Prefer rewriting only profiled benches on ARM32 — full-image layout
