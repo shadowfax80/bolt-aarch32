@@ -34,7 +34,15 @@ case "$ARCH" in
 esac
 
 OUT="${OUT:-$ROOT/build-${BASE:-upstream}/lk.instr.elf}"
-BOLT_BENCH_FUNCS="${BOLT_BENCH_FUNCS:-bolt_bench_hot_loop,bolt_bench_hot_cold,bolt_bench_branch_chain,bolt_bench_memcpy}"
+# Full loop-based bench set, including bolt_bench_switch (TBB/TBH -- a
+# known-unsupported-for-rewrite construct, kept in the default instrument
+# set deliberately to observe how instrumentation itself handles it, not
+# just identity-rewrite) and every 2026-09-16 addition targeting a specific
+# optimization pass (indirect_call/interwork_tail: richer interworking +
+# ICP target; regpressure: -reg-reassign target; hotcold_split:
+# -split-functions target; icf: -icf target; shrinkwrap: shrink-wrapping
+# target).
+BOLT_BENCH_FUNCS="${BOLT_BENCH_FUNCS:-bolt_bench_hot_loop,bolt_bench_hot_cold,bolt_bench_branch_chain,bolt_bench_memcpy,bolt_bench_interwork,bolt_bench_switch,bolt_bench_spill_ret,bolt_bench_litpool,bolt_bench_indirect_call,bolt_bench_interwork_tail,bolt_bench_regpressure,bolt_bench_hotcold_split,bolt_bench_icf,bolt_bench_shrinkwrap}"
 INSTRUMENT_FUNCS="${INSTRUMENT_FUNCS:-$BOLT_BENCH_FUNCS}"
 
 if [[ ! -f "$ELF" ]]; then

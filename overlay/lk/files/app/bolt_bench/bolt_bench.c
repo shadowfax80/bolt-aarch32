@@ -9,6 +9,15 @@
 
 #define BOLT_BENCH_ITERS 1000000u
 #define BOLT_BENCH_MEMCPY_ROUNDS 512u
+/* Real per-iteration function-call overhead (prologue/epilogue, and for
+ * some of these an ARM<->Thumb mode switch) makes BOLT_BENCH_ITERS too
+ * expensive under QEMU's software ARM emulation -- at 1M iterations these
+ * ran 17-34M "cycles" each (bolt_bench_interwork_tail/icf/indirect_call/
+ * regpressure), long enough that a profiling boot timed out before every
+ * bolt_bench_* counter got a chance to increment. bolt_bench_interwork
+ * and bolt_bench_spill_ret already used a smaller count (10k/100k) for
+ * the same reason; this follows that precedent. */
+#define BOLT_BENCH_ITERS_CALL 20000u
 
 static uint8_t bench_src[4096] __attribute__((aligned(64)));
 static uint8_t bench_dst[4096] __attribute__((aligned(64)));
@@ -228,6 +237,172 @@ __attribute__((noinline)) void bolt_bench_memcpy(void) {
     bench_banner("memcpy", arch_cycle_count() - t0);
 }
 
+/* --- Richer ARM<->Thumb interworking: indirect (function-pointer) calls ---
+ * `interwork` above only exercises direct BL/BLX call sites. A function
+ * pointer whose target alternates between an ARM-mode and a Thumb-mode
+ * callee (mode encoded in address bit 0 per AAPCS) crosses modes through
+ * an indirect BLX-via-register instead -- a distinct code shape BOLT must
+ * get right independently of the direct-call case. The 19:1 skew also
+ * gives --indirect-call-promotion a real, heavily-biased target
+ * distribution to actually promote into a guarded direct call. */
+__attribute__((target("thumb"), noinline, used))
+static uint32_t bolt_bench_ind_thumb_target(uint32_t x) {
+    return x + 101u;
+}
+
+__attribute__((target("arm"), noinline, used))
+static uint32_t bolt_bench_ind_arm_target(uint32_t x) {
+    return x * 5u + 3u;
+}
+
+typedef uint32_t (*bolt_bench_fnptr_t)(uint32_t);
+
+__attribute__((noinline)) void bolt_bench_indirect_call(void) {
+    lk_time_t t0 = arch_cycle_count();
+    uint32_t acc = 0;
+    for (uint32_t i = 0; i < BOLT_BENCH_ITERS_CALL; i++) {
+        bolt_bench_fnptr_t fn =
+            ((i % 20u) != 0u) ? bolt_bench_ind_thumb_target : bolt_bench_ind_arm_target;
+        acc += fn(i);
+    }
+    bench_banner("indirect_call", arch_cycle_count() - t0);
+    g_bolt_bench_sink = acc;
+}
+
+/* --- Richer ARM<->Thumb interworking: tail calls across modes ---
+ * A Thumb function whose final statement returns another function's
+ * result directly is a tail-call candidate -- clang may emit a
+ * mode-crossing branch (B/BX) instead of BL/BLX+return, a third distinct
+ * interworking shape alongside the direct and indirect cases above. */
+__attribute__((target("arm"), noinline, used))
+static uint32_t bolt_bench_tail_arm_callee(uint32_t x) {
+    return x ^ 0xC0FFEEu;
+}
+
+__attribute__((target("thumb"), noinline))
+static uint32_t bolt_bench_tail_thumb_caller(uint32_t x) {
+    return bolt_bench_tail_arm_callee(x);
+}
+
+__attribute__((noinline)) void bolt_bench_interwork_tail(void) {
+    lk_time_t t0 = arch_cycle_count();
+    uint32_t acc = 0;
+    for (uint32_t i = 0; i < BOLT_BENCH_ITERS_CALL; i++) {
+        acc += bolt_bench_tail_thumb_caller(i);
+    }
+    bench_banner("interwork_tail", arch_cycle_count() - t0);
+    g_bolt_bench_sink = acc;
+}
+
+/* --- Register pressure, for -reg-reassign ---
+ * Enough simultaneously-live values that the compiler must make real
+ * register-allocation decisions (spills or callee-saved use) -- gives
+ * -reg-reassign something to actually reassign. Thumb-1's narrow (2-byte)
+ * encodings only reach r0-r7 while Thumb-2's wide (4-byte) encodings reach
+ * r0-r15, so a reassignment that pushes a hot value into a high register
+ * can change code size on this target in a way that has no x86/AArch64
+ * analogue -- worth watching for specifically here, not just correctness. */
+__attribute__((noinline)) static uint32_t bolt_bench_regpressure_calc(uint32_t seed) {
+    uint32_t a = seed, b = seed * 3u + 1u, c = seed ^ 0xABCDu, d = seed << 2, e = seed >> 1;
+    uint32_t f = a + b, g = b + c, h = c + d, i2 = d + e, j = e + a;
+    uint32_t k = f ^ g, l = g ^ h, m = h ^ i2, n = i2 ^ j, o = j ^ f;
+    uint32_t p = k + l + m, q = m + n + o, r = n + o + k, s = o + k + l;
+    return a + b + c + d + e + f + g + h + i2 + j + k + l + m + n + o + p + q + r + s;
+}
+
+__attribute__((noinline)) void bolt_bench_regpressure(void) {
+    lk_time_t t0 = arch_cycle_count();
+    uint32_t acc = 0;
+    for (uint32_t i = 0; i < BOLT_BENCH_ITERS_CALL; i++) {
+        acc += bolt_bench_regpressure_calc(i);
+    }
+    bench_banner("regpressure", arch_cycle_count() - t0);
+    g_bolt_bench_sink = acc;
+}
+
+/* --- Hot/cold skew with a substantial cold body, for -split-functions ---
+ * `hot_cold` above already skews branch outcome, but its cold arm is one
+ * instruction -- too small for -split-functions to have anything worth
+ * physically relocating. This one's cold arm is a real (if small) function
+ * with its own loop and a printf, taken roughly 1 in 256K times, giving
+ * the pass a genuinely separable cold region. The synthesized jump to/from
+ * the relocated cold fragment also exercises the same long-jump/veneer
+ * machinery as P5, just triggered by splitting rather than branch range. */
+__attribute__((noinline)) static void bolt_bench_cold_path(uint32_t i) {
+    uint32_t x = i;
+    for (int k = 0; k < 32; k++) {
+        x = (x * 2654435761u) ^ (x >> 15);
+    }
+    printf("bolt_bench: cold_path hit at i=%u (x=%u)\n", i, x);
+    g_bolt_bench_sink ^= x;
+}
+
+__attribute__((noinline)) void bolt_bench_hotcold_split(void) {
+    lk_time_t t0 = arch_cycle_count();
+    uint32_t acc = 0;
+    for (uint32_t i = 0; i < BOLT_BENCH_ITERS; i++) {
+        if ((i & 0x3FFFFu) == 0x3FFFFu) {
+            bolt_bench_cold_path(i);
+        } else {
+            acc += i * 2u + 1u;
+        }
+    }
+    bench_banner("hotcold_split", arch_cycle_count() - t0);
+    g_bolt_bench_sink = acc;
+}
+
+/* --- Identical function bodies, for -icf ---
+ * Two independently-named functions performing the literal same
+ * computation, with no reference to their own identity, so clang has no
+ * reason to generate different code for them -- a legitimate candidate
+ * for BOLT's identical-code-folding to merge into one copy with two
+ * callers redirected to it. (Caveat: if lld's own --icf is enabled in the
+ * LK link, these may already be merged before BOLT ever sees the input
+ * binary -- check with nm before trusting this as an unfolded-input
+ * baseline.) */
+__attribute__((noinline)) uint32_t bolt_bench_icf_a(uint32_t x) {
+    return (x * 2654435761u) ^ (x >> 13) ^ 0x9E3779B9u;
+}
+
+__attribute__((noinline)) uint32_t bolt_bench_icf_b(uint32_t x) {
+    return (x * 2654435761u) ^ (x >> 13) ^ 0x9E3779B9u;
+}
+
+__attribute__((noinline)) void bolt_bench_icf(void) {
+    lk_time_t t0 = arch_cycle_count();
+    uint32_t acc = 0;
+    for (uint32_t i = 0; i < BOLT_BENCH_ITERS_CALL; i++) {
+        acc += bolt_bench_icf_a(i);
+        acc += bolt_bench_icf_b(i ^ 1u);
+    }
+    bench_banner("icf", arch_cycle_count() - t0);
+    g_bolt_bench_sink = acc;
+}
+
+/* --- Rare register-heavy branch inside one function, for shrink-wrapping ---
+ * The common path is register-light (no callee-saved use needed); a rare
+ * path needs enough simultaneously-live values to force callee-saved
+ * register use. An unconditional prologue would push/pop those registers
+ * on every call regardless of which path is taken -- shrink-wrapping's
+ * job is to move that save/restore onto only the path that needs it. */
+__attribute__((noinline)) void bolt_bench_shrinkwrap(void) {
+    lk_time_t t0 = arch_cycle_count();
+    uint32_t acc = 0;
+    for (uint32_t i = 0; i < BOLT_BENCH_ITERS; i++) {
+        if ((i & 0xFFFu) != 0xFFFu) {
+            acc += i;
+            continue;
+        }
+        uint32_t a = i, b = i + 1u, c = i + 2u, d = i + 3u;
+        uint32_t e = i + 4u, f = i + 5u, g = i + 6u, h = i + 7u;
+        uint32_t r = a ^ b;
+        r += c; r ^= d; r += e; r ^= f; r += g; r ^= h;
+        acc += r;
+    }
+    bench_banner("shrinkwrap", arch_cycle_count() - t0);
+    g_bolt_bench_sink = acc;
+}
+
 static void run_one(const char *name) {
     if (!strcmp(name, "hot_loop")) {
         bolt_bench_hot_loop();
@@ -249,6 +424,18 @@ static void run_one(const char *name) {
         bolt_bench_spill_ret();
     } else if (!strcmp(name, "litpool")) {
         bolt_bench_litpool();
+    } else if (!strcmp(name, "indirect_call")) {
+        bolt_bench_indirect_call();
+    } else if (!strcmp(name, "interwork_tail")) {
+        bolt_bench_interwork_tail();
+    } else if (!strcmp(name, "regpressure")) {
+        bolt_bench_regpressure();
+    } else if (!strcmp(name, "hotcold_split")) {
+        bolt_bench_hotcold_split();
+    } else if (!strcmp(name, "icf")) {
+        bolt_bench_icf();
+    } else if (!strcmp(name, "shrinkwrap")) {
+        bolt_bench_shrinkwrap();
     } else if (!strcmp(name, "all")) {
         bolt_bench_hot_loop();
         bolt_bench_hot_cold();
@@ -260,6 +447,12 @@ static void run_one(const char *name) {
         bolt_bench_switch();
         bolt_bench_spill_ret();
         bolt_bench_litpool();
+        bolt_bench_indirect_call();
+        bolt_bench_interwork_tail();
+        bolt_bench_regpressure();
+        bolt_bench_hotcold_split();
+        bolt_bench_icf();
+        bolt_bench_shrinkwrap();
     } else {
         printf("unknown workload %s\n", name);
     }
@@ -267,7 +460,7 @@ static void run_one(const char *name) {
 
 static int bolt_bench_cmd(int argc, const console_cmd_args *argv) {
     if (argc < 2) {
-        printf("usage: bolt_bench <hot_loop|hot_cold|branch_chain|memcpy|far_call|it_cond|interwork|switch|spill_ret|litpool|all>\n");
+        printf("usage: bolt_bench <hot_loop|hot_cold|branch_chain|memcpy|far_call|it_cond|interwork|switch|spill_ret|litpool|indirect_call|interwork_tail|regpressure|hotcold_split|icf|shrinkwrap|all>\n");
         return -1;
     }
     run_one(argv[1].str);

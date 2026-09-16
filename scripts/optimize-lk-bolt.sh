@@ -44,12 +44,22 @@ BOLT_ARGS=(
   --no-lse-atomics
   -reorder-blocks=ext-tsp
   -reorder-functions=hfsort+
+  # Confirmed ARM-compatible 2026-09-16 (run clean on this target, no
+  # errors): identical-code-folding, generic peepholes, hot/cold splitting.
+  -icf=all
+  -peepholes=all
+  -split-functions
+  # NOT included -- confirmed hard-gated to X86/AArch64 only in this LLVM
+  # version, not merely untested (each errors out immediately rather than
+  # silently no-op'ing): -indirect-call-promotion ("supported only on X86
+  # and AArch64"), -reg-reassign ("specific to X86"), -frame-opt / shrink-
+  # wrapping ("frame-optimizer is supported only on X86").
 )
 
 # Prefer rewriting only profiled benches on ARM32 — full-image layout
 # still hits trampoline/literal-pool issues outside bolt_bench_*.
 if [[ "$ARCH" == "arm32" ]]; then
-  FUNCS="${OPTIMIZE_FUNCS:-bolt_bench_hot_loop,bolt_bench_hot_cold,bolt_bench_branch_chain,bolt_bench_memcpy}"
+  FUNCS="${OPTIMIZE_FUNCS:-bolt_bench_hot_loop,bolt_bench_hot_cold,bolt_bench_branch_chain,bolt_bench_memcpy,bolt_bench_interwork,bolt_bench_switch,bolt_bench_spill_ret,bolt_bench_litpool,bolt_bench_indirect_call,bolt_bench_interwork_tail,bolt_bench_regpressure,bolt_bench_hotcold_split,bolt_bench_icf,bolt_bench_shrinkwrap}"
   FUNCS_FILE="$(mktemp)"
   trap 'rm -f "$FUNCS_FILE"' EXIT
   tr ',' '\n' <<<"$FUNCS" | sed '/^$/d' > "$FUNCS_FILE"
