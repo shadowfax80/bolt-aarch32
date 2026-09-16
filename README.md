@@ -14,6 +14,7 @@ Upstream [llvm-project](https://github.com/llvm/llvm-project) and [lk](https://g
 | [docs/architecture.md](docs/architecture.md) | End-to-end flow, overlay split, toolchain baseline |
 | [docs/aarch64-bare-metal.md](docs/aarch64-bare-metal.md) | Delta vs stock BOLT; runtime library; LK workloads |
 | [docs/aarch32-bolt.md](docs/aarch32-bolt.md) | ARM/Thumb design, edge cases, upstream merge path |
+| [docs/BOLT_AARCH32_BACKEND.md](docs/BOLT_AARCH32_BACKEND.md) | Backend reference: design principles, interfaces, AArch64 diff, bare-metal user guide |
 
 ## Phases
 
