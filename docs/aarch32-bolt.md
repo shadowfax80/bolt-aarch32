@@ -14,10 +14,11 @@ so nothing merged automatically -- every fix had to be deliberately ported
 to the other, by hand, every time, which is exactly the overhead the
 2026-09-15 merge below eliminated: **both bases now live in this one repo**
 (`BASE=upstream|atfe`, see the top-level README) with one patch set per
-base under `overlay/llvm/patches/{upstream,atfe}/`. The old sibling repo is
-archived, read-only, at
-[`shadowfax80/atfe-bolt-aarch32-legacy`](https://github.com/shadowfax80/atfe-bolt-aarch32-legacy)
--- useful only for pre-merge commit history on the `arm-toolchain` side.
+base under `overlay/llvm/patches/{upstream,atfe}/`. The old sibling repo
+has been deleted from GitHub; its pre-merge commit history is preserved
+offline as a git bundle (`atfe-bolt-aarch32-legacy.bundle`, 22 commits,
+restore with `git clone atfe-bolt-aarch32-legacy.bundle`) and is not
+needed for any current work.
 
 The reconciliation history below (from when the two repos were still
 separate) is kept as a record of what was ported and why -- the underlying
