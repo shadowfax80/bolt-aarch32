@@ -7,7 +7,7 @@
 ## History: merged from a sibling repo (atfe-bolt-aarch32)
 
 This repo used to be maintained alongside a second, separate repo,
-`somraj80/atfe-bolt-aarch32`, carrying the **same** BOLT AArch32 backend
+`shadowfax80/atfe-bolt-aarch32`, carrying the **same** BOLT AArch32 backend
 work pinned to `arm/arm-toolchain`'s `arm-software` branch instead of a
 fixed `llvm/llvm-project` commit. The two repos had no shared git history,
 so nothing merged automatically -- every fix had to be deliberately ported
@@ -16,7 +16,7 @@ to the other, by hand, every time, which is exactly the overhead the
 (`BASE=upstream|atfe`, see the top-level README) with one patch set per
 base under `overlay/llvm/patches/{upstream,atfe}/`. The old sibling repo is
 archived, read-only, at
-[`somraj80/atfe-bolt-aarch32-legacy`](https://github.com/somraj80/atfe-bolt-aarch32-legacy)
+[`shadowfax80/atfe-bolt-aarch32-legacy`](https://github.com/shadowfax80/atfe-bolt-aarch32-legacy)
 -- useful only for pre-merge commit history on the `arm-toolchain` side.
 
 The reconciliation history below (from when the two repos were still

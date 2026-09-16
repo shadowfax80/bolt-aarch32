@@ -1,7 +1,7 @@
 # Resume guide
 
 **Saved:** 2026-09-14  
-**GitHub (overlay only):** [somraj80/bolt-aarch32](https://github.com/somraj80/bolt-aarch32)
+**GitHub (overlay only):** [shadowfax80/bolt-aarch32](https://github.com/shadowfax80/bolt-aarch32)
 
 All upstream sources, builds, and QEMU runs live on the **RunPod network volume** — not on your laptop. The GitHub repo holds overlay patches, scripts, and docs only.
 

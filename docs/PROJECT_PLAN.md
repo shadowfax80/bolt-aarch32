@@ -1,6 +1,6 @@
 # Project plan
 
-**Repo:** [somraj80/bolt-aarch32](https://github.com/somraj80/bolt-aarch32)  
+**Repo:** [shadowfax80/bolt-aarch32](https://github.com/shadowfax80/bolt-aarch32)  
 **Updated:** 2026-09-14 (P0–P8 gated; interworking QEMU green)
 
 **Resume:** [RESUME.md](RESUME.md)

@@ -68,7 +68,7 @@ needs building per base.
 This repo used to be two separate repos — `bolt-aarch32` (this one) and
 `atfe-bolt-aarch32` — kept in sync by hand across every fix. That repo is
 now archived at
-[`somraj80/atfe-bolt-aarch32-legacy`](https://github.com/somraj80/atfe-bolt-aarch32-legacy)
+[`shadowfax80/atfe-bolt-aarch32-legacy`](https://github.com/shadowfax80/atfe-bolt-aarch32-legacy)
 (read-only; its history predates the 2026-09-15 merge into this repo) —
 useful only if you need pre-merge commit history for the `arm-toolchain`
 side of the work. Everything current lives here.
