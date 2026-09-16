@@ -1,11 +1,13 @@
 #!/usr/bin/env bash
 # P5 gate: ARM LongJmp veneer is in the rewritten ELF and the far call runs.
+# BASE=upstream|atfe selects which built toolchain/source tree to use.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-TOOLCHAIN="${TOOLCHAIN:-$ROOT/build/bin}"
-SRC="$ROOT/third_party/llvm-project/bolt/test/ARM/Inputs/arm32-far-bl.s"
-LD="$ROOT/third_party/llvm-project/bolt/test/ARM/Inputs/arm32-far.ld"
+source "$ROOT/scripts/resolve-base.sh"
+TOOLCHAIN="${TOOLCHAIN:-$BUILD_DIR/bin}"
+SRC="$LLVM_DIR/bolt/test/ARM/Inputs/arm32-far-bl.s"
+LD="$LLVM_DIR/bolt/test/ARM/Inputs/arm32-far.ld"
 
 [[ -x "$TOOLCHAIN/llvm-bolt" ]] || { echo "missing llvm-bolt" >&2; exit 1; }
 [[ -f "$SRC" ]] || { echo "missing $SRC" >&2; exit 1; }

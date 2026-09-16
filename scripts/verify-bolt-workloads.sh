@@ -7,7 +7,7 @@ ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
 
 ARCH="${ARCH:-aarch64}"
-TOOLCHAIN="${TOOLCHAIN:-$ROOT/build/bin}"
+TOOLCHAIN="${TOOLCHAIN:-$ROOT/build-${BASE:-upstream}/bin}"
 BENCH_FUNCS="${BENCH_FUNCS:-bolt_bench_hot_loop,bolt_bench_hot_cold,bolt_bench_branch_chain,bolt_bench_memcpy}"
 CMDLINE="${BENCH_CMDLINE:-lk.bolt_bench=all}"
 
@@ -18,10 +18,10 @@ case "$ARCH" in
     QEMU_CPU="${QEMU_CPU:-cortex-a53}"
     QEMU_SMP="${QEMU_SMP:-4}"
     BUILD_LK="$ROOT/scripts/build-lk-aarch64.sh"
-    INSTR_OUT="$ROOT/build/lk.instr.elf"
-    COUNTERS="$ROOT/build/bolt-counters.bin"
-    FDATA="$ROOT/build/prof.fdata"
-    BOLT_OUT="$ROOT/build/lk.bolt.elf"
+    INSTR_OUT="$ROOT/build-${BASE:-upstream}/lk.instr.elf"
+    COUNTERS="$ROOT/build-${BASE:-upstream}/bolt-counters.bin"
+    FDATA="$ROOT/build-${BASE:-upstream}/prof.fdata"
+    BOLT_OUT="$ROOT/build-${BASE:-upstream}/lk.bolt.elf"
     SERIAL_PREFIX=lk-bench
     ;;
   arm|arm32|aarch32)
@@ -31,10 +31,10 @@ case "$ARCH" in
     QEMU_CPU="${QEMU_CPU:-cortex-a15}"
     QEMU_SMP="${QEMU_SMP:-1}"
     BUILD_LK="$ROOT/scripts/build-lk-aarch32.sh"
-    INSTR_OUT="$ROOT/build/lk.instr.arm32.elf"
-    COUNTERS="$ROOT/build/bolt-counters-arm32.bin"
-    FDATA="$ROOT/build/prof-arm32.fdata"
-    BOLT_OUT="$ROOT/build/lk.bolt.arm32.elf"
+    INSTR_OUT="$ROOT/build-${BASE:-upstream}/lk.instr.arm32.elf"
+    COUNTERS="$ROOT/build-${BASE:-upstream}/bolt-counters-arm32.bin"
+    FDATA="$ROOT/build-${BASE:-upstream}/prof-arm32.fdata"
+    BOLT_OUT="$ROOT/build-${BASE:-upstream}/lk.bolt.arm32.elf"
     SERIAL_PREFIX=lk-bench-arm32
     ;;
   *)

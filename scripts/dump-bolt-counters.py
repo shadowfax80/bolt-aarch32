@@ -177,7 +177,10 @@ def main() -> int:
     ap.add_argument("--out", default="bolt-counters.bin")
     ap.add_argument("--serial-log", default="lk-serial.log")
     ap.add_argument(
-        "--toolchain", default=os.environ.get("TOOLCHAIN", "build/bin")
+        "--toolchain",
+        default=os.environ.get(
+            "TOOLCHAIN", f"build-{os.environ.get('BASE', 'upstream')}/bin"
+        ),
     )
     ap.add_argument("--qemu", default=os.environ.get("QEMU", "qemu-system-aarch64"))
     ap.add_argument("--cpu", default=os.environ.get("QEMU_CPU", "cortex-a53"))

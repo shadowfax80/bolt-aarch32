@@ -1,0 +1,290 @@
+diff --git a/llvm/include/llvm/ExecutionEngine/JITLink/aarch32.h b/llvm/include/llvm/ExecutionEngine/JITLink/aarch32.h
+index 9479c1074..30fdf27ff 100644
+--- a/llvm/include/llvm/ExecutionEngine/JITLink/aarch32.h
++++ b/llvm/include/llvm/ExecutionEngine/JITLink/aarch32.h
+@@ -104,7 +104,13 @@ enum EdgeKind_aarch32 : Edge::Kind {
+   /// register
+   Thumb_MovtPrel,
+ 
+-  LastThumbRelocation = Thumb_MovtPrel,
++  /// Write signed 13-bit byte-granular PC-relative offset (U-bit + imm12)
++  /// for the Thumb32 `ldr Rt, [pc, #imm]` literal-pool load (LDR (literal),
++  /// T2 encoding). Range [-4095, 4095]; sign is an explicit U bit, not two's
++  /// complement.
++  Thumb_LdrPcRel,
++
++  LastThumbRelocation = Thumb_LdrPcRel,
+ 
+   /// No-op relocation
+   None,
+@@ -209,7 +215,8 @@ struct FixupInfoArmBranch : public FixupInfoArm {
+ };
+ 
+ template <> struct FixupInfo<Arm_Jump24> : public FixupInfoArmBranch {
+-  static constexpr uint32_t OpcodeMask = 0x0f000000;
++  // Bit 24 distinguishes B (0xA) from BL (0xB); both are R_ARM_JUMP24.
++  static constexpr uint32_t OpcodeMask = 0x0e000000;
+ };
+ 
+ template <> struct FixupInfo<Arm_Call> : public FixupInfoArmBranch {
+@@ -270,6 +277,21 @@ template <> struct FixupInfo<Thumb_MovwPrelNC> : public FixupInfoThumbMov {
+   static constexpr HalfWords Opcode{0xf240, 0x0000};
+ };
+ 
++/// LDR (literal) T2 (32-bit): Hi = 1111100:U:101 1111, Lo = Rt(4):imm12(12).
++/// Byte-granular (not word-scaled like T1) with an explicit sign (U) bit:
++/// U=1 adds imm12 to the PC-aligned base, U=0 subtracts it. The U bit lives
++/// in Hi but is excluded from OpcodeMask (its value is data, not opcode) and
++/// included in ImmMask so writeImmediate() updates it.
++struct FixupInfoThumbLdrPcRel : public FixupInfoThumb {
++  static constexpr HalfWords OpcodeMask{0xff7f, 0x0000};
++  static constexpr HalfWords ImmMask{0x0080, 0x0fff};
++  static constexpr HalfWords RegMask{0x0000, 0xf000};
++};
++
++template <> struct FixupInfo<Thumb_LdrPcRel> : public FixupInfoThumbLdrPcRel {
++  static constexpr HalfWords Opcode{0xf85f, 0x0000};
++};
++
+ /// Helper function to read the initial addend for Data-class relocations.
+ LLVM_ABI Expected<int64_t>
+ readAddendData(LinkGraph &G, Block &B, Edge::OffsetT Offset, Edge::Kind Kind);
+diff --git a/llvm/lib/ExecutionEngine/JITLink/ELF_aarch32.cpp b/llvm/lib/ExecutionEngine/JITLink/ELF_aarch32.cpp
+index f5ca72796..d62205644 100644
+--- a/llvm/lib/ExecutionEngine/JITLink/ELF_aarch32.cpp
++++ b/llvm/lib/ExecutionEngine/JITLink/ELF_aarch32.cpp
+@@ -68,6 +68,8 @@ getJITLinkEdgeKind(uint32_t ELFType, const aarch32::ArmConfig &ArmCfg) {
+     return aarch32::Thumb_MovwPrelNC;
+   case ELF::R_ARM_THM_MOVT_PREL:
+     return aarch32::Thumb_MovtPrel;
++  case ELF::R_ARM_THM_PC12:
++    return aarch32::Thumb_LdrPcRel;
+   }
+ 
+   return make_error<JITLinkError>(
+@@ -106,6 +108,8 @@ LLVM_ABI Expected<uint32_t> getELFRelocationType(Edge::Kind Kind) {
+     return ELF::R_ARM_THM_MOVW_PREL_NC;
+   case aarch32::Thumb_MovtPrel:
+     return ELF::R_ARM_THM_MOVT_PREL;
++  case aarch32::Thumb_LdrPcRel:
++    return ELF::R_ARM_THM_PC12;
+   case aarch32::None:
+     return ELF::R_ARM_NONE;
+   }
+@@ -260,6 +264,10 @@ Expected<std::unique_ptr<LinkGraph>> createLinkGraphFromELFObject_aarch32(
+   // Find out what exact AArch32 instruction set and features we target.
+   auto TT = (*ELFObj)->makeTriple();
+   ARM::ArchKind AK = ARM::parseArch(TT.getArchName());
++  if (AK == ARM::ArchKind::INVALID &&
++      (TT.getArch() == Triple::arm || TT.getArch() == Triple::thumb ||
++       TT.getArch() == Triple::armeb || TT.getArch() == Triple::thumbeb))
++    AK = ARM::ArchKind::ARMV7A;
+   if (AK == ARM::ArchKind::INVALID)
+     return make_error<JITLinkError>(
+         "Failed to build ELF link graph: Invalid ARM ArchKind");
+@@ -301,6 +309,10 @@ void link_ELF_aarch32(std::unique_ptr<LinkGraph> G,
+ 
+   using namespace ARMBuildAttrs;
+   ARM::ArchKind AK = ARM::parseArch(TT.getArchName());
++  if (AK == ARM::ArchKind::INVALID &&
++      (TT.getArch() == Triple::arm || TT.getArch() == Triple::thumb ||
++       TT.getArch() == Triple::armeb || TT.getArch() == Triple::thumbeb))
++    AK = ARM::ArchKind::ARMV7A;
+   auto CPU = static_cast<CPUArch>(ARM::getArchAttr(AK));
+   aarch32::ArmConfig ArmCfg = aarch32::getArmConfigForCPUArch(CPU);
+ 
+diff --git a/llvm/lib/ExecutionEngine/JITLink/aarch32.cpp b/llvm/lib/ExecutionEngine/JITLink/aarch32.cpp
+index cc606b827..80a3e8389 100644
+--- a/llvm/lib/ExecutionEngine/JITLink/aarch32.cpp
++++ b/llvm/lib/ExecutionEngine/JITLink/aarch32.cpp
+@@ -130,6 +130,24 @@ LLVM_ABI uint16_t decodeImmMovtT1MovwT3(uint32_t Hi, uint32_t Lo) {
+   return Imm16;
+ }
+ 
++/// Encode signed byte offset [-4095, 4095] as U-bit + imm12 for the
++/// Thumb32 LDR (literal) T2 instruction format.
++HalfWords encodeImmLdrLiteralT2(int64_t Value) {
++  assert(Value >= -4095 && Value <= 4095 &&
++         "LDR (literal) T2 offset out of representable range");
++  bool U = Value >= 0;
++  uint32_t Imm12 = static_cast<uint32_t>(U ? Value : -Value);
++  return HalfWords{U ? 0x0080u : 0x0000u, Imm12};
++}
++
++/// Decode U-bit + imm12 from the Thumb32 LDR (literal) T2 instruction format
++/// back into a signed byte offset.
++int64_t decodeImmLdrLiteralT2(uint32_t Hi, uint32_t Lo) {
++  bool U = (Hi & 0x0080) != 0;
++  uint32_t Imm12 = Lo & 0x0fff;
++  return U ? static_cast<int64_t>(Imm12) : -static_cast<int64_t>(Imm12);
++}
++
+ /// Encode register ID for instruction formats MOVT T1 and MOVW T3.
+ ///
+ ///   Rd4 -> [0000000000000000, 0000:Rd4:00000000]
+@@ -436,6 +454,11 @@ Expected<int64_t> readAddendThumb(LinkGraph &G, Block &B, Edge::OffsetT Offset,
+     // Initial addend is interpreted as a signed value
+     return SignExtend64<16>(decodeImmMovtT1MovwT3(R.Hi, R.Lo));
+ 
++  case Thumb_LdrPcRel:
++    // Initial addend is the signed byte offset already encoded by the
++    // assembler/MC layer, if any.
++    return decodeImmLdrLiteralT2(R.Hi, R.Lo);
++
+   default:
+     return make_error<JITLinkError>(
+         "In graph " + G.getName() + ", section " + B.getSection().getName() +
+@@ -471,6 +494,8 @@ Error applyFixupData(LinkGraph &G, Block &B, const Edge &E) {
+   }
+   case Data_Pointer32: {
+     int64_t Value = TargetAddress + Addend;
++    if (hasTargetFlags(TargetSymbol, ThumbSymbol))
++      Value |= 1;
+     if (!isUInt<32>(Value))
+       return makeTargetOutOfRangeError(G, B, E);
+     if (LLVM_LIKELY(G.getEndianness() == endianness::little))
+@@ -559,12 +584,18 @@ Error applyFixupArm(LinkGraph &G, Block &B, const Edge &E) {
+     return Error::success();
+   }
+   case Arm_MovwAbsNC: {
+-    uint16_t Value = (TargetAddress + Addend) & 0xffff;
++    uint64_t Abs = TargetAddress + Addend;
++    if (hasTargetFlags(TargetSymbol, ThumbSymbol))
++      Abs |= 1;
++    uint16_t Value = Abs & 0xffff;
+     writeImmediate<Arm_MovwAbsNC>(R, encodeImmMovtA1MovwA2(Value));
+     return Error::success();
+   }
+   case Arm_MovtAbs: {
+-    uint16_t Value = ((TargetAddress + Addend) >> 16) & 0xffff;
++    uint64_t Abs = TargetAddress + Addend;
++    if (hasTargetFlags(TargetSymbol, ThumbSymbol))
++      Abs |= 1;
++    uint16_t Value = (Abs >> 16) & 0xffff;
+     writeImmediate<Arm_MovtAbs>(R, encodeImmMovtA1MovwA2(Value));
+     return Error::success();
+   }
+@@ -623,13 +654,20 @@ Error applyFixupThumb(LinkGraph &G, Block &B, const Edge &E,
+         // aligned destination while instruction may only be 2-byte aligned
+         R.Lo = R.Lo & ~FixupInfo<Thumb_Call>::LoBitNoBlx;
+         R.Lo = R.Lo & ~FixupInfo<Thumb_Call>::LoBitH;
+-        Value = alignTo(Value, 4);
+       } else {
+         // Change opcode BLX -> BL
+-        R.Lo = R.Lo & ~FixupInfo<Thumb_Call>::LoBitNoBlx;
++        R.Lo = R.Lo | FixupInfo<Thumb_Call>::LoBitNoBlx;
+       }
+     }
+ 
++    // BLX T2 requires a 4-byte-aligned destination; Imm11[0]/H) must stay 0.
++    // Apply even when the instruction was already BLX (e.g. Thumb tBLXi).
++    InstrIsBlx = (R.Lo & FixupInfo<Thumb_Call>::LoBitNoBlx) == 0;
++    if (InstrIsBlx) {
++      R.Lo = R.Lo & ~FixupInfo<Thumb_Call>::LoBitH;
++      Value = alignTo(Value, 4);
++    }
++
+     if (LLVM_LIKELY(ArmCfg.J1J2BranchEncoding)) {
+       if (!isInt<25>(Value))
+         return makeTargetOutOfRangeError(G, B, E);
+@@ -640,6 +678,9 @@ Error applyFixupThumb(LinkGraph &G, Block &B, const Edge &E,
+       writeImmediate<Thumb_Call>(R, encodeImmBT4BlT1BlxT2(Value));
+     }
+ 
++    if (InstrIsBlx)
++      R.Lo = R.Lo & ~FixupInfo<Thumb_Call>::LoBitH;
++
+     assert(((R.Lo & FixupInfo<Thumb_Call>::LoBitNoBlx) ||
+             (R.Lo & FixupInfo<Thumb_Call>::LoBitH) == 0) &&
+            "Opcode BLX implies H bit is clear (avoid UB in BLX T2)");
+@@ -647,12 +688,18 @@ Error applyFixupThumb(LinkGraph &G, Block &B, const Edge &E,
+   }
+ 
+   case Thumb_MovwAbsNC: {
+-    uint16_t Value = (TargetAddress + Addend) & 0xffff;
++    uint64_t Abs = TargetAddress + Addend;
++    if (hasTargetFlags(TargetSymbol, ThumbSymbol))
++      Abs |= 1;
++    uint16_t Value = Abs & 0xffff;
+     writeImmediate<Thumb_MovwAbsNC>(R, encodeImmMovtT1MovwT3(Value));
+     return Error::success();
+   }
+   case Thumb_MovtAbs: {
+-    uint16_t Value = ((TargetAddress + Addend) >> 16) & 0xffff;
++    uint64_t Abs = TargetAddress + Addend;
++    if (hasTargetFlags(TargetSymbol, ThumbSymbol))
++      Abs |= 1;
++    uint16_t Value = (Abs >> 16) & 0xffff;
+     writeImmediate<Thumb_MovtAbs>(R, encodeImmMovtT1MovwT3(Value));
+     return Error::success();
+   }
+@@ -667,6 +714,17 @@ Error applyFixupThumb(LinkGraph &G, Block &B, const Edge &E,
+     return Error::success();
+   }
+ 
++  case Thumb_LdrPcRel: {
++    // LDR (literal) T2 reads PC as align(FixupAddress + 4, 4); the encoded
++    // U-bit + imm12 then adds or subtracts to reach the target.
++    uint64_t PCBias = alignTo(FixupAddress + 4, 4);
++    int64_t Value = TargetAddress + Addend - PCBias;
++    if (Value < -4095 || Value > 4095)
++      return makeTargetOutOfRangeError(G, B, E);
++    writeImmediate<Thumb_LdrPcRel>(R, encodeImmLdrLiteralT2(Value));
++    return Error::success();
++  }
++
+   default:
+     return make_error<JITLinkError>(
+         "In graph " + G.getName() + ", section " + B.getSection().getName() +
+@@ -931,6 +989,7 @@ const char *getEdgeKindName(Edge::Kind K) {
+     KIND_NAME_CASE(Thumb_MovtAbs)
+     KIND_NAME_CASE(Thumb_MovwPrelNC)
+     KIND_NAME_CASE(Thumb_MovtPrel)
++    KIND_NAME_CASE(Thumb_LdrPcRel)
+     KIND_NAME_CASE(None)
+   default:
+     return getGenericEdgeKindName(K);
+diff --git a/llvm/lib/Target/ARM/MCTargetDesc/ARMELFObjectWriter.cpp b/llvm/lib/Target/ARM/MCTargetDesc/ARMELFObjectWriter.cpp
+index d914f6e83..67701f8d0 100644
+--- a/llvm/lib/Target/ARM/MCTargetDesc/ARMELFObjectWriter.cpp
++++ b/llvm/lib/Target/ARM/MCTargetDesc/ARMELFObjectWriter.cpp
+@@ -107,6 +107,12 @@ unsigned ARMELFObjectWriter::getRelocType(const MCFixup &Fixup,
+   if (IsPCRel) {
+     switch (Fixup.getKind()) {
+     default:
++      // BOLT veneers use :lower16:/:upper16: on MOVi16/MOVTi16. The encoder
++      // may surface those specifiers with IsPCRel set; they are still ABS.
++      if (Specifier == ARM::S_LO16)
++        return ELF::R_ARM_MOVW_ABS_NC;
++      if (Specifier == ARM::S_HI16)
++        return ELF::R_ARM_MOVT_ABS;
+       reportError(Fixup.getLoc(), "unsupported relocation type");
+       return ELF::R_ARM_NONE;
+     case FK_Data_4:
+@@ -201,6 +207,10 @@ unsigned ARMELFObjectWriter::getRelocType(const MCFixup &Fixup,
+   default:
+     reportError(Fixup.getLoc(), "unsupported relocation type");
+     return ELF::R_ARM_NONE;
++  case FK_Data_8:
++    // BOLT/ELF32 may emit 64-bit symbol diffs for padded functions. ARM has
++    // no R_ARM_ABS64; the addend/value still fits in 32 bits.
++    return ELF::R_ARM_ABS32;
+   case FK_Data_1:
+     switch (Specifier) {
+     default:
+@@ -278,6 +288,7 @@ unsigned ARMELFObjectWriter::getRelocType(const MCFixup &Fixup,
+       reportError(Fixup.getLoc(), "invalid fixup for ARM MOVT instruction");
+       return ELF::R_ARM_NONE;
+     case ARM::S_None:
++    case ARM::S_HI16:
+       return ELF::R_ARM_MOVT_ABS;
+     case ARM::S_SBREL:
+       return ELF::R_ARM_MOVT_BREL;
+@@ -288,6 +299,7 @@ unsigned ARMELFObjectWriter::getRelocType(const MCFixup &Fixup,
+       reportError(Fixup.getLoc(), "invalid fixup for ARM MOVW instruction");
+       return ELF::R_ARM_NONE;
+     case ARM::S_None:
++    case ARM::S_LO16:
+       return ELF::R_ARM_MOVW_ABS_NC;
+     case ARM::S_SBREL:
+       return ELF::R_ARM_MOVW_BREL_NC;

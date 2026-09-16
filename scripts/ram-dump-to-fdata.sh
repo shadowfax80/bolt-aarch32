@@ -3,10 +3,10 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-TOOLCHAIN="${TOOLCHAIN:-$ROOT/build/bin}"
-ELF="${ELF:-$ROOT/build/lk.instr.elf}"
-DUMP="${DUMP:-$ROOT/build/bolt-counters.bin}"
-OUT="${OUT:-$ROOT/build/prof.fdata}"
+TOOLCHAIN="${TOOLCHAIN:-$ROOT/build-${BASE:-upstream}/bin}"
+ELF="${ELF:-$ROOT/build-${BASE:-upstream}/lk.instr.elf}"
+DUMP="${DUMP:-$ROOT/build-${BASE:-upstream}/bolt-counters.bin}"
+OUT="${OUT:-$ROOT/build-${BASE:-upstream}/prof.fdata}"
 
 exec python3 "$ROOT/scripts/ram-dump-to-fdata.py" \
   --elf "$ELF" \

@@ -8,20 +8,20 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-TOOLCHAIN="${TOOLCHAIN:-$ROOT/build/bin}"
+TOOLCHAIN="${TOOLCHAIN:-$ROOT/build-${BASE:-upstream}/bin}"
 LK_DIR="${LK_DIR:-$ROOT/third_party/lk}"
 ARCH="${ARCH:-aarch64}"
 
 case "$ARCH" in
   aarch64|arm64)
     ELF="${ELF:-$LK_DIR/build-qemu-virt-arm64-test/lk.elf}"
-    LIB="${BOLT_RT_LIB:-$ROOT/build/bolt-rt-baremetal/libbolt_rt_baremetal.a}"
+    LIB="${BOLT_RT_LIB:-$ROOT/build-${BASE:-upstream}/bolt-rt-baremetal/libbolt_rt_baremetal.a}"
     SKIP_FUNCS="${SKIP_FUNCS:-_start,arm64_elX_to_el1,arm64_enable_mmu,arch_early_init,arm64_early_init_percpu,platform_early_init}"
     HOOK_SECTIONS=1
     ;;
   arm|arm32|aarch32)
     ELF="${ELF:-$LK_DIR/build-qemu-virt-arm32-test/lk.elf}"
-    LIB="${BOLT_RT_LIB:-$ROOT/build/bolt-rt-baremetal-arm/libbolt_rt_baremetal.a}"
+    LIB="${BOLT_RT_LIB:-$ROOT/build-${BASE:-upstream}/bolt-rt-baremetal-arm/libbolt_rt_baremetal.a}"
     SKIP_FUNCS="${SKIP_FUNCS:-_start,arm_reset,arm_undefined,arm_swi,arm_prefetch_abort,arm_data_abort,arm_reserved,arm_irq,arm_fiq,platform_early_init,arch_early_init}"
     # Restore org.text/data and install Thumb counter hooks (same bare-metal
     # path as AArch64). BOLT's hot .text trampolines smash ARM literal pools.
@@ -33,7 +33,7 @@ case "$ARCH" in
     ;;
 esac
 
-OUT="${OUT:-$ROOT/build/lk.instr.elf}"
+OUT="${OUT:-$ROOT/build-${BASE:-upstream}/lk.instr.elf}"
 BOLT_BENCH_FUNCS="${BOLT_BENCH_FUNCS:-bolt_bench_hot_loop,bolt_bench_hot_cold,bolt_bench_branch_chain,bolt_bench_memcpy}"
 INSTRUMENT_FUNCS="${INSTRUMENT_FUNCS:-$BOLT_BENCH_FUNCS}"
 
@@ -73,9 +73,19 @@ BOLT_ARGS=(
   --no-lse-atomics
   --instrument-calls=false
   --instrumentation-sleep-time=1
-  --skip-funcs="$SKIP_FUNCS"
   --runtime-instrumentation-lib="$LIB"
-  --instrument-funcs-file="$FUNCS_FILE"
+  # --instrument-funcs-file existed on the upstream base's pinned commit but
+  # was removed entirely upstream by the time arm-toolchain's arm-software
+  # branch synced past it (found merging the two bases, 2026-09-15) --
+  # --funcs-file (generic "limit optimizations to functions from the list")
+  # exists identically on both and, since it scopes BOLT's entire pass over
+  # the binary rather than just the instrumentation counter injection, is
+  # actually a closer match to this script's own intent ("LK kernel/platform
+  # code must stay out of the BOLT profile" above) than the narrower flag
+  # it replaces. $SKIP_FUNCS is now redundant with an allowlist in place
+  # (and at least one base's BOLT rejects combining an allowlist with
+  # --skip-funcs outright) -- dropped.
+  --funcs-file="$FUNCS_FILE"
   -o "$OUT"
 )
 

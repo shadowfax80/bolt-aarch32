@@ -3,7 +3,7 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-TOOLCHAIN="${TOOLCHAIN:-$ROOT/build/bin}"
+TOOLCHAIN="${TOOLCHAIN:-$ROOT/build-${BASE:-upstream}/bin}"
 LK_PROJECT="${LK_PROJECT:-qemu-virt-arm32-test}"
 ELF="${ELF:-$ROOT/third_party/lk/build-$LK_PROJECT/lk.elf}"
 OUT="${OUT:-/tmp/lk.bolt.arm}"

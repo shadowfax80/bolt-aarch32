@@ -1,8 +1,10 @@
 #!/usr/bin/env bash
-# Apply overlay patches to the upstream checkouts in third_party/.
+# Apply overlay patches to the checkouts in third_party/. BASE=upstream|atfe
+# selects which LLVM fork's patch set applies; see scripts/resolve-base.sh.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+source "$ROOT/scripts/resolve-base.sh"
 
 install_overlay_files() {
   local dir="$1"
@@ -66,5 +68,5 @@ add_bolt_bench_to_project() {
 add_bolt_bench_to_project "$ROOT/third_party/lk/project/qemu-virt-arm64-test.mk"
 add_bolt_bench_to_project "$ROOT/third_party/lk/project/qemu-virt-arm32-test.mk"
 apply_patches lk "$ROOT/third_party/lk" "$ROOT/overlay/lk/patches"
-apply_patches llvm-project "$ROOT/third_party/llvm-project" "$ROOT/overlay/llvm/patches"
+apply_patches "llvm-project ($BASE)" "$LLVM_DIR" "$PATCH_DIR"
 echo "Done."

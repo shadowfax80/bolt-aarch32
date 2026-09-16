@@ -8,19 +8,19 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-TOOLCHAIN="${TOOLCHAIN:-$ROOT/build/bin}"
+TOOLCHAIN="${TOOLCHAIN:-$ROOT/build-${BASE:-upstream}/bin}"
 SRC="$ROOT/overlay/llvm/bolt-rt-baremetal/instr_baremetal.cpp"
 ARCH="${ARCH:-aarch64}"
 
 case "$ARCH" in
   aarch64|arm64)
-    OUT_DIR="${OUT_DIR:-$ROOT/build/bolt-rt-baremetal}"
+    OUT_DIR="${OUT_DIR:-$ROOT/build-${BASE:-upstream}/bolt-rt-baremetal}"
     TARGET="${TARGET:-aarch64-none-elf}"
     CPU="${QEMU_CPU:-cortex-a53}"
     EXTRA_FLAGS=()
     ;;
   arm|arm32|aarch32)
-    OUT_DIR="${OUT_DIR:-$ROOT/build/bolt-rt-baremetal-arm}"
+    OUT_DIR="${OUT_DIR:-$ROOT/build-${BASE:-upstream}/bolt-rt-baremetal-arm}"
     TARGET="${TARGET:-arm-none-eabi}"
     CPU="${QEMU_CPU:-cortex-a15}"
     # ARM-state entry stubs (e_entry). Do not compile as Thumb.

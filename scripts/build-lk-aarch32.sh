@@ -2,7 +2,7 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-CLANG_BINDIR="${CLANG_BINDIR:-${TOOLCHAIN:-$ROOT/build/bin}}"
+CLANG_BINDIR="${CLANG_BINDIR:-${TOOLCHAIN:-$ROOT/build-${BASE:-upstream}/bin}}"
 LK_PROJECT="${LK_PROJECT:-qemu-virt-arm32-test}"
 
 if [[ ! -x "$CLANG_BINDIR/clang" ]]; then

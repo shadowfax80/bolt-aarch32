@@ -1,11 +1,15 @@
 #!/usr/bin/env bash
-# Export the volume llvm-project ARM backend delta into overlay/llvm/patches/.
-# Run on the pod from the overlay repo root.
+# Export the volume llvm-project ARM backend delta into
+# overlay/llvm/patches/$BASE/. Run on the pod from the overlay repo root.
+# BASE=upstream|atfe selects which tree/patch-dir pair; see
+# scripts/resolve-base.sh.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-LLVM="${LLVM:-$ROOT/third_party/llvm-project}"
-DEST="${DEST:-$ROOT/overlay/llvm/patches}"
+source "$ROOT/scripts/resolve-base.sh"
+LLVM="${LLVM:-$LLVM_DIR}"
+DEST="${DEST:-$PATCH_DIR}"
+mkdir -p "$DEST"
 
 if [[ ! -d "$LLVM/.git" ]]; then
   echo "error: $LLVM is not a git checkout" >&2

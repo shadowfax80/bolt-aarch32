@@ -4,19 +4,27 @@
 
 **Authoritative checklist:** [PROJECT_PLAN.md](PROJECT_PLAN.md) Phase 3 table.
 
-## Sibling repo: atfe-bolt-aarch32
+## History: merged from a sibling repo (atfe-bolt-aarch32)
 
-[`somraj80/atfe-bolt-aarch32`](https://github.com/somraj80/atfe-bolt-aarch32)
-carries the **same** BOLT AArch32 backend work, pinned to `arm/arm-toolchain`'s
-`arm-software` branch instead of a fixed `llvm/llvm-project` commit. The two
-repos have no shared git history, so nothing merges automatically -- **a fix
-made in one must be deliberately ported to the other**, every time, or they
-silently re-diverge. Both checkouts live on the same RunPod network volume
-(`j1d9e6wq5l`: `/workspace/bolt-lk-overlay` here, `/workspace/atfe-bolt-aarch32`
-there), so `diff` the two `third_party/llvm-project` trees directly rather than
-relying on commit messages.
+This repo used to be maintained alongside a second, separate repo,
+`somraj80/atfe-bolt-aarch32`, carrying the **same** BOLT AArch32 backend
+work pinned to `arm/arm-toolchain`'s `arm-software` branch instead of a
+fixed `llvm/llvm-project` commit. The two repos had no shared git history,
+so nothing merged automatically -- every fix had to be deliberately ported
+to the other, by hand, every time, which is exactly the overhead the
+2026-09-15 merge below eliminated: **both bases now live in this one repo**
+(`BASE=upstream|atfe`, see the top-level README) with one patch set per
+base under `overlay/llvm/patches/{upstream,atfe}/`. The old sibling repo is
+archived, read-only, at
+[`somraj80/atfe-bolt-aarch32-legacy`](https://github.com/somraj80/atfe-bolt-aarch32-legacy)
+-- useful only for pre-merge commit history on the `arm-toolchain` side.
 
-**2026-09-15 reconciliation pass:** the two repos had drifted across ~8 core
+The reconciliation history below (from when the two repos were still
+separate) is kept as a record of what was ported and why -- the underlying
+defects and fixes it describes are still real and still apply, they just no
+longer require a cross-repo port to land in both places.
+
+**2026-09-15 reconciliation pass (historical, pre-merge):** the two repos had drifted across ~8 core
 BOLT files. Ported from atfe-bolt-aarch32 into this repo: the `setSTI()`
 race-condition fix (replaced with `BinaryContext::getMIBFor(bool IsThumb)` +
 a separate `ThumbMIB`), the D1 literal-pool/constant-island fix (JITLink
@@ -127,7 +135,7 @@ only, not yet ported to atfe-bolt-aarch32:**
 | Rule | Why |
 |------|-----|
 | **One upstream PR per rung (P1–P10)** | Small reviews; each PR has lit tests and a clear pass gate |
-| **Develop on the volume, stage in overlay** | Backend code lives in `third_party/llvm-project/` on the pod; export to `overlay/llvm/patches/` until merged |
+| **Develop on the volume, stage in overlay** | Backend code lives in `third_party/llvm-project-$BASE/` on the pod (`BASE=upstream|atfe`, see README); export to `overlay/llvm/patches/$BASE/` until merged |
 | **Lit in llvm-project; LK in this repo** | Upstream tests are `.s` snippets; QEMU/`bolt_bench` verification stays here |
 | **LK is host only** | Never instrument LK kernel/boot code — only synthetic `bolt_bench_*` workloads |
 | **Rebase to `main` before P1** | Phase 1–2 used `release/23.x`; upstream reviews target `main` |

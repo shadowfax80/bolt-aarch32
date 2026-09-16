@@ -1,18 +1,20 @@
 #!/usr/bin/env bash
+# BASE=upstream|atfe selects which LLVM fork to build against; each gets its
+# own source tree and build directory (see scripts/resolve-base.sh) so both
+# can coexist and be rebuilt independently on the same checkout.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
 
-export LLVM_COMMIT="${LLVM_COMMIT:-069ef0e7cb36ee1fcf3bfdad31533fd79ab85b58}"
-BUILD_DIR="${BUILD_DIR:-$ROOT/build}"
+source "$ROOT/scripts/resolve-base.sh"
 JOBS="${JOBS:-$(nproc)}"
 
 "$ROOT/scripts/ensure-llvm-source.sh"
 
 if [[ ! -f "$BUILD_DIR/build.ninja" ]]; then
   cmake -G Ninja \
-    -S third_party/llvm-project/llvm \
+    -S "$LLVM_DIR/llvm" \
     -B "$BUILD_DIR" \
     -C "$ROOT/cmake/llvm-bolt.cmake"
 fi

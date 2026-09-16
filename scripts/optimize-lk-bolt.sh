@@ -5,21 +5,21 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-TOOLCHAIN="${TOOLCHAIN:-$ROOT/build/bin}"
+TOOLCHAIN="${TOOLCHAIN:-$ROOT/build-${BASE:-upstream}/bin}"
 LK_DIR="${LK_DIR:-$ROOT/third_party/lk}"
 ARCH="${ARCH:-aarch64}"
 
 case "$ARCH" in
   aarch64|arm64)
     ELF="${ELF:-$LK_DIR/build-qemu-virt-arm64-test/lk.elf}"
-    FDATA="${FDATA:-$ROOT/build/prof.fdata}"
-    OUT="${OUT:-$ROOT/build/lk.bolt.elf}"
+    FDATA="${FDATA:-$ROOT/build-${BASE:-upstream}/prof.fdata}"
+    OUT="${OUT:-$ROOT/build-${BASE:-upstream}/lk.bolt.elf}"
     ;;
   arm|arm32|aarch32)
     ARCH=arm32
     ELF="${ELF:-$LK_DIR/build-qemu-virt-arm32-test/lk.elf}"
-    FDATA="${FDATA:-$ROOT/build/prof-arm32.fdata}"
-    OUT="${OUT:-$ROOT/build/lk.bolt.arm32.elf}"
+    FDATA="${FDATA:-$ROOT/build-${BASE:-upstream}/prof-arm32.fdata}"
+    OUT="${OUT:-$ROOT/build-${BASE:-upstream}/lk.bolt.arm32.elf}"
     ;;
   *)
     echo "error: ARCH must be aarch64 or arm32 (got: $ARCH)" >&2

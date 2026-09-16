@@ -1,5 +1,7 @@
-# Build outputs
+# Build outputs (build/ kept for any pre-merge checkout; build-upstream/
+# and build-atfe/ are what scripts/resolve-base.sh actually names now)
 build/
+build-*/
 out/
 *.o
 *.elf
@@ -7,8 +9,11 @@ out/
 *.fdata
 *.tar.gz
 
-# Upstream checkouts (populated by scripts/fetch-sources.sh)
+# Upstream checkouts (populated by scripts/fetch-sources.sh). Same
+# before/after-merge note as above: third_party/llvm-project/ predates the
+# BASE=upstream|atfe split; third_party/llvm-project-*/ is current.
 third_party/llvm-project/
+third_party/llvm-project-*/
 third_party/lk/
 
 # Local secrets

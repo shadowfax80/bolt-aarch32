@@ -1,12 +1,11 @@
 #!/usr/bin/env bash
 # Idempotent llvm-project checkout, pinned to a specific commit. Safe to call
-# from retries/watchers.
+# from retries/watchers. BASE=upstream|atfe selects which LLVM fork/pin;
+# see scripts/resolve-base.sh.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-LLVM_DIR="${LLVM_DIR:-$ROOT/third_party/llvm-project}"
-LLVM_COMMIT="${LLVM_COMMIT:-069ef0e7cb36ee1fcf3bfdad31533fd79ab85b58}"
-LLVM_REMOTE="${LLVM_REMOTE:-https://github.com/llvm/llvm-project.git}"
+source "$ROOT/scripts/resolve-base.sh"
 MARKER="$LLVM_DIR/.overlay-source-ok"
 LOCKFILE="$(dirname "$LLVM_DIR")/.overlay-clone.lock"
 

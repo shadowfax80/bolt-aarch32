@@ -1,0 +1,234 @@
+diff --git a/bolt/lib/Passes/LongJmp.cpp b/bolt/lib/Passes/LongJmp.cpp
+index 30ff9dc4d..adfcf3d86 100644
+--- a/bolt/lib/Passes/LongJmp.cpp
++++ b/bolt/lib/Passes/LongJmp.cpp
+@@ -11,6 +11,7 @@
+ //===----------------------------------------------------------------------===//
+ 
+ #include "bolt/Passes/LongJmp.h"
++#include "llvm/ADT/ScopeExit.h"
+ #include "bolt/Core/ParallelUtilities.h"
+ #include "bolt/Passes/BranchLivenessUtils.h"
+ #include "bolt/Passes/RegAnalysis.h"
+@@ -27,6 +28,8 @@ extern cl::OptionCategory BoltCategory;
+ extern cl::OptionCategory BoltOptCategory;
+ extern cl::opt<bool> UseOldText;
+ extern cl::opt<bool> HotFunctionsAtEnd;
++extern size_t padFunctionBefore(const bolt::BinaryFunction &Function);
++extern size_t padFunctionAfter(const bolt::BinaryFunction &Function);
+ 
+ static cl::opt<bool> GroupStubs("group-stubs",
+                                 cl::desc("share stubs across functions"),
+@@ -335,7 +338,7 @@ uint64_t LongJmpPass::tentativeLayoutRelocColdPart(
+       continue;
+     DotAddress = alignTo(DotAddress, Func->getMinAlignment());
+     uint64_t Pad =
+-        offsetToAlignment(DotAddress, llvm::Align(Func->getAlignment()));
++        offsetToAlignment(DotAddress, llvm::Align(std::max<uint64_t>(Func->getAlignment(), 1)));
+     if (Pad <= Func->getMaxColdAlignmentBytes())
+       DotAddress += Pad;
+     ColdAddresses[Func] = DotAddress;
+@@ -402,9 +405,10 @@ LongJmpPass::tentativeLayoutRelocMode(const BinaryContext &BC,
+ 
+     DotAddress = alignTo(DotAddress, Func->getMinAlignment());
+     uint64_t Pad =
+-        offsetToAlignment(DotAddress, llvm::Align(Func->getAlignment()));
++        offsetToAlignment(DotAddress, llvm::Align(std::max<uint64_t>(Func->getAlignment(), 1)));
+     if (Pad <= Func->getMaxAlignmentBytes())
+       DotAddress += Pad;
++    DotAddress += opts::padFunctionBefore(*Func);
+     HotAddresses[Func] = DotAddress;
+     LLVM_DEBUG(dbgs() << Func->getPrintName() << " tentative: "
+                       << Twine::utohexstr(DotAddress) << "\n");
+@@ -412,6 +416,7 @@ LongJmpPass::tentativeLayoutRelocMode(const BinaryContext &BC,
+       DotAddress += Func->estimateSize();
+     else
+       DotAddress += Func->estimateHotSize();
++    DotAddress += opts::padFunctionAfter(*Func);
+ 
+     if (uint64_t IslandSize = Func->estimateConstantIslandSize()) {
+       DotAddress = alignTo(DotAddress, Func->getConstantIslandAlignment());
+@@ -456,7 +461,7 @@ void LongJmpPass::tentativeLayout(const BinaryContext &BC,
+     // Initial padding
+     if (EstimatedTextSize <= BC.OldTextSectionSize) {
+       DotAddress = BC.OldTextSectionAddress;
+-      uint64_t Pad = offsetToAlignment(DotAddress, llvm::Align(BC.AlignText));
++      uint64_t Pad = offsetToAlignment(DotAddress, llvm::Align(std::max<uint64_t>(BC.AlignText, 1)));
+       if (Pad + EstimatedTextSize <= BC.OldTextSectionSize) {
+         DotAddress += Pad;
+       }
+@@ -543,9 +548,9 @@ Error LongJmpPass::relaxStub(BinaryBasicBlock &StubBB, bool &Modified) {
+     return Error::success();
+   }
+ 
+-  // The long jmp uses absolute address on AArch64
+-  // So we could not use it for PIC binaries
+-  if (BC.isAArch64() && !BC.HasFixedLoadAddress)
++  // Absolute long/short veneers (AArch64 ADRP/ADD or ARM movw/movt) need a
++  // fixed load address, so reject PIC.
++  if ((BC.isAArch64() || BC.isARM()) && !BC.HasFixedLoadAddress)
+     return createFatalBOLTError(
+         "BOLT-ERROR: Unable to relax stub for PIC binary\n");
+ 
+@@ -563,7 +568,8 @@ bool LongJmpPass::needsStub(const BinaryBasicBlock &BB, const MCInst &Inst,
+   const BinaryFunction &Func = *BB.getFunction();
+   const BinaryContext &BC = Func.getBinaryContext();
+   const MCSymbol *TgtSym = BC.MIB->getTargetSymbol(Inst);
+-  assert(TgtSym && "getTargetSymbol failed");
++  if (!TgtSym)
++    return false;
+ 
+   const BinaryBasicBlock *TgtBB = Func.getBasicBlockForLabel(TgtSym);
+   // Check for shared stubs from foreign functions
+@@ -588,8 +594,11 @@ bool LongJmpPass::needsStub(const BinaryBasicBlock &BB, const MCInst &Inst,
+ Error LongJmpPass::relax(BinaryFunction &Func, bool &Modified) {
+   const BinaryContext &BC = Func.getBinaryContext();
+ 
+-  assert(BC.isAArch64() && "Unsupported arch");
+-  constexpr int InsnSize = 4; // AArch64
++  assert((BC.isAArch64() || BC.isARM()) && "Unsupported arch");
++  // Select the ARM- or Thumb-mode builder for this function rather than
++  // mutating the shared MIB's STI in place -- see BinaryContext::getMIBFor().
++  MCPlusBuilder *MIB = BC.getMIBFor(BC.isARM() && Func.isARMThumb());
++  constexpr int InsnSize = 4; // AArch64 / ARM (Thumb-2 branches also 4)
+   std::vector<std::pair<BinaryBasicBlock *, std::unique_ptr<BinaryBasicBlock>>>
+       Insertions;
+ 
+@@ -607,7 +616,7 @@ Error LongJmpPass::relax(BinaryFunction &Func, bool &Modified) {
+       continue;
+ 
+     for (MCInst &Inst : BB) {
+-      if (BC.MIB->isPseudo(Inst))
++      if (MIB->isPseudo(Inst))
+         continue;
+ 
+       if (!mayNeedStub(BC, Inst)) {
+@@ -626,9 +635,9 @@ Error LongJmpPass::relax(BinaryFunction &Func, bool &Modified) {
+       // hot path if a branch, since this branch target is the cold region
+       // (but first check that the far away stub will be in range).
+       BinaryBasicBlock *InsertionPoint = &BB;
+-      if (Func.isSimple() && !BC.MIB->isCall(Inst) && FrontierAddress &&
++      if (Func.isSimple() && !MIB->isCall(Inst) && FrontierAddress &&
+           !BB.isCold()) {
+-        int BitsAvail = BC.MIB->getPCRelEncodingSize(Inst) - 1;
++        int BitsAvail = MIB->getPCRelEncodingSize(Inst) - 1;
+         uint64_t Mask = ~((1ULL << BitsAvail) - 1);
+         assert(FrontierAddress > DotAddress &&
+                "Hot code should be before the frontier");
+diff --git a/bolt/lib/Passes/VeneerElimination.cpp b/bolt/lib/Passes/VeneerElimination.cpp
+index 9037390d0..6baa96c4b 100644
+--- a/bolt/lib/Passes/VeneerElimination.cpp
++++ b/bolt/lib/Passes/VeneerElimination.cpp
+@@ -36,7 +36,7 @@ namespace llvm {
+ namespace bolt {
+ 
+ Error VeneerElimination::runOnFunctions(BinaryContext &BC) {
+-  if (!opts::EliminateVeneers || !BC.isAArch64())
++  if (!opts::EliminateVeneers || !(BC.isAArch64() || BC.isARM()))
+     return Error::success();
+ 
+   std::unordered_map<const MCSymbol *, const MCSymbol *> VeneerDestinations;
+@@ -176,7 +176,9 @@ Error VeneerElimination::runOnFunctions(BinaryContext &BC) {
+         if (!BC.MIB->isCall(Instr) || BC.MIB->isIndirectCall(Instr))
+           continue;
+ 
+-        const MCSymbol *TargetSymbol = BC.MIB->getTargetSymbol(Instr, 0);
++        const MCSymbol *TargetSymbol = BC.MIB->getTargetSymbol(Instr);
++        if (!TargetSymbol)
++          continue;
+         auto It = VeneerDestinations.find(TargetSymbol);
+         if (It == VeneerDestinations.end())
+           continue;
+@@ -191,6 +193,56 @@ Error VeneerElimination::runOnFunctions(BinaryContext &BC) {
+       dbgs() << "BOLT-INFO: number of linker-inserted veneers call sites: "
+              << VeneerCallers << "\n");
+   (void)VeneerCallers;
++
++  // P8/P9 early pass: BL↔BLX and cross-mode tail B→BX (best-effort; targets
++  // may still be veneer symbols here — BinaryEmitter repeats this late).
++  if (BC.isARM()) {
++    for (BinaryFunction &BF :
++         llvm::make_second_range(BC.getBinaryFunctions())) {
++      if (!BF.isSimple() || BF.isIgnored())
++        continue;
++      // BC.isARM() is already guaranteed by the enclosing `if` below.
++      MCPlusBuilder *MIB = BC.getMIBFor(BF.isARMThumb());
++      for (BinaryBasicBlock &BB : BF) {
++        for (auto II = BB.begin(); II != BB.end();) {
++          MCInst &Instr = *II;
++          const MCSymbol *TSym = MIB->getTargetSymbol(Instr);
++          BinaryFunction *Tgt =
++              TSym ? BC.getFunctionForSymbol(TSym) : nullptr;
++          if (!Tgt) {
++            ++II;
++            continue;
++          }
++          const bool DstThumb = Tgt->isARMThumb();
++          const bool Cross = BF.isARMThumb() != DstThumb;
++          const bool DirectBr =
++              MIB->isBranch(Instr) && !MIB->isConditionalBranch(Instr) &&
++              !MIB->isIndirectBranch(Instr);
++          const bool TailLike = MIB->isTailCall(Instr) &&
++                                !MIB->isIndirectCall(Instr) &&
++                                !MIB->isIndirectBranch(Instr);
++          if (Cross && (DirectBr || TailLike) &&
++              !(MIB->isCall(Instr) && !MIB->isTailCall(Instr))) {
++            InstructionListType Seq;
++            MIB->createShortJmp(Seq, TSym, BC.Ctx.get(),
++                                   /*IsTailCall=*/true);
++            II = BB.replaceInstruction(II, Seq);
++            II = std::next(II, static_cast<std::ptrdiff_t>(Seq.size()));
++            continue;
++          }
++          if (MIB->isCall(Instr) && !MIB->isIndirectCall(Instr) &&
++              !MIB->isTailCall(Instr)) {
++            MIB->adjustCallForTargetMode(Instr, BF.isARMThumb(), DstThumb,
++                                            BC.Ctx.get());
++            ++II;
++            continue;
++          }
++          ++II;
++        }
++      }
++    }
++  }
++
+   return Error::success();
+ }
+ 
+diff --git a/bolt/lib/Rewrite/BinaryPassManager.cpp b/bolt/lib/Rewrite/BinaryPassManager.cpp
+index dbbedea2f..d0db2af5b 100644
+--- a/bolt/lib/Rewrite/BinaryPassManager.cpp
++++ b/bolt/lib/Rewrite/BinaryPassManager.cpp
+@@ -384,7 +384,9 @@ Error BinaryFunctionPassManager::runAllPasses(BinaryContext &BC) {
+ 
+   if (BC.isAArch64()) {
+     Manager.registerPass(std::make_unique<FixRelaxations>(PrintFixRelaxations));
++  }
+ 
++  if (BC.isAArch64() || BC.isARM()) {
+     Manager.registerPass(
+         std::make_unique<VeneerElimination>(PrintVeneerElimination));
+   }
+@@ -542,15 +544,16 @@ Error BinaryFunctionPassManager::runAllPasses(BinaryContext &BC) {
+     Manager.registerPass(
+         std::make_unique<AArch64RelaxationPass>(PrintAArch64Relaxation));
+ 
+-    // Tighten branches according to offset differences between branch and
+-    // targets. No extra instructions after this pass, otherwise we may have
+-    // relocations out of range and crash during linking.
+-    Manager.registerPass(std::make_unique<LongJmpPass>(PrintLongJmp));
+-
+     Manager.registerPass(
+         std::make_unique<PointerAuthCFIFixup>(PrintPAuthCFIFixup));
+   }
+ 
++  // Tighten branches according to offset differences between branch and
++  // targets. Shared by AArch64 and AArch32 (ARM-mode veneers / LongJmp).
++  if (BC.isAArch64() || BC.isARM()) {
++    Manager.registerPass(std::make_unique<LongJmpPass>(PrintLongJmp));
++  }
++
+   // This pass should always run last.*
+   Manager.registerPass(std::make_unique<FinalizeFunctions>(PrintFinalized));
+ 

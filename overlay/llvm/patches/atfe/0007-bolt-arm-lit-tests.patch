@@ -1,0 +1,598 @@
+diff --git a/bolt/test/ARM/Inputs/arm32-add-bl.s b/bolt/test/ARM/Inputs/arm32-add-bl.s
+new file mode 100644
+index 000000000..126917110
+--- /dev/null
++++ b/bolt/test/ARM/Inputs/arm32-add-bl.s
+@@ -0,0 +1,14 @@
++	.syntax unified
++	.arm
++	.text
++	.global _start
++	.type _start, %function
++_start:
++	add r0, r0, #1
++	bl target
++	b .Ldone
++target:
++	mov r0, #0
++	bx lr
++.Ldone:
++	b .
+diff --git a/bolt/test/ARM/Inputs/arm32-far-bl.s b/bolt/test/ARM/Inputs/arm32-far-bl.s
+new file mode 100644
+index 000000000..99d55c0c1
+--- /dev/null
++++ b/bolt/test/ARM/Inputs/arm32-far-bl.s
+@@ -0,0 +1,18 @@
++	.syntax unified
++	.arm
++	.section .text.start,"ax",%progbits
++	.globl _start
++	.type _start, %function
++_start:
++	bl	far_away
++	mov	r0, #42
++	mov	r7, #1
++	svc	#0
++	.size	_start, .-_start
++
++	.section .text.far,"ax",%progbits
++	.globl	far_away
++	.type	far_away, %function
++far_away:
++	bx	lr
++	.size	far_away, .-far_away
+diff --git a/bolt/test/ARM/Inputs/arm32-far.ld b/bolt/test/ARM/Inputs/arm32-far.ld
+new file mode 100644
+index 000000000..e245199cf
+--- /dev/null
++++ b/bolt/test/ARM/Inputs/arm32-far.ld
+@@ -0,0 +1,9 @@
++ENTRY(_start)
++SECTIONS {
++  . = 0x10000;
++  .text : {
++    *(.text.start)
++    . = . + 0x2100000;
++    *(.text.far)
++  }
++}
+diff --git a/bolt/test/ARM/Inputs/arm32-interwork.s b/bolt/test/ARM/Inputs/arm32-interwork.s
+new file mode 100644
+index 000000000..43e129c30
+--- /dev/null
++++ b/bolt/test/ARM/Inputs/arm32-interwork.s
+@@ -0,0 +1,39 @@
++	.syntax unified
++	.text
++	.global _start
++	.type _start, %function
++	.arm
++_start:
++	@ ARM caller → Thumb callee (must encode BLX / survive identity rewrite)
++	blx thumb_add1
++	@ r0 should be 43
++	cmp r0, #43
++	bne .Lfail
++	blx thumb_to_arm
++	cmp r0, #42
++	bne .Lfail
++	mov r0, #0
++	bx lr
++.Lfail:
++	mov r0, #1
++	bx lr
++
++	.thumb
++	.thumb_func
++	.type thumb_add1, %function
++thumb_add1:
++	adds r0, #1
++	bx lr
++
++	.thumb_func
++	.type thumb_to_arm, %function
++thumb_to_arm:
++	@ Thumb caller → ARM callee
++	blx arm_ret42
++	bx lr
++
++	.arm
++	.type arm_ret42, %function
++arm_ret42:
++	mov r0, #42
++	bx lr
+diff --git a/bolt/test/ARM/Inputs/arm32-thumb-exit.s b/bolt/test/ARM/Inputs/arm32-thumb-exit.s
+new file mode 100644
+index 000000000..0aaa01448
+--- /dev/null
++++ b/bolt/test/ARM/Inputs/arm32-thumb-exit.s
+@@ -0,0 +1,10 @@
++	.syntax unified
++	.thumb
++	.text
++	.globl _start
++	.type _start, %function
++_start:
++	movs	r0, #42
++	movs	r7, #1
++	svc	#0
++	.size	_start, .-_start
+diff --git a/bolt/test/ARM/Inputs/arm32-thumb-it.s b/bolt/test/ARM/Inputs/arm32-thumb-it.s
+new file mode 100644
+index 000000000..e4c5da1a7
+--- /dev/null
++++ b/bolt/test/ARM/Inputs/arm32-thumb-it.s
+@@ -0,0 +1,18 @@
++	.syntax unified
++	.thumb
++	.text
++	.global _start
++	.type _start, %function
++_start:
++	@ Force a real IT / ITE bundle (Thumb-2). Identity rewrite must keep
++	@ the IT header adjacent to its body — never split or insert between.
++	movs r0, #0
++	cmp r0, #0
++	ite eq
++	moveq r1, #1
++	movne r1, #2
++	cmp r0, #1
++	itt ne
++	addne r2, r2, #1
++	addne r2, r2, r0
++	bx lr
+diff --git a/bolt/test/ARM/Inputs/arm32-thumb-loop.s b/bolt/test/ARM/Inputs/arm32-thumb-loop.s
+new file mode 100644
+index 000000000..be49f11e8
+--- /dev/null
++++ b/bolt/test/ARM/Inputs/arm32-thumb-loop.s
+@@ -0,0 +1,12 @@
++	.syntax unified
++	.thumb
++	.text
++	.global _start
++	.type _start, %function
++_start:
++	adds r0, #1
++	b .Lloop
++.Lloop:
++	subs r0, #1
++	bne .Lloop
++	bx lr
+diff --git a/bolt/test/ARM/Inputs/arm32-thumb-pop-return.s b/bolt/test/ARM/Inputs/arm32-thumb-pop-return.s
+new file mode 100644
+index 000000000..50b63217c
+--- /dev/null
++++ b/bolt/test/ARM/Inputs/arm32-thumb-pop-return.s
+@@ -0,0 +1,20 @@
++	.syntax unified
++	.thumb
++	.text
++	.global _start
++	.type _start, %function
++_start:
++	@ POP {..., pc} is the standard epilogue for any function that spills
++	@ callee-saved registers across a call -- exercises isReturn()
++	@ correctly recognizing it (only BX lr / MOVPCLR were recognized
++	@ before this fix).
++	push {r4, r5, lr}
++	movs r4, #1
++	movs r5, #2
++	bl callee
++	adds r0, r4, r5
++	pop {r4, r5, pc}
++
++	.type callee, %function
++callee:
++	bx lr
+diff --git a/bolt/test/ARM/Inputs/arm32-thumb-switch.s b/bolt/test/ARM/Inputs/arm32-thumb-switch.s
+new file mode 100644
+index 000000000..bad46e4c9
+--- /dev/null
++++ b/bolt/test/ARM/Inputs/arm32-thumb-switch.s
+@@ -0,0 +1,30 @@
++	.syntax unified
++	.thumb
++	.text
++	.global _start
++	.type _start, %function
++_start:
++	@ Dense 4-way switch forces a real Thumb-2 TBB (table-branch-byte)
++	@ dispatch -- exercises isIndirectBranch() correctly recognizing TBB
++	@ as an indirect branch rather than silently falling through into
++	@ its own jump table.
++	and r1, r0, #3
++	tbb [pc, r1]
++.LJTI0_0:
++	.byte (.Lcase0-.LJTI0_0)/2
++	.byte (.Lcase1-.LJTI0_0)/2
++	.byte (.Lcase2-.LJTI0_0)/2
++	.byte (.Lcase3-.LJTI0_0)/2
++	.p2align 1
++.Lcase0:
++	movs r0, #10
++	bx lr
++.Lcase1:
++	movs r0, #20
++	bx lr
++.Lcase2:
++	movs r0, #30
++	bx lr
++.Lcase3:
++	movs r0, #40
++	bx lr
+diff --git a/bolt/test/ARM/Inputs/arm32.ld b/bolt/test/ARM/Inputs/arm32.ld
+new file mode 100644
+index 000000000..a660a8880
+--- /dev/null
++++ b/bolt/test/ARM/Inputs/arm32.ld
+@@ -0,0 +1,5 @@
++ENTRY(_start)
++SECTIONS {
++  . = 0x8000;
++  .text : { *(.text*) }
++}
+diff --git a/bolt/test/ARM/Inputs/elf32-arm-empty.yaml b/bolt/test/ARM/Inputs/elf32-arm-empty.yaml
+new file mode 100644
+index 000000000..7c9b0b42b
+--- /dev/null
++++ b/bolt/test/ARM/Inputs/elf32-arm-empty.yaml
+@@ -0,0 +1,25 @@
++!ELF
++FileHeader:
++  Class:           ELFCLASS32
++  Data:            ELFDATA2LSB
++  Type:            ET_EXEC
++  Machine:         EM_ARM
++  Entry:           0x8000
++Sections:
++  - Name:            .text
++    Type:            SHT_PROGBITS
++    Flags:           [ SHF_ALLOC, SHF_EXECINSTR ]
++    Address:         0x8000
++    AddressAlign:    0x4
++    Content:         "0000A0E1"
++  - Name:            .ARM.attributes
++    Type:            SHT_ARM_ATTRIBUTES
++    AddressAlign:    0x1
++    Content:         "41080000"
++
++Symbols:
++  - Name:    _start
++    Type:    STT_FUNC
++    Section: .text
++    Value:   0x8000
++    Size:    4
+diff --git a/bolt/test/ARM/arm-cfg.test b/bolt/test/ARM/arm-cfg.test
+new file mode 100644
+index 000000000..7fe3d8e4b
+--- /dev/null
++++ b/bolt/test/ARM/arm-cfg.test
+@@ -0,0 +1,11 @@
++## CFG for ARM-mode add/bl/b.
++
++RUN: %clang --target=armv7-none-eabi -c -o %t.o %p/Inputs/arm32-add-bl.s
++RUN: ld.lld --emit-relocs -T %p/Inputs/arm32.ld %t.o -o %t.exe
++RUN: llvm-bolt --print-cfg -o %t.out %t.exe 2>&1 | FileCheck %s
++
++CHECK: Binary Function "_start
++CHECK: bl
++CHECK: Successors:
++CHECK-NOT: BOLT-ERROR
++CHECK-NOT: invalid CFG
+diff --git a/bolt/test/ARM/arm-disasm.test b/bolt/test/ARM/arm-disasm.test
+new file mode 100644
+index 000000000..d8eba72e2
+--- /dev/null
++++ b/bolt/test/ARM/arm-disasm.test
+@@ -0,0 +1,11 @@
++## Disassemble a tiny ARM-mode function.
++
++RUN: %clang --target=armv7-none-eabi -c -o %t.o %p/Inputs/arm32-add-bl.s
++RUN: ld.lld --emit-relocs -T %p/Inputs/arm32.ld %t.o -o %t.exe
++RUN: llvm-bolt --print-disasm -o %t.out %t.exe 2>&1 | FileCheck %s
++
++CHECK: Binary Function "_start
++CHECK: add
++CHECK: bl
++CHECK: b
++CHECK-NOT: BOLT-ERROR
+diff --git a/bolt/test/ARM/arm-interwork.test b/bolt/test/ARM/arm-interwork.test
+new file mode 100644
+index 000000000..8a7a4fe1f
+--- /dev/null
++++ b/bolt/test/ARM/arm-interwork.test
+@@ -0,0 +1,24 @@
++## ARM↔Thumb interworking calls survive identity rewrite.
++
++# RUN: llvm-mc -filetype=obj -triple=armv7-unknown-linux-gnueabi %p/Inputs/arm32-interwork.s -o %t.o
++# RUN: ld.lld --emit-relocs -T %p/Inputs/arm32.ld %t.o -o %t.exe
++# RUN: llvm-bolt %t.exe -o %t.bolt --print-cfg 2>&1 | FileCheck %s --check-prefix=CHECK-LOG
++# RUN: llvm-objdump -d --triple=armv7a-none-eabi %t.bolt | FileCheck %s --check-prefix=CHECK-OUT
++# RUN: llvm-objdump -s --section=.text %t.bolt | FileCheck %s --check-prefix=CHECK-HEX
++
++# CHECK-LOG-DAG: Binary Function "_start
++# CHECK-LOG-DAG: Binary Function "thumb_add1
++# CHECK-LOG-DAG: Binary Function "arm_ret42
++# CHECK-LOG-DAG: Binary Function "thumb_to_arm
++# CHECK-LOG-NOT: BOLT-ERROR
++# CHECK-LOG-NOT: Assertion
++
++# ARM→Thumb uses BLX; ARM callee retained.
++# CHECK-OUT: <_start>
++# CHECK-OUT: {{[[:space:]]}}blx{{[[:space:]]}}
++# CHECK-OUT: <arm_ret42>
++
++# LE encodings: ARM BLX (..0000fa), ARM bx lr (1eff2fe1), Thumb bx lr (7047).
++# CHECK-HEX: 0000fa
++# CHECK-HEX: 1eff2fe1
++# CHECK-HEX: 7047
+diff --git a/bolt/test/ARM/arm-longjmp-veneer.test b/bolt/test/ARM/arm-longjmp-veneer.test
+new file mode 100644
+index 000000000..d7c3c0b33
+--- /dev/null
++++ b/bolt/test/ARM/arm-longjmp-veneer.test
+@@ -0,0 +1,22 @@
++## Out-of-range ARM BL: drop the linker veneer, then LongJmp emits movw/movt/bx.
++
++# REQUIRES: system-linux
++
++RUN: llvm-mc -filetype=obj -triple=armv7-unknown-linux-gnueabi %p/Inputs/arm32-far-bl.s -o %t.o
++RUN: ld.lld --emit-relocs -T %p/Inputs/arm32-far.ld %t.o -o %t.exe
++RUN: llvm-bolt %t.exe -o %t.bolt --pad-funcs-before=far_away:0x2100000 2>&1 | FileCheck %s --check-prefix=LOG
++RUN: llvm-readelf -h %t.bolt | FileCheck %s --check-prefix=HDR
++RUN: llvm-objdump -d --start-address=0x2400000 --stop-address=0x2400020 %t.bolt | FileCheck %s --check-prefix=ASM
++
++LOG: BOLT-INFO: number of removed linker-inserted veneers: {{[1-9][0-9]*}}
++LOG: BOLT-INFO: Inserted {{[1-9][0-9]*}} stubs
++LOG-NOT: BOLT-ERROR
++
++HDR: Entry point address: 0x2400000
++
++;; Stub at _start+0x10: MOVW ip / MOVT ip / BX ip (objdump may lack $a).
++ASM: 2400000:
++ASM: bl
++ASM: {{e300c|movw}}
++ASM: {{e340c|movt}}
++ASM: {{e12fff1c|bx}}
+diff --git a/bolt/test/ARM/arm-rewrite.test b/bolt/test/ARM/arm-rewrite.test
+new file mode 100644
+index 000000000..4287465c6
+--- /dev/null
++++ b/bolt/test/ARM/arm-rewrite.test
+@@ -0,0 +1,12 @@
++## Identity rewrite of ARM-mode ET_EXEC.
++
++RUN: %clang --target=armv7-none-eabi -c -o %t.o %p/Inputs/arm32-add-bl.s
++RUN: ld.lld --emit-relocs -T %p/Inputs/arm32.ld %t.o -o %t.exe
++RUN: llvm-bolt %t.exe -o %t.bolt 2>&1 | FileCheck %s --check-prefix=CHECK-RUN
++RUN: llvm-readelf -h %t.bolt | FileCheck %s --check-prefix=CHECK-ELF
++RUN: llvm-objdump -d %t.bolt | FileCheck %s --check-prefix=CHECK-ASM
++
++CHECK-RUN-NOT: BOLT-ERROR
++CHECK-ELF: Type: EXEC
++CHECK-ASM: add
++CHECK-ASM: bl
+diff --git a/bolt/test/ARM/arm32-thumb-pop-return.test b/bolt/test/ARM/arm32-thumb-pop-return.test
+new file mode 100644
+index 000000000..915ef4087
+--- /dev/null
++++ b/bolt/test/ARM/arm32-thumb-pop-return.test
+@@ -0,0 +1,29 @@
++## POP {..., pc} is the standard epilogue for any Thumb function that
++## spills callee-saved registers across a call. isReturn() must recognize
++## it as a return (only BX lr / MOVPCLR were recognized before this fix) so
++## BOLT treats the function as IsSimple and is willing to overwrite it,
++## rather than conservatively bailing out on unrecognized control flow.
++
++# RUN: llvm-mc -filetype=obj -triple=thumbv7-unknown-linux-gnueabi %p/Inputs/arm32-thumb-pop-return.s -o %t.o
++# RUN: ld.lld --emit-relocs -T %p/Inputs/arm32.ld %t.o -o %t.exe
++# RUN: llvm-objdump -d --triple=thumbv7a-none-eabi %t.exe | FileCheck %s --check-prefix=CHECK-IN
++# RUN: llvm-bolt %t.exe -o %t.bolt --print-cfg 2>&1 | FileCheck %s --check-prefix=CHECK-LOG
++# RUN: llvm-objdump -s --section=.text %t.bolt | FileCheck %s --check-prefix=CHECK-OUT
++
++# Input contains the push/bl/pop{pc} pattern (disasm of linked input has $t).
++# CHECK-IN: push{{.*}}{r4, r5, lr}
++# CHECK-IN: bl{{.*}}<callee>
++# CHECK-IN: pop{{.*}}{r4, r5, pc}
++
++# pop{pc} must be recognized as a return: function stays IsSimple (single
++# well-formed CFG, no UNKNOWN CONTROL FLOW) and gets overwritten.
++# CHECK-LOG: Binary Function "_start
++# CHECK-LOG: IsSimple{{.*}}: 1
++# CHECK-LOG: pop{{.*}}{r4, r5, pc}
++# CHECK-LOG-NOT: UNKNOWN CONTROL FLOW
++# CHECK-LOG-NOT: BOLT-ERROR
++# CHECK-LOG-NOT: unable to disassemble
++# CHECK-LOG: BOLT: 2 out of 2 functions were overwritten
++
++# Identity rewrite must reproduce the input bytes exactly.
++# CHECK-OUT: 30b50124 022500f0 02f86019 30bd7047
+diff --git a/bolt/test/ARM/arm32-thumb-switch.test b/bolt/test/ARM/arm32-thumb-switch.test
+new file mode 100644
+index 000000000..99f5fb8e7
+--- /dev/null
++++ b/bolt/test/ARM/arm32-thumb-switch.test
+@@ -0,0 +1,31 @@
++## A dense 4-way switch lowers to a Thumb-2 TBB (table-branch-byte) dispatch.
++## isIndirectBranch() must recognize TBB as an indirect branch (not silently
++## fall through into its own jump table, and not misclassify it as a
++## return or an ordinary direct branch). Full jump-table decoding is not
++## implemented (see docs/KNOWN_LIMITATIONS.md), so BOLT correctly marks
++## this function's control flow as UNKNOWN and, being conservative, leaves
++## it un-overwritten rather than risk corrupting it.
++
++# RUN: llvm-mc -filetype=obj -triple=thumbv7-unknown-linux-gnueabi %p/Inputs/arm32-thumb-switch.s -o %t.o
++# RUN: ld.lld --emit-relocs -T %p/Inputs/arm32.ld %t.o -o %t.exe
++# RUN: llvm-objdump -d --triple=thumbv7a-none-eabi %t.exe | FileCheck %s --check-prefix=CHECK-IN
++# RUN: llvm-bolt %t.exe -o %t.bolt --print-cfg 2>&1 | FileCheck %s --check-prefix=CHECK-LOG
++# RUN: llvm-objdump -s --section=.text %t.bolt | FileCheck %s --check-prefix=CHECK-OUT
++
++# Input contains the tbb dispatch (disasm of linked input has $t).
++# CHECK-IN: and{{.*}}r1, r0, #0x3
++# CHECK-IN-NEXT: tbb [pc, r1]
++
++# TBB must be recognized as indirect-branch control flow, not silently
++# treated as fallthrough/return/direct-branch. Table decode not
++# implemented, so this is the correct, conservative outcome.
++# CHECK-LOG: Binary Function "_start
++# CHECK-LOG: tbb{{.*}}# UNKNOWN CONTROL FLOW
++# CHECK-LOG-NOT: BOLT-ERROR
++# CHECK-LOG-NOT: unable to disassemble
++# CHECK-LOG: BOLT: 0 out of 1 functions were overwritten
++
++# Conservative: function left byte-identical rather than risk corrupting
++# a jump table BOLT can't fully decode.
++# CHECK-OUT: 00f00301 dfe801f0 02040608 0a207047
++# CHECK-OUT: 14207047 1e207047 28207047
+diff --git a/bolt/test/ARM/elf32-parse.test b/bolt/test/ARM/elf32-parse.test
+new file mode 100644
+index 000000000..ae4cf2b67
+--- /dev/null
++++ b/bolt/test/ARM/elf32-parse.test
+@@ -0,0 +1,9 @@
++## Verify that BOLT accepts ARM32 ELF executables and lists sections.
++
++RUN: llvm-mc -filetype=obj -triple=armv7-unknown-linux-gnueabi %p/Inputs/arm32-add-bl.s -o %t.o
++RUN: ld.lld --emit-relocs -T %p/Inputs/arm32.ld %t.o -o %t.exe
++RUN: llvm-bolt --print-sections -o %t.out %t.exe 2>&1 | FileCheck %s
++
++CHECK: BOLT-INFO: Sections from original binary
++CHECK: .text
++CHECK-NOT: BOLT-ERROR: Unrecognized machine in ELF file
+diff --git a/bolt/test/ARM/lit.local.cfg b/bolt/test/ARM/lit.local.cfg
+new file mode 100644
+index 000000000..c69f1e524
+--- /dev/null
++++ b/bolt/test/ARM/lit.local.cfg
+@@ -0,0 +1,9 @@
++if 'ARM' not in config.root.targets:
++    config.unsupported = True
++
++flags = '--target=armv7-none-eabi -nostdlib -ffreestanding -Wl,--emit-relocs'
++thumb_flags = '--target=thumbv7-none-eabi -nostdlib -ffreestanding -Wl,--emit-relocs'
++
++config.substitutions.insert(0, ('%cflags', f'%cflags {flags}'))
++config.substitutions.insert(0, ('%cxxflags', f'%cxxflags {flags}'))
++config.substitutions.insert(0, ('%clang', config.clang.replace('clang', 'clang') if config.clang else 'clang'))
+diff --git a/bolt/test/ARM/thumb-cfg.test b/bolt/test/ARM/thumb-cfg.test
+new file mode 100644
+index 000000000..a9c70acf7
+--- /dev/null
++++ b/bolt/test/ARM/thumb-cfg.test
+@@ -0,0 +1,12 @@
++## CFG for Thumb-2 loop (no IT).
++
++RUN: llvm-mc -filetype=obj -triple=thumbv7-unknown-linux-gnueabi %p/Inputs/arm32-thumb-loop.s -o %t.o
++RUN: ld.lld --emit-relocs -T %p/Inputs/arm32.ld %t.o -o %t.exe
++RUN: llvm-bolt --print-cfg -o %t.out %t.exe 2>&1 | FileCheck %s
++
++CHECK: Binary Function "_start
++CHECK: Successors:
++CHECK-NOT: unable to disassemble
++CHECK-NOT: BOLT-ERROR
++CHECK-NOT: Assertion
++CHECK-NOT: invalid CFG
+diff --git a/bolt/test/ARM/thumb-disasm.test b/bolt/test/ARM/thumb-disasm.test
+new file mode 100644
+index 000000000..40e09335a
+--- /dev/null
++++ b/bolt/test/ARM/thumb-disasm.test
+@@ -0,0 +1,12 @@
++## Disassemble a tiny Thumb-2 function (no IT).
++
++RUN: llvm-mc -filetype=obj -triple=thumbv7-unknown-linux-gnueabi %p/Inputs/arm32-thumb-loop.s -o %t.o
++RUN: ld.lld --emit-relocs -T %p/Inputs/arm32.ld %t.o -o %t.exe
++RUN: llvm-bolt --print-disasm -o %t.out %t.exe 2>&1 | FileCheck %s
++
++CHECK: Binary Function "_start
++CHECK-DAG: adds
++CHECK-DAG: bx
++CHECK-NOT: unable to disassemble
++CHECK-NOT: BOLT-ERROR
++CHECK-NOT: Assertion
+diff --git a/bolt/test/ARM/thumb-it.test b/bolt/test/ARM/thumb-it.test
+new file mode 100644
+index 000000000..9101a826a
+--- /dev/null
++++ b/bolt/test/ARM/thumb-it.test
+@@ -0,0 +1,28 @@
++## Thumb-2 IT / ITE bundles stay atomic across identity rewrite.
++
++# RUN: llvm-mc -filetype=obj -triple=thumbv7-unknown-linux-gnueabi %p/Inputs/arm32-thumb-it.s -o %t.o
++# RUN: ld.lld --emit-relocs -T %p/Inputs/arm32.ld %t.o -o %t.exe
++# RUN: llvm-objdump -d --triple=thumbv7a-none-eabi %t.exe | FileCheck %s --check-prefix=CHECK-IN
++# RUN: llvm-bolt %t.exe -o %t.bolt --print-cfg 2>&1 | FileCheck %s --check-prefix=CHECK-LOG
++# RUN: llvm-objdump -s --section=.text %t.bolt | FileCheck %s --check-prefix=CHECK-OUT
++
++# Input contains IT / ITE headers (disasm of linked input has $t).
++# CHECK-IN: ite eq
++# CHECK-IN-NEXT: {{.*}}moveq
++# CHECK-IN-NEXT: {{.*}}movne
++# CHECK-IN: itt ne
++# CHECK-IN-NEXT: {{.*}}addne
++# CHECK-IN-NEXT: {{.*}}addne
++
++# CFG prints before the overwrite summary.
++# CHECK-LOG-DAG: Binary Function "_start
++# CHECK-LOG-DAG: {{[[:space:]]ite?[[:space:]]|[[:space:]]itt[[:space:]]}}
++# CHECK-LOG-DAG: BOLT: {{[1-9][0-9]*}} out of {{[0-9]+}} functions were overwritten
++# CHECK-LOG-NOT: BOLT-ERROR
++# CHECK-LOG-NOT: unable to disassemble
++
++# Raw .text must keep IT opcodes: ite eq = 0xbf0c, itt ne = 0xbf1c (LE).
++# Also keep surrounding mov/add immediates so the bundle was not split.
++# CHECK-OUT: 0cbf0121
++# CHECK-OUT: 1cbf521c
++# CHECK-OUT: 7047
+diff --git a/bolt/test/ARM/thumb-rewrite.test b/bolt/test/ARM/thumb-rewrite.test
+new file mode 100644
+index 000000000..2adc0038e
+--- /dev/null
++++ b/bolt/test/ARM/thumb-rewrite.test
+@@ -0,0 +1,15 @@
++## Identity rewrite of Thumb-2 ET_EXEC (no IT).
++
++RUN: llvm-mc -filetype=obj -triple=thumbv7-unknown-linux-gnueabi %p/Inputs/arm32-thumb-loop.s -o %t.o
++RUN: ld.lld --emit-relocs -T %p/Inputs/arm32.ld %t.o -o %t.exe
++RUN: llvm-bolt %t.exe -o %t.bolt 2>&1 | FileCheck %s --check-prefix=CHECK-LOG
++RUN: llvm-readelf -h %t.bolt | FileCheck %s --check-prefix=CHECK-ELF
++RUN: llvm-objdump -s --section=.text %t.bolt | FileCheck %s --check-prefix=CHECK-ASM
++
++CHECK-LOG: BOLT: {{[1-9][0-9]*}} out of {{[0-9]+}} functions were overwritten
++CHECK-LOG-NOT: BOLT-ERROR
++CHECK-LOG-NOT: unable to disassemble
++CHECK-ELF: Type: EXEC
++# Raw .text must keep Thumb adds (0x3001) and bx lr (0x4770).
++CHECK-ASM: 0130
++CHECK-ASM: 7047
+diff --git a/bolt/test/Inputs/elf32-basic.yaml b/bolt/test/Inputs/elf32-basic.yaml
+index c1a55af02..638de349a 100644
+--- a/bolt/test/Inputs/elf32-basic.yaml
++++ b/bolt/test/Inputs/elf32-basic.yaml
+@@ -3,7 +3,7 @@ FileHeader:
+   Class:   ELFCLASS32
+   Data:    ELFDATA2LSB
+   Type:    ET_EXEC
+-  Machine: EM_ARM
++  Machine: EM_386
+ Sections:
+   - Name:    .text
+     Type:    SHT_PROGBITS
+diff --git a/bolt/test/elf32-basic.test b/bolt/test/elf32-basic.test
+index 4df44d821..e14b6001d 100644
+--- a/bolt/test/elf32-basic.test
++++ b/bolt/test/elf32-basic.test
+@@ -1,9 +1,9 @@
+ ## Verify that BOLT accepts ELF32LE binaries and does not reject them with
+ ## the old "Only 64-bit LE ELF binaries are supported" error.
+-## The binary uses EM_ARM which has no BOLT target support, so BOLT will fail
++## The binary uses EM_386 which has no BOLT target support, so BOLT will fail
+ ## with "Unrecognized machine in ELF file" -- that is expected. The point is
+ ## that ELF32 parsing infrastructure works and does not reject the file
+-## outright.
++## outright. (EM_ARM used to fill this role; ARM is a BOLT target now.)
+ 
+ RUN: yaml2obj %p/Inputs/elf32-basic.yaml -o %t.exe
+ RUN: not llvm-bolt %t.exe -o /dev/null 2>&1 | FileCheck %s

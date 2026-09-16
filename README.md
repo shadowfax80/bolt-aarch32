@@ -43,14 +43,54 @@ cd /workspace/bolt-lk-overlay
 
 Copy `.env.example` to `.env` on the pod; set `NETWORK_VOLUME_ID=j1d9e6wq5l` to reattach the saved volume.
 
+## Two LLVM bases, one repo
+
+The AArch32 backend is built and verified against **two** LLVM forks side by
+side — `BASE=upstream` (`llvm/llvm-project`, pinned, the actual upstreaming
+target) and `BASE=atfe` (`arm/arm-toolchain`'s `arm-software` branch, Arm's
+own actively-synced integration branch). Set `BASE` before running any
+source/build/patch script; it defaults to `upstream` when unset:
+
+```bash
+BASE=atfe ./scripts/ensure-llvm-source.sh
+BASE=atfe ./scripts/apply-overlays.sh
+BASE=atfe ./scripts/build-llvm-bolt.sh
+BASE=atfe ARCH=arm32 ./scripts/instrument-lk-bolt.sh
+```
+
+Each base gets its own source tree (`third_party/llvm-project-$BASE/`),
+build directory (`build-$BASE/`), and patch set
+(`overlay/llvm/patches/$BASE/`) — see `scripts/resolve-base.sh` for exactly
+what each `BASE` value resolves to (remote, pinned commit, paths). LK
+(`third_party/lk/`) is shared and base-agnostic; only `llvm-bolt` itself
+needs building per base.
+
+This repo used to be two separate repos — `bolt-aarch32` (this one) and
+`atfe-bolt-aarch32` — kept in sync by hand across every fix. That repo is
+now archived at
+[`somraj80/atfe-bolt-aarch32-legacy`](https://github.com/somraj80/atfe-bolt-aarch32-legacy)
+(read-only; its history predates the 2026-09-15 merge into this repo) —
+useful only if you need pre-merge commit history for the `arm-toolchain`
+side of the work. Everything current lives here.
+
+The two patch sets aren't byte-identical (real API drift between the two
+LLVM bases — e.g. `--instrument-funcs-file` exists on `upstream`'s pinned
+commit but was removed upstream by the time `arm-software` synced past it;
+`scripts/instrument-lk-bolt.sh` now uses the base-agnostic `--funcs-file`
+instead). Expect some drift to keep tracking as `arm-software` keeps moving
+and `upstream`'s pin gets bumped independently.
+
 ## Layout
 
 ```
-overlay/llvm/patches/   # bare-metal runtime, AArch32 backend slices
-overlay/lk/patches/     # linker script, bolt_bench, dump hook
-scripts/                # source fetch, build, RunPod, BOLT instrument/optimize
-docs/                   # plan + design
-third_party/            # llvm-project, lk — gitignored, cloned on demand
+overlay/llvm/patches/upstream/  # patch set for BASE=upstream (llvm/llvm-project)
+overlay/llvm/patches/atfe/      # patch set for BASE=atfe (arm/arm-toolchain)
+overlay/lk/patches/             # linker script, bolt_bench, dump hook — shared, base-agnostic
+scripts/                        # source fetch, build, RunPod, BOLT instrument/optimize
+scripts/resolve-base.sh         # BASE=upstream|atfe -> LLVM_DIR/LLVM_COMMIT/LLVM_REMOTE/PATCH_DIR/BUILD_DIR
+docs/                           # plan + design
+third_party/                    # llvm-project-upstream/, llvm-project-atfe/, lk/ — gitignored, cloned on demand
+build-upstream/, build-atfe/    # per-base build output — gitignored
 ```
 
 ## License
