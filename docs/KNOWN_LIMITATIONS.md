@@ -20,6 +20,10 @@ stands between those two facts.
 
 ## Index
 
+IDs are stable, not ordered by priority. **Current priority order** (per the
+2026-09-17 [UPSTREAMING_REVIEW.md](UPSTREAMING_REVIEW.md)): U7 → U8 → U9 →
+L5 → then U1–U6 in listed order.
+
 | ID | Item | Severity | Status |
 |----|------|----------|--------|
 | U1 | Full-image rewrite unusable; only a function allowlist works | Blocker | Open |
@@ -34,6 +38,11 @@ stands between those two facts.
 | L2 | `isTLS()` / `isGOT()` hard-return false for ARM | Medium | Open (fails safe) |
 | L3 | `$t` mapping symbols emitted at odd addresses | Low | Open (ABI violation) |
 | L4 | No arch-revision gating; `.ARM.attributes` recorded but not enforced | Medium | Open |
+| U7 | No commit history — patches are `git diff HEAD` file-slices | Blocker | Open |
+| U8 | `getMIBFor(bool)` leaks the ARM/Thumb predicate into 11 core call sites | Blocker (RFC gate) | Open |
+| U9 | 33 standalone `isARM()` forks in core, ~95 hunks across 19 files | High | Open |
+| L5 | `--no-lse-atomics` is dead on ARM; no ARM atomics option exists | Medium | Open |
+| L6 | Indirect-call site descriptors = 0 despite correct classification | Medium | Unexplained |
 | D1, D2, D4, D6 | — | — | **Resolved**, see history below |
 
 ---
@@ -158,6 +167,36 @@ check that both patch sets' test inventories match.
 
 ---
 
+### U7 — No commit history; patches are `git diff HEAD` file-slices **[verified]**
+
+`scripts/export-llvm-arm-patches.sh:22` is the whole export mechanism:
+`git -C "$LLVM" diff HEAD -- "$@" > "$DEST/$name"`. The ARM backend exists as
+one uncommitted working tree on the pod volume; each "patch" is a slice of it
+partitioned by file list. All ten begin with `diff --git` — no commit
+message, no rationale, nothing `format-patch` can act on. The split is by
+**file**, not by logical change, so the P1–P10 rung structure exists only in
+prose. Reconstructing a real commit series is the first task and is not
+mechanical. Detail: [UPSTREAMING_REVIEW.md](UPSTREAMING_REVIEW.md).
+
+### U8 — `getMIBFor(bool IsThumb)` leaks the predicate into core **[verified]**
+
+Eleven core call sites; ten re-derive
+`BC.getMIBFor(BC.isARM() && Function.isARMThumb())` inline, and one
+(`LongJmp.cpp`, patch 0009 line 155) omits the `isARM()` guard — it works on
+non-ARM targets only by accident. Every core caller must know the words
+"ARM" and "Thumb." This is the RFC-worthy change, and the signature the RFC
+must propose is `getMIBFor(const BinaryFunction &)` with the check inside.
+
+### U9 — 33 standalone `isARM()` forks in core **[verified]**
+
+41 `isARM()` conditionals across 13 core files; 33 are standalone forks
+rather than `isARM() || isAArch64()` shared paths. `RewriteInstance.cpp`
+carries 9, `BinaryFunction.cpp` 7. Some are legitimate ELF32-vs-ELF64
+branches; many are target behavior that belongs behind an `MCPlusBuilder`
+virtual. Core blast radius: ~95 hunks across 19 files.
+
+---
+
 ## Open defects carried forward
 
 ### D3 — `isTerminator()` for POP/LDM corrupts emission **[carried]**
@@ -209,6 +248,27 @@ JITLink triple fallback and is entirely untested.
 
 ---
 
+### L5 — `--no-lse-atomics` is dead on ARM **[verified]**
+
+Appears in zero patches — only `scripts/instrument-lk-bolt.sh:81` and
+`scripts/optimize-lk-bolt.sh:44`. It is the AArch64 `cl::opt`; BOLT accepts
+it globally and the ARM target never reads it. The ARM counter path uses
+`ldrex`/`strex` unconditionally. Looks like a copy-paste error to a reviewer,
+and means there is **no** ARM-side atomics option — nothing to opt into
+`stadd` with on ARMv8.2-A hardware such as Cortex-A55.
+
+### L6 — Indirect-call site descriptors = 0, unexplained **[verified absent; cause unknown]**
+
+Instrumenting `bolt_bench_indirect_call` reports `Number of indirect call
+site descriptors: 0` despite a real function-pointer call. Not a missing
+hook — all ten instrumentation hooks are implemented, including
+`createInstrumentedIndirectCall`. Not a classification gap — `isIndirectCall`
+accepts `ARM::BLX`, `ARM::BLX_pred`, `ARM::tBLXr`. Static review cannot
+explain the zero. Needs `llvm-bolt --print-cfg` on that function in the
+instrumented build before it can be called a bug.
+
+---
+
 ## Deferred scope — name it, don't half-implement it
 
 A first backend that declares **"static, `-fno-exceptions`, non-TLS,
@@ -223,7 +283,9 @@ The project's own plan requires an **RFC on LLVM Discourse before opening P4**,
 because `MCPlusBuilder` is shared infrastructure and the `getMIBFor()`
 dual-builder change touches every target. P4 through P10 are complete and the
 RFC has still not been posted — it is now seven rungs overdue and is a hard
-gate for landing any of this.
+gate for landing any of this. It should propose the U8 signature,
+`getMIBFor(const BinaryFunction &)`, not the current `getMIBFor(bool)` — the
+latter would be sent back on first review.
 
 ## Historical record
 

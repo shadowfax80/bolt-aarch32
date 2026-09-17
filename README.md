@@ -16,6 +16,7 @@ Upstream [llvm-project](https://github.com/llvm/llvm-project) and [lk](https://g
 | [docs/aarch32-bolt.md](docs/aarch32-bolt.md) | ARM/Thumb design, edge cases, upstream merge path |
 | [docs/BOLT_AARCH32_BACKEND.md](docs/BOLT_AARCH32_BACKEND.md) | Backend reference: design principles, interfaces, AArch64 diff, bare-metal user guide |
 | [docs/KNOWN_LIMITATIONS.md](docs/KNOWN_LIMITATIONS.md) | **Before upstreaming** — open gaps, blockers, and deferred scope, with verification status |
+| [docs/UPSTREAMING_REVIEW.md](docs/UPSTREAMING_REVIEW.md) | Submission-readiness review: what a BOLT maintainer sees on first open, what's already right, ranked fixes |
 
 ## Phases
 
