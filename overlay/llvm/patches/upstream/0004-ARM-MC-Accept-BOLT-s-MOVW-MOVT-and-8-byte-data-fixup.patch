@@ -1,0 +1,67 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Somraj Mani <somraj.mani@gmail.com>
+Date: Thu, 17 Sep 2026 14:23:59 +0000
+Subject: [PATCH 4/7] [ARM][MC] Accept BOLT's MOVW/MOVT and 8-byte data fixups
+ in ELF
+
+BOLT emits :lower16:/:upper16: MOVW/MOVT for absolute veneers. The
+encoder can surface these with IsPCRel set; map them to the absolute
+MOVW_ABS_NC/MOVT_ABS relocations regardless.
+
+BOLT also emits 8-byte symbol differences for padded functions. AArch32
+has no R_ARM_ABS64, so map FK_Data_8 to R_ARM_ABS32.
+
+FIXME: the FK_Data_8 mapping assumes the value fits in 32 bits and does
+not check it. It needs a range check, or BOLT should stop emitting 8-byte
+data for 32-bit targets.
+
+Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01Tdyp9Tb7sLvWDoCC5m4ACC
+---
+ .../Target/ARM/MCTargetDesc/ARMELFObjectWriter.cpp   | 12 ++++++++++++
+ 1 file changed, 12 insertions(+)
+
+diff --git a/llvm/lib/Target/ARM/MCTargetDesc/ARMELFObjectWriter.cpp b/llvm/lib/Target/ARM/MCTargetDesc/ARMELFObjectWriter.cpp
+index d914f6e830cf..67701f8d0e21 100644
+--- a/llvm/lib/Target/ARM/MCTargetDesc/ARMELFObjectWriter.cpp
++++ b/llvm/lib/Target/ARM/MCTargetDesc/ARMELFObjectWriter.cpp
+@@ -107,6 +107,12 @@ unsigned ARMELFObjectWriter::getRelocType(const MCFixup &Fixup,
+   if (IsPCRel) {
+     switch (Fixup.getKind()) {
+     default:
++      // BOLT veneers use :lower16:/:upper16: on MOVi16/MOVTi16. The encoder
++      // may surface those specifiers with IsPCRel set; they are still ABS.
++      if (Specifier == ARM::S_LO16)
++        return ELF::R_ARM_MOVW_ABS_NC;
++      if (Specifier == ARM::S_HI16)
++        return ELF::R_ARM_MOVT_ABS;
+       reportError(Fixup.getLoc(), "unsupported relocation type");
+       return ELF::R_ARM_NONE;
+     case FK_Data_4:
+@@ -201,6 +207,10 @@ unsigned ARMELFObjectWriter::getRelocType(const MCFixup &Fixup,
+   default:
+     reportError(Fixup.getLoc(), "unsupported relocation type");
+     return ELF::R_ARM_NONE;
++  case FK_Data_8:
++    // BOLT/ELF32 may emit 64-bit symbol diffs for padded functions. ARM has
++    // no R_ARM_ABS64; the addend/value still fits in 32 bits.
++    return ELF::R_ARM_ABS32;
+   case FK_Data_1:
+     switch (Specifier) {
+     default:
+@@ -278,6 +288,7 @@ unsigned ARMELFObjectWriter::getRelocType(const MCFixup &Fixup,
+       reportError(Fixup.getLoc(), "invalid fixup for ARM MOVT instruction");
+       return ELF::R_ARM_NONE;
+     case ARM::S_None:
++    case ARM::S_HI16:
+       return ELF::R_ARM_MOVT_ABS;
+     case ARM::S_SBREL:
+       return ELF::R_ARM_MOVT_BREL;
+@@ -288,6 +299,7 @@ unsigned ARMELFObjectWriter::getRelocType(const MCFixup &Fixup,
+       reportError(Fixup.getLoc(), "invalid fixup for ARM MOVW instruction");
+       return ELF::R_ARM_NONE;
+     case ARM::S_None:
++    case ARM::S_LO16:
+       return ELF::R_ARM_MOVW_ABS_NC;
+     case ARM::S_SBREL:
+       return ELF::R_ARM_MOVW_BREL_NC;

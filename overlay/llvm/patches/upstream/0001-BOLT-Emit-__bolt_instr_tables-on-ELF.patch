@@ -1,3 +1,24 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Somraj Mani <somraj.mani@gmail.com>
+Date: Thu, 17 Sep 2026 14:23:19 +0000
+Subject: [PATCH 1/7] [BOLT] Emit __bolt_instr_tables on ELF
+
+Instrumentation always injects __bolt_instr_tables_getter, which takes the
+address of __bolt_instr_tables, but the tables were only emitted for
+Mach-O. On ELF the symbol resolved to 0. That is harmless for a binary
+linked low, but for one linked at a kernel address the getter's
+PC-relative reference cannot reach 0 and JITLink rejects the fixup.
+
+Emitting the tables on ELF also gives a freestanding runtime a way to
+find them; the Linux runtime locates its notes through
+/proc/self/map_files, which bare-metal targets do not have.
+
+Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01Tdyp9Tb7sLvWDoCC5m4ACC
+---
+ .../RuntimeLibs/InstrumentationRuntimeLibrary.cpp    | 12 ++++++++++++
+ 1 file changed, 12 insertions(+)
+
 diff --git a/bolt/lib/RuntimeLibs/InstrumentationRuntimeLibrary.cpp b/bolt/lib/RuntimeLibs/InstrumentationRuntimeLibrary.cpp
 index d71d8ef1c044..a91cf2377982 100644
 --- a/bolt/lib/RuntimeLibs/InstrumentationRuntimeLibrary.cpp
@@ -20,4 +41,4 @@ index d71d8ef1c044..a91cf2377982 100644
 +    emitString("__bolt_instr_tables", buildTables(BC));
    }
  }
-
+ 

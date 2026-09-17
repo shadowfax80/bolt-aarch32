@@ -1,6 +1,12 @@
 #!/usr/bin/env bash
-# Export the volume llvm-project ARM backend delta into
-# overlay/llvm/patches/$BASE/. Run on the pod from the overlay repo root.
+# Export the ARM backend commit series from the volume llvm-project checkout
+# into overlay/llvm/patches/$BASE/ as `git format-patch` files.
+#
+# The backend lives as real commits on the `bolt-arm-backend` branch, on top
+# of the pinned $LLVM_COMMIT; scripts/apply-overlays.sh replays them with
+# `git am`. Commit on the volume first, then run this. Uncommitted changes
+# are refused rather than silently dropped.
+#
 # BASE=upstream|atfe selects which tree/patch-dir pair; see
 # scripts/resolve-base.sh.
 set -euo pipefail
@@ -9,67 +15,26 @@ ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 source "$ROOT/scripts/resolve-base.sh"
 LLVM="${LLVM:-$LLVM_DIR}"
 DEST="${DEST:-$PATCH_DIR}"
-mkdir -p "$DEST"
+BRANCH="${BRANCH:-bolt-arm-backend}"
 
-if [[ ! -d "$LLVM/.git" ]]; then
+if ! git -C "$LLVM" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
   echo "error: $LLVM is not a git checkout" >&2
   exit 1
 fi
+if [[ -n "$(git -C "$LLVM" status --porcelain --untracked-files=no)" ]]; then
+  echo "error: $LLVM has uncommitted changes; commit them first" >&2
+  exit 1
+fi
 
-export_one() {
-  local name="$1"
-  shift
-  git -C "$LLVM" diff HEAD -- "$@" > "$DEST/$name"
-  echo "wrote $DEST/$name ($(wc -l < "$DEST/$name") lines)"
-}
+count="$(git -C "$LLVM" rev-list --count "$LLVM_COMMIT..$BRANCH")"
+if [[ "$count" -eq 0 ]]; then
+  echo "error: $BRANCH has no commits on top of $LLVM_COMMIT" >&2
+  exit 1
+fi
 
-export_one 0003-bolt-arm-elf32-and-target.patch \
-  bolt/CMakeLists.txt \
-  bolt/include/bolt/Core/BinaryContext.h \
-  bolt/include/bolt/Core/BinaryFunction.h \
-  bolt/lib/Core/AddressMap.cpp \
-  bolt/lib/Core/BinaryBasicBlock.cpp \
-  bolt/lib/Core/BinaryContext.cpp \
-  bolt/lib/Core/BinaryEmitter.cpp \
-  bolt/lib/Core/BinaryFunction.cpp \
-  bolt/lib/Core/BinarySection.cpp
-
-export_one 0004-bolt-arm-mcplusbuilder.patch \
-  bolt/include/bolt/Core/MCPlusBuilder.h \
-  bolt/lib/Target/ARM/ARMMCPlusBuilder.cpp \
-  bolt/lib/Target/ARM/ARMMCSymbolizer.cpp \
-  bolt/lib/Target/ARM/ARMMCSymbolizer.h \
-  bolt/lib/Target/ARM/CMakeLists.txt
-
-export_one 0005-bolt-arm-relocations.patch \
-  bolt/lib/Core/Relocation.cpp
-
-export_one 0006-bolt-arm-rewrite-dispatch.patch \
-  bolt/include/bolt/Rewrite/RewriteInstance.h \
-  bolt/lib/Rewrite/RewriteInstance.cpp \
-  bolt/lib/Rewrite/JITLinkLinker.cpp
-
-export_one 0007-bolt-arm-lit-tests.patch \
-  bolt/test/ARM \
-  bolt/test/elf32-basic.test \
-  bolt/test/Inputs/elf32-basic.yaml
-
-export_one 0008-jitlink-arm-generic-archkind.patch \
-  llvm/include/llvm/ExecutionEngine/JITLink/aarch32.h \
-  llvm/lib/ExecutionEngine/JITLink/ELF_aarch32.cpp \
-  llvm/lib/ExecutionEngine/JITLink/aarch32.cpp \
-  llvm/lib/Target/ARM/MCTargetDesc/ARMELFObjectWriter.cpp
-
-export_one 0009-bolt-arm-longjmp-veneers.patch \
-  bolt/lib/Passes/LongJmp.cpp \
-  bolt/lib/Passes/VeneerElimination.cpp \
-  bolt/lib/Rewrite/BinaryPassManager.cpp
-
-# P9: instrumentation emission (Thumb STI) + ELF instr tables for bare metal
-export_one 0010-bolt-arm-instrumentation.patch \
-  bolt/include/bolt/Passes/Instrumentation.h \
-  bolt/lib/Passes/Instrumentation.cpp \
-  bolt/lib/Passes/BinaryPasses.cpp \
-  bolt/lib/RuntimeLibs/InstrumentationRuntimeLibrary.cpp
-
-echo "ARM overlay patches refreshed from $LLVM"
+mkdir -p "$DEST"
+rm -f "$DEST"/*.patch
+git -C "$LLVM" format-patch -q --no-signature --zero-commit \
+  -o "$DEST" "$LLVM_COMMIT..$BRANCH"
+ls "$DEST"/*.patch
+echo "exported $count commits from $LLVM ($BRANCH) to $DEST"

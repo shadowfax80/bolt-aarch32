@@ -12,65 +12,100 @@ trust each entry:
   inferred from the architecture rather than observed
 - **[carried]** — inherited from the pre-merge review, not re-tested since
 
-Current status: **P0–P10 QEMU gates green on both bases** (`BASE=upstream` and
-`BASE=atfe`); **P11 (upstream landing) not started**. The items below are what
-stands between those two facts.
+Current status (2026-09-17): **P0–P10 QEMU gates green on both bases**;
+**P11 (upstream landing) in progress** — the upstream base now carries a real
+7-commit series (U7), each commit building and passing its own lit tests, and
+the RFC is drafted ([RFC_BOLT_AARCH32.md](RFC_BOLT_AARCH32.md), not yet
+posted). The `atfe` base still uses the legacy file-slice patches.
 
 ---
 
 ## Index
 
-IDs are stable, not ordered by priority. **Current priority order** (per the
-2026-09-17 [UPSTREAMING_REVIEW.md](UPSTREAMING_REVIEW.md)): U7 → U8 → U9 →
-L5 → then U1–U6 in listed order.
+IDs are stable, not ordered by priority. **Next, in order:** post the RFC (U8)
+→ U2 → U3 → U4 → L7 → remaining U9 sites → U5.
 
 | ID | Item | Severity | Status |
 |----|------|----------|--------|
-| U1 | Full-image rewrite unusable; only a function allowlist works | Blocker | Open |
+| U1 | Full-image rewrite boots but moves only 7% of functions; output non-deterministic (8/8 runs differ) | Blocker | Open — narrowed 2026-09-17 |
 | U2 | Relocation matrix incomplete, and BOLT-core / JITLink disagree | Blocker | Open |
 | U3 | No `.ARM.exidx` / `.ARM.extab` unwind-table handling | Blocker | Open |
 | U4 | No lit coverage for P9 (instrumentation) or P10 (optimization) | Blocker | Open |
 | U5 | TBB/TBH jump-table targets unrecoverable | High | Open (intentional boundary) |
-| U6 | `upstream` patch set missing 2 lit tests the `atfe` set has | High | Open |
+| U6 | `upstream` patch set missing 2 lit tests the `atfe` set has | High | **Resolved** 2026-09-17 |
 | D3 | `isTerminator()` for POP/LDM corrupts emission | High | Open (fix reverted) |
 | D5 | Function symbols dropped from rewritten output | Low | Open, not root-caused |
 | L1 | Veneer detection is an LLD-specific naming heuristic | Medium | Open |
 | L2 | `isTLS()` / `isGOT()` hard-return false for ARM | Medium | Open (fails safe) |
 | L3 | `$t` mapping symbols emitted at odd addresses | Low | Open (ABI violation) |
 | L4 | No arch-revision gating; `.ARM.attributes` recorded but not enforced | Medium | Open |
-| U7 | No commit history — patches are `git diff HEAD` file-slices | Blocker | Open |
-| U8 | `getMIBFor(bool)` leaks the ARM/Thumb predicate into 11 core call sites | Blocker (RFC gate) | Open |
-| U9 | 33 standalone `isARM()` forks in core, ~95 hunks across 19 files | High | Open |
-| L5 | `--no-lse-atomics` is dead on ARM; no ARM atomics option exists | Medium | Open |
+| U7 | No commit history — patches are `git diff HEAD` file-slices | Blocker | **Resolved** 2026-09-17 (upstream base) |
+| U8 | `getMIBFor(bool)` leaks the ARM/Thumb predicate into 11 core call sites | Blocker (RFC gate) | **Code resolved**; RFC drafted, not posted |
+| U9 | 33 standalone `isARM()` forks in core, ~95 hunks across 19 files | High | **Partly resolved** — 41→31 uses, 8 design calls left |
+| L5 | `--no-lse-atomics` is dead on ARM; no ARM atomics option exists | Medium | **Resolved** (flag); no ARM atomics option yet |
 | L6 | Indirect-call site descriptors = 0 despite correct classification | Medium | Unexplained |
-| D1, D2, D4, D6 | — | — | **Resolved**, see history below |
+| L7 | ARM swallows core invariant violations (pseudo count, invalid CFG) | High | Open — new |
+| L8 | `FK_Data_8` → `R_ARM_ABS32` with no range check | Medium | Open — new |
+| L9 | `apply-overlays.sh` silently skipped failing patches; patches stored CRLF | Blocker | **Resolved** 2026-09-17 |
+| L10 | CRLF line endings in six new LLVM source/test files | High | **Resolved** 2026-09-17 |
+| L11 | Quadratic symbol scans in BOLT's ARM JITLink pass | Medium | Open — new |
+| L12 | `atfe` base not yet converted to a commit series | Medium | Open — new |
+| D1, D2, D6 | — | — | **Resolved**, see history below |
+| D4 | Non-deterministic output — reopened, now tracked under U1 | — | Open |
 
 ---
 
 ## Upstream blockers
 
-### U1 — Full-image rewrite doesn't work; only an explicit function allowlist does **[verified]**
+### U1 — Full-image rewrite coverage, and non-deterministic output **[re-measured 2026-09-17]**
 
-Every driver script defaults to `--funcs-file-no-regex` scoped to
-`bolt_bench_*`. Full-image rewrite hits trampoline-leftover and literal-pool
-issues outside that set (see `docs/aarch32-bolt.md` P8: *"Full `bolt_bench_*`
-rewrite still breaks sequential `all` (trampoline leftover)"*).
+Two separate problems that the old entry merged.
 
-Compounding it, **D4 non-determinism is still live**: ~10–20% of byte-identical
-invocations produce different output, localized to a JITLink-materialized
-absolute address (a `MOVW`/`MOVT` stub picking between two in-range addresses)
-plus downstream veneer offset shifts. Both variants boot and run correctly, so
-it is harmless in practice — but upstream CI treats non-reproducible output as
-a failure regardless of whether the variants are functionally equivalent.
+**Full-image rewrite no longer breaks, but covers little.** An identity
+rewrite of all of `lk.elf` with no allowlist (`llvm-bolt lk.elf -o out.elf`),
+post-processed as usual, **boots and runs all 16 benchmarks**. So the old
+"full-image layout breaks" statement no longer holds at the current series tip.
+However only **100 of 1,398** code symbols were actually moved into the new
+`.text` (about 7%); BOLT skips the rest. The dominant skip reason is
+`unable to disassemble instruction` (37 warnings, e.g. `psci_call` at offset
+0, `arm_generic_timer_init`, `ext2_mount`), plus 2 `internal call detected`.
+Next step: classify those 37 instructions — likely system/coprocessor
+instructions (`smc`, `mrc`/`mcr`) or ARM-mode assembly decoded with the wrong
+disassembler — and decide which the backend should handle.
 
-**Why it blocks:** upstream BOLT's entire model is whole-binary optimization. A
-target that needs a hand-curated allowlist to avoid breaking is not yet a
-target. This gates the credibility of everything else.
+**D4 non-determinism is worse than recorded, and not thread-related.**
+- 8 identical runs (fixed `-o`) → **8 distinct outputs**, both for the bench
+  allowlist and for the full image. The old "10–20%" figure came from a 2-vCPU
+  pod.
+- `--thread-count=1` → still 8/8 distinct, so thread scheduling is not the
+  cause.
+- `setarch -R` (to disable ASLR) is blocked by the container
+  (`Operation not permitted`), so the ASLR hypothesis can still only be tested
+  indirectly.
+- A byte diff of two runs localizes it: 130 bytes, **98 in
+  `__llvm_jitlink_aarch32_STUBS_v7`** and 32 in `.text` (the branches into those
+  stubs). The varying part is the layout of JITLink's aarch32 stubs, which
+  BOLT's ARM path creates in a post-prune pass in `JITLinkLinker.cpp`.
 
-**Fix entails:** root-cause the trampoline/literal-pool interaction outside the
-bench set, and settle D4 (most likely a pointer-identity-sensitive tie-break
-feeding symbol ordering — the ASLR-disabling test to confirm was never run
-because the container lacks `CAP_SYS_ADMIN`).
+Two fixes were tried and **neither made output deterministic** (lit 13/13 and
+the QEMU pipeline still passed with each, so they are safe, just
+insufficient):
+1. Visit blocks sorted by (section ordinal, address) instead of JITLink's
+   pointer-keyed set order.
+2. Additionally give each new stub block a distinct placeholder address in
+   creation order, because stubs are created at address 0 and JITLink's
+   `BasicLayout` sorts same-section blocks only by address, then size.
+
+Both are saved on the volume as `/workspace/d4-attempt-jitlinklinker.diff`
+and are **not** in the series. The remaining difference has not been located
+yet: a byte diff after fix 2 was started but lost when the pod was
+terminated. Next step: re-run that diff, then check whether stub *contents*
+(targets) rather than stub *order* differ, and whether another pointer-ordered
+container (e.g. symbol or section iteration during emission) feeds it.
+
+**Why it still blocks:** upstream CI treats non-reproducible output as a
+failure even when every variant is correct, and 7% coverage on a real image is
+not a general-purpose target yet.
 
 ### U2 — Relocation matrix is incomplete, and the two halves disagree **[verified]**
 
@@ -161,39 +196,100 @@ Patch-set drift, found 2026-09-17:
 single-repo merge was meant to end — and it is on the **actual upstreaming
 target**, which therefore has weaker coverage than the arm-toolchain branch.
 
-**Fix entails:** port both test files into
-`overlay/llvm/patches/upstream/0007-bolt-arm-lit-tests.patch`, then add a
-check that both patch sets' test inventories match.
+**Resolved 2026-09-17.** Both tests (and their inputs) were ported into the
+upstream series, in the `[BOLT][ARM] Add AArch32 target` commit, and pass on
+the upstream base. The upstream base now has 12 ARM tests, the same as `atfe`.
 
 ---
 
-### U7 — No commit history; patches are `git diff HEAD` file-slices **[verified]**
+### U7 — No commit history; patches are `git diff HEAD` file-slices **[resolved 2026-09-17, upstream base]**
 
-`scripts/export-llvm-arm-patches.sh:22` is the whole export mechanism:
-`git -C "$LLVM" diff HEAD -- "$@" > "$DEST/$name"`. The ARM backend exists as
-one uncommitted working tree on the pod volume; each "patch" is a slice of it
-partitioned by file list. All ten begin with `diff --git` — no commit
-message, no rationale, nothing `format-patch` can act on. The split is by
-**file**, not by logical change, so the P1–P10 rung structure exists only in
-prose. Reconstructing a real commit series is the first task and is not
-mechanical. Detail: [UPSTREAMING_REVIEW.md](UPSTREAMING_REVIEW.md).
+*Was:* `export-llvm-arm-patches.sh` emitted `git diff HEAD` slices of one
+uncommitted working tree, split by file list — no commit messages, no logical
+split, nothing `format-patch` could act on.
 
-### U8 — `getMIBFor(bool IsThumb)` leaks the predicate into core **[verified]**
+*Now:* the upstream LLVM checkout carries a real series on branch
+`bolt-arm-backend`, and `overlay/llvm/patches/upstream/` stores it as
+`git format-patch` output:
 
-Eleven core call sites; ten re-derive
+| # | Commit | Size |
+|---|--------|------|
+| 1 | `[BOLT] Emit __bolt_instr_tables on ELF` | +12 |
+| 2 | `[BOLT] Warn instead of asserting on out-of-section secondary entry` | +14/−5 |
+| 3 | `[JITLink][AArch32] Support Thumb literal loads, Thumb-bit absolutes, generic triples` | +101/−8 |
+| 4 | `[ARM][MC] Accept BOLT's MOVW/MOVT and 8-byte data fixups in ELF` | +12 |
+| 5 | `[BOLT][ARM] Add AArch32 target` (core, target, relocations, 12 tests) | ~+2400 |
+| 6 | `[BOLT][ARM] Support long-branch veneers` (+ veneer test) | ~+130 |
+| 7 | `[BOLT][ARM] Support instrumentation` | ~+35 |
+
+Verified: commits 5 and 6 each build alone and pass their own tests (12/12,
+13/13); the tip builds, passes 13/13, and passes the full QEMU pipeline.
+`apply-overlays.sh` replays the series with `git am` onto a clean checkout,
+reproducing the tip **tree and commit messages exactly**, and is idempotent.
+
+Things fixed on the way, each worth knowing: the old `0001`/`0002` patches
+were corrupt and their hunks duplicated inside `0006`/`0010`; the old export
+diffed whole files, so overlapping files appeared in several patches; `git am`
+strips `[BOLT]`-style subject tags unless run with `--keep-non-patch`; and the
+LLVM root held six untracked scratch scripts (`port_*.py`, `fix_comment.py`),
+now excluded. Two orphan test inputs referenced by no test
+(`arm32-thumb-exit.s`, `elf32-arm-empty.yaml`) were left out of the series and
+set aside on the volume under `/workspace/u7-orphans/`.
+
+Still to do: the `atfe` base (L12). Commit messages carry `Co-Authored-By` /
+`Claude-Session` trailers; strip them before submission if you prefer.
+
+### U8 — `getMIBFor(bool IsThumb)` leaked the predicate into core **[code resolved 2026-09-17; RFC not posted]**
+
+*Was:* eleven core call sites; ten re-derived
 `BC.getMIBFor(BC.isARM() && Function.isARMThumb())` inline, and one
-(`LongJmp.cpp`, patch 0009 line 155) omits the `isARM()` guard — it works on
-non-ARM targets only by accident. Every core caller must know the words
-"ARM" and "Thumb." This is the RFC-worthy change, and the signature the RFC
-must propose is `getMIBFor(const BinaryFunction &)` with the check inside.
+(`VeneerElimination.cpp`) spelled it `getMIBFor(BF.isARMThumb())` inside an
+enclosing `if (BC.isARM())`. (An earlier version of this entry placed that
+call in `LongJmp.cpp` and called it accidental; both were wrong.)
 
-### U9 — 33 standalone `isARM()` forks in core **[verified]**
+*Now:* `BinaryContext::getMIBFor(const BinaryFunction &)` and
+`getSTIFor(const BinaryFunction &)`, defined out of line with the target check
+inside; all eleven call sites pass the function. It is folded into commit 5,
+so the series introduces the final API directly. Also removed: the
+now-unused `MCPlusBuilder::setSTI()`/`getSTI()` this series had added,
+comments narrating the removed `setSTI()` pattern, and **five references in
+LLVM source and tests to `docs/KNOWN_LIMITATIONS.md`** — a file that exists
+only in this overlay repo.
 
-41 `isARM()` conditionals across 13 core files; 33 are standalone forks
-rather than `isARM() || isAArch64()` shared paths. `RewriteInstance.cpp`
-carries 9, `BinaryFunction.cpp` 7. Some are legitimate ELF32-vs-ELF64
-branches; many are target behavior that belongs behind an `MCPlusBuilder`
-virtual. Core blast radius: ~95 hunks across 19 files.
+The RFC is drafted in [RFC_BOLT_AARCH32.md](RFC_BOLT_AARCH32.md). Posting it is
+the remaining step and needs a person.
+
+### U9 — Standalone `isARM()` forks in core **[partly resolved 2026-09-17]**
+
+*Was:* 41 `isARM()` uses in core, 33 of them standalone forks.
+
+*Now:* **31 uses.** The ten `getMIBFor` predicates are gone (U8), and a new
+`BinaryContext::getCodeAddress(uint64_t)` replaces the inline Thumb-bit strips
+in `BinaryContext.cpp`, `BinaryFunction.cpp` and `RewriteInstance.cpp`.
+Classification of the 20 standalone uses left:
+
+- **4 intended** — the `isARM()` definition, and inside `getMIBFor`,
+  `getSTIFor`, `getCodeAddress`.
+- **6 idiomatic, keep** — constructor arch dispatch, `$a`/`$t`/`$d` markers,
+  the JITLink triple check, `ThumbMIB` construction, and ELF Thumb-symbol
+  discovery (two sites). These match how RISC-V was added.
+- **2 are defects, not refactors** — see L7.
+- **8 need a design decision each:**
+  - `BinaryEmitter::emitFunctions` rewrites veneer calls at emit time — a
+    transformation inside the emitter that `VeneerElimination` duplicates
+    ("BinaryEmitter repeats this late"); should become one pass.
+  - `BinaryEmitter::emitFunctionBody` strips annotations only on ARM before
+    encoding.
+  - `BinaryFunction::getDisassembler` — acceptable encapsulation; keep.
+  - `BinaryFunction::disassemble` resolves a symbolized branch operand when
+    evaluation fails, on ARM only.
+  - `BinaryFunction::isAArch64Veneer` holds the ARM (LLD) veneer names — an
+    ARM clause in a function named for AArch64; rename or move to a hook
+    (see also L1).
+  - `BinarySection::flushPendingRelocations` sets the Thumb bit on absolute
+    references to Thumb functions.
+  - `VeneerElimination::runOnFunctions` ARM block.
+  - `RewriteInstance` special case for `EntryOffset == 0`.
 
 ---
 
@@ -248,24 +344,87 @@ JITLink triple fallback and is entirely untested.
 
 ---
 
-### L5 — `--no-lse-atomics` is dead on ARM **[verified]**
+### L5 — `--no-lse-atomics` was dead on ARM **[flag resolved 2026-09-17]**
 
-Appears in zero patches — only `scripts/instrument-lk-bolt.sh:81` and
-`scripts/optimize-lk-bolt.sh:44`. It is the AArch64 `cl::opt`; BOLT accepts
-it globally and the ARM target never reads it. The ARM counter path uses
-`ldrex`/`strex` unconditionally. Looks like a copy-paste error to a reviewer,
-and means there is **no** ARM-side atomics option — nothing to opt into
-`stadd` with on ARMv8.2-A hardware such as Cortex-A55.
+It is the AArch64 `cl::opt`; the ARM target never reads it and always uses an
+`ldrex`/`strex` loop. Both driver scripts now pass it only when `ARCH` is not
+`arm32`. Verified from the command line BOLT records in `.note.bolt_info`:
+absent from both the instrumented and the optimized ARM images.
 
-### L6 — Indirect-call site descriptors = 0, unexplained **[verified absent; cause unknown]**
+Still open: there is **no** ARM-side atomics option, so nothing lets ARMv8.2-A
+hardware such as Cortex-A55 opt into `stadd`.
 
-Instrumenting `bolt_bench_indirect_call` reports `Number of indirect call
-site descriptors: 0` despite a real function-pointer call. Not a missing
-hook — all ten instrumentation hooks are implemented, including
-`createInstrumentedIndirectCall`. Not a classification gap — `isIndirectCall`
-accepts `ARM::BLX`, `ARM::BLX_pred`, `ARM::tBLXr`. Static review cannot
-explain the zero. Needs `llvm-bolt --print-cfg` on that function in the
-instrumented build before it can be called a bug.
+### L6 — Indirect-call site descriptors = 0 **[explained 2026-09-17]**
+
+Not a backend bug. `Instrumentation.cpp` instruments indirect calls only
+`if (opts::InstrumentCalls && MIB->isIndirectCall(*I))`, and
+`instrument-lk-bolt.sh` passes `--instrument-calls=false`, so no call site is
+ever instrumented.
+
+The residual that matters: **the ARM indirect-call instrumentation hooks
+(`createInstrumentedIndirectCall` and the handler entry/exit blocks) have never
+been exercised** — not by lit, not by QEMU. They are compiled, untested code.
+Enabling `--instrument-calls` needs the bare-metal runtime to provide the
+indirect-call handler first.
+
+### L7 — ARM swallows core invariant violations **[verified]**
+
+Two places turn a core invariant failure into "quietly ignore the function",
+on ARM only:
+
+- `BinaryBasicBlock::getNumPseudos()` — on a pseudo-instruction count
+  mismatch, ARM overwrites the cached count, marks the function ignored and
+  returns. **This code is inside `#ifndef NDEBUG`.** In a release
+  (no-assertions) build it compiles out and the wrong count is returned. This
+  project only builds with assertions, so ARM release-build behaviour has
+  never run. The mismatch is the one behind the `-peepholes` failure.
+- `BinaryFunction::postProcessBranches()` — where core asserts on an invalid
+  CFG, ARM warns and ignores the function, in all builds.
+
+A reviewer will ask why ARM produces bad pseudo counts and invalid CFGs at
+all. Fix the causes and drop both special cases; at minimum make the first
+behave the same with and without assertions.
+
+### L8 — `FK_Data_8` mapped to `R_ARM_ABS32` without a range check **[verified]**
+
+`ARMELFObjectWriter` (series commit 4) maps 8-byte data fixups, which BOLT emits
+for padded functions, to `R_ARM_ABS32`, assuming the value fits in 32 bits.
+Nothing checks that. Recorded as a `FIXME` in the commit message. Fix with a
+range check, or stop BOLT emitting 8-byte data on 32-bit targets.
+
+### L9 — Overlay could silently fail to apply its own patches **[resolved 2026-09-17]**
+
+`apply-overlays.sh` printed a warning and **skipped** any patch that failed to
+apply, and the patch files were committed with CRLF bytes inside their git
+blobs (1,534 CR lines in one patch). A fresh checkout could therefore produce
+an LLVM tree missing patches while reporting only warnings. Now: patches are
+applied as a series with `git am` and any failure is fatal;
+`.gitattributes` marks `*.patch` as `-text`; the exported series has zero CR
+bytes.
+
+### L10 — CRLF line endings in LLVM sources **[resolved 2026-09-17]**
+
+Six new files in the LLVM tree had CRLF endings throughout
+(`ARMMCSymbolizer.h`, `Target/ARM/CMakeLists.txt`, three test inputs,
+`bolt/test/ARM/lit.local.cfg`) — the result of the CRLF patch round trip in
+L9. Converted to LF before the series was committed.
+
+### L11 — Quadratic symbol scans in BOLT's ARM JITLink pass **[verified]**
+
+`JITLinkLinker.cpp`'s ARM pre-prune pass scans every `BinaryFunction` for each
+symbol to decide Thumb-ness, then compares every defined symbol against every
+other to propagate the flag within a block. Cost is O(symbols × functions) +
+O(symbols²). Harmless at LK's size (about 1,400 functions); a problem on real
+application binaries. Use a name→function map and a per-block pass.
+
+### L12 — `atfe` base not yet converted to a commit series **[verified]**
+
+U7 was done for the upstream base only. `overlay/llvm/patches/atfe/` still
+holds the old file-slice patches, applied by the legacy path in
+`apply-overlays.sh`, and the `atfe` LLVM tree likely has the same CRLF files
+as L10. Upstream submission does not need `atfe`, but cross-base verification
+does: replay the upstream series onto `arm-software` (expect conflicts — the
+branches have diverged) and export it the same way.
 
 ---
 

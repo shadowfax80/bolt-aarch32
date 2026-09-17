@@ -41,7 +41,6 @@ mkdir -p "$(dirname "$OUT")"
 BOLT_ARGS=(
   -data="$FDATA"
   -o "$OUT"
-  --no-lse-atomics
   -reorder-blocks=ext-tsp
   -reorder-functions=hfsort+
   -icf=all
@@ -71,6 +70,10 @@ if [[ "$ARCH" == "arm32" ]]; then
   tr ',' '\n' <<<"$FUNCS" | sed '/^$/d' > "$FUNCS_FILE"
   BOLT_ARGS+=(--funcs-file-no-regex="$FUNCS_FILE")
 fi
+
+# --no-lse-atomics is AArch64's option (QEMU cortex-a53 has no LSE). The ARM
+# target never reads it -- its counter path is ldrex/strex unconditionally.
+[[ "$ARCH" != arm32 ]] && BOLT_ARGS+=(--no-lse-atomics)
 
 "$TOOLCHAIN/llvm-bolt" "$ELF" "${BOLT_ARGS[@]}" "$@"
 

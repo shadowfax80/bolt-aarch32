@@ -1,18 +1,37 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Somraj Mani <somraj.mani@gmail.com>
+Date: Thu, 17 Sep 2026 14:24:39 +0000
+Subject: [PATCH 7/7] [BOLT][ARM] Support instrumentation
+
+Implement the instrumentation hooks for ARM and Thumb: counter increment,
+indirect-call handlers and the table/counter getters. Counters are
+incremented with an exclusive load/store loop, as there are no LSE
+atomics on AArch32.
+
+createInstrumentationSnippet() is shared by all targets and previously
+used BC.MIB directly. On ARM that is the ARM-mode builder, so Thumb
+functions were instrumented with ARM encodings. Pass the builder selected
+for the instrumented function instead.
+
+Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01Tdyp9Tb7sLvWDoCC5m4ACC
+---
+ bolt/include/bolt/Passes/Instrumentation.h |  7 +++-
+ bolt/lib/Passes/Instrumentation.cpp        | 47 +++++++++++++---------
+ 2 files changed, 33 insertions(+), 21 deletions(-)
+
 diff --git a/bolt/include/bolt/Passes/Instrumentation.h b/bolt/include/bolt/Passes/Instrumentation.h
-index 76ffcf41db6e..878776f8f653 100644
+index 76ffcf41db6e..7a87187f9612 100644
 --- a/bolt/include/bolt/Passes/Instrumentation.h
 +++ b/bolt/include/bolt/Passes/Instrumentation.h
-@@ -63,9 +63,15 @@ private:
+@@ -63,9 +63,12 @@ private:
                               uint32_t ToNodeID, bool Instrumented);
    void createLeafNodeDescription(FunctionDescription &FuncDesc, uint32_t Node);
  
 -  /// Create the sequence of instructions to increment a counter
-+  /// Create the sequence of instructions to increment a counter. \p MIB
-+  /// must be the ARM- or Thumb-mode builder selected for the function this
-+  /// snippet will be spliced into (BC.getMIBFor(...)) -- this helper is
-+  /// itself target-generic (shared by X86/AArch64/RISCV/ARM) and has no
-+  /// other way to know the caller's ISA mode; passing plain BC.MIB here
-+  /// silently mis-selects ARM-mode encoding for Thumb functions.
++  /// Create the sequence of instructions to increment a counter, encoded
++  /// with \p MIB. Pass BC.getMIBFor() of the function the snippet is
++  /// inserted into, not BC.MIB: on ARM the two differ for Thumb functions.
    InstructionListType createInstrumentationSnippet(BinaryContext &BC,
 -                                                   bool IsLeaf);
 +                                                   bool IsLeaf,
@@ -20,25 +39,8 @@ index 76ffcf41db6e..878776f8f653 100644
  
    // Critical edges worklist
    // This worklist keeps track of CFG edges <From-To> that needs to be split.
-diff --git a/bolt/lib/Passes/BinaryPasses.cpp b/bolt/lib/Passes/BinaryPasses.cpp
-index adf2bbae52d1..b4ba2ec6654d 100644
---- a/bolt/lib/Passes/BinaryPasses.cpp
-+++ b/bolt/lib/Passes/BinaryPasses.cpp
-@@ -1039,7 +1039,11 @@ uint64_t SimplifyConditionalTailCalls::fixTailCalls(BinaryFunction &BF) {
-         MIB->replaceBranchTarget(*UncondBranch, CondSucc->getLabel(), Ctx);
-     } else if (!HasFallthrough) {
-       MCInst Branch;
--      MIB->createUncondBranch(Branch, CondSucc->getLabel(), Ctx);
-+      BinaryContext &BCtx = BF.getBinaryContext();
-+      // BF is fixed for this whole function, so a local selection (rather
-+      // than mutating the shared MIB) is all that's needed here.
-+      MCPlusBuilder *BranchMIB = BCtx.getMIBFor(BCtx.isARM() && BF.isARMThumb());
-+      BranchMIB->createUncondBranch(Branch, CondSucc->getLabel(), Ctx);
-       PredBB->addInstruction(Branch);
-     }
-   }
 diff --git a/bolt/lib/Passes/Instrumentation.cpp b/bolt/lib/Passes/Instrumentation.cpp
-index ae9faf4e9cc2..84b4d0d27466 100644
+index ae9faf4e9cc2..6f73067480ab 100644
 --- a/bolt/lib/Passes/Instrumentation.cpp
 +++ b/bolt/lib/Passes/Instrumentation.cpp
 @@ -11,6 +11,7 @@
@@ -74,7 +76,7 @@ index ae9faf4e9cc2..84b4d0d27466 100644
 -      BB.getFunction()->getBinaryContext(), IsLeaf);
 +  BinaryFunction *BF = BB.getFunction();
 +  BinaryContext &BC = BF->getBinaryContext();
-+  MCPlusBuilder *MIB = BC.getMIBFor(BC.isARM() && BF->isARMThumb());
++  MCPlusBuilder *MIB = BC.getMIBFor(*BF);
 +  InstructionListType CounterInstrs =
 +      createInstrumentationSnippet(BC, IsLeaf, MIB);
    insertInstructions(CounterInstrs, BB, Iter);
@@ -86,26 +88,21 @@ index ae9faf4e9cc2..84b4d0d27466 100644
  
 -  InstructionListType CounterInstrs = createInstrumentationSnippet(BC, IsLeaf);
 +  MCPlusBuilder *MIB =
-+      BC.getMIBFor(BC.isARM() && FromFunction.isARMThumb());
++      BC.getMIBFor(FromFunction);
 +  InstructionListType CounterInstrs =
 +      createInstrumentationSnippet(BC, IsLeaf, MIB);
  
    const MCInst &Inst = *Iter;
    if (BC.MIB->isCall(Inst)) {
-@@ -386,6 +394,12 @@ void Instrumentation::instrumentFunction(BinaryFunction &Function,
+@@ -386,6 +394,7 @@ void Instrumentation::instrumentFunction(BinaryFunction &Function,
      return;
  
    BinaryContext &BC = Function.getBinaryContext();
-+  // Select the ARM- or Thumb-mode builder for this function's probes
-+  // rather than mutating the shared MIB's STI in place -- instrumentation
-+  // runs this per function and BOLT's other passes already showed this
-+  // pattern races under concurrent per-function processing (see
-+  // docs/KNOWN_LIMITATIONS.md).
-+  MCPlusBuilder *MIB = BC.getMIBFor(BC.isARM() && Function.isARMThumb());
++  MCPlusBuilder *MIB = BC.getMIBFor(Function);
    if (BC.isMachO() && Function.hasName("___GLOBAL_init_65535/1"))
      return;
  
-@@ -460,10 +474,10 @@ void Instrumentation::instrumentFunction(BinaryFunction &Function,
+@@ -460,10 +469,10 @@ void Instrumentation::instrumentFunction(BinaryFunction &Function,
    DenseSet<const BinaryBasicBlock *> InvokeBlocks;
    for (const BinaryBasicBlock &BB : Function) {
      for (const MCInst &Inst : BB) {
@@ -119,7 +116,7 @@ index ae9faf4e9cc2..84b4d0d27466 100644
            IsLeafFunction = false;
        }
      }
-@@ -482,24 +496,24 @@ void Instrumentation::instrumentFunction(BinaryFunction &Function,
+@@ -482,24 +491,24 @@ void Instrumentation::instrumentFunction(BinaryFunction &Function,
  
      for (auto I = BB.begin(); I != BB.end(); ++I) {
        const MCInst &Inst = *I;
@@ -150,7 +147,7 @@ index ae9faf4e9cc2..84b4d0d27466 100644
          if (opts::InstrumentCalls) {
            const BinaryBasicBlock *ForeignBB =
                TargetFunc->getBasicBlockForLabel(Target);
-@@ -553,7 +567,7 @@ void Instrumentation::instrumentFunction(BinaryFunction &Function,
+@@ -553,7 +562,7 @@ void Instrumentation::instrumentFunction(BinaryFunction &Function,
        // Handle indirect calls -- could be direct calls with unknown targets
        // or secondary entry points of known functions, so check it is indirect
        // to be sure.
@@ -159,7 +156,7 @@ index ae9faf4e9cc2..84b4d0d27466 100644
          instrumentIndirectTarget(BB, I, Function, FromOffset);
  
      } // End of instructions loop
-@@ -566,16 +580,16 @@ void Instrumentation::instrumentFunction(BinaryFunction &Function,
+@@ -566,16 +575,16 @@ void Instrumentation::instrumentFunction(BinaryFunction &Function,
        auto I = BB.begin();
        auto LastInstr = BB.end();
        --LastInstr;
@@ -179,26 +176,3 @@ index ae9faf4e9cc2..84b4d0d27466 100644
  
        // Do not instrument edges in the spanning tree
        auto STIt = STOutSet.find(&BB);
-diff --git a/bolt/lib/RuntimeLibs/InstrumentationRuntimeLibrary.cpp b/bolt/lib/RuntimeLibs/InstrumentationRuntimeLibrary.cpp
-index d71d8ef1c044..a91cf2377982 100644
---- a/bolt/lib/RuntimeLibs/InstrumentationRuntimeLibrary.cpp
-+++ b/bolt/lib/RuntimeLibs/InstrumentationRuntimeLibrary.cpp
-@@ -191,6 +191,18 @@ void InstrumentationRuntimeLibrary::emitBinary(BinaryContext &BC,
-     TablesSection->setAlignment(llvm::Align(BC.RegularPageSize));
-     Streamer.switchSection(TablesSection);
-     emitString("__bolt_instr_tables", buildTables(BC));
-+  } else {
-+    // Instrumentation always injects __bolt_instr_tables_getter, which takes
-+    // the address of __bolt_instr_tables. On ELF that symbol was only ever
-+    // defined for Mach-O, so it resolved to 0: harmless for a binary linked
-+    // low, but on AArch64 the ADRP in the getter cannot reach 0 from a kernel
-+    // address and JITLink rejects the fixup as out of range.
-+    //
-+    // Emitting the tables here also gives a freestanding runtime a way to
-+    // reach them, which it otherwise lacks - upstream finds its own notes by
-+    // reading /proc/self/map_files, and there is no /proc on bare metal.
-+    emitPadding(BC.RegularPageSize);
-+    emitString("__bolt_instr_tables", buildTables(BC));
-   }
- }
- 

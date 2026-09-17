@@ -1,3 +1,24 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Somraj Mani <somraj.mani@gmail.com>
+Date: Thu, 17 Sep 2026 14:23:33 +0000
+Subject: [PATCH 2/7] [BOLT] Warn instead of asserting on out-of-section
+ secondary entry
+
+updateELFSymbolTable() asserts that a secondary entry point with no
+matching fragment lies inside its function's code section. Hand-written
+assembly in bare-metal images keeps local labels that, once linked at a
+kernel address, fall outside every fragment and outside the section.
+
+The assertion compiles out under NDEBUG, so release builds already accept
+this and attribute the label to the first fragment. Keep that behaviour
+in assertion builds too, and report it as a warning.
+
+Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01Tdyp9Tb7sLvWDoCC5m4ACC
+---
+ bolt/lib/Rewrite/RewriteInstance.cpp | 19 ++++++++++++++-----
+ 1 file changed, 14 insertions(+), 5 deletions(-)
+
 diff --git a/bolt/lib/Rewrite/RewriteInstance.cpp b/bolt/lib/Rewrite/RewriteInstance.cpp
 index a12b83859669..66f2366b5ec6 100644
 --- a/bolt/lib/Rewrite/RewriteInstance.cpp
@@ -27,4 +48,4 @@ index a12b83859669..66f2366b5ec6 100644
 +                       << " lies outside its code section\n";
            FF = Function->getLayout().fragment_begin();
          }
-
+ 

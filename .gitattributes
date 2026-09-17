@@ -1,2 +1,6 @@
 *.sh text eol=lf
 *.py text eol=lf
+# Patch files are replayed byte-for-byte with `git am`; never convert line
+# endings. A CRLF checkout once turned these into corrupt patches and put CRLF
+# into the LLVM sources they created.
+*.patch -text

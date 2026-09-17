@@ -78,7 +78,6 @@ mkdir -p "$(dirname "$OUT")"
 # our runtime never calls, so the value is only a key to unlock the rewrite.
 BOLT_ARGS=(
   -instrument
-  --no-lse-atomics
   --instrument-calls=false
   --instrumentation-sleep-time=1
   --runtime-instrumentation-lib="$LIB"
@@ -96,6 +95,10 @@ BOLT_ARGS=(
   --funcs-file="$FUNCS_FILE"
   -o "$OUT"
 )
+
+# --no-lse-atomics is AArch64's option (QEMU cortex-a53 has no LSE). The ARM
+# target never reads it -- its counter path is ldrex/strex unconditionally.
+[[ "$ARCH" != arm32 ]] && BOLT_ARGS+=(--no-lse-atomics)
 
 "$TOOLCHAIN/llvm-bolt" "$ELF" "${BOLT_ARGS[@]}" "$@"
 

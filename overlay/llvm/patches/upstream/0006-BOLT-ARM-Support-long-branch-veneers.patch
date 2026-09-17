@@ -1,5 +1,35 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Somraj Mani <somraj.mani@gmail.com>
+Date: Thu, 17 Sep 2026 14:24:26 +0000
+Subject: [PATCH 6/7] [BOLT][ARM] Support long-branch veneers
+
+ARM B/BL reach +/-32MB and Thumb-2 BL +/-16MB, so rewritten layouts need
+veneers far more often than on AArch64. Extend LongJmp to emit ARM and
+Thumb long branches (absolute MOVW/MOVT + BX, which needs a fixed load
+address), selecting the builder for the function being processed, and
+extend VeneerElimination to recognise and remove linker-inserted ARM
+veneers.
+
+When a veneer redirects a call across the ARM/Thumb boundary, the call
+instruction is rebuilt as BL or BLX to match the target's instruction
+set.
+
+Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01Tdyp9Tb7sLvWDoCC5m4ACC
+---
+ bolt/lib/Passes/LongJmp.cpp            | 31 +++++++++------
+ bolt/lib/Passes/VeneerElimination.cpp  | 55 +++++++++++++++++++++++++-
+ bolt/lib/Rewrite/BinaryPassManager.cpp | 13 +++---
+ bolt/test/ARM/Inputs/arm32-far-bl.s    | 18 +++++++++
+ bolt/test/ARM/Inputs/arm32-far.ld      |  9 +++++
+ bolt/test/ARM/arm-longjmp-veneer.test  | 22 +++++++++++
+ 6 files changed, 129 insertions(+), 19 deletions(-)
+ create mode 100644 bolt/test/ARM/Inputs/arm32-far-bl.s
+ create mode 100644 bolt/test/ARM/Inputs/arm32-far.ld
+ create mode 100644 bolt/test/ARM/arm-longjmp-veneer.test
+
 diff --git a/bolt/lib/Passes/LongJmp.cpp b/bolt/lib/Passes/LongJmp.cpp
-index b771e6a8b120..02f2a944e52f 100644
+index b771e6a8b120..57c973a174d2 100644
 --- a/bolt/lib/Passes/LongJmp.cpp
 +++ b/bolt/lib/Passes/LongJmp.cpp
 @@ -11,6 +11,7 @@
@@ -80,21 +110,19 @@ index b771e6a8b120..02f2a944e52f 100644
  
    const BinaryBasicBlock *TgtBB = Func.getBasicBlockForLabel(TgtSym);
    // Check for shared stubs from foreign functions
-@@ -576,8 +582,11 @@ bool LongJmpPass::needsStub(const BinaryBasicBlock &BB, const MCInst &Inst,
+@@ -576,8 +582,9 @@ bool LongJmpPass::needsStub(const BinaryBasicBlock &BB, const MCInst &Inst,
  Error LongJmpPass::relax(BinaryFunction &Func, bool &Modified) {
    const BinaryContext &BC = Func.getBinaryContext();
  
 -  assert(BC.isAArch64() && "Unsupported arch");
 -  constexpr int InsnSize = 4; // AArch64
 +  assert((BC.isAArch64() || BC.isARM()) && "Unsupported arch");
-+  // Select the ARM- or Thumb-mode builder for this function rather than
-+  // mutating the shared MIB's STI in place -- see BinaryContext::getMIBFor().
-+  MCPlusBuilder *MIB = BC.getMIBFor(BC.isARM() && Func.isARMThumb());
++  MCPlusBuilder *MIB = BC.getMIBFor(Func);
 +  constexpr int InsnSize = 4; // AArch64 / ARM (Thumb-2 branches also 4)
    std::vector<std::pair<BinaryBasicBlock *, std::unique_ptr<BinaryBasicBlock>>>
        Insertions;
  
-@@ -595,7 +604,7 @@ Error LongJmpPass::relax(BinaryFunction &Func, bool &Modified) {
+@@ -595,7 +602,7 @@ Error LongJmpPass::relax(BinaryFunction &Func, bool &Modified) {
        continue;
  
      for (MCInst &Inst : BB) {
@@ -103,7 +131,7 @@ index b771e6a8b120..02f2a944e52f 100644
          continue;
  
        if (!mayNeedStub(BC, Inst)) {
-@@ -614,9 +623,9 @@ Error LongJmpPass::relax(BinaryFunction &Func, bool &Modified) {
+@@ -614,9 +621,9 @@ Error LongJmpPass::relax(BinaryFunction &Func, bool &Modified) {
        // hot path if a branch, since this branch target is the cold region
        // (but first check that the far away stub will be in range).
        BinaryBasicBlock *InsertionPoint = &BB;
@@ -116,7 +144,7 @@ index b771e6a8b120..02f2a944e52f 100644
          assert(FrontierAddress > DotAddress &&
                 "Hot code should be before the frontier");
 diff --git a/bolt/lib/Passes/VeneerElimination.cpp b/bolt/lib/Passes/VeneerElimination.cpp
-index 9037390d06a4..d367944fb852 100644
+index 9037390d06a4..7d383c26a6ca 100644
 --- a/bolt/lib/Passes/VeneerElimination.cpp
 +++ b/bolt/lib/Passes/VeneerElimination.cpp
 @@ -36,7 +36,7 @@ namespace llvm {
@@ -139,7 +167,7 @@ index 9037390d06a4..d367944fb852 100644
          auto It = VeneerDestinations.find(TargetSymbol);
          if (It == VeneerDestinations.end())
            continue;
-@@ -191,6 +193,56 @@ Error VeneerElimination::runOnFunctions(BinaryContext &BC) {
+@@ -191,6 +193,55 @@ Error VeneerElimination::runOnFunctions(BinaryContext &BC) {
        dbgs() << "BOLT-INFO: number of linker-inserted veneers call sites: "
               << VeneerCallers << "\n");
    (void)VeneerCallers;
@@ -151,8 +179,7 @@ index 9037390d06a4..d367944fb852 100644
 +         llvm::make_second_range(BC.getBinaryFunctions())) {
 +      if (!BF.isSimple() || BF.isIgnored())
 +        continue;
-+      // BC.isARM() is already guaranteed by the enclosing `if` above.
-+      MCPlusBuilder *MIB = BC.getMIBFor(BF.isARMThumb());
++      MCPlusBuilder *MIB = BC.getMIBFor(BF);
 +      for (BinaryBasicBlock &BB : BF) {
 +        for (auto II = BB.begin(); II != BB.end();) {
 +          MCInst &Instr = *II;
@@ -232,3 +259,70 @@ index 6e3022c491a7..df13ae16f66e 100644
    // This pass should always run last.*
    Manager.registerPass(std::make_unique<FinalizeFunctions>(PrintFinalized));
  
+diff --git a/bolt/test/ARM/Inputs/arm32-far-bl.s b/bolt/test/ARM/Inputs/arm32-far-bl.s
+new file mode 100644
+index 000000000000..99d55c0c11e9
+--- /dev/null
++++ b/bolt/test/ARM/Inputs/arm32-far-bl.s
+@@ -0,0 +1,18 @@
++	.syntax unified
++	.arm
++	.section .text.start,"ax",%progbits
++	.globl _start
++	.type _start, %function
++_start:
++	bl	far_away
++	mov	r0, #42
++	mov	r7, #1
++	svc	#0
++	.size	_start, .-_start
++
++	.section .text.far,"ax",%progbits
++	.globl	far_away
++	.type	far_away, %function
++far_away:
++	bx	lr
++	.size	far_away, .-far_away
+diff --git a/bolt/test/ARM/Inputs/arm32-far.ld b/bolt/test/ARM/Inputs/arm32-far.ld
+new file mode 100644
+index 000000000000..e245199cfb74
+--- /dev/null
++++ b/bolt/test/ARM/Inputs/arm32-far.ld
+@@ -0,0 +1,9 @@
++ENTRY(_start)
++SECTIONS {
++  . = 0x10000;
++  .text : {
++    *(.text.start)
++    . = . + 0x2100000;
++    *(.text.far)
++  }
++}
+diff --git a/bolt/test/ARM/arm-longjmp-veneer.test b/bolt/test/ARM/arm-longjmp-veneer.test
+new file mode 100644
+index 000000000000..d7c3c0b33271
+--- /dev/null
++++ b/bolt/test/ARM/arm-longjmp-veneer.test
+@@ -0,0 +1,22 @@
++## Out-of-range ARM BL: drop the linker veneer, then LongJmp emits movw/movt/bx.
++
++# REQUIRES: system-linux
++
++RUN: llvm-mc -filetype=obj -triple=armv7-unknown-linux-gnueabi %p/Inputs/arm32-far-bl.s -o %t.o
++RUN: ld.lld --emit-relocs -T %p/Inputs/arm32-far.ld %t.o -o %t.exe
++RUN: llvm-bolt %t.exe -o %t.bolt --pad-funcs-before=far_away:0x2100000 2>&1 | FileCheck %s --check-prefix=LOG
++RUN: llvm-readelf -h %t.bolt | FileCheck %s --check-prefix=HDR
++RUN: llvm-objdump -d --start-address=0x2400000 --stop-address=0x2400020 %t.bolt | FileCheck %s --check-prefix=ASM
++
++LOG: BOLT-INFO: number of removed linker-inserted veneers: {{[1-9][0-9]*}}
++LOG: BOLT-INFO: Inserted {{[1-9][0-9]*}} stubs
++LOG-NOT: BOLT-ERROR
++
++HDR: Entry point address: 0x2400000
++
++;; Stub at _start+0x10: MOVW ip / MOVT ip / BX ip (objdump may lack $a).
++ASM: 2400000:
++ASM: bl
++ASM: {{e300c|movw}}
++ASM: {{e340c|movt}}
++ASM: {{e12fff1c|bx}}

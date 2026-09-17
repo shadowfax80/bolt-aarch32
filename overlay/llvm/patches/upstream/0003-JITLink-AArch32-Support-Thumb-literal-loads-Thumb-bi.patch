@@ -1,3 +1,34 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Somraj Mani <somraj.mani@gmail.com>
+Date: Thu, 17 Sep 2026 14:23:46 +0000
+Subject: [PATCH 3/7] [JITLink][AArch32] Support Thumb literal loads, Thumb-bit
+ absolutes, generic triples
+
+BOLT links rewritten ARM/Thumb code through JITLink, which needs:
+
+- A Thumb_LdrPcRel edge kind for the 32-bit Thumb LDR (literal)
+  instruction (R_ARM_THM_PC12). Without it, constant-pool loads in
+  rewritten Thumb functions cannot be relocated.
+- The Thumb bit set in absolute references to Thumb symbols (ABS32,
+  MOVW_ABS_NC, MOVT_ABS), so function pointers built from them enter
+  Thumb state.
+- A change to Thumb_Call fixups: the BL/BLX choice is now derived from
+  the target's instruction set, and the 4-byte destination alignment
+  that BLX requires is applied even when the instruction was already
+  BLX.
+- A default ArchKind for bare arm/thumb/armeb/thumbeb triples that carry
+  no architecture version, as produced by tools that construct a triple
+  from the ELF machine type alone. Fall back to ARMv7-A instead of
+  failing.
+
+Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01Tdyp9Tb7sLvWDoCC5m4ACC
+---
+ .../llvm/ExecutionEngine/JITLink/aarch32.h    | 26 ++++++-
+ .../ExecutionEngine/JITLink/ELF_aarch32.cpp   | 12 ++++
+ llvm/lib/ExecutionEngine/JITLink/aarch32.cpp  | 71 +++++++++++++++++--
+ 3 files changed, 101 insertions(+), 8 deletions(-)
+
 diff --git a/llvm/include/llvm/ExecutionEngine/JITLink/aarch32.h b/llvm/include/llvm/ExecutionEngine/JITLink/aarch32.h
 index 9479c107447d..30fdf27ffb05 100644
 --- a/llvm/include/llvm/ExecutionEngine/JITLink/aarch32.h
@@ -244,47 +275,3 @@ index cc606b8278d2..80a3e8389e5b 100644
      KIND_NAME_CASE(None)
    default:
      return getGenericEdgeKindName(K);
-diff --git a/llvm/lib/Target/ARM/MCTargetDesc/ARMELFObjectWriter.cpp b/llvm/lib/Target/ARM/MCTargetDesc/ARMELFObjectWriter.cpp
-index d914f6e830cf..67701f8d0e21 100644
---- a/llvm/lib/Target/ARM/MCTargetDesc/ARMELFObjectWriter.cpp
-+++ b/llvm/lib/Target/ARM/MCTargetDesc/ARMELFObjectWriter.cpp
-@@ -107,6 +107,12 @@ unsigned ARMELFObjectWriter::getRelocType(const MCFixup &Fixup,
-   if (IsPCRel) {
-     switch (Fixup.getKind()) {
-     default:
-+      // BOLT veneers use :lower16:/:upper16: on MOVi16/MOVTi16. The encoder
-+      // may surface those specifiers with IsPCRel set; they are still ABS.
-+      if (Specifier == ARM::S_LO16)
-+        return ELF::R_ARM_MOVW_ABS_NC;
-+      if (Specifier == ARM::S_HI16)
-+        return ELF::R_ARM_MOVT_ABS;
-       reportError(Fixup.getLoc(), "unsupported relocation type");
-       return ELF::R_ARM_NONE;
-     case FK_Data_4:
-@@ -201,6 +207,10 @@ unsigned ARMELFObjectWriter::getRelocType(const MCFixup &Fixup,
-   default:
-     reportError(Fixup.getLoc(), "unsupported relocation type");
-     return ELF::R_ARM_NONE;
-+  case FK_Data_8:
-+    // BOLT/ELF32 may emit 64-bit symbol diffs for padded functions. ARM has
-+    // no R_ARM_ABS64; the addend/value still fits in 32 bits.
-+    return ELF::R_ARM_ABS32;
-   case FK_Data_1:
-     switch (Specifier) {
-     default:
-@@ -278,6 +288,7 @@ unsigned ARMELFObjectWriter::getRelocType(const MCFixup &Fixup,
-       reportError(Fixup.getLoc(), "invalid fixup for ARM MOVT instruction");
-       return ELF::R_ARM_NONE;
-     case ARM::S_None:
-+    case ARM::S_HI16:
-       return ELF::R_ARM_MOVT_ABS;
-     case ARM::S_SBREL:
-       return ELF::R_ARM_MOVT_BREL;
-@@ -288,6 +299,7 @@ unsigned ARMELFObjectWriter::getRelocType(const MCFixup &Fixup,
-       reportError(Fixup.getLoc(), "invalid fixup for ARM MOVW instruction");
-       return ELF::R_ARM_NONE;
-     case ARM::S_None:
-+    case ARM::S_LO16:
-       return ELF::R_ARM_MOVW_ABS_NC;
-     case ARM::S_SBREL:
-       return ELF::R_ARM_MOVW_BREL_NC;

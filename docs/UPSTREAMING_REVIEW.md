@@ -73,23 +73,25 @@ Eleven core call sites. **Ten re-derive the predicate inline:**
 MCPlusBuilder *MIB = BC.getMIBFor(BC.isARM() && Function.isARMThumb());
 ```
 
-**One omits the guard** (`LongJmp.cpp`, patch 0009 line 155):
+**One spells it differently** (`VeneerElimination.cpp`, patch 0009):
 
 ```cpp
 MCPlusBuilder *MIB = BC.getMIBFor(BF.isARMThumb());
 ```
 
-It works on non-ARM targets only because `isARMThumb()` happens to be false
-there. The API shape makes the inconsistency possible: every caller in core
-must know the words "ARM" and "Thumb." The fix is
+*Correction (same day):* this review first placed that call in `LongJmp.cpp`
+and called it accidental. Reading the source shows it is in
+`VeneerElimination.cpp`, inside an enclosing `if (BC.isARM())`, with a comment
+saying so — it is correct. The point stands anyway: the API shape makes two
+spellings possible, and every caller in core must know the words "ARM" and
+"Thumb." The fix is
 
 ```cpp
 MCPlusBuilder *getMIBFor(const BinaryFunction &BF) const;
 ```
 
-with the target check inside. Core then never spells either word, the
-`LongJmp.cpp` variant cannot exist, and the RFC has something clean to
-propose. As written it would be sent back.
+with the target check inside. Core then never spells either word, a second
+spelling cannot exist, and the RFC has something clean to propose. As written it would be sent back.
 
 Related, and the same review comment in a different form: **41 `isARM()`
 conditionals across 13 core files, 33 of them standalone forks** rather than
