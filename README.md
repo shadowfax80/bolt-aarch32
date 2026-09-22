@@ -8,7 +8,8 @@ Upstream [llvm-project](https://github.com/llvm/llvm-project) and [lk](https://g
 
 | Doc | What |
 |-----|------|
-| [docs/RESUME.md](docs/RESUME.md) | **Paused? Start here** — volume, pod, resume steps |
+| [docs/VOLUME_RECREATION.md](docs/VOLUME_RECREATION.md) | **No volume? Start here** — pins, exact commands to rebuild it from git |
+| [docs/RESUME.md](docs/RESUME.md) | Historical resume notes — largely superseded by the above |
 | [docs/why-bolt.md](docs/why-bolt.md) | What BOLT does that PGO and LTO cannot, with examples |
 | [docs/PROJECT_PLAN.md](docs/PROJECT_PLAN.md) | Checklist, status, decisions |
 | [docs/architecture.md](docs/architecture.md) | End-to-end flow, overlay split, toolchain baseline |

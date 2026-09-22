@@ -1,5 +1,14 @@
 # Resume guide
 
+> **Volume `j1d9e6wq5l` was deleted 2026-09-22** (verified nothing on it was
+> unique; storage billing stopped). Everything below that assumes it still
+> exists is stale. To resume work, start from
+> [VOLUME_RECREATION.md](VOLUME_RECREATION.md) instead — it has the exact,
+> current sequence to recreate an equivalent volume from the pinned commits
+> and the committed patch series. The rest of this doc (pod IDs, build
+> paths, phase status) predates most of the project and needs a fuller
+> rewrite; treat it as historical color, not instructions.
+
 **Saved:** 2026-09-14  
 **GitHub (overlay only):** [shadowfax80/bolt-aarch32](https://github.com/shadowfax80/bolt-aarch32)
 
@@ -199,7 +208,8 @@ Monitor LLVM build (if ever needed again):
 
 ### 6. Stop again when idle
 
-Stop the pod to end compute billing. **Do not delete** volume `j1d9e6wq5l`.
+Stop the pod to end compute billing. (Volume `j1d9e6wq5l` no longer exists —
+see the notice at the top of this doc.)
 
 ---
 

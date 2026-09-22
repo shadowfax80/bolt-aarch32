@@ -1,0 +1,43 @@
+diff --git a/bolt/lib/Rewrite/JITLinkLinker.cpp b/bolt/lib/Rewrite/JITLinkLinker.cpp
+index 5f501fda0b0f..405a04e86477 100644
+--- a/bolt/lib/Rewrite/JITLinkLinker.cpp
++++ b/bolt/lib/Rewrite/JITLinkLinker.cpp
+@@ -148,8 +148,37 @@ struct JITLinkLinker::Context : jitlink::JITLinkContext {
+         return Error::success();
+       });
+       Config.PostPrunePasses.push_back([](jitlink::LinkGraph &LG) -> Error {
++        // Create stubs in a fixed order. LinkGraph keeps blocks in a
++        // pointer-keyed set, so visiting them in its order would lay the
++        // stubs out differently on every run.
++        std::vector<jitlink::Block *> Blocks(LG.blocks().begin(),
++                                             LG.blocks().end());
++        llvm::sort(Blocks, [](const jitlink::Block *L, const jitlink::Block *R) {
++          return std::make_pair(L->getSection().getOrdinal(), L->getAddress()) <
++                 std::make_pair(R->getSection().getOrdinal(), R->getAddress());
++        });
+         jitlink::aarch32::StubsManager_v7 Stubs;
+-        jitlink::visitExistingEdges(LG, Stubs);
++        StringRef StubsName = jitlink::aarch32::StubsManager_v7::getSectionName();
++        DenseSet<jitlink::Block *> KnownStubs;
++        uint64_t NextStubAddr = 0;
++        for (jitlink::Block *B : Blocks) {
++          for (jitlink::Edge &E : B->edges()) {
++            if (!Stubs.visitEdge(LG, B, E))
++              continue;
++            // New stub blocks are created at address 0, and memory layout
++            // orders same-section blocks by address. Give each new stub a
++            // distinct address in creation order so the layout is stable.
++            jitlink::Section *StubsSec = LG.findSectionByName(StubsName);
++            if (!StubsSec)
++              continue;
++            for (jitlink::Block *SB : StubsSec->blocks()) {
++              if (KnownStubs.insert(SB).second) {
++                SB->setAddress(orc::ExecutorAddr(NextStubAddr));
++                NextStubAddr += SB->getSize();
++              }
++            }
++          }
++        }
+         return Error::success();
+       });
+     }
