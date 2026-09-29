@@ -18,7 +18,7 @@ payload-agnostic — no reflash needed for this project's own images).
 | 1 | Recreate RunPod env, build ATFE LLVM+BOLT, bare-metal runtime, LK, QEMU gate | **Done** — `verify-bolt-workloads.sh` (ARCH=arm32) green |
 | 2 | Port lk-perf's rpi4 hardware patches (BCM2711, UART baud, watchdog-reboot) | **Done** — `overlay/lk/patches/0002-0004`, `target/rpi4/`, `project/rpi4-bolt-test.mk` |
 | 3 | Boot plain baseline on real Pi, confirm all `bolt_bench` workloads run | **Done** — all 16 workloads ran, real cycle counts (see below) |
-| 4 | Replace QEMU's memory-dump mechanism with a UART one | Not started |
+| 4 | Replace QEMU's memory-dump mechanism with a UART one | **Done** — QEMU cross-check + real Pi trial both pass |
 | 5 | Add a two-file composite benchmark (cross-TU, for ThinLTO to have something to do) | Not started |
 | 6 | Compile-time PGO support | Not started |
 | 7 | ThinLTO on top of PGO | Not started |
@@ -75,6 +75,22 @@ for patches applied before the stamp file existed. Verified: full clean
 checkout → `apply-overlays.sh` → re-run `apply-overlays.sh` (idempotent,
 all patches skip correctly) → rebuild, still green.
 
+## TODO: reflash chainloader to a faster upload baud
+
+Image uploads (the initial serial transfer before LK boots) run at the
+chainloader's fixed 115200 baud — confirmed by matching throughput
+(~11 KiB/s ≈ 115200 8N1 raw byte rate exactly). The 3M-baud UART patch only
+speeds up LK's *own* post-boot interactive shell (it requests its own
+clock after the chainloader has already handed off), not the upload itself.
+A BOLT-instrumented image is ~6.27 MB (mostly BOLT's reserved hot-text
+padding for a handful of tiny benchmark functions), so at 115200 baud this
+upload takes ~9-10 minutes per iteration.
+
+Fix: reflash the SD card's chainloader itself to also transfer at 3M (or
+6M) baud — the actual reflash lk-perf's own baud work deliberately avoided
+needing. **User decision (2026-09-29): do this at the next opportunity, not
+now.** Tracked here as a definite TODO, not a someday-maybe.
+
 ## Step 3 — real hardware boot
 
 `BASE=atfe LK_PROJECT=rpi4-bolt-test ./scripts/build-lk-aarch32.sh` on the
@@ -112,3 +128,52 @@ contains an actual hot loop to bench at all. Not chased down yet — these
 first runs were only scoped to prove boot + execution end-to-end. Worth
 resolving before Step 9 (real PMU counter reading) is trusted, and worth
 checking the disassembly either way once a pod is up again.
+
+## Step 4 — UART memory dump, done
+
+Added `bolt_dump <addr_hex> <size_hex>` to `bolt_bench.c`: chunked (64
+bytes/line) memory dump over UART, each chunk carrying a seq number and an
+FNV-1a checksum (same algorithm family as lk-perf's
+`profiler_sample_checksum`, applied to a raw byte range instead of typed
+fields) — carries lk-perf's seq/crc integrity discipline forward, since a
+dump that just trusted whatever arrived would reproduce the same silent
+corruption bug lk-perf found on this exact link.
+
+Host side: `scripts/bolt_dump_reassemble.py` (transport-agnostic parser,
+shared by both the QEMU cross-check and the real Pi path — reassembles
+`BOLT_DUMP_BEGIN/BOLT_DUMP/BOLT_DUMP_END` text lines back into raw bytes,
+verifying each chunk's checksum and reporting any gaps) and
+`scripts/qemu_bolt_dump.py` (the cross-check driver: boots an instrumented
+image under QEMU with a TCP-socket serial chardev instead of QMP, runs the
+workload, dumps via the new command).
+
+**Cross-check (QEMU, zero hardware risk):** dumped the same instrumented
+`qemu-virt-arm32-test` image (`.bolt.instr.counters`, 10074 bytes at
+`0x80601000`) both ways — via the existing QMP `memsave` method
+(`dump-bolt-counters.py`) and via the new UART command
+(`qemu_bolt_dump.py`). The two raw dumps were **byte-for-byte identical**
+(`cmp` reported no difference), and running both through
+`ram-dump-to-fdata.py` produced **identical `.fdata`** output. Confirms the
+UART method is a drop-in replacement — the existing `.fdata` conversion
+script needed zero changes, as planned.
+
+**Real Pi trial:** instrumented `rpi4-bolt-test` the same way (same
+counter section address/size, since `KERNEL_BASE` happens to match
+`qemu-virt-arm32-test`'s). Converted the instrumented ELF to a raw binary
+via `llvm-objcopy -O binary` — 6.27 MB, mostly BOLT's reserved hot-text
+padding for the ~14 tiny instrumented functions (real content is a small
+fraction of that). Sent over serial, booted, ran `bolt_bench all`, then
+`bolt_dump 80601000 275a`: all 158 chunks arrived correct on the first try
+(zero bad checksums this run — lk-perf's corruption was real but
+intermittent, not guaranteed every transfer), reassembled to exactly 10074
+bytes, and converted cleanly to `.fdata` with all 14 instrumented
+functions' real branch/call structure present.
+
+One real bug caught along the way: the first Pi attempt instrumented a
+*stale* `rpi4-bolt-test` build from before `bolt_dump` was added (only
+`qemu-virt-arm32-test` had been rebuilt after the code change) — resulted
+in `bolt_dump: command not found` on-device, after a needless ~10-minute
+image transfer. Rebuilt `rpi4-bolt-test` fresh and retried successfully.
+
+**TODO (separate from the reflash item above):** the `hot_loop`/`hot_cold`
+cycle-count anomaly above is still unresolved and blocks trusting Step 9.
