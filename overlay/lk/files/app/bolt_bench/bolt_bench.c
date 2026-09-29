@@ -4,7 +4,9 @@
 #include <lib/console.h>
 #include <lk/console_cmd.h>
 #include <lk/debug.h>
+#include <stdint.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 #define BOLT_BENCH_ITERS 1000000u
@@ -467,6 +469,60 @@ static int bolt_bench_cmd(int argc, const console_cmd_args *argv) {
     return 0;
 }
 
+/* Real hardware has no QMP memsave/pmemsave -- this replaces it for reading
+ * BOLT's .bolt.instr.counters section back out over UART. Dumps in fixed
+ * chunks, each with its own seq number and FNV-1a checksum (same algorithm
+ * family as lk-perf's profiler_sample_checksum, applied to a raw byte range
+ * instead of typed fields), so the host script can detect and re-request
+ * just the corrupted chunks -- lk-perf found real, silent UART corruption
+ * at both 3M and 6M baud (a USB packet-boundary artifact), and a dump
+ * that just trusts whatever arrived would reproduce that same bug here. */
+#define BOLT_DUMP_CHUNK 64u
+
+static uint32_t bolt_dump_checksum(const uint8_t *buf, size_t len) {
+    uint32_t c = 0x811c9dc5u;
+    for (size_t i = 0; i < len; i++) {
+        c ^= buf[i];
+        c *= 16777619u;
+    }
+    return c;
+}
+
+static int bolt_dump_cmd(int argc, const console_cmd_args *argv) {
+    if (argc < 3) {
+        printf("usage: bolt_dump <addr_hex> <size_hex>\n");
+        return -1;
+    }
+    uintptr_t addr = (uintptr_t)strtoul(argv[1].str, NULL, 16);
+    size_t size = (size_t)strtoul(argv[2].str, NULL, 16);
+    const uint8_t *base = (const uint8_t *)addr;
+
+    printf("BOLT_DUMP_BEGIN addr=%08lx size=%08lx\n",
+           (unsigned long)addr, (unsigned long)size);
+
+    uint32_t seq = 0;
+    size_t off = 0;
+    while (off < size) {
+        size_t chunk = size - off;
+        if (chunk > BOLT_DUMP_CHUNK) {
+            chunk = BOLT_DUMP_CHUNK;
+        }
+        uint32_t crc = bolt_dump_checksum(base + off, chunk);
+        printf("BOLT_DUMP seq=%08lx off=%08lx len=%04lx crc=%08lx data=",
+               (unsigned long)seq, (unsigned long)off, (unsigned long)chunk,
+               (unsigned long)crc);
+        for (size_t i = 0; i < chunk; i++) {
+            printf("%02x", base[off + i]);
+        }
+        printf("\n");
+        off += chunk;
+        seq++;
+    }
+    printf("BOLT_DUMP_END seq=%08lx total=%08lx\n",
+           (unsigned long)seq, (unsigned long)size);
+    return 0;
+}
+
 static void bolt_bench_app_entry(const struct app_descriptor *app, void *args) {
     char name[32];
     if (cmdline_get_string("lk.bolt_bench", name, sizeof(name), NULL) != NO_ERROR) {
@@ -479,6 +535,7 @@ static void bolt_bench_app_entry(const struct app_descriptor *app, void *args) {
 #if WITH_LIB_CONSOLE
 STATIC_COMMAND_START
 STATIC_COMMAND("bolt_bench", "BOLT synthetic bare-metal workloads", &bolt_bench_cmd)
+STATIC_COMMAND("bolt_dump", "dump raw memory over UART for BOLT profiling (addr_hex size_hex)", &bolt_dump_cmd)
 STATIC_COMMAND_END(bolt_bench);
 #endif
 
