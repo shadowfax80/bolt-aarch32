@@ -1,0 +1,34 @@
+diff --git a/make/module.mk b/make/module.mk
+index d0848fe..787029c 100644
+--- a/make/module.mk
++++ b/make/module.mk
+@@ -154,6 +154,12 @@ MODULE_SRCDEPS += $(MODULE_CONFIG)
+ MODULE_INCLUDES := $(addprefix -I,$(MODULE_INCLUDES))
+ 
+ # include the rules to compile the module's object files
++# bolt-aarch32: per-module LTO opt-in. MODULE_LTO := thin|full compiles just this
++# module as LTO bitcode (LK's global LTO_MODE applies to every module, which
++# confounds a benchmark of one module's cross-TU optimization).
++ifneq ($(MODULE_LTO),)
++MODULE_COMPILEFLAGS += -flto=$(MODULE_LTO)
++endif
+ include make/compile.mk
+ 
+ # MODULE_OBJS is passed back from compile.mk
+@@ -165,7 +171,7 @@ ALLSRCS += $(MODULE_SRCS)
+ # track all the objects built
+ ALLOBJS += $(MODULE_OBJS)
+ 
+-ifeq ($(LTO_MODE),off)
++ifeq ($(LTO_MODE)$(MODULE_LTO),off)
+ # build a ld -r style combined object
+ MODULE_OBJECT := $(call TOBUILDDIR,$(MODULE_SRCDIR).mod.o)
+ $(MODULE_OBJECT): $(MODULE_OBJS) $(MODULE_EXTRA_OBJS)
+@@ -198,6 +204,7 @@ MODULE_WEAK_DEPS :=
+ MODULE_SRCS :=
+ MODULE_FLOAT_SRCS :=
+ MODULE_OBJS :=
++MODULE_LTO :=
+ MODULE_DEFINES :=
+ MODULE_OPTFLAGS :=
+ MODULE_COMPILEFLAGS :=

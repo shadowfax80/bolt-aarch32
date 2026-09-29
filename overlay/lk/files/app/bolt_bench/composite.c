@@ -12,14 +12,19 @@
 #include <stdint.h>
 #include <stdio.h>
 
-__attribute__((noinline)) static uint32_t composite_transform(uint32_t x) {
+/* The hot path is deliberately NOT noinline: unlike the other benches (which
+ * need distinct symbols so BOLT can instrument them), this workload exists to
+ * measure whether the compiler can inline composite_process into the driver
+ * loop in bolt_bench.c -- possible only across the TU boundary with LTO. */
+static uint32_t composite_transform(uint32_t x) {
     return (x * 2654435761u) ^ (x >> 15);
 }
 
-__attribute__((noinline)) uint32_t composite_process(uint32_t x) {
+uint32_t composite_process(uint32_t x) {
     return composite_transform(x) + (x << 1);
 }
 
+/* Cold path stays out of line so PGO/BOLT have a real cold function to place. */
 __attribute__((noinline)) void composite_report_cold(uint32_t code) {
     printf("bolt_bench: composite cold report acc=0x%x\n", code);
 }

@@ -20,10 +20,10 @@ payload-agnostic — no reflash needed for this project's own images).
 | 3 | Boot plain baseline on real Pi, confirm all `bolt_bench` workloads run | **Done** — all 16 workloads ran, real cycle counts (see below) |
 | 4 | Replace QEMU's memory-dump mechanism with a UART one | **Done** — QEMU cross-check + real Pi trial both pass |
 | 5 | Add a two-file composite benchmark (cross-TU, for ThinLTO to have something to do) | **Done** — verified under QEMU |
-| 6 | Compile-time PGO support | **In progress** — profile generation done+verified on real Pi; `-fprofile-instr-use` build next |
-| 7 | ThinLTO on top of PGO | Not started |
+| 6 | Compile-time PGO support | **Done** — profile collected on the real Pi, applied via `-fprofile-instr-use` |
+| 7 | ThinLTO on top of PGO | **Done** — scoped to the bolt_bench module; relocations preserved for BOLT |
 | 8 | BOLT on top of PGO+ThinLTO | Not started |
-| 9 | PMU counter reading in `bolt_bench.c` (cycles + cache misses) | Not started |
+| 9 | PMU counter reading in `bolt_bench.c` (cycles + cache misses) | Not started (cycle counter already live; cache-miss events still to add) |
 | 10 | Full staged comparison, real Pi, several runs each | Not started |
 
 ## Step 1 — environment
@@ -175,8 +175,8 @@ One real bug caught along the way: the first Pi attempt instrumented a
 in `bolt_dump: command not found` on-device, after a needless ~10-minute
 image transfer. Rebuilt `rpi4-bolt-test` fresh and retried successfully.
 
-**TODO (separate from the reflash item above):** the `hot_loop`/`hot_cold`
-cycle-count anomaly above is still unresolved and blocks trusting Step 9.
+**Note:** the `hot_loop`/`hot_cold` cycle-count anomaly above was later
+resolved (see below): the compiler folded those loops to constants.
 
 ## Step 5 — composite cross-TU benchmark, done
 
@@ -231,3 +231,51 @@ Note: the same build on the `qemu-virt-arm32-test` project failed to link
 (`lk_symtab_*` undefined -- that project's `lib/symtab` two-stage generation
 step); abandoned rather than debugged, since verification is Pi-only now and
 `rpi4-bolt-test` (no `lib/symtab`) links cleanly.
+
+## Steps 6-7 — variants built and first measured on the real Pi
+
+`scripts/build-variants.sh` builds each named variant from a clean LK build
+dir with the same overlay source (`baseline`, `pgo-collect`, `pgo`,
+`pgo_thinlto`), so differences between them are flags only.
+`scripts/pi4/pi4_pgo_collect.py` collects the profile (two boots: learn the
+buffer size, then dump it). ThinLTO is scoped to the `bolt_bench` module only
+(not all of LK, whose global `LTO_MODE` would confound the comparison) via
+overlay patch `0005-module-lto-optin.patch`, a per-module `MODULE_LTO` opt-in in
+LK's `module.mk`.
+
+**Benchmark bug caught along the way:** `composite_process`/`composite_transform`
+were first marked `noinline` (copied from the other benches, which need that
+to stay distinct BOLT-instrumentable symbols). That blocks exactly the
+cross-TU inlining this benchmark exists to measure — the ThinLTO build was
+bitcode but still `bl composite_process`. Fixed (hot path inlinable, cold path
+`composite_report_cold` stays out of line) and every variant plus the profile
+rebuilt from the corrected source.
+
+Confirmed by disassembly of `bolt_bench_composite`: baseline and +PGO still
+`bl composite_process` (PGO cannot inline across a TU boundary); +PGO+ThinLTO
+inlines it.
+
+**First measurement, real Pi 4B, `bolt_bench composite`, 5 runs per variant
+(one boot each), cycles from the PMU cycle counter:**
+
+| Variant | cycles (5 runs) | vs. baseline |
+|---|---|---|
+| baseline | 6,102,285 – 6,102,728 | — |
+| +PGO | 6,102,070 – 6,102,725 | no change (within noise) |
+| +PGO+ThinLTO | 4,201,101 – 4,201,322 | **-31%** |
+
+PGO alone does nothing here: the loop has no branch worth reordering and the
+call crosses a TU boundary it cannot see through. ThinLTO's cross-TU inlining
+removes ~1.9 cycles/iteration. Run-to-run spread is ~0.01%, so these are not
+noise. This is a first look (one boot per variant), not the Step 10 result.
+
+## `hot_loop` / `hot_cold` anomaly: resolved
+
+`arch_cycle_count()` is a direct read of the PMU cycle counter
+(`mrc p15,0,r0,c9,c13,0`) and it is live — `composite` measures ~6M cycles
+for 1M iterations. `hot_loop`/`hot_cold` report ~9 cycles because LLVM folded
+the loop into a closed-form constant (`sum += i` over a compile-time-constant
+trip count becomes a `movw`/`movt` of the result); the 9 cycles is just two
+back-to-back counter reads. Those two workloads contain no loop for BOLT to
+optimize; Step 9 is not blocked on the counter. (The 3530/2500 QEMU figures
+were QEMU's counter emulation, not comparable.)

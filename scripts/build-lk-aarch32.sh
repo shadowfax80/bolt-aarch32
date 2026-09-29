@@ -33,6 +33,23 @@ if [[ "${WITH_BOLT_PGO:-}" == "true" ]]; then
   fi
   MAKE_ARGS+=("EXTRA_OBJS=$PGO_RT_LIB")
 fi
+if [[ -n "${WITH_BOLT_PGO_USE:-}" ]]; then
+  if [[ "${WITH_BOLT_PGO:-}" == "true" ]]; then
+    echo "error: WITH_BOLT_PGO (collect) and WITH_BOLT_PGO_USE (apply) are mutually exclusive" >&2
+    exit 1
+  fi
+  if [[ ! -f "$WITH_BOLT_PGO_USE" ]]; then
+    echo "error: profile $WITH_BOLT_PGO_USE not found" >&2
+    exit 1
+  fi
+  MAKE_ARGS+=("WITH_BOLT_PGO_USE=$WITH_BOLT_PGO_USE")
+fi
+if [[ "${WITH_BOLT_THINLTO:-}" == "true" ]]; then
+  MAKE_ARGS+=("WITH_BOLT_THINLTO=true")
+  # LK runs `$(SIZE) -t` over the module objects before linking; host `size` cannot
+  # read LLVM bitcode, so a ThinLTO module makes it fail. `true` ignores its args.
+  SIZE="${SIZE:-true}"
+fi
 # LK's build.mk resolves SIZE via TOOLCHAIN_PREFIX (arm-eabi-size) even under
 # TOOLCHAIN=clang, unlike its other post-link tools. No arm-eabi- binutils are
 # installed here (this project only uses clang/lld), so default to the host's
