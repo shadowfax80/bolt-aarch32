@@ -19,6 +19,15 @@ apply_patches() {
   local name="$1"
   local dir="$2"
   local patch_dir="$3"
+  # Tracks applied patches by filename instead of relying solely on a
+  # reverse-apply content check: once two sequential patches touch adjacent
+  # context in the same file (e.g. lk's rpi4 platform + UART-baud patches),
+  # checking patch N's reverse-apply in isolation fails because patch N+1's
+  # already-applied text sits right where N's hunk expects its own
+  # boundary — a real conflict was never involved, just stale adjacent
+  # context. The stamp file sidesteps that; the reverse-check remains only
+  # as a one-time fallback for patches applied before this file existed.
+  local stamp="$dir/.applied-overlay-patches"
 
   if ! git -C "$dir" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
     echo "error: $name not checked out at $dir" >&2
@@ -32,17 +41,27 @@ apply_patches() {
   fi
 
   echo "Applying patches for $name..."
+  touch "$stamp"
   for patch in "$patch_dir"/*.patch; do
-    if git -C "$dir" apply --check --reverse "$patch" >/dev/null 2>&1; then
+    local base
+    base="$(basename "$patch")"
+    if grep -qxF "$base" "$stamp"; then
       echo "  already applied: $patch"
       continue
     fi
-    echo "  $patch"
-    if ! git -C "$dir" apply --check "$patch"; then
-      echo "error: $patch does not apply to $dir" >&2
-      exit 1
+    if git -C "$dir" apply --check "$patch" 2>/dev/null; then
+      echo "  $patch"
+      git -C "$dir" apply "$patch"
+      echo "$base" >> "$stamp"
+      continue
     fi
-    git -C "$dir" apply "$patch"
+    if git -C "$dir" apply --check --reverse "$patch" >/dev/null 2>&1; then
+      echo "  already applied: $patch"
+      echo "$base" >> "$stamp"
+      continue
+    fi
+    echo "error: $patch does not apply to $dir" >&2
+    exit 1
   done
 }
 
