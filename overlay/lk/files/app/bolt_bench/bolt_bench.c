@@ -509,6 +509,38 @@ static uint32_t bolt_dump_checksum(const uint8_t *buf, size_t len) {
     return c;
 }
 
+#if WITH_BOLT_PGO
+/* clang's -fprofile-instr-generate counter data, with no filesystem and no
+ * runtime-init hook (ATFE's compiler-rt has a real COMPILER_RT_PROFILE_BAREMETAL
+ * build mode for exactly this -- see scripts/build-pgo-rt-baremetal.sh).
+ * __llvm_profile_write_buffer() serializes a complete, valid raw instrprof
+ * file into this buffer; the existing generic bolt_dump command above reads
+ * it out over UART like any other memory range, no new transport needed. */
+#define BOLT_PGO_BUFFER_SIZE (64u * 1024u)
+static uint8_t g_bolt_pgo_buffer[BOLT_PGO_BUFFER_SIZE];
+
+extern uint64_t __llvm_profile_get_size_for_buffer(void);
+extern int __llvm_profile_write_buffer(char *Buffer);
+
+static int bolt_pgo_dump_cmd(int argc, const console_cmd_args *argv) {
+    uint64_t needed = __llvm_profile_get_size_for_buffer();
+    if (needed > sizeof(g_bolt_pgo_buffer)) {
+        printf("bolt_pgo_dump: profile needs %llu bytes, buffer is only %u\n",
+               (unsigned long long)needed, (unsigned)sizeof(g_bolt_pgo_buffer));
+        return -1;
+    }
+    int rc = __llvm_profile_write_buffer((char *)g_bolt_pgo_buffer);
+    if (rc != 0) {
+        printf("bolt_pgo_dump: __llvm_profile_write_buffer failed (%d)\n", rc);
+        return -1;
+    }
+    printf("bolt_pgo_dump: addr=%08lx size=%08lx (now: bolt_dump %08lx %08lx)\n",
+           (unsigned long)(uintptr_t)g_bolt_pgo_buffer, (unsigned long)needed,
+           (unsigned long)(uintptr_t)g_bolt_pgo_buffer, (unsigned long)needed);
+    return 0;
+}
+#endif
+
 static int bolt_dump_cmd(int argc, const console_cmd_args *argv) {
     if (argc < 3) {
         printf("usage: bolt_dump <addr_hex> <size_hex>\n");
@@ -557,6 +589,9 @@ static void bolt_bench_app_entry(const struct app_descriptor *app, void *args) {
 STATIC_COMMAND_START
 STATIC_COMMAND("bolt_bench", "BOLT synthetic bare-metal workloads", &bolt_bench_cmd)
 STATIC_COMMAND("bolt_dump", "dump raw memory over UART for BOLT profiling (addr_hex size_hex)", &bolt_dump_cmd)
+#if WITH_BOLT_PGO
+STATIC_COMMAND("bolt_pgo_dump", "serialize PGO counters into a buffer, print addr/size for bolt_dump", &bolt_pgo_dump_cmd)
+#endif
 STATIC_COMMAND_END(bolt_bench);
 #endif
 

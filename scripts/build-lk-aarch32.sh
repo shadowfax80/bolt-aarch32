@@ -24,6 +24,15 @@ MAKE_ARGS=()
 if [[ -n "${BOLT_BENCH_ISA:-}" ]]; then
   MAKE_ARGS+=("BOLT_BENCH_ISA=$BOLT_BENCH_ISA")
 fi
+if [[ "${WITH_BOLT_PGO:-}" == "true" ]]; then
+  MAKE_ARGS+=("WITH_BOLT_PGO=true")
+  PGO_RT_LIB="${PGO_RT_LIB:-$ROOT/build-${BASE:-upstream}/pgo-rt-baremetal-arm/libpgo_rt_baremetal.a}"
+  if [[ ! -f "$PGO_RT_LIB" ]]; then
+    echo "error: $PGO_RT_LIB not found — run scripts/build-pgo-rt-baremetal.sh first" >&2
+    exit 1
+  fi
+  MAKE_ARGS+=("EXTRA_OBJS=$PGO_RT_LIB")
+fi
 # LK's build.mk resolves SIZE via TOOLCHAIN_PREFIX (arm-eabi-size) even under
 # TOOLCHAIN=clang, unlike its other post-link tools. No arm-eabi- binutils are
 # installed here (this project only uses clang/lld), so default to the host's

@@ -12,7 +12,8 @@ ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 
 DEBIAN_FRONTEND=noninteractive apt-get update -qq
 DEBIAN_FRONTEND=noninteractive apt-get install -y -qq \
-  qemu-system-arm ninja-build cmake build-essential ccache lld python3 git
+  qemu-system-arm ninja-build cmake build-essential ccache lld python3 git \
+  libnewlib-arm-none-eabi
 
 "$ROOT/scripts/fetch-sources.sh"
 "$ROOT/scripts/verify-workspace.sh"

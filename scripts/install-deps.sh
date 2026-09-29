@@ -10,6 +10,7 @@ apt-get install -y \
   zlib1g-dev libxml2-dev libedit-dev libcurl4-openssl-dev \
   lld clang curl ca-certificates \
   jq \
-  qemu-system-aarch64 qemu-system-arm gdb-multiarch
+  qemu-system-aarch64 qemu-system-arm gdb-multiarch \
+  libnewlib-arm-none-eabi
 
 echo "Dependencies installed."

@@ -20,7 +20,7 @@ payload-agnostic — no reflash needed for this project's own images).
 | 3 | Boot plain baseline on real Pi, confirm all `bolt_bench` workloads run | **Done** — all 16 workloads ran, real cycle counts (see below) |
 | 4 | Replace QEMU's memory-dump mechanism with a UART one | **Done** — QEMU cross-check + real Pi trial both pass |
 | 5 | Add a two-file composite benchmark (cross-TU, for ThinLTO to have something to do) | **Done** — verified under QEMU |
-| 6 | Compile-time PGO support | Not started |
+| 6 | Compile-time PGO support | **In progress** — profile generation done+verified on real Pi; `-fprofile-instr-use` build next |
 | 7 | ThinLTO on top of PGO | Not started |
 | 8 | BOLT on top of PGO+ThinLTO | Not started |
 | 9 | PMU counter reading in `bolt_bench.c` (cycles + cache misses) | Not started |
@@ -203,3 +203,31 @@ Same anomaly as above showed up in a different form here: this QEMU run's
 `hot_loop`/`hot_cold` read 3530/2500 cycles (not the real Pi's suspicious
 9) — worth keeping in mind when finally chasing that down, since QEMU and
 real hardware disagree on more than just absolute scale.
+
+## Step 6 — PGO profile generation, done (use-side pending)
+
+ATFE's compiler-rt already has a real `COMPILER_RT_PROFILE_BAREMETAL` mode
+(minimal profile runtime: no filesystem, no init hook, no malloc/value
+profiling) -- reused rather than writing a runtime. `scripts/build-pgo-rt-baremetal.sh`
+compiles that source set directly with clang for arm-none-eabi/cortex-a15
+(against apt's `libnewlib-arm-none-eabi` headers for string.h/stdint.h --
+new pod dependency, added to `install-deps.sh`/`bootstrap-pod.sh`) into
+`libpgo_rt_baremetal.a`. `WITH_BOLT_PGO=true` builds the `bolt_bench` module
+(only, not all of LK) with `-fprofile-instr-generate` and links that archive
+via LK's `EXTRA_OBJS`. New `bolt_pgo_dump` shell command calls
+`__llvm_profile_write_buffer()` to serialize a complete, valid raw instrprof
+file into a buffer and prints its address/size; the existing generic
+`bolt_dump` (Step 4) reads it out over UART -- no new transport.
+
+Verified on the real Pi (no QEMU): `bolt_bench composite` then `bolt_pgo_dump`
+then `bolt_dump 8002a080 e98` -> 3736 bytes, all chunks checksum-clean.
+`llvm-profdata` (built from the matching ATFE tree -- a distro one would
+mismatch the raw-format version) accepts it: `composite_process` and
+`composite_transform` 1,000,000 calls each, `composite_report_cold` 3,
+driver-loop blocks `[1000000, 3]` -- exactly the expected counts. Merged to
+an indexed `.profdata` (kept on the volume at `build-atfe/pgo/`).
+
+Note: the same build on the `qemu-virt-arm32-test` project failed to link
+(`lk_symtab_*` undefined -- that project's `lib/symtab` two-stage generation
+step); abandoned rather than debugged, since verification is Pi-only now and
+`rpi4-bolt-test` (no `lib/symtab`) links cleanly.
