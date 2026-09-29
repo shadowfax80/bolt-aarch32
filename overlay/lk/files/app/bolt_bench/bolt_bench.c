@@ -405,6 +405,24 @@ __attribute__((noinline)) void bolt_bench_shrinkwrap(void) {
     g_bolt_bench_sink = acc;
 }
 
+/* Defined in composite.c -- see that file's header comment for why this
+ * workload is split across two translation units. */
+uint32_t composite_process(uint32_t x);
+void composite_report_cold(uint32_t code);
+
+__attribute__((noinline)) void bolt_bench_composite(void) {
+    lk_time_t t0 = arch_cycle_count();
+    uint32_t acc = 0;
+    for (uint32_t i = 0; i < BOLT_BENCH_ITERS; i++) {
+        acc += composite_process(i);
+        if ((i & 0x3FFFFu) == 0x3FFFFu) {
+            composite_report_cold(acc);
+        }
+    }
+    bench_banner("composite", arch_cycle_count() - t0);
+    g_bolt_bench_sink = acc;
+}
+
 static void run_one(const char *name) {
     if (!strcmp(name, "hot_loop")) {
         bolt_bench_hot_loop();
@@ -438,6 +456,8 @@ static void run_one(const char *name) {
         bolt_bench_icf();
     } else if (!strcmp(name, "shrinkwrap")) {
         bolt_bench_shrinkwrap();
+    } else if (!strcmp(name, "composite")) {
+        bolt_bench_composite();
     } else if (!strcmp(name, "all")) {
         bolt_bench_hot_loop();
         bolt_bench_hot_cold();
@@ -455,6 +475,7 @@ static void run_one(const char *name) {
         bolt_bench_hotcold_split();
         bolt_bench_icf();
         bolt_bench_shrinkwrap();
+        bolt_bench_composite();
     } else {
         printf("unknown workload %s\n", name);
     }
@@ -462,7 +483,7 @@ static void run_one(const char *name) {
 
 static int bolt_bench_cmd(int argc, const console_cmd_args *argv) {
     if (argc < 2) {
-        printf("usage: bolt_bench <hot_loop|hot_cold|branch_chain|memcpy|far_call|it_cond|interwork|switch|spill_ret|litpool|indirect_call|interwork_tail|regpressure|hotcold_split|icf|shrinkwrap|all>\n");
+        printf("usage: bolt_bench <hot_loop|hot_cold|branch_chain|memcpy|far_call|it_cond|interwork|switch|spill_ret|litpool|indirect_call|interwork_tail|regpressure|hotcold_split|icf|shrinkwrap|composite|all>\n");
         return -1;
     }
     run_one(argv[1].str);

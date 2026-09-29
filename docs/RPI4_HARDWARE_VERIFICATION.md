@@ -19,7 +19,7 @@ payload-agnostic — no reflash needed for this project's own images).
 | 2 | Port lk-perf's rpi4 hardware patches (BCM2711, UART baud, watchdog-reboot) | **Done** — `overlay/lk/patches/0002-0004`, `target/rpi4/`, `project/rpi4-bolt-test.mk` |
 | 3 | Boot plain baseline on real Pi, confirm all `bolt_bench` workloads run | **Done** — all 16 workloads ran, real cycle counts (see below) |
 | 4 | Replace QEMU's memory-dump mechanism with a UART one | **Done** — QEMU cross-check + real Pi trial both pass |
-| 5 | Add a two-file composite benchmark (cross-TU, for ThinLTO to have something to do) | Not started |
+| 5 | Add a two-file composite benchmark (cross-TU, for ThinLTO to have something to do) | **Done** — verified under QEMU |
 | 6 | Compile-time PGO support | Not started |
 | 7 | ThinLTO on top of PGO | Not started |
 | 8 | BOLT on top of PGO+ThinLTO | Not started |
@@ -177,3 +177,29 @@ image transfer. Rebuilt `rpi4-bolt-test` fresh and retried successfully.
 
 **TODO (separate from the reflash item above):** the `hot_loop`/`hot_cold`
 cycle-count anomaly above is still unresolved and blocks trusting Step 9.
+
+## Step 5 — composite cross-TU benchmark, done
+
+Every other `bolt_bench` workload is single-file, so ThinLTO would have
+nothing cross-module to actually optimize — everything a single `clang
+-O2` invocation can already see doesn't need LTO. Added `composite.c`
+(new second translation unit in `app/bolt_bench/`) with a hot path
+(`composite_process`, called every iteration) and a cold path
+(`composite_report_cold`, called every 262144th iteration) that
+`bolt_bench.c`'s new `bolt_bench_composite()` calls into across the
+TU boundary.
+
+Verified under QEMU:
+- Confirmed via disassembly the calls are real `bl` instructions to
+  `composite_process`/`composite_report_cold`, not already inlined by the
+  single-TU compile (`llvm-objdump -d`, `bolt_bench_composite`'s body).
+- Standalone (`lk.bolt_bench=composite`): hot path ran, cold path fired
+  exactly 3 times (`1000000 / 262144 = 3`, matches the `0x3FFFF` mask),
+  completed in 16.3M cycles.
+- As part of `all` (17 workloads now): all ran cleanly, no regressions to
+  the existing 16.
+
+Same anomaly as above showed up in a different form here: this QEMU run's
+`hot_loop`/`hot_cold` read 3530/2500 cycles (not the real Pi's suspicious
+9) — worth keeping in mind when finally chasing that down, since QEMU and
+real hardware disagree on more than just absolute scale.
