@@ -33,6 +33,12 @@ V="${VARIANTS_DIR:-$ROOT/build-$BASE/variants}"
 # virt), where BOLT's new segments at _end would land on the PMM page array.
 BOLT_EXTRA_ARGS="${BOLT_EXTRA_ARGS---no-huge-pages}"
 FUNC="${BOLT_FUNC:-bolt_bench_composite}"
+# Profile mode. edges (default): redirect the original entry into BOLT's
+# instrumented copy so its real per-edge counters run -- the profile then has true
+# edge frequencies. entry: the old entry hook, which bumps every counter once per
+# *call* (every edge reads 1); kept for functions whose instrumented copy does not
+# run correctly.
+MODE="${BOLT_PROFILE_MODE:-edges}"
 
 cmd="${1:-}"; variant="${2:-}"
 [[ -n "$cmd" && -n "$variant" ]] || { sed -n '2,12p' "$0" >&2; exit 1; }
@@ -42,11 +48,21 @@ case "$cmd" in
   instrument)
     rm -f "$V/$variant.instr."*
     BASE="$BASE" ARCH=arm32 ELF="$V/$variant.elf" OUT="$V/$variant.instr.elf" \
-      BOLT_BENCH_FUNCS="$FUNC" "$ROOT/scripts/instrument-lk-bolt.sh" $BOLT_EXTRA_ARGS \
+      BOLT_INSTR_EDGES=$([[ "$MODE" == edges ]] && echo 1 || echo 0) \
+      BOLT_BENCH_FUNCS="$FUNC" "$ROOT/scripts/instrument-lk-bolt.sh" $BOLT_EXTRA_ARGS       --emit-function-map="$V/$variant.instr.funcmap" \
       > "$V/$variant.instr.log" 2>&1 || { tail -20 "$V/$variant.instr.log" >&2; exit 1; }
     # BOLT silently instruments nothing if the function name does not match
     # (e.g. ThinLTO internalized it to a local `name/1`): fail loudly instead.
-    if ! grep -q "thumb hook $FUNC" "$V/$variant.instr.log"; then
+    if [[ "$MODE" == edges ]]; then
+      NFUNCS=$(awk -F, '{print NF}' <<<"$FUNC")
+      if ! grep -q "Number of function descriptors: $NFUNCS\$" "$V/$variant.instr.log"; then
+        echo "error: BOLT instrumented no counters for $FUNC -- see $V/$variant.instr.log" >&2
+        grep -E 'function descriptors|skipping' "$V/$variant.instr.log" >&2 || true
+        exit 1
+      fi
+      python3 "$ROOT/scripts/redirect-bolt-entries.py" "$V/$variant.instr.elf" \
+        --original "$V/$variant.elf" --map "$V/$variant.instr.funcmap" --func "$FUNC"         --toolchain "$TOOLCHAIN" --instrumented
+    elif ! grep -q "thumb hook $FUNC" "$V/$variant.instr.log"; then
       echo "error: BOLT instrumented no counters for $FUNC -- see $V/$variant.instr.log" >&2
       grep -E 'function descriptors|skipping|no BOLT counter' "$V/$variant.instr.log" >&2 || true
       exit 1
@@ -66,7 +82,7 @@ case "$cmd" in
       "$ROOT/scripts/optimize-lk-bolt.sh" $BOLT_EXTRA_ARGS > "$V/${variant}_bolt.log" 2>&1 \
       || { tail -20 "$V/${variant}_bolt.log" >&2; exit 1; }
     python3 "$ROOT/scripts/redirect-bolt-entries.py" "$V/${variant}_bolt.elf" \
-      --original "$V/$variant.elf" --func "$FUNC" --toolchain "$TOOLCHAIN"
+      --original "$V/$variant.elf" --map "$V/${variant}_bolt.elf.funcmap" --func "$FUNC"       --toolchain "$TOOLCHAIN"
     "$TOOLCHAIN/llvm-objcopy" -O binary "$V/${variant}_bolt.elf" "$V/${variant}_bolt.bin"
     echo "image: $V/${variant}_bolt.bin ($(stat -c %s "$V/${variant}_bolt.bin") bytes)"
     ;;

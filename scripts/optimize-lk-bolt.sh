@@ -69,6 +69,9 @@ if [[ "$ARCH" == "arm32" ]]; then
   trap 'rm -f "$FUNCS_FILE"' EXIT
   tr ',' '\n' <<<"$FUNCS" | sed '/^$/d' > "$FUNCS_FILE"
   BOLT_ARGS+=(--funcs-file-no-regex="$FUNCS_FILE")
+  # Where each rewritten function landed (overlay patch 0013); the Pi pipeline's
+  # redirect-bolt-entries.py needs it to branch every original entry to its copy.
+  BOLT_ARGS+=(--emit-function-map="$OUT.funcmap")
 fi
 
 # --no-lse-atomics is AArch64's option (QEMU cortex-a53 has no LSE). The ARM

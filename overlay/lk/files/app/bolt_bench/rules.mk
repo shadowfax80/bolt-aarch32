@@ -53,6 +53,12 @@ MODULE_LTO := thin
 # as externally referenced, so it stays a GLOBAL entry point as in every other
 # variant.
 GLOBAL_LDFLAGS += --undefined=bolt_bench_composite
+GLOBAL_LDFLAGS += --undefined=bolt_bench_stair_kernel
 endif
+
+# Sites in the stair kernel = 64 * STAIR_M (see bolt_bench.c); the footprint sweep varies it.
+# Must come before the module.mk include, which consumes MODULE_DEFINES.
+STAIR_M ?= 10
+MODULE_DEFINES += STAIR_M=$(STAIR_M)
 
 include make/module.mk

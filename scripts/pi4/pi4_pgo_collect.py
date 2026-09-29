@@ -43,20 +43,21 @@ def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("image")
     ap.add_argument("out")
-    ap.add_argument("--workload", default="composite")
+    ap.add_argument("--workload", default="composite",
+                    help="training workload(s), comma-separated: their counts accumulate in one profile")
     ap.add_argument("--port", default="COM5")
     args = ap.parse_args()
 
-    work = f"bolt_bench {args.workload}"
+    work = [f"bolt_bench {w}" for w in args.workload.split(",")]
 
-    text = run_pi(args.image, args.port, [work, "bolt_pgo_dump"])
+    text = run_pi(args.image, args.port, work + ["bolt_pgo_dump"])
     m = PGO_RE.search(text)
     if not m:
         sys.exit("no 'bolt_pgo_dump: addr=.. size=..' in output -- is this a pgo-collect image?")
     addr, size = m.group(1), m.group(2)
     print(f"profile buffer: addr=0x{addr} size=0x{size}")
 
-    text = run_pi(args.image, args.port, [work, "bolt_pgo_dump", f"bolt_dump {addr} {size}"])
+    text = run_pi(args.image, args.port, work + ["bolt_pgo_dump", f"bolt_dump {addr} {size}"])
     result = parse_dump_stream(text)
     if result.bad_seqs:
         print(f"note: {len(result.bad_seqs)} chunk(s) failed checksum", file=sys.stderr)

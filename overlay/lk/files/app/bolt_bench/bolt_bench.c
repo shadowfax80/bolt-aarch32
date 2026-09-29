@@ -43,13 +43,28 @@ static void bench_banner(const char *name, lk_time_t cycles) {
  * four architectural events so a run shows *why* a layout/inlining change
  * moved cycles, not just that it did. What BOLT and LTO change is exactly
  * instruction-side behavior: L1I refills and branch mispredicts. */
-#define BOLT_PMU_NCTR 4
-static const uint32_t bolt_pmu_events[BOLT_PMU_NCTR] = {
-    0x01, /* L1I_CACHE_REFILL */
-    0x03, /* L1D_CACHE_REFILL */
-    0x08, /* INST_RETIRED */
-    0x10, /* BR_MIS_PRED */
+#define BOLT_PMU_NCTR 5
+/* Set 0: what changed. Set 1: why the front end stalled. `bolt_bench <wl> 1` selects
+ * set 1; the workload is deterministic, so two passes give ten events. */
+static const uint32_t bolt_pmu_sets[2][BOLT_PMU_NCTR] = {
+    {
+        0x01, /* L1I_CACHE_REFILL */
+        0x03, /* L1D_CACHE_REFILL */
+        0x08, /* INST_RETIRED */
+        0x10, /* BR_MIS_PRED */
+        0x0C, /* PC_WRITE_RETIRED: taken branches, calls and returns */
+    },
+    {
+        0x23, /* STALL_FRONTEND */
+        0x24, /* STALL_BACKEND */
+        0x14, /* L1I_CACHE (accesses) */
+        0x21, /* BR_RETIRED */
+        0x02, /* L1I_TLB_REFILL */
+    },
 };
+static uint32_t bolt_pmu_events[BOLT_PMU_NCTR];
+static int g_pmu_set_req;
+static int g_pmu_set_cur = -1;
 
 struct bolt_pmu {
     uint32_t v[BOLT_PMU_NCTR];
@@ -69,8 +84,8 @@ static void bolt_pmu_init_this_cpu(void *unused) {
         bolt_pmu_select(i);
         __asm__ volatile("mcr p15, 0, %0, c9, c13, 1" ::"r"(bolt_pmu_events[i])); /* PMXEVTYPER */
     }
-    /* enable event counters 0..3; keep bit 31 (the cycle counter) enabled */
-    __asm__ volatile("mcr p15, 0, %0, c9, c12, 1" ::"r"(0x8000000fu)); /* PMCNTENSET */
+    /* enable event counters 0..4; keep bit 31 (the cycle counter) enabled */
+    __asm__ volatile("mcr p15, 0, %0, c9, c12, 1" ::"r"(0x8000001fu)); /* PMCNTENSET */
     uint32_t pmcr;
     __asm__ volatile("mrc p15, 0, %0, c9, c12, 0" : "=r"(pmcr));
     pmcr |= (1u << 0) | (1u << 1); /* E: enable, P: reset event counters (not the cycle counter) */
@@ -79,11 +94,13 @@ static void bolt_pmu_init_this_cpu(void *unused) {
 }
 
 static void bolt_pmu_init(void) {
-    static bool done;
-    if (done) {
+    if (g_pmu_set_cur == g_pmu_set_req) {
         return;
     }
-    done = true;
+    g_pmu_set_cur = g_pmu_set_req;
+    for (uint32_t i = 0; i < BOLT_PMU_NCTR; i++) {
+        bolt_pmu_events[i] = bolt_pmu_sets[g_pmu_set_cur][i];
+    }
     mp_sync_exec(MP_IPI_TARGET_ALL, 0, bolt_pmu_init_this_cpu, NULL);
 }
 
@@ -97,9 +114,16 @@ static void bolt_pmu_read(struct bolt_pmu *s) {
 }
 
 static void bolt_pmu_report(const char *name, const struct bolt_pmu *a, const struct bolt_pmu *b) {
-    printf("bolt_bench: %s pmu inst=%u l1i_refill=%u l1d_refill=%u br_mispred=%u\n", name,
+    if (g_pmu_set_cur == 1) {
+        printf("bolt_bench: %s pmu2 stall_fe=%u stall_be=%u l1i_acc=%u br_ret=%u itlb_refill=%u\n", name,
+               (unsigned)(b->v[0] - a->v[0]), (unsigned)(b->v[1] - a->v[1]), (unsigned)(b->v[2] - a->v[2]),
+               (unsigned)(b->v[3] - a->v[3]), (unsigned)(b->v[4] - a->v[4]));
+        return;
+    }
+    printf("bolt_bench: %s pmu inst=%u l1i_refill=%u l1d_refill=%u br_mispred=%u taken=%u\n", name,
            (unsigned)(b->v[2] - a->v[2]), (unsigned)(b->v[0] - a->v[0]),
-           (unsigned)(b->v[1] - a->v[1]), (unsigned)(b->v[3] - a->v[3]));
+           (unsigned)(b->v[1] - a->v[1]), (unsigned)(b->v[3] - a->v[3]),
+           (unsigned)(b->v[4] - a->v[4]));
 }
 
 __attribute__((noinline)) void bolt_bench_hot_loop(void) {
@@ -506,6 +530,129 @@ __attribute__((noinline)) void bolt_bench_composite(void) {
     g_bolt_bench_sink = acc;
 }
 
+/* --- stair v2: one workload, three techniques, one clear step each -------------
+ * bolt_bench_stair_kernel() has STAIR_SITES guarded call sites. The selector is a
+ * runtime bitmap with half the guards permanently false. Each hot site calls
+ * bolt_bench_stair_step() in composite.c (another TU). Same input, same profile,
+ * so the stages are cumulative and each has its own expected counter signature:
+ *
+ *   PGO      the cold sites. Baseline skips each with a taken branch and leaves its
+ *            body between hot code; PGO moves the bodies out of line.
+ *            expect: `taken` drops (guards fall through).
+ *   ThinLTO  the helper call crosses a TU, so only LTO inlines it.
+ *            expect: `inst` drops (call/return/argument shuffling gone) and `taken`
+ *            drops by two per call.
+ *   BOLT     the helper has two arms of ~70 bytes each and a per-SITE bias (even
+ *            sites take the THEN arm ~98%, odd ~2%). A compile-time profile is per
+ *            function so it records ~50/50 and, after inlining, every site keeps
+ *            both arms in line: hot and cold arms alternate through the code and the
+ *            hot path spans ~2x the cache lines it needs -- more than the 48 KB L1I.
+ *            BOLT profiles the final inlined binary, packs each site's hot arm and
+ *            splits the cold ones away.
+ *            expect: `l1i_refill` and `stall_fe` drop, cycles follow.
+ * Blocks are independent (no dependency chain) so the kernel is front-end bound;
+ * the empty asm keeps them real branches rather than IT-predicated code. */
+#ifndef STAIR_M
+#define STAIR_M 10 /* 64 sites per unit; the sweep varies it */
+#endif
+#define STAIR_SITES (64u * STAIR_M)
+extern void bolt_bench_stair_init(void);
+extern uint32_t bolt_bench_stair_step(uint32_t x, uint32_t site);
+
+#define STAIR_SITE()                                                        \
+    {                                                                       \
+        const uint32_t k = __COUNTER__;                                     \
+        if (sel[k >> 5] & (1u << (k & 31u))) {                              \
+            acc ^= bolt_bench_stair_step(x + k * 0x9E37u, k);               \
+            __asm__ volatile("" : "+r"(acc));                               \
+        }                                                                   \
+    }
+#define STAIR_R2(m) m() m()
+#define STAIR_R4(m) STAIR_R2(m) STAIR_R2(m)
+#define STAIR_R16(m) STAIR_R4(m) STAIR_R4(m) STAIR_R4(m) STAIR_R4(m)
+#define STAIR_R64(m) STAIR_R16(m) STAIR_R16(m) STAIR_R16(m) STAIR_R16(m)
+
+__attribute__((noinline)) uint32_t bolt_bench_stair_kernel(uint32_t x, const volatile uint32_t *sel) {
+    uint32_t acc = x;
+#if STAIR_M >= 1
+    STAIR_R64(STAIR_SITE)
+#endif
+#if STAIR_M >= 2
+    STAIR_R64(STAIR_SITE)
+#endif
+#if STAIR_M >= 3
+    STAIR_R64(STAIR_SITE)
+#endif
+#if STAIR_M >= 4
+    STAIR_R64(STAIR_SITE)
+#endif
+#if STAIR_M >= 5
+    STAIR_R64(STAIR_SITE)
+#endif
+#if STAIR_M >= 6
+    STAIR_R64(STAIR_SITE)
+#endif
+#if STAIR_M >= 7
+    STAIR_R64(STAIR_SITE)
+#endif
+#if STAIR_M >= 8
+    STAIR_R64(STAIR_SITE)
+#endif
+#if STAIR_M >= 9
+    STAIR_R64(STAIR_SITE)
+#endif
+#if STAIR_M >= 10
+    STAIR_R64(STAIR_SITE)
+#endif
+    return acc;
+}
+
+#define BOLT_BENCH_STAIR_ITERS 1500u
+#define BOLT_BENCH_STAIR_WARMUP 100u
+/* hot guards: bits 0,1 of every nibble, so both site-bias classes (even/odd) run */
+#define BOLT_BENCH_STAIR_SEL 0x33333333u
+
+static volatile uint32_t g_stair_sel[STAIR_SITES / 32];
+
+__attribute__((noinline)) void bolt_bench_stair(void) {
+    struct bolt_pmu p0, p1;
+    bolt_pmu_init();
+    bolt_bench_stair_init();
+    thread_t *self = get_current_thread();
+    int old_pin = thread_pinned_cpu(self);
+    uint start_cpu = arch_curr_cpu_num();
+    thread_set_pinned_cpu(self, (int)start_cpu);
+    for (uint32_t i = 0; i < STAIR_SITES / 32; i++) {
+        g_stair_sel[i] = BOLT_BENCH_STAIR_SEL; /* opaque: the guards can't be folded */
+    }
+    uint32_t acc = 0;
+    /* Warm-up trains the predictors and caches, so the window measures steady state.
+     * Interrupts are off inside it: a timer tick would add its own instructions. */
+    for (uint32_t i = 0; i < BOLT_BENCH_STAIR_WARMUP; i++) {
+        acc = bolt_bench_stair_kernel(acc + i, g_stair_sel);
+    }
+    arch_disable_ints();
+    lk_time_t t0 = arch_cycle_count();
+    bolt_pmu_read(&p0);
+    for (uint32_t i = 0; i < BOLT_BENCH_STAIR_ITERS; i++) {
+        acc = bolt_bench_stair_kernel(acc + i, g_stair_sel);
+    }
+    bolt_pmu_read(&p1);
+    lk_time_t cyc = arch_cycle_count() - t0;
+    arch_enable_ints();
+    bench_banner("stair", cyc);
+    if (arch_curr_cpu_num() != start_cpu) {
+        printf("bolt_bench: stair pmu INVALID (migrated cpu%u -> cpu%u)\n", start_cpu,
+               (uint)arch_curr_cpu_num());
+    } else {
+        bolt_pmu_report("stair", &p0, &p1);
+    }
+    thread_set_pinned_cpu(self, old_pin);
+    /* Result checksum: every variant, including BOLT's rewrite, must print the same. */
+    printf("bolt_bench: stair acc=0x%08x\n", (unsigned)acc);
+    g_bolt_bench_sink = acc;
+}
+
 static void run_one(const char *name) {
     if (!strcmp(name, "hot_loop")) {
         bolt_bench_hot_loop();
@@ -541,6 +688,8 @@ static void run_one(const char *name) {
         bolt_bench_shrinkwrap();
     } else if (!strcmp(name, "composite")) {
         bolt_bench_composite();
+    } else if (!strcmp(name, "stair")) {
+        bolt_bench_stair();
     } else if (!strcmp(name, "all")) {
         bolt_bench_hot_loop();
         bolt_bench_hot_cold();
@@ -559,6 +708,7 @@ static void run_one(const char *name) {
         bolt_bench_icf();
         bolt_bench_shrinkwrap();
         bolt_bench_composite();
+        bolt_bench_stair();
     } else {
         printf("unknown workload %s\n", name);
     }
@@ -566,9 +716,10 @@ static void run_one(const char *name) {
 
 static int bolt_bench_cmd(int argc, const console_cmd_args *argv) {
     if (argc < 2) {
-        printf("usage: bolt_bench <hot_loop|hot_cold|branch_chain|memcpy|far_call|it_cond|interwork|switch|spill_ret|litpool|indirect_call|interwork_tail|regpressure|hotcold_split|icf|shrinkwrap|composite|all>\n");
+        printf("usage: bolt_bench <hot_loop|hot_cold|branch_chain|memcpy|far_call|it_cond|interwork|switch|spill_ret|litpool|indirect_call|interwork_tail|regpressure|hotcold_split|icf|shrinkwrap|composite|stair|all>\n");
         return -1;
     }
+    g_pmu_set_req = (argc > 2 && argv[2].i == 1) ? 1 : 0;
     run_one(argv[1].str);
     return 0;
 }

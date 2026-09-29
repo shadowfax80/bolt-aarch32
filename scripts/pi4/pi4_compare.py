@@ -27,9 +27,9 @@ import sys
 HERE = os.path.dirname(os.path.abspath(__file__))
 CYC_RE = re.compile(r"bolt_bench: (\w+) done \((\d+) cycles\)")
 PMU_RE = re.compile(
-    r"bolt_bench: (\w+) pmu inst=(\d+) l1i_refill=(\d+) l1d_refill=(\d+) br_mispred=(\d+)"
+    r"bolt_bench: (\w+) pmu inst=(\d+) l1i_refill=(\d+) l1d_refill=(\d+) br_mispred=(\d+)(?: taken=(\d+))?"
 )
-FIELDS = ["cycles", "inst", "l1i_refill", "l1d_refill", "br_mispred"]
+FIELDS = ["cycles", "inst", "l1i_refill", "l1d_refill", "br_mispred", "taken"]
 
 
 def boot_and_run(image: str, port: str, workload: str, runs: int) -> list[dict]:
@@ -43,7 +43,7 @@ def boot_and_run(image: str, port: str, workload: str, runs: int) -> list[dict]:
         tail = text[-600:]
         raise RuntimeError(f"pi4_run failed for {image}: {tail}")
     cycles = [int(m.group(2)) for m in CYC_RE.finditer(text) if m.group(1) == workload]
-    pmus = [tuple(int(x) for x in m.groups()[1:]) for m in PMU_RE.finditer(text) if m.group(1) == workload]
+    pmus = [tuple(int(x) for x in m.groups()[1:] if x is not None) for m in PMU_RE.finditer(text) if m.group(1) == workload]
     if "INVALID" in text:
         print("  note: a run reported a core migration; its PMU line is absent", file=sys.stderr)
     if len(cycles) != runs:
@@ -102,6 +102,15 @@ def main() -> int:
         for f in FIELDS:
             vals = [r[f] for r in rs if f in r]
             print(f"   {f:<11}{fmt(vals)}")
+        # Derived rates: what each stage's counter change means per unit of work.
+        inst = [r["inst"] for r in rs if r.get("inst")]
+        if inst:
+            ipc = statistics.mean(r["inst"] / r["cycles"] for r in rs if r.get("inst"))
+            print(f"   {'ipc':<11}{ipc:>13.3f}")
+            for f in ("taken", "l1i_refill", "br_mispred"):
+                vals = [1000.0 * r[f] / r["inst"] for r in rs if r.get(f) is not None and r.get("inst")]
+                if vals and any(vals):
+                    print(f"   {f + '/kinst':<11}{statistics.mean(vals):>13.3f}")
         mean_cyc = statistics.mean(r["cycles"] for r in rs)
         if base is None:
             base = mean_cyc

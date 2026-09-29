@@ -398,6 +398,69 @@ To show a BOLT gain you would need a workload with real layout headroom (a large
 hot working set spread across many functions that overflows the L1I) and
 edge-level profiling on ARM.
 
+## TODO: multi-function BOLT support in the Pi pipeline
+
+Definite TODO (not a someday-maybe). `scripts/redirect-bolt-entries.py` can only
+make the optimized image run BOLT's code when exactly ONE function was rewritten:
+LK boots from the original text with the MMU off, BOLT drops the moved function's
+symbol, so the tool takes the new entry from the start of the output `.text` and
+patches a single `b.w` at the original entry. To support `--reorder-functions` and
+several optimized functions it needs to recover each function's new address (e.g.
+BOLT's address map, `--enable-bat`, or body matching), patch every original entry,
+and handle entries hit from outside BOLT's copies (vectors, function pointers).
+Until then the Pi results only cover single-function block layout.
+
+**Status 2026-09-30: mechanics done, performance not yet shown.** Overlay patch
+`0013-bolt-emit-function-map` adds `llvm-bolt --emit-function-map=FILE` (one
+`<name> <in> <out> <size>` line per emitted function; the symbol table is not
+reliable for this, e.g. two moved functions shared one address). 
+`redirect-bolt-entries.py --map FILE` patches every original entry (Thumb `b.w` or
+ARM `b`), and accepts entries in `.text.cold` (where BOLT puts a function with no
+profile). Verified on the Pi with two functions (`bolt_bench_stair_kernel`,
+`bolt_bench_stair_step`): both redirected, checksum unchanged. Open: in that image
+the stair function's edge counters read zero (not understood yet), so BOLT only
+had a profile for the helper and the result (+0.05% vs baseline) says nothing
+about performance; several profiled functions with `--reorder-functions`, ARM-mode
+functions and function-pointer entries are untested.
+
+## Follow-up: no-FPU build and a workload that can show BOLT (in progress)
+
+**No FPU/NEON (done).** The target is a Cortex-A55 with no FP/SIMD, so the rpi4
+build now matches: overlay patches `0007-rpi4-no-fpu-neon` and
+`0008-rpi4-compile-no-fpu` (`-mfpu=none` for the whole rpi4 build). Verified by
+disassembling the full `lk.elf`: 0 FP/NEON instructions in 20,176.
+
+**Showing a BOLT gain (not yet shown).** Findings so far, all on the real Pi:
+
+- The first "layout headroom" kernels measured compiler if-conversion, not layout:
+  PGO and hot blocks became Thumb-2 IT-predicated runs (`itttt mi`), a compile-time
+  decision BOLT cannot undo. An empty `asm volatile` in each block makes it
+  unpredicable, so the blocks stay real branches (verified: 0 IT blocks).
+- With one shared accumulator the kernel ran at IPC ~1, latency-bound, which hides
+  any layout effect. The blocks must be independent so the kernel is front-end bound.
+- BOLT needs edge-level profiling to see layout: `BOLT_PROFILE_MODE=edges`
+  (`instrument-lk-bolt.sh` with `BOLT_INSTR_EDGES=1`, no entry hook). Edge counts
+  were verified real and the checksums unchanged.
+- The `stair` workload (`bolt_bench stair`) stages the three techniques in one
+  kernel: cold guards (PGO), a cross-TU helper call (ThinLTO), a per-site-biased
+  branch inside the helper (BOLT). v1 on the Pi, 18 interleaved runs
+  (`build/stair1b`): baseline 10.64M cycles, PGO 10.64M (+0.01%), PGO+ThinLTO
+  4.92M (**-53.8%**, 21.4M -> 11.2M instructions). PGO and BOLT do not move cycles:
+  a predicted taken branch is almost free on the A72, so removing a few is too
+  small to measure. The real BOLT lever is instruction-fetch footprint.
+- v2 (written, not yet measured): 640 sites with two ~70-byte helper arms, so the
+  interleaved layout exceeds the 48 KB L1I and BOLT's packing should fit it. Adds a
+  second PMU set (`bolt_bench stair 1`: `stall_fe`, `stall_be`, `l1i_acc`, `br_ret`,
+  `itlb_refill`), warm-up, interrupts off in the window, and a `taken` counter
+  (PC_WRITE_RETIRED). Each stage has a predicted counter signature; a stage counts
+  as demonstrated only if that counter moves. The BOLT stage also needs a
+  no-reorder control to separate "code moved" from "code reordered".
+
+Tooling fix found on the way: `pgo_cycle.sh` piped the remote build through
+`tail`, which hid a failed `pgo-collect` build, so training ran on a stale image
+and the profile-using variants silently ignored it (PGO looked like a 0% no-op).
+The remote commands now run with `pipefail`.
+
 ## Bugs found on the way (debugged with QEMU and the Pi interchangeably)
 
 Each of these blocked BOLT/PGO on real hardware, and none had shown up in the

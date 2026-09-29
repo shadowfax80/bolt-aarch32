@@ -1,0 +1,17 @@
+diff --git a/platform/bcm28xx/rules.mk b/platform/bcm28xx/rules.mk
+--- a/platform/bcm28xx/rules.mk
++++ b/platform/bcm28xx/rules.mk
+@@ -76,6 +76,13 @@
+ # cortex-a15 defaults ARM_WITH_VFP/NEON on; this is upstream LK's own
+ # supported override for disabling both.
+ ARM_WITHOUT_VFP_NEON := true
++
++# ARM_WITHOUT_VFP_NEON only drops the ARM_WITH_VFP/NEON *defines*. -mcpu=cortex-a15
++# still enables both features for the compiler, so clang may emit NEON on its own
++# even with a soft-float ABI (it did: PGO's 64-bit counter increments were
++# vectorized to vld1.64, which panics in IRQ context). The real target has no
++# FP/SIMD unit at all, so make that a compile-time fact.
++GLOBAL_COMPILEFLAGS += -mfpu=none
+ # This board's firmware enters LK in Hyp mode (confirmed via the
+ # chainloader's own boot banner), so start.S's HYP->SVC drop has to
+ # actually run. That drop is gated on ARM_WITH_HYP, and

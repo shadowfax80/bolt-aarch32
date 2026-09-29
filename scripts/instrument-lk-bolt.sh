@@ -110,7 +110,13 @@ python3 "$ROOT/scripts/fix-kernel-elf-entry.py" "$OUT" --original "$ELF" \
   --readelf "$TOOLCHAIN/llvm-readelf"
 
 if [[ "$HOOK_SECTIONS" == 1 ]]; then
+  # BOLT_INSTR_EDGES=1: do not install the entry hook. Restore the boot-critical
+  # sections only; the caller then redirects the function entry into BOLT's
+  # *instrumented copy* (redirect-bolt-entries.py --instrumented), so the real
+  # per-edge counters execute. The hook alone bumps every counter once per call,
+  # which leaves every edge in the .fdata at 1.
+  HOOK_ARGS=(--hook-funcs "$INSTRUMENT_FUNCS")
+  [[ "${BOLT_INSTR_EDGES:-0}" == 1 ]] && HOOK_ARGS=()
   python3 "$ROOT/scripts/fix-kernel-elf-sections.py" "$OUT" --original "$ELF" \
-    --readelf "$TOOLCHAIN/llvm-readelf" \
-    --hook-funcs "$INSTRUMENT_FUNCS"
+    --readelf "$TOOLCHAIN/llvm-readelf" "${HOOK_ARGS[@]}"
 fi

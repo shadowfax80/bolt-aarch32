@@ -1,0 +1,9 @@
+variant,round,run,cycles,inst,l1i_refill,l1d_refill,br_mispred,taken
+baseline,1,1,3960372,8780539,2,0,3136,0
+baseline,1,2,3960350,8780539,2,0,3136,0
+pgo_thinlto,1,1,3518290,6778503,3,0,3192,0
+pgo_thinlto,1,2,3518074,6778503,2,0,3183,0
+baseline,2,1,3960349,8780539,2,0,3136,0
+baseline,2,2,3960118,8780539,0,0,3123,0
+pgo_thinlto,2,1,3518239,6778503,3,0,3189,0
+pgo_thinlto,2,2,3518351,6778503,2,0,3197,0

@@ -1,0 +1,48 @@
+diff --git a/bolt/lib/Rewrite/RewriteInstance.cpp b/bolt/lib/Rewrite/RewriteInstance.cpp
+--- a/bolt/lib/Rewrite/RewriteInstance.cpp
++++ b/bolt/lib/Rewrite/RewriteInstance.cpp
+@@ -103,6 +103,15 @@ static cl::opt<bool>
+                   cl::desc("allow processing of stripped binaries"), cl::Hidden,
+                   cl::cat(BoltCategory));
+ 
++static cl::opt<std::string> EmitFunctionMap(
++    "emit-function-map",
++    cl::desc("write '<name> <input address> <output address> <output size>' "
++             "(hex, one line per emitted function) to this file, so a caller "
++             "that keeps the original text (e.g. a bare-metal image booted "
++             "from its unmodified .text) can redirect each original entry to "
++             "the optimized copy"),
++    cl::Hidden, cl::cat(BoltCategory));
++
+ static cl::opt<bool> ForceToDataRelocations(
+     "force-data-relocations",
+     cl::desc("force relocations to data sections to always be processed"),
+@@ -6967,6 +6976,28 @@ void RewriteInstance::rewriteFile() {
+   // Finalize memory image of section string table.
+   finalizeSectionStringTable();
+ 
++  // Record where every emitted function ended up. The ELF symbol table is not a
++  // reliable source for this (moved functions can lose their new-address symbol
++  // or share one with a neighbour), and BAT is a delta-encoded profile format.
++  if (!opts::EmitFunctionMap.empty()) {
++    std::error_code EC;
++    raw_fd_ostream MapOS(opts::EmitFunctionMap, EC, sys::fs::OF_Text);
++    if (EC) {
++      BC->errs() << "BOLT-ERROR: cannot write function map '"
++                 << opts::EmitFunctionMap << "': " << EC.message() << '\n';
++      exit(1);
++    }
++    for (const auto &BFI : BC->getBinaryFunctions()) {
++      const BinaryFunction &BF = BFI.second;
++      if (!BF.isEmitted() || BF.isFolded() || !BF.getOutputSize())
++        continue;
++      MapOS << BF.getOneName() << ' '
++            << Twine::utohexstr(BF.getAddress()) << ' '
++            << Twine::utohexstr(BF.getOutputAddress())
++            << ' ' << Twine::utohexstr(BF.getOutputSize()) << '\n';
++    }
++  }
++
+   // Update symbol tables.
+   patchELFSymTabs();
+ 

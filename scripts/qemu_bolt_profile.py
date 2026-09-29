@@ -32,10 +32,10 @@ def main() -> int:
 
     cmd = [
         sys.executable, os.path.join(HERE, "qemu_console.py"), args.elf,
-        "--smp", args.smp, "--wait", "25",
+        "--smp", args.smp, "--wait", "300",
         f"bolt_bench {args.workload}", f"bolt_dump {args.addr} {args.size}",
     ]
-    text = subprocess.run(cmd, capture_output=True, timeout=200).stdout.decode("utf-8", "replace")
+    text = subprocess.run(cmd, capture_output=True, timeout=700).stdout.decode("utf-8", "replace")
     if "panic" in text:
         sys.exit("panic while profiling:\n" + text[-1500:])
     result = parse_dump_stream(text.replace("\r", ""))

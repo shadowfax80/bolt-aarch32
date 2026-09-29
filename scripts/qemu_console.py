@@ -54,29 +54,36 @@ def main() -> int:
 
     transcript = b""
 
-    def drain(seconds: float, until: bytes | None = None) -> None:
+    def drain(seconds: float, until: bytes | None = None, since: int = 0,
+              after: bytes = b"") -> None:
+        """Read until `until` appears in what arrived after offset `since`, or the
+        deadline. The shell prints a fresh NL + "] " prompt when a command finishes,
+        so waiting for that is exact -- an idle-timeout heuristic killed QEMU under
+        a still-running (slow, BOLT-instrumented) workload."""
         nonlocal transcript
         stop = time.time() + seconds
         while time.time() < stop:
             try:
                 chunk = sock.recv(65536)
             except socket.timeout:
-                if until is None and transcript:
-                    # idle after producing output -> done for now
-                    return
                 continue
             if not chunk:
                 return
             transcript += chunk
-            if until and until in transcript[-len(until) - 4096:]:
-                return
+            if until:
+                # The shell prints its prompt again while echoing the command, so only
+                # a prompt that arrives AFTER the echoed command text means "finished".
+                i = transcript.find(after, since) if after else since
+                if i >= 0 and until in transcript[i + len(after):]:
+                    return
 
     try:
         drain(args.wait, until=args.boot_marker.encode())
         for c in args.cmds:
             transcript += f"\n>>> {c}\n".encode()
+            start = len(transcript)
             sock.sendall((c + "\r\n").encode())
-            drain(args.wait)
+            drain(args.wait, until=b"\n] ", since=start, after=c.encode())
     finally:
         proc.terminate()
         try:
