@@ -23,8 +23,8 @@ payload-agnostic — no reflash needed for this project's own images).
 | 6 | Compile-time PGO support | **Done** — profile collected on the real Pi, applied via `-fprofile-instr-use` |
 | 7 | ThinLTO on top of PGO | **Done** — scoped to the bolt_bench module; relocations preserved for BOLT |
 | 8 | BOLT on top of PGO+ThinLTO | **Done** — runs correctly on the Pi; no measurable gain (see below for why) |
-| 9 | PMU counter reading in `bolt_bench.c` (cycles + cache misses) | Not started (cycle counter already live; cache-miss events still to add) |
-| 10 | Full staged comparison, real Pi, several runs each | Not started |
+| 9 | PMU counter reading in `bolt_bench.c` (cycles + cache misses) | **Done** — cycles + L1I/L1D refills, instructions retired, branch mispredicts |
+| 10 | Full staged comparison, real Pi, several runs each | **Done** — 80 runs, see below |
 
 ## Step 1 — environment
 
@@ -347,3 +347,90 @@ is nothing left for block reordering to improve, and the entry-only profile
 could not have told BOLT anything more anyway. A workload with real layout
 headroom (a large working set / many hot functions) plus edge-level profiling
 on ARM would be needed to show a BOLT gain.
+
+## Step 9 — PMU event counters
+
+`bolt_bench composite` now prints, after each run, instructions retired, L1I and
+L1D refills and branch mispredicts (Cortex-A72 architectural events 0x08, 0x01,
+0x03, 0x10) next to the cycle count. Two things that cost time:
+
+- The PMU is **banked per core** and the shell thread can run on any core. Arming
+  only the core that ran the first command left every later run on another core
+  reading zeros while the cycle counter (enabled per core by LK) kept counting.
+  Fixed by arming all cores with `mp_sync_exec()` and pinning the measured region
+  to one core (`thread_set_pinned_cpu`); a run that migrates is reported INVALID
+  instead of printing wrong numbers.
+- Programming it that way exposed the NEON panic below.
+
+## Step 10 — final staged comparison (real Pi 4B)
+
+`scripts/pi4/pi4_compare.py`: 5 rounds x 4 variants x 4 runs per boot = 80 runs,
+variants interleaved across rounds (so slow drift cannot favor one), every run
+kept in `docs/results/step10_rpi4_composite.csv`. Workload: `bolt_bench composite`
+(1,000,000 iterations; hot path `composite_process`, cold path every 262,144th).
+
+| Variant | cycles (mean, [min..max], sd) | instructions | L1I refill | br mispredict | cycles vs. baseline |
+|---|---|---|---|---|---|
+| baseline | 6,102,662 [6,102,369 .. 6,102,950] sd 143 | 15.007M | 12.6 | 89 | — |
+| +PGO | 6,102,791 [6,102,558 .. 6,103,015] sd 127 | 15.007M | 12.7 | 112 | +0.00% |
+| +PGO+ThinLTO | 4,101,541 [4,101,413 .. 4,101,674] sd 78 | 10.007M | 3.0 | 89 | **-32.79%** |
+| +PGO+ThinLTO+BOLT | 4,101,564 [4,101,377 .. 4,101,708] sd 99 | 10.007M | 5.2 | 87 | -32.79% |
+
+(These supersede the preliminary numbers in the Step 6-7 and 8 sections above,
+taken on an earlier revision of the source before the PMU code was added.)
+
+What the counters say, not just the cycles:
+
+- **PGO alone: nothing.** Same instructions, same cycles. The loop has no branch
+  worth reordering and the hot call crosses a TU boundary PGO cannot see through.
+- **ThinLTO: -32.8%, and it is entirely fewer instructions.** 15 -> 10 per
+  iteration (inlining `composite_process` removes the call, its push/pop and
+  the return); IPC is unchanged (~2.45), so cycles fell in proportion.
+- **BOLT: no change, correctly.** The image is functionally identical (same
+  accumulator values on every cold report) and the optimized copy provably runs
+  (see Step 8). L1I refills are ~0-13 in every variant — the whole loop lives in
+  the L1I — so there is no instruction-cache effect for BOLT to improve; PGO had
+  already left the hot path with one taken backward branch; and the entry-hook
+  profile carries no edge frequencies anyway. Differences between the ThinLTO and
+  BOLT rows are inside the run-to-run spread (sd ~100 cycles on 4.1M).
+
+To show a BOLT gain you would need a workload with real layout headroom (a large
+hot working set spread across many functions that overflows the L1I) and
+edge-level profiling on ARM.
+
+## Bugs found on the way (debugged with QEMU and the Pi interchangeably)
+
+Each of these blocked BOLT/PGO on real hardware, and none had shown up in the
+QEMU-era gates:
+
+1. **Instrumented code panics in interrupt context** — clang vectorizes the
+   64-bit profile-counter increments into NEON (`vld1.64`), and LK panics on
+   "floating point code in irq context" when that runs from an IPI handler (the
+   PMU arming does). On the Pi the two cores' panic messages interleave into
+   unreadable text; under QEMU the same message reads cleanly, which is what made
+   it diagnosable. Fix: `-mfpu=none` on the instrumented module.
+2. **BOLT's ARM builder could not reverse `cbz`/`cbnz`** —
+   `llvm_unreachable("cannot reverse branch condition")` aborted `llvm-bolt` when
+   instrumenting any function containing a compare-and-branch (they have no
+   condition code; reversing one is swapping the opcode). Overlay patch
+   `0011-bolt-arm-reverse-cbz.patch`.
+3. **JITLink stub padding vs. call sites** — the Thumb v7 stub is 10 bytes but
+   was built with 4-byte block alignment, and BOLT's integration disagreed with
+   itself about the padding: call sites resolved to a packed 10-byte stride while
+   the emitted section used 12. Call N landed N*2 bytes into the stub area: the
+   first call hit exactly, the second landed on padding and fell through by luck
+   (which is why an earlier two-stub build worked), later calls landed mid-stub
+   and jumped through a stale `r12` to address 0. Overlay patch
+   `0012-jitlink-arm-thumb-stub-alignment.patch` (Thumb stubs align 2).
+4. (Step 8) LK's PMM page array landing on BOLT's segments, ThinLTO
+   internalizing the function BOLT selects by name, and the optimized copy never
+   being entered — see the Step 8 section.
+
+Patches 0011 and 0012 are in the ATFE overlay only; the upstream-based series has
+not been given them yet.
+
+QEMU tooling for this: `scripts/qemu_console.py` (boot, type commands, print the
+transcript), `scripts/qemu_bolt_profile.py`, and the QEMU twin project
+`qemu-virt-arm32-bolt-test` (same `bolt_bench` module, SMP, PMU path; needs
+`BOLT_EXTRA_ARGS=""` because that platform lacks the rpi4 reserve-window patch).
+QEMU's own cycle and PMU numbers are not real and are never reported.

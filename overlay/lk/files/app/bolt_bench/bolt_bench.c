@@ -3,7 +3,10 @@
 #include <lib/cmdline.h>
 #include <lib/console.h>
 #include <lk/console_cmd.h>
+#include <kernel/mp.h>
+#include <kernel/thread.h>
 #include <lk/debug.h>
+#include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -33,6 +36,70 @@ static volatile uint32_t g_bolt_bench_sink;
 
 static void bench_banner(const char *name, lk_time_t cycles) {
     printf("bolt_bench: %s done (%llu cycles)\n", name, (unsigned long long)cycles);
+}
+
+/* Cortex-A72 (Pi 4B) PMU event counters, read via PL1 CP15. The cycle counter
+ * is already running (arch_cycle_count() reads PMCCNTR directly); this adds
+ * four architectural events so a run shows *why* a layout/inlining change
+ * moved cycles, not just that it did. What BOLT and LTO change is exactly
+ * instruction-side behavior: L1I refills and branch mispredicts. */
+#define BOLT_PMU_NCTR 4
+static const uint32_t bolt_pmu_events[BOLT_PMU_NCTR] = {
+    0x01, /* L1I_CACHE_REFILL */
+    0x03, /* L1D_CACHE_REFILL */
+    0x08, /* INST_RETIRED */
+    0x10, /* BR_MIS_PRED */
+};
+
+struct bolt_pmu {
+    uint32_t v[BOLT_PMU_NCTR];
+};
+
+static inline void bolt_pmu_select(uint32_t idx) {
+    __asm__ volatile("mcr p15, 0, %0, c9, c12, 5" ::"r"(idx)); /* PMSELR */
+    __asm__ volatile("isb" ::: "memory");
+}
+
+/* The PMU is banked per core, and the shell thread that runs a workload can be
+ * on any core (WITH_SMP): arming only the core that ran the first command left
+ * every later command on another core reading zeros while the cycle counter
+ * (enabled per core by LK itself) kept counting. Arm all of them. */
+static void bolt_pmu_init_this_cpu(void *unused) {
+    for (uint32_t i = 0; i < BOLT_PMU_NCTR; i++) {
+        bolt_pmu_select(i);
+        __asm__ volatile("mcr p15, 0, %0, c9, c13, 1" ::"r"(bolt_pmu_events[i])); /* PMXEVTYPER */
+    }
+    /* enable event counters 0..3; keep bit 31 (the cycle counter) enabled */
+    __asm__ volatile("mcr p15, 0, %0, c9, c12, 1" ::"r"(0x8000000fu)); /* PMCNTENSET */
+    uint32_t pmcr;
+    __asm__ volatile("mrc p15, 0, %0, c9, c12, 0" : "=r"(pmcr));
+    pmcr |= (1u << 0) | (1u << 1); /* E: enable, P: reset event counters (not the cycle counter) */
+    __asm__ volatile("mcr p15, 0, %0, c9, c12, 0" ::"r"(pmcr));
+    __asm__ volatile("isb" ::: "memory");
+}
+
+static void bolt_pmu_init(void) {
+    static bool done;
+    if (done) {
+        return;
+    }
+    done = true;
+    mp_sync_exec(MP_IPI_TARGET_ALL, 0, bolt_pmu_init_this_cpu, NULL);
+}
+
+static void bolt_pmu_read(struct bolt_pmu *s) {
+    for (uint32_t i = 0; i < BOLT_PMU_NCTR; i++) {
+        uint32_t v;
+        bolt_pmu_select(i);
+        __asm__ volatile("mrc p15, 0, %0, c9, c13, 2" : "=r"(v)); /* PMXEVCNTR */
+        s->v[i] = v;
+    }
+}
+
+static void bolt_pmu_report(const char *name, const struct bolt_pmu *a, const struct bolt_pmu *b) {
+    printf("bolt_bench: %s pmu inst=%u l1i_refill=%u l1d_refill=%u br_mispred=%u\n", name,
+           (unsigned)(b->v[2] - a->v[2]), (unsigned)(b->v[0] - a->v[0]),
+           (unsigned)(b->v[1] - a->v[1]), (unsigned)(b->v[3] - a->v[3]));
 }
 
 __attribute__((noinline)) void bolt_bench_hot_loop(void) {
@@ -411,7 +478,15 @@ uint32_t composite_process(uint32_t x);
 void composite_report_cold(uint32_t code);
 
 __attribute__((noinline)) void bolt_bench_composite(void) {
+    struct bolt_pmu p0, p1;
+    bolt_pmu_init();
+    /* Counters are per core: keep this thread on the core it starts on. */
+    thread_t *self = get_current_thread();
+    int old_pin = thread_pinned_cpu(self);
+    uint start_cpu = arch_curr_cpu_num();
+    thread_set_pinned_cpu(self, (int)start_cpu);
     lk_time_t t0 = arch_cycle_count();
+    bolt_pmu_read(&p0);
     uint32_t acc = 0;
     for (uint32_t i = 0; i < BOLT_BENCH_ITERS; i++) {
         acc += composite_process(i);
@@ -419,7 +494,15 @@ __attribute__((noinline)) void bolt_bench_composite(void) {
             composite_report_cold(acc);
         }
     }
+    bolt_pmu_read(&p1);
     bench_banner("composite", arch_cycle_count() - t0);
+    if (arch_curr_cpu_num() != start_cpu) {
+        printf("bolt_bench: composite pmu INVALID (migrated cpu%u -> cpu%u)\n", start_cpu,
+               (uint)arch_curr_cpu_num());
+    } else {
+        bolt_pmu_report("composite", &p0, &p1);
+    }
+    thread_set_pinned_cpu(self, old_pin);
     g_bolt_bench_sink = acc;
 }
 

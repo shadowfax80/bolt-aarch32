@@ -27,7 +27,11 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 source "$ROOT/scripts/resolve-base.sh"
 TOOLCHAIN="${TOOLCHAIN:-$ROOT/build-$BASE/bin}"
-V="$ROOT/build-$BASE/variants"
+V="${VARIANTS_DIR:-$ROOT/build-$BASE/variants}"
+# Extra llvm-bolt args. The default is right for the rpi4 (it needs overlay patch
+# 0006). Set BOLT_EXTRA_ARGS="" on a platform without that reserve window (QEMU
+# virt), where BOLT's new segments at _end would land on the PMM page array.
+BOLT_EXTRA_ARGS="${BOLT_EXTRA_ARGS---no-huge-pages}"
 FUNC="${BOLT_FUNC:-bolt_bench_composite}"
 
 cmd="${1:-}"; variant="${2:-}"
@@ -38,7 +42,7 @@ case "$cmd" in
   instrument)
     rm -f "$V/$variant.instr."*
     BASE="$BASE" ARCH=arm32 ELF="$V/$variant.elf" OUT="$V/$variant.instr.elf" \
-      BOLT_BENCH_FUNCS="$FUNC" "$ROOT/scripts/instrument-lk-bolt.sh" --no-huge-pages \
+      BOLT_BENCH_FUNCS="$FUNC" "$ROOT/scripts/instrument-lk-bolt.sh" $BOLT_EXTRA_ARGS \
       > "$V/$variant.instr.log" 2>&1 || { tail -20 "$V/$variant.instr.log" >&2; exit 1; }
     # BOLT silently instruments nothing if the function name does not match
     # (e.g. ThinLTO internalized it to a local `name/1`): fail loudly instead.
@@ -59,7 +63,7 @@ case "$cmd" in
       --dump "$counters" --toolchain "$TOOLCHAIN" -o "$V/$variant.fdata"
     BASE="$BASE" ARCH=arm32 ELF="$V/$variant.elf" FDATA="$V/$variant.fdata" \
       OUT="$V/${variant}_bolt.elf" OPTIMIZE_FUNCS="$FUNC" \
-      "$ROOT/scripts/optimize-lk-bolt.sh" --no-huge-pages > "$V/${variant}_bolt.log" 2>&1 \
+      "$ROOT/scripts/optimize-lk-bolt.sh" $BOLT_EXTRA_ARGS > "$V/${variant}_bolt.log" 2>&1 \
       || { tail -20 "$V/${variant}_bolt.log" >&2; exit 1; }
     python3 "$ROOT/scripts/redirect-bolt-entries.py" "$V/${variant}_bolt.elf" \
       --original "$V/$variant.elf" --func "$FUNC" --toolchain "$TOOLCHAIN"

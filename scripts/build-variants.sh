@@ -16,7 +16,7 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 source "$ROOT/scripts/resolve-base.sh"
 LK_PROJECT="${LK_PROJECT:-rpi4-bolt-test}"
-VARIANTS_DIR="$ROOT/build-$BASE/variants"
+VARIANTS_DIR="${VARIANTS_DIR:-$ROOT/build-$BASE/variants}"
 PROFDATA="${PROFDATA:-$ROOT/build-$BASE/pgo/pgo.profdata}"
 
 mkdir -p "$VARIANTS_DIR"

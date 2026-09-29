@@ -22,7 +22,13 @@ endif
 # since rules.mk has no path back to the toolchain's BASE-specific build
 # output directory.
 ifeq ($(WITH_BOLT_PGO),true)
-MODULE_COMPILEFLAGS += -fprofile-instr-generate
+# -mfpu=none: clang vectorizes the 64-bit profile-counter increments into NEON
+# (vld1.64/vadd.i64), and LK panics on floating-point code in IRQ context. Any
+# instrumented function that runs from an interrupt or IPI handler (the PMU
+# arming does, via mp_sync_exec) hit this on the Pi and under QEMU: "panic:
+# floating point code in irq context" at a vld1.64 in bolt_pmu_init_this_cpu.
+# Plain integer ldrd/adds/adc/strd increments are fine anywhere.
+MODULE_COMPILEFLAGS += -fprofile-instr-generate -mfpu=none
 MODULE_DEFINES += WITH_BOLT_PGO=1
 endif
 

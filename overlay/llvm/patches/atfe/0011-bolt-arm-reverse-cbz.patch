@@ -1,0 +1,18 @@
+diff --git a/bolt/lib/Target/ARM/ARMMCPlusBuilder.cpp b/bolt/lib/Target/ARM/ARMMCPlusBuilder.cpp
+--- a/bolt/lib/Target/ARM/ARMMCPlusBuilder.cpp
++++ b/bolt/lib/Target/ARM/ARMMCPlusBuilder.cpp
+@@ -476,6 +476,14 @@
+     switch (Inst.getOpcode()) {
+     default:
+       llvm_unreachable("cannot reverse branch condition");
++    // CBZ/CBNZ carry no condition code: reversing one is swapping the opcode
++    // (same register, new target). Without this, instrumenting any function
++    // that contains a compare-and-branch aborts llvm-bolt right here.
++    case ARM::tCBZ:
++    case ARM::tCBNZ:
++      Inst.setOpcode(Inst.getOpcode() == ARM::tCBZ ? ARM::tCBNZ : ARM::tCBZ);
++      replaceBranchTarget(Inst, TBB, Ctx);
++      return {Inst};
+     case ARM::Bcc:
+     case ARM::tBcc:
+     case ARM::t2Bcc:

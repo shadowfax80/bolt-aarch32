@@ -55,6 +55,8 @@ fi
 # installed here (this project only uses clang/lld), so default to the host's
 # generic `size` — it reads any ELF's section headers fine regardless of arch.
 MAKE_ARGS+=("SIZE=${SIZE:-size}")
+# shellcheck disable=SC2206  # intentional word-splitting: LK_MAKE_ARGS="A=1 B=2"
+MAKE_ARGS+=(${LK_MAKE_ARGS:-})
 
 make "$LK_PROJECT" "${MAKE_ARGS[@]}" -j"${JOBS:-$(nproc)}"
 

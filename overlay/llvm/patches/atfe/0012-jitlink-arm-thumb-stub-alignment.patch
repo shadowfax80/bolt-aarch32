@@ -1,0 +1,29 @@
+diff --git a/llvm/lib/ExecutionEngine/JITLink/aarch32.cpp b/llvm/lib/ExecutionEngine/JITLink/aarch32.cpp
+--- a/llvm/lib/ExecutionEngine/JITLink/aarch32.cpp
++++ b/llvm/lib/ExecutionEngine/JITLink/aarch32.cpp
+@@ -799,9 +799,14 @@
+ };
+ 
+ /// Create a new node in the link-graph for the given stub template.
++/// Thumb stubs need only halfword alignment. The Thumb v7 stub is 10 bytes, so
++/// a 4-byte block alignment leaves 2 bytes of padding after every stub; BOLT's
++/// JITLink integration then disagrees with itself about that padding (call
++/// sites resolved to a packed 10-byte stride, section content emitted at a
++/// 12-byte stride), sending calls into the middle of stubs.
+ template <size_t Size>
+-static Block &allocStub(LinkGraph &G, Section &S, const uint8_t (&Code)[Size]) {
+-  constexpr uint64_t Alignment = 4;
++static Block &allocStub(LinkGraph &G, Section &S, const uint8_t (&Code)[Size],
++                        uint64_t Alignment = 4) {
+   ArrayRef<char> Template(reinterpret_cast<const char *>(Code), Size);
+   return G.createContentBlock(S, Template, orc::ExecutorAddr(), Alignment, 0);
+ }
+@@ -813,7 +818,7 @@
+ }
+ 
+ static Block &createStubThumbv7(LinkGraph &G, Section &S, Symbol &Target) {
+-  Block &B = allocStub(G, S, Thumbv7ABS);
++  Block &B = allocStub(G, S, Thumbv7ABS, /*Alignment=*/2);
+   B.addEdge(Thumb_MovwAbsNC, 0, Target, 0);
+   B.addEdge(Thumb_MovtAbs, 4, Target, 0);
+ 
