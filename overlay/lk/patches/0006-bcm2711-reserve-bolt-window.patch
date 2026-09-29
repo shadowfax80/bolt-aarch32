@@ -1,0 +1,27 @@
+diff --git a/platform/bcm28xx/platform.c b/platform/bcm28xx/platform.c
+--- a/platform/bcm28xx/platform.c
++++ b/platform/bcm28xx/platform.c
+@@ -366,6 +366,23 @@
+ #error Unknown BCM28XX Variant
+ #endif
+ 
++#if BCM2711
++    /* llvm-bolt --no-huge-pages places the segments it adds (instrumentation
++     * stubs and counters, relocated hot code, the runtime) at the first page
++     * boundary after the original image's end -- exactly where LK's boot
++     * allocator starts. pmm_add_arena() below carves its vm_page array (~3MB
++     * for 1GB of RAM) from that same spot, so without this the page array is
++     * written on top of BOLT's code and counters (seen as 12-byte list nodes
++     * where the counters should be). Claim a window first, so the page array
++     * lands after it and vm_init_preheap marks it in use. The window is never
++     * written here; BOLT's segments arrive with the loaded image.
++     *
++     * The old huge-page layout avoided this only by putting BOLT's segments
++     * ~2MB away, and made every BOLT image ~6MB to upload. */
++    extern void *boot_alloc_mem(size_t len); /* private to kernel/vm, not in vm.h */
++    boot_alloc_mem(1024 * 1024);
++#endif
++
+     /* add the main memory arena */
+     pmm_add_arena(&arena);
+ 

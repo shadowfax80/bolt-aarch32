@@ -22,7 +22,7 @@ payload-agnostic — no reflash needed for this project's own images).
 | 5 | Add a two-file composite benchmark (cross-TU, for ThinLTO to have something to do) | **Done** — verified under QEMU |
 | 6 | Compile-time PGO support | **Done** — profile collected on the real Pi, applied via `-fprofile-instr-use` |
 | 7 | ThinLTO on top of PGO | **Done** — scoped to the bolt_bench module; relocations preserved for BOLT |
-| 8 | BOLT on top of PGO+ThinLTO | Not started |
+| 8 | BOLT on top of PGO+ThinLTO | **Done** — runs correctly on the Pi; no measurable gain (see below for why) |
 | 9 | PMU counter reading in `bolt_bench.c` (cycles + cache misses) | Not started (cycle counter already live; cache-miss events still to add) |
 | 10 | Full staged comparison, real Pi, several runs each | Not started |
 
@@ -279,3 +279,71 @@ trip count becomes a `movw`/`movt` of the result); the 9 cycles is just two
 back-to-back counter reads. Those two workloads contain no loop for BOLT to
 optimize; Step 9 is not blocked on the counter. (The 3530/2500 QEMU figures
 were QEMU's counter emulation, not comparable.)
+
+## Step 8 — BOLT on top of PGO+ThinLTO, on the real Pi
+
+Reproducible via `scripts/bolt-variant.sh instrument|optimize <variant>` (build
+host) plus `scripts/pi4/pi4_bolt_profile.py` (dev machine, real Pi). Getting a
+BOLT-optimized image to *actually execute on hardware* took five fixes, none
+of which the existing QEMU-era scripts had needed:
+
+1. **Image size.** llvm-bolt force-enables "hot text" mode when instrumenting
+   (and when reordering functions without an explicit `-hot-text`), aligning
+   new code to 2MB huge-page boundaries — a Linux feature. Result: a ~148KB
+   image becomes ~6.27MB, a ~10 minute upload at the chainloader's fixed
+   115200 baud. `--no-huge-pages` (BOLT's `PageAlign = 4KB`) gives 148-156KB,
+   a ~13 second upload. The chainloader-reflash TODO above is therefore much
+   less urgent, though still worthwhile.
+2. **LK's page array landed on BOLT's segments.** Without huge-page padding,
+   BOLT places its new segments (instrumentation stubs, counters, relocated
+   code, runtime) at the first page boundary after the original image's `_end`
+   — exactly where LK's boot allocator starts, and where `pmm_add_arena()`
+   carves its `vm_page` array (12-byte nodes, ~3MB for 1GB RAM). The dumped
+   "counters" were a free list. Not a tool bug: the old 2MB-away layout only
+   survived by distance. First attempt (`pmm_alloc_range` after the arena was
+   added) changed nothing, because the array was already built there; the fix
+   is claiming the window with `boot_alloc_mem()` *before* `pmm_add_arena()`
+   (overlay patch `0006-bcm2711-reserve-bolt-window.patch`, 1MB). Verified: the
+   counter region now matches the ELF's initial bytes exactly.
+3. **ThinLTO silently defeats function selection.** ThinLTO internalizes
+   `bolt_bench_composite` (only same-module `run_one` references it) into a
+   LOCAL symbol; BOLT names it `bolt_bench_composite/1`, so the exact-name
+   `--funcs-file` and hook lookups match nothing and BOLT instruments **zero**
+   functions without erroring (`Number of function descriptors: 0`). Fixed with
+   `--undefined=bolt_bench_composite` in the ThinLTO variant so it stays a
+   global entry point; `bolt-variant.sh instrument` now fails loudly if no hook
+   was installed.
+4. **The profile has no edge frequencies.** On the ARM path the image restores
+   the original text and installs a single *entry* hook that bumps all of a
+   function's counters once per call, so every edge in the `.fdata` reads 1
+   (the loop ran 1,000,000 times; cold path 3). BOLT's block layout has nothing
+   to work with beyond function-level counts.
+5. **The optimized code never ran.** `optimize-lk-bolt.sh` ends with
+   `fix-kernel-elf-sections.py`, which restores the original text and only knows
+   how to install *instrumentation* hooks — nothing branches into BOLT's
+   optimized copy. The image booted and looked fine while executing
+   byte-for-byte the same code as its input (0 differing bytes). This means the
+   earlier QEMU "optimize OK" gates only proved the image stayed bootable, not
+   that optimized code ran. New `scripts/redirect-bolt-entries.py` patches the
+   original entry with a Thumb `b.w` to the optimized copy (valid only when a
+   single function is rewritten; refuses otherwise). Proved on the Pi: with the
+   original body overwritten by `0xff` bytes the image still runs correctly, so
+   BOLT's copy is what executes.
+
+**Result, real Pi 4B, `bolt_bench composite`, 5 runs per variant:**
+
+| Variant | cycles | vs. baseline |
+|---|---|---|
+| baseline | ~6,102,4xx | — |
+| +PGO | ~6,102,4xx | no change |
+| +PGO+ThinLTO | ~4,201,2xx | -31% |
+| +PGO+ThinLTO+BOLT | ~4,201,2xx | -31% (no change vs. ThinLTO) |
+
+BOLT's output is functionally identical (same accumulator values on every cold
+report) and exactly as fast. That is the expected outcome, not a pipeline
+failure: PGO already placed the cold `composite_report_cold` call out of line,
+so the hot path is 10 instructions with a single taken backward branch — there
+is nothing left for block reordering to improve, and the entry-only profile
+could not have told BOLT anything more anyway. A workload with real layout
+headroom (a large working set / many hot functions) plus edge-level profiling
+on ARM would be needed to show a BOLT gain.
