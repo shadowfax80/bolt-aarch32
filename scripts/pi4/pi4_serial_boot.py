@@ -1,0 +1,261 @@
+#!/usr/bin/env python3
+"""Send an image to the Pi 4B serial chainloader
+(experiments/pi4-serialboot) and then stay attached as a serial
+terminal -- the edit/build/test loop without moving the SD card.
+
+The chainloader prints "SBOOT?" once a second while it waits. This
+script waits for that prompt (power-cycle the Pi if it's currently
+running an earlier payload, or pass --reboot to have a running
+TARGET=rpi4 LK image reset itself back into the chainloader), sends "LKBT" <size:u32 LE> <crc32:u32 LE>,
+waits for "OK", streams the image, and waits for "CRC OK". After that
+everything the Pi prints goes to stdout (and --log, if given), and
+lines typed here are sent to the Pi with a CR, which is enough for
+LK's shell later on. Ctrl+C to quit.
+
+A serial port has one owner at a time: close PuTTY on the same port
+first. --port defaults to "auto": the one USB-serial adapter plugged in
+(the COM number or /dev path differs per machine). If the Pi doesn't
+answer, run scripts/pi4_doctor.py, which checks every prerequisite in
+order.
+
+The chainloader's own handshake and image transfer always run at
+--baud (115200) -- that's fixed in the resident SD-card image, not
+changed here (see docs/RPI4_BRINGUP.md). Once the payload jumps and
+runs, this script follows it to --post-jump-baud (default: 3000000),
+matching the UART speed TARGET=rpi4 LK images reprogram themselves to
+as their first boot action (calibrated 2026-09-27, ~19x faster than
+115200). Pass --post-jump-baud 115200 for a payload that doesn't do
+this itself, e.g. an old pi4-baremetal image.
+
+Usage:
+    python scripts/pi4_serial_boot.py build/lk/build-rpi4-test/lk.bin \
+        --log pi4.log [--port COM8]
+"""
+from __future__ import annotations
+
+import argparse
+import struct
+import sys
+import threading
+import time
+import zlib
+
+try:
+    import serial
+    from serial.tools import list_ports
+except ImportError:
+    sys.exit("error: pyserial is required (python -m pip install pyserial)")
+
+# USB vendor IDs of common USB-to-TTL serial chips: Prolific PL2303 (the
+# adapter this project uses), WCH CH340, Silicon Labs CP210x, FTDI.
+USB_SERIAL_VIDS = {0x067B: "Prolific", 0x1A86: "WCH", 0x10C4: "Silicon Labs", 0x0403: "FTDI"}
+
+
+def usb_serial_ports() -> list:
+    return [p for p in list_ports.comports() if p.vid in USB_SERIAL_VIDS]
+
+
+def resolve_port(port: str) -> str:
+    """Pass an explicit port through; for "auto", pick the single USB-serial
+    adapter or explain why that isn't possible."""
+    if port != "auto":
+        return port
+    found = usb_serial_ports()
+    if len(found) == 1:
+        return found[0].device
+    if not found:
+        sys.exit("error: no USB-serial adapter found. Is it plugged in? On Windows 11 a "
+                 "PL2303TA can be present but driver-blocked with no COM port -- run "
+                 "scripts/pi4_doctor.py")
+    listing = ", ".join(f"{p.device} ({p.description})" for p in found)
+    sys.exit(f"error: several USB-serial adapters ({listing}); pick one with --port")
+
+
+class Console:
+    """Echo-and-log sink for everything read from the Pi."""
+
+    def __init__(self, log_path: str | None):
+        self.log = open(log_path, "ab") if log_path else None
+
+    def write(self, data: bytes) -> None:
+        sys.stdout.write(data.decode("utf-8", errors="replace"))
+        sys.stdout.flush()
+        if self.log:
+            self.log.write(data)
+            self.log.flush()
+
+
+def read_line(port: serial.Serial, deadline: float | None) -> str | None:
+    """One CR/LF-terminated line (without the terminator), or None on timeout."""
+    buf = bytearray()
+    while deadline is None or time.monotonic() < deadline:
+        b = port.read(1)
+        if not b:
+            continue
+        if b == b"\n":
+            return buf.decode("ascii", errors="replace").rstrip("\r")
+        buf += b
+    return None
+
+
+def wait_for(port: serial.Serial, console: Console, want: tuple[str, ...],
+             timeout: float | None, quiet: tuple[str, ...] = ()) -> str:
+    """Read lines until one starts with any of `want`; echo the rest
+    (except lines starting with `quiet`). Returns the matching line."""
+    deadline = None if timeout is None else time.monotonic() + timeout
+    while True:
+        line = read_line(port, deadline)
+        if line is None:
+            sys.exit(f"\nerror: timed out waiting for {' / '.join(want)}")
+        if line.startswith(want):
+            return line
+        if line and not line.startswith(quiet):
+            console.write((line + "\n").encode())
+
+
+def switch_baud(port: serial.Serial, new_baud: int, settle_s: float = 0.15) -> None:
+    """Switch to a new baud rate and let the USB-serial adapter/driver
+    settle before trusting anything it delivers next.
+
+    Found on real hardware (2026-09-29): a burst of corrupted bytes
+    with an exact 64-byte period -- the USB Full-Speed bulk packet
+    size -- clustered in the first few KB right after a baud switch,
+    at both 3,000,000 and 6,000,000 baud (so not specific to the
+    higher rate). Consistent with the adapter/driver still
+    reconfiguring its own UART divisor while data is already arriving
+    at the new rate. A settling delay before the input-buffer reset
+    (which then discards exactly the bytes affected) fixes this on
+    the host; no target-side change needed."""
+    port.baudrate = new_baud
+    time.sleep(settle_s)
+    port.reset_input_buffer()
+
+
+def reboot_to_chainloader(port: serial.Serial, console: Console,
+                          lk_baud: int, probe: float = 2.5) -> None:
+    """If a TARGET=rpi4 LK image is running instead of the chainloader,
+    send it `reboot` (PM-watchdog SoC reset, overlay patch 0008) so the
+    firmware boots the SD-card chainloader again -- no power-cycle.
+    Leaves the port at its original (chainloader) baud either way."""
+    loader_baud = port.baudrate
+    deadline = time.monotonic() + probe
+    while time.monotonic() < deadline:
+        line = read_line(port, deadline)
+        if line is not None and line.startswith("SBOOT?"):
+            print("chainloader already waiting; no reboot needed")
+            return
+
+    print(f"no chainloader prompt; sending `reboot` to LK at {lk_baud} baud")
+    switch_baud(port, lk_baud)
+    port.write(b"\rreboot\r")
+    port.flush()
+    end = time.monotonic() + 0.5
+    while time.monotonic() < end:
+        data = port.read(port.in_waiting or 1)
+        if data:
+            console.write(data)
+    switch_baud(port, loader_baud)
+
+
+def send_image(port: serial.Serial, console: Console, image: bytes,
+               wait: float | None) -> None:
+    print(f"waiting for the chainloader on {port.port} "
+          "(power-cycle the Pi if it's running an earlier payload)...")
+    wait_for(port, console, ("SBOOT?",), wait)
+
+    crc = zlib.crc32(image) & 0xFFFFFFFF
+    print(f"bootloader ready; sending {len(image)} bytes, crc32 {crc:#010x}")
+    port.write(b"LKBT" + struct.pack("<II", len(image), crc))
+
+    reply = wait_for(port, console, ("OK", "ER"), 5.0, quiet=("SBOOT?",))
+    if reply.startswith("ER"):
+        sys.exit(f"error: bootloader refused the image: {reply}")
+
+    chunk = 1024
+    start = time.monotonic()
+    for off in range(0, len(image), chunk):
+        port.write(image[off:off + chunk])
+        done = min(off + chunk, len(image))
+        rate = done / max(time.monotonic() - start, 1e-6)
+        sys.stdout.write(f"\r  {done}/{len(image)} bytes  {100 * done // len(image):3d}%  "
+                         f"{rate / 1024:.1f} KiB/s")
+        sys.stdout.flush()
+    port.flush()
+    print()
+
+    # The loader re-reads the whole payload from memory for a second CRC
+    # before answering; with its caches off that takes seconds on a
+    # large image.
+    reply = wait_for(port, console, ("CRC OK", "ER"), 60.0)
+    if reply.startswith("ER"):
+        sys.exit(f"error: transfer failed: {reply}")
+    console.write((reply + "\n").encode())
+
+
+def terminal(port: serial.Serial, console: Console) -> None:
+    def forward_stdin() -> None:
+        for line in sys.stdin:
+            port.write(line.rstrip("\r\n").encode() + b"\r")
+
+    threading.Thread(target=forward_stdin, daemon=True).start()
+    print("--- attached; Ctrl+C to quit ---")
+    try:
+        while True:
+            data = port.read(port.in_waiting or 1)
+            if data:
+                console.write(data)
+    except KeyboardInterrupt:
+        print("\n--- detached ---")
+
+
+def main() -> None:
+    ap = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
+    ap.add_argument("image", help="raw binary to load at 0x8000 (e.g. kernel7l.img, lk.bin)")
+    ap.add_argument("--port", default="auto",
+                    help='serial port, e.g. COM8 or /dev/ttyUSB0 (default: "auto")')
+    ap.add_argument("--baud", type=int, default=115200,
+                    help="initial link speed, matching the resident SD-card "
+                         "chainloader's fixed handshake rate (default: 115200; "
+                         "don't change unless the chainloader itself was reflashed)")
+    ap.add_argument("--post-jump-baud", type=int, default=3000000,
+                    help="baud to switch to right after the payload jumps and "
+                         "runs (default: 3000000, matching TARGET=rpi4 LK images "
+                         "built after the 2026-09-27 UART calibration -- see "
+                         "docs/RPI4_BRINGUP.md). Pass the same value as --baud "
+                         "(115200) for a payload that doesn't reprogram its own "
+                         "UART, e.g. an old pi4-baremetal image.")
+    ap.add_argument("--log", help="append everything received to this file")
+    ap.add_argument("--wait", type=float, default=None,
+                    help="seconds to wait for the SBOOT? prompt (default: forever)")
+    ap.add_argument("--no-term", action="store_true",
+                    help="exit once the image is running instead of staying attached")
+    ap.add_argument("--reboot", action="store_true",
+                    help="if LK is running (no SBOOT? prompt), send it `reboot` "
+                         "first instead of waiting for a manual power-cycle")
+    args = ap.parse_args()
+
+    with open(args.image, "rb") as f:
+        image = f.read()
+    if not image:
+        sys.exit(f"error: {args.image} is empty")
+
+    console = Console(args.log)
+    port_name = resolve_port(args.port)
+    try:
+        port = serial.Serial(port_name, args.baud, timeout=0.1)
+    except serial.SerialException as e:
+        sys.exit(f"error: can't open {port_name} ({e}). Is PuTTY still holding it?")
+
+    with port:
+        port.reset_input_buffer()
+        if args.reboot:
+            reboot_to_chainloader(port, console, args.post_jump_baud)
+        send_image(port, console, image, args.wait)
+        if args.post_jump_baud != args.baud:
+            switch_baud(port, args.post_jump_baud)
+        if not args.no_term:
+            terminal(port, console)
+
+
+if __name__ == "__main__":
+    main()

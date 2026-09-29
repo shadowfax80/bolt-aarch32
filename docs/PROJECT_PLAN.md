@@ -14,6 +14,7 @@
 | [architecture.md](architecture.md) | Overlay model, data flow, upstream workflow |
 | [aarch64-bare-metal.md](aarch64-bare-metal.md) | Bare-metal delta, runtime, workloads |
 | [aarch32-bolt.md](aarch32-bolt.md) | **P0–P11 plan** — ARM/Thumb backend, upstream PRs, verification |
+| [RPI4_HARDWARE_VERIFICATION.md](RPI4_HARDWARE_VERIFICATION.md) | Real Pi 4B PMU verification — baseline → +PGO → +PGO+ThinLTO → +PGO+ThinLTO+BOLT |
 
 ---
 
