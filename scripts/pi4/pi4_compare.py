@@ -36,6 +36,16 @@ ACC_RE = re.compile(r"bolt_bench: (\w+) acc=(0x[0-9a-fA-F]+)")
 
 
 def boot_and_run(image: str, port: str, workload: str, runs: int) -> list[dict]:
+    """One boot, `runs` workload runs. A boot can hang (seen once on the Pi, cause
+    unknown: the Pi itself answered a soft reboot right after), so retry once."""
+    try:
+        return _boot_and_run(image, port, workload, runs)
+    except (RuntimeError, subprocess.TimeoutExpired) as exc:
+        print(f"  retrying {image} after: {str(exc)[-160:]}", file=sys.stderr)
+        return _boot_and_run(image, port, workload, runs)
+
+
+def _boot_and_run(image: str, port: str, workload: str, runs: int) -> list[dict]:
     cmd = [
         sys.executable, os.path.join(HERE, "pi4_run.py"), image,
         "--port", port, "--reboot", "--wait", "30", "--max-wait", "60",

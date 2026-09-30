@@ -39,7 +39,10 @@ __attribute__((noinline)) void composite_report_cold(uint32_t code) {
 #ifndef STAIR_M
 #define STAIR_M 10
 #endif
-#define STAIR_SITES (64u * STAIR_M)
+#ifndef STAIR_X
+#define STAIR_X 0
+#endif
+#define STAIR_SITES (64u * STAIR_M + 16u * STAIR_X)
 static uint32_t stair_state[STAIR_SITES];
 
 void bolt_bench_stair_init(void) {

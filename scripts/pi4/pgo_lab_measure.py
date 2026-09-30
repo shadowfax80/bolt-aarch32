@@ -30,6 +30,14 @@ KERNELS = ["pl_a", "pl_b", "pl_c", "pl_d"]
 
 
 def boot_and_run(image: str, port: str, runs: int) -> list[dict]:
+    try:
+        return _boot_and_run(image, port, runs)
+    except (RuntimeError, subprocess.TimeoutExpired) as exc:
+        print(f"  retrying {image} after: {str(exc)[-160:]}", file=sys.stderr)
+        return _boot_and_run(image, port, runs)
+
+
+def _boot_and_run(image: str, port: str, runs: int) -> list[dict]:
     cmd = [
         sys.executable, os.path.join(HERE, "pi4_run.py"), image,
         "--port", port, "--reboot", "--wait", "60", "--max-wait", "120",

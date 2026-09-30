@@ -54,6 +54,11 @@ CLANG_COMMON=(
 )
 if [[ "$TARGET" == aarch64-none-elf ]]; then
   CLANG_COMMON+=(-mgeneral-regs-only)
+else
+  # No FPU, NEON or any vector unit anywhere in this project (the target has none).
+  # -mcpu=cortex-a15 alone enables NEON, and clang used it to zero the counter array
+  # (vmov.i32 q8 / vst1.64) -- illegal instructions on the real target.
+  CLANG_COMMON+=(-mfpu=none -mfloat-abi=soft)
 fi
 
 "$TOOLCHAIN/clang" \

@@ -437,10 +437,33 @@ on edges that happened to be off the tree, nothing inferred -- including the one
 behind the 448-site BOLT result (-9.9% vs baseline). That measurement is real, but
 BOLT laid the code out from incomplete data; it has to be redone.
 
+## TODO (deferred by the user, 2026-09-30): upstream blockers
+
+Definite TODO, deliberately deferred -- the user will take it up later, like the
+chainloader reflash. Landing the AArch32 backend in llvm-project main is blocked by
+the open items in [KNOWN_LIMITATIONS.md](KNOWN_LIMITATIONS.md): U1 (full-image rewrite
+moves ~7% of functions; output differs on every run), U2 (relocation matrix), U3
+(no `.ARM.exidx`/`.ARM.extab`), U4 (no lit tests for instrumentation/optimization),
+then L7, D3, U9, L12; the RFC is drafted and unposted (only the user can post it).
+Additions from the Pi work that belong in that series: overlay patches 0011
+(cbz/cbnz reversal), 0012 (JITLink Thumb stub alignment) and 0013
+(`--emit-function-map`, needs a lit test), the `--print-finalized` assertion
+("Cannot print this instruction"), and a test showing that ARM edge instrumentation
+needs `--conservative-instrumentation` when call counters are off.
+
 ## Follow-up: no-FPU build and a workload that can show BOLT (in progress)
 
-**No FPU/NEON (done).** The target is a Cortex-A55 with no FP/SIMD, so the rpi4
-build now matches: overlay patches `0007-rpi4-no-fpu-neon` and
+**Project rule: no FPU, NEON or vector unit anywhere.** Not in LK images, not in the
+BOLT or PGO runtimes, not in benchmarks. `scripts/check-no-fpu.sh <elf|obj|.a>...`
+enforces it (fails on any `v*` mnemonic) and `bolt_stage_wsl.sh` runs it before
+profiling. On 2026-09-30 it caught the BOLT counter runtime `instr_baremetal.o`
+(built `-mcpu=cortex-a15` with no `-mfpu=none`) containing `vmov.i32 q8` and two
+`vst1.64`; both profiling runtimes now build with `-mfpu=none -mfloat-abi=soft`.
+Instrumented images built before that date carried the NEON code; they were only run
+on the Pi (which has NEON) to collect profiles, never measured or shipped.
+
+**No FPU/NEON in the LK images (done).** The target is a Cortex-A55 with no FP/SIMD,
+so the rpi4 build now matches: overlay patches `0007-rpi4-no-fpu-neon` and
 `0008-rpi4-compile-no-fpu` (`-mfpu=none` for the whole rpi4 build). Verified by
 disassembling the full `lk.elf`: 0 FP/NEON instructions in 20,176.
 
@@ -558,6 +581,49 @@ by `scripts/pi4/pgo_lab_measure.py`, checksums identical for both images
 So PGO can show a large, mechanism-confirmed gain on this core, but from dispatch
 lowering, not from block layout. The stair workload (where PGO stays ~0%) has no
 skewed switch; combining the two into one staged workload is the next step.
+
+## Calibrated staged story: PGO -> ThinLTO -> BOLT, none regressing (432 sites)
+
+ThinLTO's inlining is all-or-nothing per callee (every hot site of the helper costs the
+same), so the inline-threshold knobs cannot inline "some" sites; the continuous knob is
+the site count. Fine sweep of baseline vs PGO+ThinLTO (`STAIR_M`/`STAIR_X`, 16-site
+steps; `docs/results/stair_sweep_*sites.csv`):
+
+| Sites | 384 | 400 | 416 | **432** | 448 | 512 | 640 |
+|---|---|---|---|---|---|---|---|
+| ThinLTO vs baseline | -10.99% | -11.02% | -11.04% | **-7.75%** | +3.73% | +38.9% | +84.4% |
+| L1I refills | 9 | 6 | 8 | **29.6k** | 145.6k | 606.6k | 1.41M |
+
+Up to 416 sites the inlined hot path fits the 48 KB L1I and ThinLTO is a clean -11%
+(BOLT has nothing to recover); at 432 it just overflows (ThinLTO still wins, ~30k misses
+left for BOLT); from 448 ThinLTO regresses. 432 is the window where every stage helps.
+
+Full staged point at 432 sites (`scripts/pi4/bolt_stage.sh 6:3`; PGO trained on composite
++ stair + pgo_lab; complete BOLT edge profile: 1,513 edges, hottest count 1,600; 3 rounds
+x 2 runs interleaved; result checksums identical in all runs of both passes;
+`docs/results/staged_432sites_*`):
+
+| Stage | Region where it acts | Result |
+|---|---|---|
+| +PGO | `pl_b` (skewed switch) | 30.51M -> 19.20M cycles, **-37.09%** (`pl_a` -2.80%) |
+| +ThinLTO | `bolt_bench_stair_kernel` (cross-TU helper inlined) | 8.891M -> 8.179M, **-8.0% vs PGO** (-7.73% vs baseline); L1I refills 0 -> 29.8k |
+| +BOLT | `bolt_bench_stair_kernel` (block layout) | 8.179M -> 7.941M, **-2.9% vs ThinLTO** (-10.41% vs baseline); refills 29.8k -> 1.8k |
+| BOLT control (moved, not reordered) | same | 8.269M, i.e. 1.1% *worse* than ThinLTO alone: the reordering is the whole gain |
+
+Stair function, all five images: baseline 8.864M, +PGO 8.891M (+0.30%), +PGO+ThinLTO
+8.179M (-7.73%), BOLT control 8.269M (-6.71%), +BOLT 7.941M (-10.41%).
+
+Each technique adds on top of the previous one, in its own region, and only two effects
+go the wrong way, both tiny and expected: PGO on the stair function is +0.30% (it has no
+skewed switch), and ThinLTO on `pl_b` is +0.7% against PGO (19.33M vs 19.20M, identical
+instruction counts, slightly different code placement). BOLT does not touch `pl_b`
+(-36.81%, unchanged within noise).
+
+Limits: BOLT's increment here is modest (-2.9%) because at 432 sites only ~30k misses
+remain; it grows toward the cliff (448: -10.1% against baseline but ThinLTO is then a net
+loss), so the size is a tradeoff between how much ThinLTO gives and how much is left for
+BOLT. One core, one workload, profile collected on the measured input, one rewritten
+function.
 
 ## Bugs found on the way (debugged with QEMU and the Pi interchangeably)
 

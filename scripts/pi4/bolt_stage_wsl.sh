@@ -20,6 +20,9 @@ mkdir -p "$out"
 
 case "$cmd" in
   instrument)
+    # No FPU/NEON/vector unit anywhere in this project: refuse to profile with a
+    # runtime or image that contains any.
+    ./scripts/check-no-fpu.sh "build-atfe/bolt-rt-baremetal-arm/libbolt_rt_baremetal.a"       build-atfe/pgo-rt-baremetal-arm/*.o "$V/pgo_thinlto.elf" "$V/baseline.elf" "$V/pgo.elf" >&2
     ./scripts/bolt-variant.sh instrument pgo_thinlto | tail -1
     cp "$V/pgo_thinlto.instr.bin" "$V/pgo_thinlto.instr.elf" "$out/"
     ;;

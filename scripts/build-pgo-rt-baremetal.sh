@@ -78,7 +78,7 @@ OBJS=()
 for src in "${PROFILE_SOURCES[@]}"; do
   obj="$OUT_DIR/${src%.c}.o"
   "$TOOLCHAIN/clang" \
-    --target=arm-none-eabi -mcpu=cortex-a15 -marm \
+    --target=arm-none-eabi -mcpu=cortex-a15 -mfpu=none -mfloat-abi=soft -marm \
     -ffreestanding -fno-builtin -fno-stack-protector -fomit-frame-pointer \
     -DCOMPILER_RT_PROFILE_BAREMETAL=1 -O2 \
     -isystem "$NEWLIB_INC" \

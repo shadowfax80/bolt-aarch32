@@ -555,7 +555,10 @@ __attribute__((noinline)) void bolt_bench_composite(void) {
 #ifndef STAIR_M
 #define STAIR_M 10 /* 64 sites per unit; the sweep varies it */
 #endif
-#define STAIR_SITES (64u * STAIR_M)
+#ifndef STAIR_X
+#define STAIR_X 0 /* extra 16-site blocks (0..3) for finer steps */
+#endif
+#define STAIR_SITES (64u * STAIR_M + 16u * STAIR_X)
 extern void bolt_bench_stair_init(void);
 extern uint32_t bolt_bench_stair_step(uint32_t x, uint32_t site);
 
@@ -604,6 +607,15 @@ __attribute__((noinline)) uint32_t bolt_bench_stair_kernel(uint32_t x, const vol
 #if STAIR_M >= 10
     STAIR_R64(STAIR_SITE)
 #endif
+#if STAIR_X >= 1
+    STAIR_R16(STAIR_SITE)
+#endif
+#if STAIR_X >= 2
+    STAIR_R16(STAIR_SITE)
+#endif
+#if STAIR_X >= 3
+    STAIR_R16(STAIR_SITE)
+#endif
     return acc;
 }
 
@@ -612,7 +624,7 @@ __attribute__((noinline)) uint32_t bolt_bench_stair_kernel(uint32_t x, const vol
 /* hot guards: bits 0,1 of every nibble, so both site-bias classes (even/odd) run */
 #define BOLT_BENCH_STAIR_SEL 0x33333333u
 
-static volatile uint32_t g_stair_sel[STAIR_SITES / 32];
+static volatile uint32_t g_stair_sel[(STAIR_SITES + 31u) / 32u];
 
 __attribute__((noinline)) void bolt_bench_stair(void) {
     struct bolt_pmu p0, p1;
@@ -622,7 +634,7 @@ __attribute__((noinline)) void bolt_bench_stair(void) {
     int old_pin = thread_pinned_cpu(self);
     uint start_cpu = arch_curr_cpu_num();
     thread_set_pinned_cpu(self, (int)start_cpu);
-    for (uint32_t i = 0; i < STAIR_SITES / 32; i++) {
+    for (uint32_t i = 0; i < (STAIR_SITES + 31u) / 32u; i++) {
         g_stair_sel[i] = BOLT_BENCH_STAIR_SEL; /* opaque: the guards can't be folded */
     }
     uint32_t acc = 0;

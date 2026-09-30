@@ -60,5 +60,7 @@ endif
 # Must come before the module.mk include, which consumes MODULE_DEFINES.
 STAIR_M ?= 10
 MODULE_DEFINES += STAIR_M=$(STAIR_M)
+STAIR_X ?= 0
+MODULE_DEFINES += STAIR_X=$(STAIR_X)
 
 include make/module.mk
