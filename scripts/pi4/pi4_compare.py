@@ -37,6 +37,10 @@ FIELDS = ["cycles", "inst", "l1i_refill", "l1d_refill", "br_mispred", "taken"]
 ACC_RE = re.compile(r"bolt_bench: (\w+) acc=(0x[0-9a-fA-F]+)")
 
 
+# Extra words after the workload name (PMU set, input variant), set from --args.
+EXTRA_ARGS = ""
+
+
 def boot_and_run(image: str, port: str, workload: str, runs: int) -> list[dict]:
     """One boot, `runs` workload runs. A boot can hang (seen once on the Pi, cause
     unknown: the Pi itself answered a soft reboot right after), so retry once."""
@@ -51,7 +55,7 @@ def _boot_and_run(image: str, port: str, workload: str, runs: int) -> list[dict]
     cmd = [
         sys.executable, os.path.join(HERE, "pi4_run.py"), image,
         "--port", port, "--reboot", "--wait", "30", "--max-wait", "60",
-    ] + [f"bolt_bench {workload}"] * runs
+    ] + [f"bolt_bench {workload} {EXTRA_ARGS}".strip()] * runs
     out = subprocess.run(cmd, capture_output=True, timeout=300)
     text = out.stdout.decode("utf-8", errors="replace").replace("\r", "\n")
     if out.returncode != 0:
@@ -88,7 +92,11 @@ def main() -> int:
     ap.add_argument("--runs", type=int, default=4, help="workload runs per boot")
     ap.add_argument("--workload", default="composite")
     ap.add_argument("--port", default="COM5")
+    ap.add_argument("--args", default="", help="extra words after the workload name, e.g. "
+                    "\"0 2\" = PMU set 0, input variant 2 (held-out input; profiles train on 0)")
     args = ap.parse_args()
+    global EXTRA_ARGS
+    EXTRA_ARGS = args.args
 
     variants = []
     for v in args.variants:

@@ -31,6 +31,10 @@ ACC_RE = re.compile(r"bolt_bench: (pl_\w) acc=(0x[0-9a-fA-F]+)")
 KERNELS = ["pl_a", "pl_b", "pl_c", "pl_d"]
 
 
+# Extra words after `pgo_lab` (PMU set, input variant), set from --args.
+EXTRA_ARGS = ""
+
+
 def boot_and_run(image: str, port: str, runs: int) -> list[dict]:
     try:
         return _boot_and_run(image, port, runs)
@@ -43,7 +47,7 @@ def _boot_and_run(image: str, port: str, runs: int) -> list[dict]:
     cmd = [
         sys.executable, os.path.join(HERE, "pi4_run.py"), image,
         "--port", port, "--reboot", "--wait", "60", "--max-wait", "120",
-    ] + ["bolt_bench pgo_lab"] * runs
+    ] + [f"bolt_bench pgo_lab {EXTRA_ARGS}".strip()] * runs
     out = subprocess.run(cmd, capture_output=True, timeout=600)
     text = out.stdout.decode("utf-8", errors="replace").replace("\r", "\n")
     if out.returncode != 0:
@@ -69,7 +73,11 @@ def main() -> int:
     ap.add_argument("--rounds", type=int, default=3)
     ap.add_argument("--runs", type=int, default=2)
     ap.add_argument("--port", default="COM5")
+    ap.add_argument("--args", default="", help="extra words after the workload name, e.g. "
+                    "\"0 2\" = PMU set 0, input variant 2 (held-out input; profiles train on 0)")
     args = ap.parse_args()
+    global EXTRA_ARGS
+    EXTRA_ARGS = args.args
 
     variants = []
     for v in args.variants:

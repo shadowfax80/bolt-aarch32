@@ -71,6 +71,11 @@ static const uint32_t bolt_pmu_sets[2][BOLT_PMU_NCTR] = {
 static uint32_t bolt_pmu_events[BOLT_PMU_NCTR];
 static int g_pmu_set_req;
 static int g_pmu_set_cur = -1;
+/* Input variant for held-out-input tests (`bolt_bench <wl> <pmu set> <variant>`). Profiles
+ * are always trained on variant 0; measuring variants 1 and 2 shows whether a PGO/BOLT gain
+ * survives inputs the profile never saw. 1 = same distribution, new data (other seeds);
+ * 2 = shifted distribution (different code is hot). Only stair and pgo_lab use it. */
+static uint32_t g_input_variant;
 /* Set 2: arbitrary events chosen at run time (`bolt_bench pmu_probe <hex> ...`), used to
  * find out which events this core really counts. */
 static uint32_t g_pmu_custom[BOLT_PMU_NCTR];
@@ -578,7 +583,7 @@ __attribute__((noinline)) void bolt_bench_composite(void) {
 #define STAIR_X 0 /* extra 16-site blocks (0..3) for finer steps */
 #endif
 #define STAIR_SITES (64u * STAIR_M + 16u * STAIR_X)
-extern void bolt_bench_stair_init(void);
+extern void bolt_bench_stair_init(uint32_t seed);
 extern uint32_t bolt_bench_stair_step(uint32_t x, uint32_t site);
 
 #define STAIR_SITE()                                                        \
@@ -642,19 +647,23 @@ __attribute__((noinline)) uint32_t bolt_bench_stair_kernel(uint32_t x, const vol
 #define BOLT_BENCH_STAIR_WARMUP 100u
 /* hot guards: bits 0,1 of every nibble, so both site-bias classes (even/odd) run */
 #define BOLT_BENCH_STAIR_SEL 0x33333333u
+/* Variant 2 hot set: bits 2,3 of every nibble -- same number of hot sites, both site-bias
+ * classes still present, but none of the sites the profile saw hot. */
+#define BOLT_BENCH_STAIR_SEL_SHIFTED 0xCCCCCCCCu
 
 static volatile uint32_t g_stair_sel[(STAIR_SITES + 31u) / 32u];
 
 __attribute__((noinline)) void bolt_bench_stair(void) {
     struct bolt_pmu p0, p1;
     bolt_pmu_init();
-    bolt_bench_stair_init();
+    bolt_bench_stair_init(g_input_variant == 1 ? 0x5EEDF00Du : 12345u);
     thread_t *self = get_current_thread();
     int old_pin = thread_pinned_cpu(self);
     uint start_cpu = arch_curr_cpu_num();
     thread_set_pinned_cpu(self, (int)start_cpu);
     for (uint32_t i = 0; i < (STAIR_SITES + 31u) / 32u; i++) {
-        g_stair_sel[i] = BOLT_BENCH_STAIR_SEL; /* opaque: the guards can't be folded */
+        g_stair_sel[i] = (g_input_variant == 2) ? BOLT_BENCH_STAIR_SEL_SHIFTED
+                                                : BOLT_BENCH_STAIR_SEL; /* opaque: no folding */
     }
     uint32_t acc = 0;
     /* Warm-up trains the predictors and caches, so the window measures steady state.
@@ -730,11 +739,17 @@ static uint8_t g_pl_ops[1024];
 static volatile uint32_t g_pl_mask;
 
 static void pl_init(void) {
-    uint32_t s = 12345u;
+    uint32_t s = (g_input_variant == 1) ? 0x5EEDF00Du : 12345u;
+    /* Variant 2 moves the 92% hot case from 0 to 7: the profile's hot case becomes cold. */
+    uint8_t hot = (g_input_variant == 2) ? 7u : 0u;
     for (uint32_t i = 0; i < 1024; i++) {
         s = s * 1664525u + 1013904223u;
         uint32_t r = s >> 24;
-        g_pl_ops[i] = (r < 236u) ? 0 : (uint8_t)(1 + (r % 15u));
+        uint8_t cold = (uint8_t)(1 + (r % 15u));
+        if (hot != 0 && cold == hot) {
+            cold = 0; /* keep the cold cases a permutation of the original ones */
+        }
+        g_pl_ops[i] = (r < 236u) ? hot : cold;
     }
     g_pl_mask = 0xFFFFu;
 }
@@ -860,9 +875,9 @@ __attribute__((noinline)) void bolt_bench_pgo_lab(void) {
 #define MF_G()                                                              \
     {                                                                       \
         a += 0x100u + (__COUNTER__ & 0x7FFu);                               \
-        b -= 0x100u + (__COUNTER__ & 0x7FFu);                               \
-        c += 0x100u + (__COUNTER__ & 0x7FFu);                               \
-        d -= 0x100u + (__COUNTER__ & 0x7FFu);                               \
+        b ^= a + (__COUNTER__ & 0x7FFu);                                    \
+        c += b >> ((__COUNTER__ & 3u) + 1u);                                \
+        d ^= c + (__COUNTER__ & 0x7FFu);                                    \
         __asm__ volatile("" : "+r"(a), "+r"(b), "+r"(c), "+r"(d));          \
     }
 #define MF_R2(m) m() m()
@@ -1057,6 +1072,7 @@ static int bolt_bench_cmd(int argc, const console_cmd_args *argv) {
         return 0;
     }
     g_pmu_set_req = (argc > 2 && argv[2].i == 1) ? 1 : 0;
+    g_input_variant = (argc > 3) ? (uint32_t)argv[3].u : 0u;
     run_one(argv[1].str);
     return 0;
 }
