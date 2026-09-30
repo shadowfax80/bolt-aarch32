@@ -417,11 +417,25 @@ reliable for this, e.g. two moved functions shared one address).
 `redirect-bolt-entries.py --map FILE` patches every original entry (Thumb `b.w` or
 ARM `b`), and accepts entries in `.text.cold` (where BOLT puts a function with no
 profile). Verified on the Pi with two functions (`bolt_bench_stair_kernel`,
-`bolt_bench_stair_step`): both redirected, checksum unchanged. Open: in that image
-the stair function's edge counters read zero (not understood yet), so BOLT only
-had a profile for the helper and the result (+0.05% vs baseline) says nothing
-about performance; several profiled functions with `--reorder-functions`, ARM-mode
-functions and function-pointer entries are untested.
+`bolt_bench_stair_step`): both redirected, checksum unchanged. In that run the
+stair function's edge counters read zero, so BOLT only had a profile for the
+helper and the result (+0.05% vs baseline) says nothing about performance. Several
+profiled functions with `--reorder-functions`, ARM-mode functions and
+function-pointer entries are still untested.
+
+**Zero edge counters: root-caused and fixed (2026-09-30).** Not a hardware or dump
+problem. BOLT's default edge instrumentation counts only the edges off a spanning
+tree and infers the rest from flow conservation, which needs each function's entry
+count; that count comes from call-site counters, which `instrument-lk-bolt.sh`
+disables (`--instrument-calls=false`). For the stair function the tree took every
+hot edge, the only counters sat on cold edges that never ran (disassembly: each
+counter block is on the not-taken side of its guard), and a function called 1600
+times dumped all zeros. Edges mode now adds `--conservative-instrumentation` (a
+counter on every edge): the same image then profiles as 672 edges, each exactly
+1600. **Consequence:** every earlier edges-mode profile was partial -- counts only
+on edges that happened to be off the tree, nothing inferred -- including the one
+behind the 448-site BOLT result (-9.9% vs baseline). That measurement is real, but
+BOLT laid the code out from incomplete data; it has to be redone.
 
 ## Follow-up: no-FPU build and a workload that can show BOLT (in progress)
 

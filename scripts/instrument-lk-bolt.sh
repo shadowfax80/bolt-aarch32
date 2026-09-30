@@ -96,6 +96,16 @@ BOLT_ARGS=(
   -o "$OUT"
 )
 
+# Edge profiles need every edge counted. BOLT's default instruments only the edges
+# off a spanning tree and infers the rest from flow, which needs the function's
+# entry count; that comes from call-site counters, and --instrument-calls=false
+# (above) turns those off. On the Pi the tree then took all the hot edges, the
+# only counters sat on cold edges that never ran, and a function that executed
+# 1600 times dumped all-zero counters (bolt_bench_stair_kernel, 2026-09-30).
+# Conservative mode puts a counter on every edge: slower instrumented runs, but
+# the profile needs no inference.
+[[ "${BOLT_INSTR_EDGES:-0}" == 1 ]] && BOLT_ARGS+=(--conservative-instrumentation)
+
 # --no-lse-atomics is AArch64's option (QEMU cortex-a53 has no LSE). The ARM
 # target never reads it -- its counter path is ldrex/strex unconditionally.
 [[ "$ARCH" != arm32 ]] && BOLT_ARGS+=(--no-lse-atomics)
