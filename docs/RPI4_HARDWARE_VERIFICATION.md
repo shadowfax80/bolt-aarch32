@@ -778,3 +778,48 @@ transcript), `scripts/qemu_bolt_profile.py`, and the QEMU twin project
 `qemu-virt-arm32-bolt-test` (same `bolt_bench` module, SMP, PMU path; needs
 `BOLT_EXTRA_ARGS=""` because that platform lacks the rpi4 reserve-window patch).
 QEMU's own cycle and PMU numbers are not real and are never reported.
+
+## Held-out inputs (item 4, 2026-09-30, real Pi 4B, Non-secure SVC)
+
+Question: do the PGO / ThinLTO / BOLT gains survive inputs the profiles never saw? All profiles
+were trained on input variant 0. The same five images (baseline, pgo, pgo_thinlto,
+bolt_noreorder, bolt; 432 sites) were then measured on three inputs, 3 rounds x 2 runs,
+interleaved, cycle CIs are 95% Welch, every checksum identical across images:
+
+- variant 0: the training input;
+- variant 1: same distribution, new data (other seeds);
+- variant 2: shifted distribution (other stair sites hot; another switch case hot in `pl_b`).
+
+**stair, cycles vs baseline on the same input** (`docs/results/heldout_stair_432sites_v*.csv`)
+
+| image | v0 (trained) | v1 (new data) | v2 (shifted) |
+|---|---|---|---|
+| pgo | +0.4% | +0.4% | +10.7% |
+| pgo_thinlto | -9.5% | -9.5% | +38.4% |
+| bolt_noreorder | -6.9% | -6.9% | +31.3% |
+| bolt | -10.4% | -10.4% | +39.4% |
+
+**pgo_lab `pl_b` (the skewed switch, where PGO pays off)** (`docs/results/heldout_pgo_lab_v*.csv`)
+
+| image | v0 | v1 | v2 |
+|---|---|---|---|
+| pgo | -35.6% | -35.8% | +0.4% |
+| pgo_thinlto | -35.2% | -36.0% | +1.3% |
+| bolt | -35.2% | -36.0% | +1.3% |
+
+`pl_a` (-2.8%) and `pl_c` (-0.4%) are identical on all three inputs (no input dependence);
+`pl_d` stays within +0.3% (noise level).
+
+**Conclusions**
+- With new data from the same distribution the gains are unchanged to within 0.3 pp, so the
+  results are not memorisation of specific data.
+- With a shifted distribution the profile-guided images lose their gains (`pl_b`) and stair
+  becomes 10-39% *slower* than baseline. The layout and inlining choices follow the trained
+  hot paths: when other sites are hot, the code that was packed and inlined for the trained
+  ones is the wrong code. This is expected PGO/BOLT behaviour, but it means the headline numbers
+  are valid only for a workload whose profile matches production; a real deployment needs a
+  representative profile.
+- The multi-function BOLT rerun (six functions, new non-cancelling checksum, identical across
+  all 18 runs): baseline 32.67M cycles, bolt_nofnreorder -43.6%, bolt -44.0%; the earlier -44%
+  result stands.
+- Hardening done alongside: run timeouts cut to 150 s (a stalled boot no longer costs 35 min).

@@ -57,7 +57,7 @@ def _boot_and_run(image: str, port: str, workload: str, runs: int) -> list[dict]
         sys.executable, os.path.join(HERE, "pi4_run.py"), image,
         "--port", port, "--reboot", "--wait", "30", "--max-wait", "60",
     ] + [f"bolt_bench {workload} {EXTRA_ARGS}".strip()] * runs
-    out = run_bounded(cmd, 300)
+    out = run_bounded(cmd, 150)
     text = out.stdout.decode("utf-8", errors="replace").replace("\r", "\n")
     if out.returncode != 0:
         tail = text[-600:]

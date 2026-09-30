@@ -49,7 +49,7 @@ def _boot_and_run(image: str, port: str, runs: int) -> list[dict]:
         sys.executable, os.path.join(HERE, "pi4_run.py"), image,
         "--port", port, "--reboot", "--wait", "60", "--max-wait", "120",
     ] + [f"bolt_bench pgo_lab {EXTRA_ARGS}".strip()] * runs
-    out = run_bounded(cmd, 600)
+    out = run_bounded(cmd, 150)
     text = out.stdout.decode("utf-8", errors="replace").replace("\r", "\n")
     if out.returncode != 0:
         raise RuntimeError(f"pi4_run failed for {image}: {text[-600:]}")
