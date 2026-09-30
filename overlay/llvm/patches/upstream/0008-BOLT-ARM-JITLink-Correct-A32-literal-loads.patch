@@ -1,0 +1,270 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: bolt-aarch32 overlay <overlay@localhost>
+Date: Wed, 30 Sep 2026 17:03:16 +0000
+Subject: [PATCH] [BOLT][ARM][JITLink] Correct A32 literal loads and support
+ LDR_PC_G0
+
+Normalize symbolic ARM literal operands to the MC label form, sign-extend decoded backward offsets, and handle subtract-zero. Add JITLink relocation decoding, emission, and signed imm12 range checks. Cover positive and negative offsets, predicate/register preservation, nonzero addends, and range boundaries.
+---
+ bolt/lib/Target/ARM/ARMMCPlusBuilder.cpp      | 25 ++++++++++++++++-
+ bolt/test/ARM/Inputs/arm32-literal-load.s     | 25 +++++++++++++++++
+ bolt/test/ARM/arm-literal-load.test           | 14 ++++++++++
+ .../llvm/ExecutionEngine/JITLink/aarch32.h    | 14 +++++++++-
+ .../ExecutionEngine/JITLink/ELF_aarch32.cpp   |  4 +++
+ llvm/lib/ExecutionEngine/JITLink/aarch32.cpp  | 18 ++++++++++++
+ .../JITLink/AArch32/ELF_ldr_pcrel_arm.s       | 28 +++++++++++++++++++
+ .../JITLink/AArch32/ELF_ldr_pcrel_arm_range.s | 17 +++++++++++
+ 8 files changed, 143 insertions(+), 2 deletions(-)
+ create mode 100644 bolt/test/ARM/Inputs/arm32-literal-load.s
+ create mode 100644 bolt/test/ARM/arm-literal-load.test
+ create mode 100644 llvm/test/ExecutionEngine/JITLink/AArch32/ELF_ldr_pcrel_arm.s
+ create mode 100644 llvm/test/ExecutionEngine/JITLink/AArch32/ELF_ldr_pcrel_arm_range.s
+
+diff --git a/bolt/lib/Target/ARM/ARMMCPlusBuilder.cpp b/bolt/lib/Target/ARM/ARMMCPlusBuilder.cpp
+index 5a1045483..b88187347 100644
+--- a/bolt/lib/Target/ARM/ARMMCPlusBuilder.cpp
++++ b/bolt/lib/Target/ARM/ARMMCPlusBuilder.cpp
+@@ -358,6 +358,24 @@ public:
+     }
+   }
+ 
++  bool setOperandToSymbolRef(MCInst &Inst, int OpNum,
++                             const MCSymbol *Symbol, int64_t Addend,
++                             MCContext *Ctx, uint32_t RelType) const override {
++    const bool IsARMLiteral = Inst.getOpcode() == ARM::LDRi12 &&
++                              OpNum == 2 && isLiteralLoad(Inst);
++    if (!MCPlusBuilder::setOperandToSymbolRef(Inst, OpNum, Symbol, Addend,
++                                            Ctx, RelType))
++      return false;
++    if (IsARMLiteral) {
++      // MC's symbolic addrmode_imm12 form puts the label in the base
++      // operand, followed by an unused zero displacement. Leaving PC as
++      // the base selects fixup_arm_ldst_abs_12 and cannot be printed.
++      Inst.getOperand(1) = Inst.getOperand(2);
++      Inst.getOperand(2) = MCOperand::createImm(0);
++    }
++    return true;
++  }
++
+   // Compute the address a literal-pool load actually reads from, following
+   // the two distinct "PC read-ahead" conventions the architecture defines:
+   // ARM state reads PC as the current instruction's address + 8 (the
+@@ -383,7 +401,12 @@ public:
+     uint64_t Base;
+     switch (Inst.getOpcode()) {
+     case ARM::LDRi12:
+-      Imm = Inst.getOperand(2).getImm();
++      // The disassembler stores a negative offset as an unsigned 32-bit
++      // immediate. Sign-extend it, and handle the special subtract-zero
++      // sentinel before calculating the literal address.
++      Imm = static_cast<int32_t>(Inst.getOperand(2).getImm());
++      if (Imm == INT32_MIN)
++        Imm = 0;
+       Base = Address + 8;
+       break;
+     case ARM::t2LDRi12:
+diff --git a/bolt/test/ARM/Inputs/arm32-literal-load.s b/bolt/test/ARM/Inputs/arm32-literal-load.s
+new file mode 100644
+index 000000000..441ffc3e5
+--- /dev/null
++++ b/bolt/test/ARM/Inputs/arm32-literal-load.s
+@@ -0,0 +1,25 @@
++        .syntax unified
++        .arm
++        .text
++        .globl _start, literals
++        .type _start, %function
++_start:
++        bl literals
++        bx lr
++        .size _start, .-_start
++        .p2align 2
++        .type literals, %function
++literals:
++        b .Lloads
++.Lbackward:
++        .word 0x12345678
++.Lloads:
++        ldr r0, .Lforward
++        ldr r1, .Lbackward
++        ldrne r4, .Lforward
++        ldr r2, [r3, #16]
++        ldr r5, [pc, #-0]
++        bx lr
++.Lforward:
++        .word 0x87654321
++        .size literals, .-literals
+diff --git a/bolt/test/ARM/arm-literal-load.test b/bolt/test/ARM/arm-literal-load.test
+new file mode 100644
+index 000000000..bf67e7c49
+--- /dev/null
++++ b/bolt/test/ARM/arm-literal-load.test
+@@ -0,0 +1,14 @@
++## Symbolic A32 literal loads must use MC's PC-relative operand form.
++## Both CFG printing and emission previously failed for these loads.
++RUN: %clang --target=armv7-none-eabi -c -o %t.o %p/Inputs/arm32-literal-load.s
++RUN: ld.lld --emit-relocs -T %p/Inputs/arm32.ld %t.o -o %t.exe
++RUN: llvm-bolt %t.exe -o %t.bolt --print-cfg --print-finalized 2>&1 | FileCheck %s --check-prefix=CFG
++RUN: llvm-objdump -d %t.bolt | FileCheck %s --check-prefix=ASM
++
++CFG: Binary Function "literals"
++CFG: ldr
++ASM: ldr r0, [pc,
++ASM: ldr r1, [pc,
++ASM: ldrne r4, [pc,
++ASM: ldr r2, [r3, #0x10]
++ASM: ldr r5, [pc
+diff --git a/llvm/include/llvm/ExecutionEngine/JITLink/aarch32.h b/llvm/include/llvm/ExecutionEngine/JITLink/aarch32.h
+index 30fdf27ff..ddda396c4 100644
+--- a/llvm/include/llvm/ExecutionEngine/JITLink/aarch32.h
++++ b/llvm/include/llvm/ExecutionEngine/JITLink/aarch32.h
+@@ -72,7 +72,11 @@ enum EdgeKind_aarch32 : Edge::Kind {
+   /// Write immediate value to the top halfword of the destination register
+   Arm_MovtAbs,
+ 
+-  LastArmRelocation = Arm_MovtAbs,
++  /// Write a signed byte offset in an A32 immediate load/store.
++  /// R_ARM_LDR_PC_G0 uses the U bit and imm12, with range [-4095, 4095].
++  Arm_LdrPcRel,
++
++  LastArmRelocation = Arm_LdrPcRel,
+ 
+   ///
+   /// Relocations of class Thumb16 and Thumb32 (covers Thumb instruction subset)
+@@ -241,6 +245,14 @@ template <> struct FixupInfo<Arm_MovwAbsNC> : public FixupInfoArmMov {
+   static constexpr uint32_t Opcode = 0x03000000;
+ };
+ 
++template <> struct FixupInfo<Arm_LdrPcRel> : public FixupInfoArm {
++  // Immediate, pre-indexed LDR/STR/LDRB/STRB, without writeback. Preserve
++  // the predicate, byte/load bits, base register and destination register.
++  static constexpr uint32_t OpcodeMask = 0x0f200000;
++  static constexpr uint32_t Opcode = 0x05000000;
++  static constexpr uint32_t ImmMask = 0x00800fff;
++};
++
+ template <> struct FixupInfo<Thumb_Jump24> : public FixupInfoThumb {
+   static constexpr HalfWords Opcode{0xf000, 0x9000};
+   static constexpr HalfWords OpcodeMask{0xf800, 0x9000};
+diff --git a/llvm/lib/ExecutionEngine/JITLink/ELF_aarch32.cpp b/llvm/lib/ExecutionEngine/JITLink/ELF_aarch32.cpp
+index d62205644..ebedc7ffb 100644
+--- a/llvm/lib/ExecutionEngine/JITLink/ELF_aarch32.cpp
++++ b/llvm/lib/ExecutionEngine/JITLink/ELF_aarch32.cpp
+@@ -45,6 +45,8 @@ getJITLinkEdgeKind(uint32_t ELFType, const aarch32::ArmConfig &ArmCfg) {
+     return aarch32::Arm_Call;
+   case ELF::R_ARM_JUMP24:
+     return aarch32::Arm_Jump24;
++  case ELF::R_ARM_LDR_PC_G0:
++    return aarch32::Arm_LdrPcRel;
+   case ELF::R_ARM_MOVW_ABS_NC:
+     return aarch32::Arm_MovwAbsNC;
+   case ELF::R_ARM_MOVT_ABS:
+@@ -92,6 +94,8 @@ LLVM_ABI Expected<uint32_t> getELFRelocationType(Edge::Kind Kind) {
+     return ELF::R_ARM_CALL;
+   case aarch32::Arm_Jump24:
+     return ELF::R_ARM_JUMP24;
++  case aarch32::Arm_LdrPcRel:
++    return ELF::R_ARM_LDR_PC_G0;
+   case aarch32::Arm_MovwAbsNC:
+     return ELF::R_ARM_MOVW_ABS_NC;
+   case aarch32::Arm_MovtAbs:
+diff --git a/llvm/lib/ExecutionEngine/JITLink/aarch32.cpp b/llvm/lib/ExecutionEngine/JITLink/aarch32.cpp
+index 80a3e8389..40ceab1de 100644
+--- a/llvm/lib/ExecutionEngine/JITLink/aarch32.cpp
++++ b/llvm/lib/ExecutionEngine/JITLink/aarch32.cpp
+@@ -423,6 +423,11 @@ Expected<int64_t> readAddendArm(LinkGraph &G, Block &B, Edge::OffsetT Offset,
+   case Arm_MovwAbsNC:
+     return decodeImmMovtA1MovwA2(R.Wd);
+ 
++  case Arm_LdrPcRel: {
++    int64_t Imm = R.Wd & 0xfff;
++    return (R.Wd & 0x00800000) ? Imm : -Imm;
++  }
++
+   default:
+     return make_error<JITLinkError>(
+         "In graph " + G.getName() + ", section " + B.getSection().getName() +
+@@ -539,6 +544,18 @@ Error applyFixupArm(LinkGraph &G, Block &B, const Edge &E) {
+   uint64_t TargetAddress = TargetSymbol.getAddress().getValue();
+ 
+   switch (Kind) {
++  case Arm_LdrPcRel: {
++    // The ELF REL addend already includes the assembler's PC bias (-8
++    // for a literal load). Do not subtract it a second time here.
++    int64_t Value = TargetAddress - FixupAddress + Addend;
++    if (Value < -4095 || Value > 4095)
++      return makeTargetOutOfRangeError(G, B, E);
++    uint32_t Imm = Value < 0 ? -Value : Value;
++    if (Value >= 0)
++      Imm |= 0x00800000;
++    writeImmediate<Arm_LdrPcRel>(R, Imm);
++    return Error::success();
++  }
+   case Arm_Jump24: {
+     if (hasTargetFlags(TargetSymbol, ThumbSymbol))
+       return make_error<JITLinkError>("Branch relocation needs interworking "
+@@ -983,6 +1000,7 @@ const char *getEdgeKindName(Edge::Kind K) {
+     KIND_NAME_CASE(Arm_Jump24)
+     KIND_NAME_CASE(Arm_MovwAbsNC)
+     KIND_NAME_CASE(Arm_MovtAbs)
++    KIND_NAME_CASE(Arm_LdrPcRel)
+     KIND_NAME_CASE(Thumb_Call)
+     KIND_NAME_CASE(Thumb_Jump24)
+     KIND_NAME_CASE(Thumb_MovwAbsNC)
+diff --git a/llvm/test/ExecutionEngine/JITLink/AArch32/ELF_ldr_pcrel_arm.s b/llvm/test/ExecutionEngine/JITLink/AArch32/ELF_ldr_pcrel_arm.s
+new file mode 100644
+index 000000000..0f3f0283b
+--- /dev/null
++++ b/llvm/test/ExecutionEngine/JITLink/AArch32/ELF_ldr_pcrel_arm.s
+@@ -0,0 +1,28 @@
++# RUN: llvm-mc -triple=armv7-linux-gnueabi -arm-add-build-attributes -filetype=obj -o %t.o %s
++# RUN: llvm-objdump -r %t.o | FileCheck %s --check-prefix=RELOC
++# RUN: llvm-jitlink -noexec -slab-address 0x100000 -slab-allocate 10Kb -slab-page-size 4096 -abs forward=0x100100 -abs backward=0xfff00 -check %s %t.o
++# RELOC: R_ARM_LDR_PC_G0 forward
++# RELOC: R_ARM_LDR_PC_G0 backward
++# RELOC: R_ARM_LDR_PC_G0 forward
++# jitlink-check: decode_operand(main, 2) = (forward - main - 8)[31:0]
++# jitlink-check: decode_operand(negative, 2) = (backward - negative - 8)[31:0]
++# jitlink-check: decode_operand(predicated, 2) = ((forward + 12) - (predicated + 8))[31:0]
++# jitlink-check: (*{4}predicated)[31:28] = 1
++# jitlink-check: (*{4}predicated)[15:12] = 4
++        .syntax unified
++        .arm
++        .text
++        .globl main, negative, predicated
++        .type main, %function
++main:
++        ldr r0, forward
++        .size negative, 4
++        .type negative, %function
++negative:
++        ldr r1, backward
++        .size predicated, 4
++        .type predicated, %function
++predicated:
++        ldrne r4, forward + 12
++        bx lr
++        .size main, .-main
+diff --git a/llvm/test/ExecutionEngine/JITLink/AArch32/ELF_ldr_pcrel_arm_range.s b/llvm/test/ExecutionEngine/JITLink/AArch32/ELF_ldr_pcrel_arm_range.s
+new file mode 100644
+index 000000000..2a71209f6
+--- /dev/null
++++ b/llvm/test/ExecutionEngine/JITLink/AArch32/ELF_ldr_pcrel_arm_range.s
+@@ -0,0 +1,17 @@
++# RUN: llvm-mc -triple=armv7-linux-gnueabi -arm-add-build-attributes -filetype=obj -o %t.o %s
++# RUN: llvm-jitlink -noexec -slab-address 0x100000 -slab-allocate 10Kb -slab-page-size 4096 -abs target=0x101007 -check %s %t.o
++# RUN: llvm-jitlink -noexec -slab-address 0x100000 -slab-allocate 10Kb -slab-page-size 4096 -abs target=0xff009 -check %s %t.o
++# RUN: llvm-jitlink -noexec -slab-address 0x100000 -slab-allocate 10Kb -slab-page-size 4096 -abs target=0x100008 -check %s %t.o
++# RUN: not llvm-jitlink -noexec -slab-address 0x100000 -slab-allocate 10Kb -slab-page-size 4096 -abs target=0x101008 %t.o 2>&1 | FileCheck %s
++# RUN: not llvm-jitlink -noexec -slab-address 0x100000 -slab-allocate 10Kb -slab-page-size 4096 -abs target=0xff008 %t.o 2>&1 | FileCheck %s
++# CHECK: out of range
++# jitlink-check: decode_operand(main, 2) = (target - main - 8)[31:0]
++        .syntax unified
++        .arm
++        .text
++        .globl main
++        .type main, %function
++main:
++        ldr r0, target
++        bx lr
++        .size main, .-main
