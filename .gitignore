@@ -37,3 +37,6 @@ Thumbs.db
 # Pre-merge history of deleted repos, kept as local git bundles (not on GitHub by design;
 # back them up outside this checkout). Restore: git clone <file>.bundle
 legacy-archives/*.bundle
+
+# Chainloader build outputs (the deliverable kernel7l_fast.img is committed next to the source)
+tools/pi4-serialboot-fast/out/

@@ -22,6 +22,8 @@ import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.join(HERE, ".."))
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from proc_util import run_bounded  # noqa: E402
 from bolt_dump_reassemble import parse_dump_stream  # noqa: E402
 
 PGO_RE = re.compile(r"bolt_pgo_dump: addr=([0-9a-fA-F]+) size=([0-9a-fA-F]+)")
@@ -32,7 +34,7 @@ def run_pi(image: str, port: str, commands: list[str]) -> str:
         sys.executable, os.path.join(HERE, "pi4_run.py"), image,
         "--port", port, "--reboot", "--wait", "30", "--max-wait", "60",
     ] + commands
-    out = subprocess.run(cmd, capture_output=True)
+    out = run_bounded(cmd, 900)
     text = out.stdout.decode("utf-8", errors="replace")
     if out.returncode != 0:
         sys.exit(f"pi4_run.py failed ({out.returncode}):\n{text[-2000:]}\n{out.stderr.decode(errors='replace')[-1000:]}")

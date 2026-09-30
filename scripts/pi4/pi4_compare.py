@@ -27,6 +27,7 @@ import sys
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 from stats_util import fmt_delta, mean_ci95  # noqa: E402
+from proc_util import run_bounded  # noqa: E402
 CYC_RE = re.compile(r"bolt_bench: (\w+) done \((\d+) cycles\)")
 PMU_RE = re.compile(
     r"bolt_bench: (\w+) pmu inst=(\d+) l1i_refill=(\d+) l1d_refill=(\d+) br_mispred=(\d+)(?: taken=(\d+))?"
@@ -56,7 +57,7 @@ def _boot_and_run(image: str, port: str, workload: str, runs: int) -> list[dict]
         sys.executable, os.path.join(HERE, "pi4_run.py"), image,
         "--port", port, "--reboot", "--wait", "30", "--max-wait", "60",
     ] + [f"bolt_bench {workload} {EXTRA_ARGS}".strip()] * runs
-    out = subprocess.run(cmd, capture_output=True, timeout=300)
+    out = run_bounded(cmd, 300)
     text = out.stdout.decode("utf-8", errors="replace").replace("\r", "\n")
     if out.returncode != 0:
         tail = text[-600:]

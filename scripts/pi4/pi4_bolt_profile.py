@@ -22,6 +22,8 @@ import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.join(HERE, ".."))
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from proc_util import run_bounded  # noqa: E402
 from bolt_dump_reassemble import parse_dump_stream  # noqa: E402
 
 
@@ -40,7 +42,7 @@ def main() -> int:
         "--port", args.port, "--reboot", "--wait", "30", "--max-wait", "60",
         f"bolt_bench {args.workload}", f"bolt_dump {args.addr} {args.size}",
     ]
-    out = subprocess.run(cmd, capture_output=True)
+    out = run_bounded(cmd, 900)
     text = out.stdout.decode("utf-8", errors="replace")
     if out.returncode != 0:
         sys.exit(f"pi4_run.py failed ({out.returncode}):\n{text[-2000:]}")

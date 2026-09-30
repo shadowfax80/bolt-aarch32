@@ -26,6 +26,7 @@ Usage:
 from __future__ import annotations
 
 import argparse
+import os
 import sys
 import time
 from pathlib import Path
@@ -82,10 +83,20 @@ def main() -> None:
     ap.add_argument("--max-wait", type=float, default=90.0,
                     help="hard timeout per command if LK's prompt never comes back "
                          "(default: 90s, generous enough for a full profiler dump)")
+    ap.add_argument("--fast", action="store_true",
+                    help="upload at 3 Mbaud (needs the fast chainloader installed on the SD card); "
+                         "falls back to the slow upload if the fast one fails")
+    ap.add_argument("--fast-loader", metavar="IMG",
+                    help="hot-load this fast chainloader image through the SD card's chainloader "
+                         "first (no SD-card change), then upload the payload at 3 Mbaud")
     ap.add_argument("--reboot", action="store_true",
                     help="if LK is running (no SBOOT? prompt), send it `reboot` "
                          "first instead of waiting for a manual power-cycle")
     args = ap.parse_args()
+    # PI4_FAST_LOADER=<img> turns on the 3 Mbaud upload for every script that shells out to
+    # this one (pi4_compare.py, pgo_lab_measure.py, pi4_bolt_profile.py, ...): no per-script flag.
+    if not args.fast_loader and os.environ.get("PI4_FAST_LOADER"):
+        args.fast_loader = os.environ["PI4_FAST_LOADER"]
 
     with open(args.image, "rb") as f:
         image = f.read()
@@ -107,7 +118,19 @@ def main() -> None:
         port.reset_input_buffer()
         if args.reboot:
             reboot_to_chainloader(port, console, args.post_jump_baud)
-        send_image(port, console, image, args.wait)
+        if args.fast_loader:
+            # Hot-load the fast chainloader as a payload of the one on the SD card (both are
+            # entered at 0x8000 in the same state), then talk to *it*. No SD-card change needed.
+            with open(args.fast_loader, "rb") as fh:
+                send_image(port, console, fh.read(), args.wait)
+        if args.fast or args.fast_loader:
+            try:
+                send_image(port, console, image, args.wait, fast=True)
+            except SystemExit as e:
+                print(f"fast upload failed ({e}); retrying at the slow baud", file=sys.stderr)
+                send_image(port, console, image, args.wait)
+        else:
+            send_image(port, console, image, args.wait)
 
         if args.post_jump_baud != args.baud:
             switch_baud(port, args.post_jump_baud)

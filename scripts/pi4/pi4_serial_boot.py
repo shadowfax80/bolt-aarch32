@@ -157,19 +157,32 @@ def reboot_to_chainloader(port: serial.Serial, console: Console,
     switch_baud(port, loader_baud)
 
 
+FAST_BAUD = 3_000_000
+
+
 def send_image(port: serial.Serial, console: Console, image: bytes,
-               wait: float | None) -> None:
+               wait: float | None, fast: bool = False) -> None:
+    """Upload `image` through the chainloader. fast=True uses the "LKB3" mode of the fast
+    chainloader (tools/pi4-serialboot-fast): the handshake and every reply stay at the
+    loader's baud, only the payload goes at FAST_BAUD. The old chainloader answers "LKB3"
+    with silence and never reaches OK, so the caller falls back to fast=False."""
     print(f"waiting for the chainloader on {port.port} "
           "(power-cycle the Pi if it's running an earlier payload)...")
     wait_for(port, console, ("SBOOT?",), wait)
 
     crc = zlib.crc32(image) & 0xFFFFFFFF
     print(f"bootloader ready; sending {len(image)} bytes, crc32 {crc:#010x}")
-    port.write(b"LKBT" + struct.pack("<II", len(image), crc))
+    port.write((b"LKB3" if fast else b"LKBT") + struct.pack("<II", len(image), crc))
 
     reply = wait_for(port, console, ("OK", "ER"), 5.0, quiet=("SBOOT?",))
     if reply.startswith("ER"):
         sys.exit(f"error: bootloader refused the image: {reply}")
+
+    loader_baud = port.baudrate
+    if fast:
+        # The loader is now at FAST_BAUD and ignores the line for 250 ms (the host's baud change
+        # can emit a glitch byte); send only after that.
+        switch_baud(port, FAST_BAUD, settle_s=0.35)
 
     chunk = 1024
     start = time.monotonic()
@@ -182,6 +195,11 @@ def send_image(port: serial.Serial, console: Console, image: bytes,
         sys.stdout.flush()
     port.flush()
     print()
+    if fast:
+        # The loader waits 300 ms after the last byte before returning to its slow baud and
+        # printing anything; be back at the slow baud well before that.
+        time.sleep(0.10)
+        switch_baud(port, loader_baud, settle_s=0.05)
 
     # The loader re-reads the whole payload from memory for a second CRC
     # before answering; with its caches off that takes seconds on a
