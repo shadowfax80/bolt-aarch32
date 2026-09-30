@@ -1,5 +1,10 @@
 # RunPod pod playbook
 
+> **Legacy (2026-09-30).** RunPod is no longer used: EU-RO-1 ran out of CPU capacity and the
+> volume `3g114i4sby` named below was deleted. Work happens in local WSL2, see
+> [WSL_BUILD.md](WSL_BUILD.md). Kept as a record of the API shape and the traps; do not
+> follow the commands without recreating a volume first.
+
 **Volume:** `j1d9e6wq5l` → `/workspace` (EU-RO-1) — all builds live here.  
 **Billing:** ~$0.06/hr while a 2 vCPU cpu3c pod runs; ~$10/mo volume storage when stopped.
 

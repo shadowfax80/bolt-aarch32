@@ -1,5 +1,10 @@
 # Recreating the RunPod network volume from nothing
 
+> **Historical (2026-09-30).** The replacement volume `3g114i4sby` was deleted as well, and
+> the toolchain now builds in local WSL2 with `scripts/wsl-setup.sh` ([WSL_BUILD.md](WSL_BUILD.md)).
+> The pins and patch-replay order below are still accurate for any fresh Linux build
+> environment; the RunPod steps (volume, pod) are not needed.
+
 The network volume `j1d9e6wq5l` (150 GB, EU-RO-1) was deleted 2026-09-22 to
 stop paying its ~$0.015/hr storage cost while no active work was happening.
 **Nothing on it was unique** — everything needed to rebuild an equivalent

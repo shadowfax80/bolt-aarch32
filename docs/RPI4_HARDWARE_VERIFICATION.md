@@ -11,6 +11,25 @@ project: same Pi 4B, same USB-serial adapter (COM5 on the dev machine), same
 `experiments/pi4-serialboot` chainloader already on the SD card (generic,
 payload-agnostic — no reflash needed for this project's own images).
 
+## Summary of results (real Pi 4B, updated 2026-09-30)
+
+Every number below is from the real Pi's PMU, interleaved runs, result checksums identical
+across the compared images; details, controls and raw data are in the sections named.
+
+| Technique | Where it pays off | Result | Section |
+|---|---|---|---|
+| **PGO** | dispatch lowering of a skewed switch (92% one case) | **-37%** cycles (`pl_b`); hot-callsite inlining -2.8%; branch layout, spill placement, unrolling ~0% | "Where PGO pays off" |
+| **ThinLTO** | cross-TU inlining, as long as the inlined hot path fits the 48 KB L1I | composite -32.8%; stair function -11% up to 416 sites, -7.75% at 432, a **regression** from 448 sites (+3.7%..+84%) | "Step 10", "Calibrated staged story" |
+| **BOLT** (block layout) | the L1I misses ThinLTO's inlining causes | -10.1% / -9.0% / -6.4% against baseline at 448 / 512 / 640 sites; the no-reorder control is *worse* than ThinLTO alone | "BOLT on the stair workload" |
+| **BOLT** (several functions) | hot functions spread over the same L1I sets | **-44%** cycles, L1I refills 1.96M -> 61k; the gain is contiguous placement; a spacing-preserving control is +2% | "Multi-function BOLT on the Pi" |
+
+Staged at 432 sites, all in one image: PGO -37.1% (skewed switch), ThinLTO -8.0% on top,
+BOLT a further -2.9% (-10.4% against baseline). Not every stage helps every kind of code: the
+composite workload of Step 10 (everything fits in the L1I) got nothing from PGO or BOLT, and
+its "BOLT: no change" conclusion is unchanged. The Step 8/10 discussion below predates the
+complete edge profile (`--conservative-instrumentation`), the stair/multi workloads and the
+controls; read the later sections for the current picture.
+
 ## Status
 
 | Step | What | Status |
@@ -28,6 +47,8 @@ payload-agnostic — no reflash needed for this project's own images).
 
 ## Step 1 — environment
 
+(Historical: this step ran on RunPod. The environment now lives in local WSL2,
+see [WSL_BUILD.md](WSL_BUILD.md); volume `3g114i4sby` was deleted 2026-09-30.)
 New network volume `3g114i4sby` (150 GB, EU-RO-1), replacing the deleted
 `j1d9e6wq5l`. `BASE=atfe` build of LLVM+BOLT (clang/lld/llvm-bolt), the
 bare-metal BOLT runtime (`libbolt_rt_baremetal.a`, arm-none-eabi/cortex-a15),

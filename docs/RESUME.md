@@ -1,5 +1,9 @@
 # Resume guide
 
+> **Superseded 2026-09-30: nothing runs on RunPod any more.** The work moved to a local
+> WSL2 Ubuntu plus the real Pi; the second volume (`3g114i4sby`) was deleted too. To
+> resume, read [WSL_BUILD.md](WSL_BUILD.md). Everything below is RunPod-era history.
+
 > **Volume `j1d9e6wq5l` was deleted 2026-09-22** (verified nothing on it was
 > unique; storage billing stopped). Everything below that assumes it still
 > exists is stale. To resume work, start from

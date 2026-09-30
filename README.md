@@ -2,14 +2,16 @@
 
 Working toward an **AArch32 (ARM/Thumb) backend for LLVM BOLT**, with a bare-metal **Little Kernel** harness that collects instrumentation profiles **in RAM** — no OS, no filesystem, no `perf`.
 
-Upstream [llvm-project](https://github.com/llvm/llvm-project) and [lk](https://github.com/littlekernel/lk) are **not forked**. Only deltas live in `overlay/` on GitHub. **llvm, lk, builds, and QEMU all run on the RunPod network volume** — see [docs/RESUME.md](docs/RESUME.md). Do not clone upstream on your laptop.
+Upstream [llvm-project](https://github.com/llvm/llvm-project) and [lk](https://github.com/littlekernel/lk) are **not forked**. Only deltas live in `overlay/` on GitHub. **llvm, lk and the builds run in a local WSL2 Ubuntu, and measurements run on a real Raspberry Pi 4B** — see [docs/WSL_BUILD.md](docs/WSL_BUILD.md). (RunPod was used until 2026-09-30 and is no longer; its docs are kept as history.) Do not clone upstream on the Windows side.
 
 ## Documentation
 
 | Doc | What |
 |-----|------|
-| [docs/VOLUME_RECREATION.md](docs/VOLUME_RECREATION.md) | **No volume? Start here** — pins, exact commands to rebuild it from git |
-| [docs/RESUME.md](docs/RESUME.md) | Historical resume notes — largely superseded by the above |
+| [docs/WSL_BUILD.md](docs/WSL_BUILD.md) | **Start here** — build the toolchain locally in WSL2 and measure on the Pi |
+| [docs/RPI4_HARDWARE_VERIFICATION.md](docs/RPI4_HARDWARE_VERIFICATION.md) | Real Pi 4B results: staged PGO / ThinLTO / BOLT, multi-function BOLT, PGO lab, bugs found |
+| [docs/VOLUME_RECREATION.md](docs/VOLUME_RECREATION.md) | Historical — recreating the RunPod volume (both volumes are now deleted) |
+| [docs/RESUME.md](docs/RESUME.md) | Historical resume notes (RunPod era) |
 | [docs/why-bolt.md](docs/why-bolt.md) | What BOLT does that PGO and LTO cannot, with examples |
 | [docs/PROJECT_PLAN.md](docs/PROJECT_PLAN.md) | Checklist, status, decisions |
 | [docs/architecture.md](docs/architecture.md) | End-to-end flow, overlay split, toolchain baseline |
@@ -23,29 +25,31 @@ Upstream [llvm-project](https://github.com/llvm/llvm-project) and [lk](https://g
 
 | Phase | Focus | Status |
 |-------|-------|--------|
-| 0 | Repo, scripts, RunPod | Done |
-| 1 | LLVM + BOLT toolchain (`release/23.x`) | Done (on pod volume) |
+| 0 | Repo, scripts | Done (RunPod until 2026-09-30, local WSL2 since) |
+| 1 | LLVM + BOLT toolchain | Done — ATFE `BASE=atfe`, LLVM 24.0.0git, built locally in WSL2 |
 | 2 | AArch64 in-RAM profiling + BOLT optimize on LK | **Done** — instrument → fdata → optimize boots |
-| 3 | AArch32 backend → LLVM upstream | **P1 done** — patches `0003`–`0007` staged |
+| 3 | AArch32 backend → LLVM upstream | **P1 done** — patches `0003`–`0007` staged; upstream blockers deferred (see [KNOWN_LIMITATIONS](docs/KNOWN_LIMITATIONS.md)) |
+| 4 | Real Raspberry Pi 4B verification | **Done** — staged PGO → ThinLTO → BOLT with the Pi's PMU, multi-function BOLT ([results](docs/RPI4_HARDWARE_VERIFICATION.md)) |
 
 Phase 2 exists to prove bare-metal profiling on an architecture BOLT already supports, so that Phase 3 only has to solve the AArch32 problem.
 
 ## Quick start
 
-**All builds run on the RunPod pod** (network volume `/workspace`). See [docs/RESUME.md](docs/RESUME.md) to restart after a pause.
+**Builds run in local WSL2; measurements run on the Pi.** Full walkthrough: [docs/WSL_BUILD.md](docs/WSL_BUILD.md).
 
 ```bash
-# On the pod, after git pull:
-cd /workspace/bolt-lk-overlay
-./scripts/install-deps.sh          # once per fresh pod
-./scripts/fetch-sources.sh         # only if third_party/ missing on volume
-./scripts/build-llvm-bolt.sh       # Phase 1 — already done on volume
-./scripts/apply-overlays.sh        # when overlay patches exist
-./scripts/run-qemu-lk.sh             # boot LK in QEMU
-./scripts/verify-bolt-workloads.sh   # bolt_bench → profile → optimize → boot
+# One time (from the Windows checkout):
+wsl -d Ubuntu -u root -- bash scripts/wsl-setup.sh deps
+wsl -d Ubuntu          -- bash scripts/wsl-setup.sh build     # ~1 h: ATFE clang/lld/BOLT + runtimes
+# After edits:
+wsl -d Ubuntu          -- bash scripts/wsl-setup.sh sync
+# One staged Pi measurement (PGO -> ThinLTO -> BOLT), from Git Bash with the Pi on COM5:
+scripts/pi4/bolt_stage.sh 6:3
 ```
 
-Copy `.env.example` to `.env` on the pod; set `NETWORK_VOLUME_ID=j1d9e6wq5l` to reattach the saved volume.
+The QEMU path (`scripts/run-qemu-lk.sh`, `scripts/verify-bolt-workloads.sh`) still works inside WSL for debugging; it is never the source of a reported number.
+
+`.env.example`'s RunPod block is legacy and unused.
 
 ## Two LLVM bases, one repo
 
