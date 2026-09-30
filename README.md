@@ -76,7 +76,7 @@ needs building per base.
 This repo used to be two separate repos — `bolt-aarch32` (this one) and
 `atfe-bolt-aarch32` — kept in sync by hand across every fix. That second
 repo has been deleted; its pre-merge history is kept offline as a git
-bundle (`atfe-bolt-aarch32-legacy.bundle`) rather than on GitHub, since
+bundle (`legacy-archives/atfe-bolt-aarch32-legacy.bundle`, gitignored, so back it up outside this checkout) rather than on GitHub, since
 nothing current depends on it. Everything live is here.
 
 The two patch sets aren't byte-identical (real API drift between the two

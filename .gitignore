@@ -33,3 +33,7 @@ tmp-arm-backend/
 *.swp
 .DS_Store
 Thumbs.db
+
+# Pre-merge history of deleted repos, kept as local git bundles (not on GitHub by design;
+# back them up outside this checkout). Restore: git clone <file>.bundle
+legacy-archives/*.bundle

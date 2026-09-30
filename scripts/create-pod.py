@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# LEGACY (2026-09-30): RunPod is no longer used -- EU-RO-1 ran out of CPU capacity and both
+# network volumes are deleted. Kept for reference only; the current workflow is
+# docs/WSL_BUILD.md (local WSL2 + the real Pi).
 """Create a RunPod CPU pod with the project network volume attached.
 
 Single entry point for pod creation — use this on Windows and Linux.

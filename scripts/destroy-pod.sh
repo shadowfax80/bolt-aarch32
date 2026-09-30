@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+# LEGACY (2026-09-30): RunPod is no longer used -- EU-RO-1 ran out of CPU capacity and both
+# network volumes are deleted. Kept for reference only; the current workflow is
+# docs/WSL_BUILD.md (local WSL2 + the real Pi).
 # Stop (if running) and delete a pod. The network volume is untouched.
 set -euo pipefail
 

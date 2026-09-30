@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+# LEGACY (2026-09-30): the RunPod-pod version of the PGO cycle. Use
+# scripts/pi4/pgo_cycle_wsl.sh (builds in local WSL2); see docs/WSL_BUILD.md.
 # One PGO training cycle across the build pod and the real Pi, then rebuild the
 # profile-using variants. Run from the dev machine (it needs the Pi on COM5).
 #
