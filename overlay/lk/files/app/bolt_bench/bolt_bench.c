@@ -653,6 +653,169 @@ __attribute__((noinline)) void bolt_bench_stair(void) {
     g_bolt_bench_sink = acc;
 }
 
+/* --- pgo_lab: which compiler decisions does a profile actually change? ---------
+ * Four independent kernels, each isolating one thing PGO can do that a static -O2
+ * build cannot know. baseline vs +PGO on the same source shows which ones pay off on
+ * a Cortex-A72 (branch layout alone does not: the stair workload showed predicted
+ * taken branches are nearly free). The kernels are throughput-bound (independent
+ * lanes) so instruction-count effects are visible, and every input is opaque to
+ * the compiler (volatile / table loaded) so nothing folds.
+ *   a  hot call-site inlining: pl_mix() is ~80 IR instructions, over -O2's inline
+ *      threshold, called from 4 hot sites and 1 cold one. Only a profile says the
+ *      sites are hot and raises the threshold.
+ *   b  skewed switch: 92% of ops are case 0. A profile peels the hot case into a
+ *      compare before the jump table.
+ *   c  register pressure around a cold call: 12 live accumulators, and a rare call
+ *      to a noinline function. A profile keeps the hot path in registers.
+ *   d  loop trip count: an inner loop of 2..5 iterations (average 3.5) that a profile
+ *      can unroll.
+ */
+#define PL_MIXR(c, s) v = ((v ^ (k + (c))) * 0x9E3779B1u) ^ (v >> (s));
+static uint32_t pl_mix(uint32_t v, uint32_t k) {
+    PL_MIXR(0x1001u, 3)
+    PL_MIXR(0x2002u, 8)
+    PL_MIXR(0x3003u, 13)
+    PL_MIXR(0x4004u, 7)
+    PL_MIXR(0x5005u, 12)
+    PL_MIXR(0x6006u, 6)
+    PL_MIXR(0x7007u, 11)
+    PL_MIXR(0x8008u, 5)
+    PL_MIXR(0x9009u, 10)
+    PL_MIXR(0xa00au, 4)
+    PL_MIXR(0xb00bu, 9)
+    PL_MIXR(0xc00cu, 3)
+    PL_MIXR(0xd00du, 8)
+    PL_MIXR(0xe00eu, 13)
+    PL_MIXR(0xf00fu, 7)
+    PL_MIXR(0x0010u, 12)
+    PL_MIXR(0x1011u, 6)
+    PL_MIXR(0x2012u, 11)
+    PL_MIXR(0x3013u, 5)
+    PL_MIXR(0x4014u, 10)
+    return v;
+}
+
+static uint8_t g_pl_ops[1024];
+static volatile uint32_t g_pl_mask;
+
+static void pl_init(void) {
+    uint32_t s = 12345u;
+    for (uint32_t i = 0; i < 1024; i++) {
+        s = s * 1664525u + 1013904223u;
+        uint32_t r = s >> 24;
+        g_pl_ops[i] = (r < 236u) ? 0 : (uint8_t)(1 + (r % 15u));
+    }
+    g_pl_mask = 0xFFFFu;
+}
+
+__attribute__((noinline)) static uint32_t pl_a(uint32_t seed, uint32_t n) {
+    uint32_t mask = g_pl_mask;
+    uint32_t a0 = seed, a1 = seed + 1, a2 = seed + 2, a3 = seed + 3;
+    for (uint32_t i = 0; i < n; i++) {
+        a0 = pl_mix(a0, i);
+        a1 = pl_mix(a1, i ^ 0x55u);
+        a2 = pl_mix(a2, i + 7u);
+        a3 = pl_mix(a3, i * 3u);
+        if ((a0 & mask) == 0) {
+            a0 = pl_mix(a0, 0x1234u);
+        }
+    }
+    return a0 ^ a1 ^ a2 ^ a3;
+}
+
+__attribute__((noinline)) static uint32_t pl_b(uint32_t seed, uint32_t n) {
+    uint32_t acc = seed, b1 = seed + 1, b2 = seed + 2, b3 = seed + 3, b4 = seed + 4, b5 = seed + 5;
+    for (uint32_t i = 0; i < n; i++) {
+        switch (g_pl_ops[i & 1023u]) {
+        case 0: acc = acc * 0x9E3779B1u + i; break;
+        case 1: acc = (acc ^ 0x1111u) * 0x85ebca6bu; acc += acc >> 3; __asm__ volatile("" : "+r"(acc)); break;
+        case 2: acc = (acc ^ 0x2222u) * 0xc2b2ae35u; acc += acc >> 4; __asm__ volatile("" : "+r"(acc)); break;
+        case 3: acc = (acc ^ 0x3333u) * 0x27d4eb2fu; acc += acc >> 5; __asm__ volatile("" : "+r"(acc)); break;
+        case 4: acc = (acc ^ 0x4444u) * 0x165667b1u; acc += acc >> 6; __asm__ volatile("" : "+r"(acc)); break;
+        case 5: acc = (acc ^ 0x5555u) * 0xd3a2646cu; acc += acc >> 7; __asm__ volatile("" : "+r"(acc)); break;
+        case 6: acc = (acc ^ 0x6666u) * 0xfd7046c5u; acc += acc >> 8; __asm__ volatile("" : "+r"(acc)); break;
+        case 7: acc = (acc ^ 0x7777u) * 0xb55a4f09u; acc += acc >> 9; __asm__ volatile("" : "+r"(acc)); break;
+        case 8: acc = (acc ^ 0x8888u) * 0x9e3779b1u; acc += acc >> 10; __asm__ volatile("" : "+r"(acc)); break;
+        case 9: acc = (acc ^ 0x9999u) * 0x85ebca6bu; acc += acc >> 2; __asm__ volatile("" : "+r"(acc)); break;
+        case 10: acc = (acc ^ 0xaaaau) * 0xc2b2ae35u; acc += acc >> 3; __asm__ volatile("" : "+r"(acc)); break;
+        case 11: acc = (acc ^ 0xbbbbu) * 0x27d4eb2fu; acc += acc >> 4; __asm__ volatile("" : "+r"(acc)); break;
+        case 12: acc = (acc ^ 0xccccu) * 0x165667b1u; acc += acc >> 5; __asm__ volatile("" : "+r"(acc)); break;
+        case 13: acc = (acc ^ 0xddddu) * 0xd3a2646cu; acc += acc >> 6; __asm__ volatile("" : "+r"(acc)); break;
+        case 14: acc = (acc ^ 0xeeeeu) * 0xfd7046c5u; acc += acc >> 7; __asm__ volatile("" : "+r"(acc)); break;
+        case 15: acc = (acc ^ 0xffffu) * 0xb55a4f09u; acc += acc >> 8; __asm__ volatile("" : "+r"(acc)); break;
+        }
+        b1 += i ^ 0x11u; b2 ^= i + 3u; b3 += i * 5u; b4 ^= i >> 1; b5 += i ^ 0x77u;
+        __asm__ volatile("" : "+r"(b1), "+r"(b2), "+r"(b3), "+r"(b4), "+r"(b5));
+    }
+    return acc ^ b1 ^ b2 ^ b3 ^ b4 ^ b5;
+}
+
+__attribute__((noinline)) static uint32_t pl_rare(uint32_t x) {
+    for (uint32_t i = 0; i < 8; i++) {
+        x = (x * 0x85EBCA6Bu) ^ (x >> 13) ^ i;
+    }
+    return x;
+}
+
+__attribute__((noinline)) static uint32_t pl_c(uint32_t seed, uint32_t n) {
+    uint32_t mask = g_pl_mask;
+    uint32_t r0 = seed, r1 = seed + 1, r2 = seed + 2, r3 = seed + 3, r4 = seed + 4, r5 = seed + 5;
+    uint32_t r6 = seed + 6, r7 = seed + 7, r8 = seed + 8, r9 = seed + 9, r10 = seed + 10, r11 = seed + 11;
+    for (uint32_t i = 0; i < n; i++) {
+        r0 += i; r1 ^= i + 1u; r2 += r0 >> 3; r3 ^= r1 + 5u; r4 += i * 3u; r5 ^= r4 >> 2;
+        r6 += r5 ^ i; r7 ^= r6 + 9u; r8 += r7 >> 1; r9 ^= r8 + i; r10 += r9 ^ 0x33u; r11 ^= r10 + 1u;
+        if (((r0 ^ r11) & mask) == 0) {
+            r0 ^= pl_rare(r1 + r2 + r3);
+        }
+    }
+    return r0 ^ r1 ^ r2 ^ r3 ^ r4 ^ r5 ^ r6 ^ r7 ^ r8 ^ r9 ^ r10 ^ r11;
+}
+
+__attribute__((noinline)) static uint32_t pl_d(uint32_t seed, uint32_t n) {
+    uint32_t acc = seed;
+    for (uint32_t i = 0; i < n; i++) {
+        uint32_t m = 2u + (g_pl_ops[i & 1023u] & 3u);
+        uint32_t t = acc + i;
+        for (uint32_t j = 0; j < m; j++) {
+            t = (t ^ j) * 0x9E3779B1u + (t >> 7);
+        }
+        acc += t;
+    }
+    return acc;
+}
+
+static void pl_run(const char *name, uint32_t (*fn)(uint32_t, uint32_t), uint32_t n) {
+    struct bolt_pmu p0, p1;
+    bolt_pmu_init();
+    thread_t *self = get_current_thread();
+    int old_pin = thread_pinned_cpu(self);
+    uint start_cpu = arch_curr_cpu_num();
+    thread_set_pinned_cpu(self, (int)start_cpu);
+    uint32_t acc = fn(1u, n / 16u + 1u); /* warm-up: caches and predictors */
+    arch_disable_ints();
+    lk_time_t t0 = arch_cycle_count();
+    bolt_pmu_read(&p0);
+    acc ^= fn(2u, n);
+    bolt_pmu_read(&p1);
+    lk_time_t cyc = arch_cycle_count() - t0;
+    arch_enable_ints();
+    bench_banner(name, cyc);
+    if (arch_curr_cpu_num() == start_cpu) {
+        bolt_pmu_report(name, &p0, &p1);
+    }
+    thread_set_pinned_cpu(self, old_pin);
+    printf("bolt_bench: %s acc=0x%08x\n", name, (unsigned)acc);
+    g_bolt_bench_sink = acc;
+}
+
+__attribute__((noinline)) void bolt_bench_pgo_lab(void) {
+    pl_init();
+    pl_run("pl_a", pl_a, 60000u);
+    pl_run("pl_b", pl_b, 2000000u);
+    pl_run("pl_c", pl_c, 1500000u);
+    pl_run("pl_d", pl_d, 1000000u);
+}
+
 static void run_one(const char *name) {
     if (!strcmp(name, "hot_loop")) {
         bolt_bench_hot_loop();
@@ -690,6 +853,8 @@ static void run_one(const char *name) {
         bolt_bench_composite();
     } else if (!strcmp(name, "stair")) {
         bolt_bench_stair();
+    } else if (!strcmp(name, "pgo_lab")) {
+        bolt_bench_pgo_lab();
     } else if (!strcmp(name, "all")) {
         bolt_bench_hot_loop();
         bolt_bench_hot_cold();
@@ -716,7 +881,7 @@ static void run_one(const char *name) {
 
 static int bolt_bench_cmd(int argc, const console_cmd_args *argv) {
     if (argc < 2) {
-        printf("usage: bolt_bench <hot_loop|hot_cold|branch_chain|memcpy|far_call|it_cond|interwork|switch|spill_ret|litpool|indirect_call|interwork_tail|regpressure|hotcold_split|icf|shrinkwrap|composite|stair|all>\n");
+        printf("usage: bolt_bench <hot_loop|hot_cold|branch_chain|memcpy|far_call|it_cond|interwork|switch|spill_ret|litpool|indirect_call|interwork_tail|regpressure|hotcold_split|icf|shrinkwrap|composite|stair|pgo_lab|all>\n");
         return -1;
     }
     g_pmu_set_req = (argc > 2 && argv[2].i == 1) ? 1 : 0;

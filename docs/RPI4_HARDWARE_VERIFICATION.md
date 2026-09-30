@@ -522,6 +522,43 @@ What it shows:
   on the same input the measurement runs (no held-out input); only one function is
   rewritten per point.
 
+## Where PGO pays off: the pgo_lab kernels (2026-09-30, real Pi 4B)
+
+PGO was ~0% on every stair point, so the first question was which decisions a
+profile changes that matter on a Cortex-A72. `bolt_bench pgo_lab` runs four
+independent kernels (`pl_a`..`pl_d`), each isolating one mechanism, each with its
+own PMU window; every input is opaque to the compiler and the kernels have
+independent lanes so instruction-count effects show. Baseline vs +PGO (PGO trained
+on composite + stair + pgo_lab together, ATFE clang), 3 rounds x 2 runs interleaved
+by `scripts/pi4/pgo_lab_measure.py`, checksums identical for both images
+(`docs/results/pgo_lab.csv`):
+
+| Kernel | Mechanism | baseline cycles | +PGO | instructions | IPC | mispredicts |
+|---|---|---|---|---|---|---|
+| `pl_a` | hot call-site inlining (callee over -O2's threshold) | 25.68M | **-2.80%** | -6.0% | 1.01 -> 0.97 | ~0 |
+| **`pl_b`** | **skewed switch (92% case 0)** | 29.81M | **-35.40%** | -15.6% | 1.49 -> 1.95 | -38% (287k -> 177k) |
+| `pl_c` | spill placement around a cold call | 18.82M | -0.35% | +6.4% | 2.47 -> 2.64 | 22 |
+| `pl_d` | loop trip count (2..5 iterations) | 14.12M | -0.01% | 0 | 1.11 | -1% |
+
+- **The clear PGO win is switch-dispatch lowering.** With the profile the hot case's
+  body sits inline on the loop's fall-through path; only the other 8% go through the
+  jump table. That removes ~7M instructions and ~110k indirect-branch mispredicts on
+  the hot path: IPC rises 1.49 -> 1.95, cycles -35%.
+- **Hot-callsite inlining works but is worth little here** (-2.8%). Disassembly:
+  `pl_a` has 5 `bl pl_mix` in the baseline and 1 (the cold site) with PGO; the function
+  grows 46 -> 443 instructions. The callee is ~80 instructions, so the call and return
+  are a small part of each call.
+- **Spill placement and trip-count unrolling did nothing measurable.** `pl_c` executes
+  more instructions with PGO (+6.4%) at a higher IPC and ends up flat; `pl_d` is
+  identical to the instruction.
+- **Limit:** the profile is trained on the same input the measurement runs, as in a
+  normal PGO build; there is no held-out input. The branch skew (92%) is a property of
+  the data table, so the size of the win depends on it.
+
+So PGO can show a large, mechanism-confirmed gain on this core, but from dispatch
+lowering, not from block layout. The stair workload (where PGO stays ~0%) has no
+skewed switch; combining the two into one staged workload is the next step.
+
 ## Bugs found on the way (debugged with QEMU and the Pi interchangeably)
 
 Each of these blocked BOLT/PGO on real hardware, and none had shown up in the
