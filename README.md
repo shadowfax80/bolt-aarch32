@@ -8,6 +8,7 @@ Upstream [llvm-project](https://github.com/llvm/llvm-project) and [lk](https://g
 
 | Doc | What |
 |-----|------|
+| [docs/TODO.md](docs/TODO.md) | Open TODOs, deferred by the owner: chainloader reflash, upstream blockers (ordered list) |
 | [docs/WSL_BUILD.md](docs/WSL_BUILD.md) | **Start here** — build the toolchain locally in WSL2 and measure on the Pi |
 | [docs/RPI4_HARDWARE_VERIFICATION.md](docs/RPI4_HARDWARE_VERIFICATION.md) | Real Pi 4B results: staged PGO / ThinLTO / BOLT, multi-function BOLT, PGO lab, bugs found |
 | [docs/VOLUME_RECREATION.md](docs/VOLUME_RECREATION.md) | Historical — recreating the RunPod volume (both volumes are now deleted) |

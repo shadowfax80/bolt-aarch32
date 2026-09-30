@@ -506,6 +506,8 @@ BOLT laid the code out from incomplete data; it has to be redone.
 
 ## TODO (deferred by the user, 2026-09-30): upstream blockers
 
+The ordered list now lives in [TODO.md](TODO.md); the summary below is kept for context.
+
 Definite TODO, deliberately deferred -- the user will take it up later, like the
 chainloader reflash. Landing the AArch32 backend in llvm-project main is blocked by
 the open items in [KNOWN_LIMITATIONS.md](KNOWN_LIMITATIONS.md): U1 (full-image rewrite
