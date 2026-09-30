@@ -13,7 +13,9 @@
 set -euo pipefail
 
 SRC="$(cd "$(dirname "$0")/.." && pwd)"
-DEST="$HOME/bolt-aarch32"
+# WSL_DEST overrides the build location (e.g. a from-scratch reproduction next to the
+# everyday tree).
+DEST="${WSL_DEST:-$HOME/bolt-aarch32}"
 
 case "${1:-}" in
 deps)
