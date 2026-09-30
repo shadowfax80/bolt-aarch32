@@ -30,6 +30,9 @@ PMU_RE = re.compile(
     r"bolt_bench: (\w+) pmu inst=(\d+) l1i_refill=(\d+) l1d_refill=(\d+) br_mispred=(\d+)(?: taken=(\d+))?"
 )
 FIELDS = ["cycles", "inst", "l1i_refill", "l1d_refill", "br_mispred", "taken"]
+# Result checksum the workload prints; every variant must agree or the comparison
+# is between programs that compute different things.
+ACC_RE = re.compile(r"bolt_bench: (\w+) acc=(0x[0-9a-fA-F]+)")
 
 
 def boot_and_run(image: str, port: str, workload: str, runs: int) -> list[dict]:
@@ -43,6 +46,7 @@ def boot_and_run(image: str, port: str, workload: str, runs: int) -> list[dict]:
         tail = text[-600:]
         raise RuntimeError(f"pi4_run failed for {image}: {tail}")
     cycles = [int(m.group(2)) for m in CYC_RE.finditer(text) if m.group(1) == workload]
+    accs = [m.group(2) for m in ACC_RE.finditer(text) if m.group(1) == workload]
     pmus = [tuple(int(x) for x in m.groups()[1:] if x is not None) for m in PMU_RE.finditer(text) if m.group(1) == workload]
     if "INVALID" in text:
         print("  note: a run reported a core migration; its PMU line is absent", file=sys.stderr)
@@ -50,7 +54,7 @@ def boot_and_run(image: str, port: str, workload: str, runs: int) -> list[dict]:
         raise RuntimeError(f"{image}: expected {runs} runs, got {len(cycles)} cycle lines")
     rows = []
     for i, c in enumerate(cycles):
-        row = {"cycles": c}
+        row = {"cycles": c, "acc": accs[i] if i < len(accs) else ""}
         if i < len(pmus):
             row.update(zip(FIELDS[1:], pmus[i]))
         rows.append(row)
@@ -83,7 +87,7 @@ def main() -> int:
 
     records: list[dict] = []
     with open(args.out, "w", newline="") as fh:
-        w = csv.DictWriter(fh, fieldnames=["variant", "round", "run"] + FIELDS)
+        w = csv.DictWriter(fh, fieldnames=["variant", "round", "run"] + FIELDS + ["acc"])
         w.writeheader()
         for rnd in range(1, args.rounds + 1):
             for name, path in variants:
@@ -95,6 +99,11 @@ def main() -> int:
                 fh.flush()
 
     print(f"\n{len(records)} runs -> {args.out}\n")
+    accs = sorted({r.get("acc", "") for r in records})
+    if len(accs) != 1 or not accs[0]:
+        print(f"CHECKSUM MISMATCH across runs/variants: {accs}", file=sys.stderr)
+    else:
+        print(f"checksum {accs[0]} identical in all {len(records)} runs\n")
     base = None
     for name, _ in variants:
         rs = [r for r in records if r["variant"] == name]

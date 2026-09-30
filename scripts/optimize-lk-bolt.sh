@@ -41,7 +41,9 @@ mkdir -p "$(dirname "$OUT")"
 BOLT_ARGS=(
   -data="$FDATA"
   -o "$OUT"
-  -reorder-blocks=ext-tsp
+  # BOLT_REORDER_BLOCKS=none gives the no-reorder control: the function is still
+  # rewritten and moved to the new .text, but keeps its block order.
+  -reorder-blocks="${BOLT_REORDER_BLOCKS:-ext-tsp}"
   -reorder-functions=hfsort+
   -icf=all
   # NOT included -- confirmed hard-gated to X86/AArch64 only in this LLVM

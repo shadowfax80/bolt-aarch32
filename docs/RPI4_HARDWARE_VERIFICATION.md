@@ -444,7 +444,7 @@ build now matches: overlay patches `0007-rpi4-no-fpu-neon` and
 `0008-rpi4-compile-no-fpu` (`-mfpu=none` for the whole rpi4 build). Verified by
 disassembling the full `lk.elf`: 0 FP/NEON instructions in 20,176.
 
-**Showing a BOLT gain (not yet shown).** Findings so far, all on the real Pi:
+**Showing a BOLT gain (shown, see "BOLT on the stair workload" below).** Findings on the way, all on the real Pi:
 
 - The first "layout headroom" kernels measured compiler if-conversion, not layout:
   PGO and hot blocks became Thumb-2 IT-predicated runs (`itttt mi`), a compile-time
@@ -474,6 +474,53 @@ Tooling fix found on the way: `pgo_cycle.sh` piped the remote build through
 `tail`, which hid a failed `pgo-collect` build, so training ran on a stale image
 and the profile-using variants silently ignored it (PGO looked like a 0% no-op).
 The remote commands now run with `pipefail`.
+
+## BOLT on the stair workload (2026-09-30, real Pi 4B)
+
+`scripts/pi4/bolt_stage.sh <M>` runs one complete point from scratch: PGO training
+on the Pi, builds of baseline / +PGO / +PGO+ThinLTO in WSL, BOLT edge profile
+(every edge counted, see above) on the Pi, BOLT optimize twice from the same
+profile, and a 3-round x 2-run interleaved measurement of five images with a
+checksum check. `<M>` is the number of 64-site units (448 / 512 / 640 sites below).
+The control image is BOLT with `-reorder-blocks=none`: the function is rewritten
+and moved to the new `.text`, but keeps its block order, which separates "code
+moved" from "code reordered". Raw runs and BOLT's profile report:
+`docs/results/stair_bolt_stage_<sites>sites*.{csv,txt}`. The checksum is identical
+in all 30 runs of every point.
+
+| Sites | baseline | +PGO | +PGO+ThinLTO | BOLT control (no reorder) | **+BOLT** |
+|---|---|---|---|---|---|
+| 448 | 9.191M | +0.29% | +3.73% (145.6k L1I refills) | +5.84% (167.1k) | **-10.08%** (5.6k) |
+| 512 | 10.498M | +0.32% | +38.92% (606.6k) | +46.75% (649.8k) | **-8.95%** (26.0k) |
+| 640 | 13.103M | +0.43% | +84.44% (1,414k) | +88.97% (1,445k) | **-6.37%** (107.7k) |
+
+(Cycles are the baseline's mean; every other cell is the change against it. Run to
+run spread is under 0.01% everywhere.)
+
+What it shows:
+
+- **BOLT's gain is real and is the block reordering.** The control, which moves the
+  function without reordering it, is *worse* than ThinLTO alone at every size
+  (+2 to +6% more cycles), so the layout change is the whole effect. The profile is
+  complete (448 sites: 1,569 edges, hottest count 1,600 = one per call, 0% CFG
+  discontinuity in BOLT's report); BOLT modified the layout of exactly 1 function,
+  100% of the profiled code.
+- **The mechanism is instruction-cache footprint.** ThinLTO removes ~23% of the
+  instructions but inlines the helper into every site; past ~384 sites the hot path no
+  longer fits the 48 KB L1I, refills go from ~2 to 10^5-10^6 and IPC falls from 2.2
+  to 0.9-1.7. BOLT packs each site's hot arm and moves the cold arm away: refills
+  drop 26x (448), 23x (512), 13x (640) and IPC recovers to 1.8-1.9. Instructions
+  barely change (-1% at 448).
+- **The gain shrinks as the function grows** (-10.1% / -9.0% / -6.4%): the more code,
+  the more misses remain after BOLT (5.6k / 26k / 108k refills).
+- **PGO does nothing at any size** (+0.3 to +0.4%, instructions unchanged), and
+  ThinLTO is a net loss above ~384 sites (below that it is a clean -11%). So the
+  workload does not show "PGO first, then ThinLTO, then BOLT" as three separate
+  wins: it shows BOLT recovering, and beating baseline after, a ThinLTO
+  regression caused by code growth.
+- **Limits:** one workload, one core, one profile per size; the profile is collected
+  on the same input the measurement runs (no held-out input); only one function is
+  rewritten per point.
 
 ## Bugs found on the way (debugged with QEMU and the Pi interchangeably)
 

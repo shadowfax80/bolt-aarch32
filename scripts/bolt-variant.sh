@@ -39,6 +39,10 @@ FUNC="${BOLT_FUNC:-bolt_bench_composite}"
 # *call* (every edge reads 1); kept for functions whose instrumented copy does not
 # run correctly.
 MODE="${BOLT_PROFILE_MODE:-edges}"
+# Output name for `optimize`: <variant><SUFFIX>.{elf,bin}. A second optimize of the
+# same profile with another SUFFIX (e.g. _bolt_noreorder + BOLT_REORDER_BLOCKS=none)
+# gives a control image without clobbering the first.
+OSUF="${BOLT_OUT_SUFFIX:-_bolt}"
 
 cmd="${1:-}"; variant="${2:-}"
 [[ -n "$cmd" && -n "$variant" ]] || { sed -n '2,12p' "$0" >&2; exit 1; }
@@ -78,13 +82,13 @@ case "$cmd" in
     python3 "$ROOT/scripts/ram-dump-to-fdata.py" --elf "$V/$variant.instr.elf" \
       --dump "$counters" --toolchain "$TOOLCHAIN" -o "$V/$variant.fdata"
     BASE="$BASE" ARCH=arm32 ELF="$V/$variant.elf" FDATA="$V/$variant.fdata" \
-      OUT="$V/${variant}_bolt.elf" OPTIMIZE_FUNCS="$FUNC" \
-      "$ROOT/scripts/optimize-lk-bolt.sh" $BOLT_EXTRA_ARGS > "$V/${variant}_bolt.log" 2>&1 \
-      || { tail -20 "$V/${variant}_bolt.log" >&2; exit 1; }
-    python3 "$ROOT/scripts/redirect-bolt-entries.py" "$V/${variant}_bolt.elf" \
-      --original "$V/$variant.elf" --map "$V/${variant}_bolt.elf.funcmap" --func "$FUNC"       --toolchain "$TOOLCHAIN"
-    "$TOOLCHAIN/llvm-objcopy" -O binary "$V/${variant}_bolt.elf" "$V/${variant}_bolt.bin"
-    echo "image: $V/${variant}_bolt.bin ($(stat -c %s "$V/${variant}_bolt.bin") bytes)"
+      OUT="$V/${variant}${OSUF}.elf" OPTIMIZE_FUNCS="$FUNC" \
+      "$ROOT/scripts/optimize-lk-bolt.sh" $BOLT_EXTRA_ARGS > "$V/${variant}${OSUF}.log" 2>&1 \
+      || { tail -20 "$V/${variant}${OSUF}.log" >&2; exit 1; }
+    python3 "$ROOT/scripts/redirect-bolt-entries.py" "$V/${variant}${OSUF}.elf" \
+      --original "$V/$variant.elf" --map "$V/${variant}${OSUF}.elf.funcmap" --func "$FUNC"       --toolchain "$TOOLCHAIN"
+    "$TOOLCHAIN/llvm-objcopy" -O binary "$V/${variant}${OSUF}.elf" "$V/${variant}${OSUF}.bin"
+    echo "image: $V/${variant}${OSUF}.bin ($(stat -c %s "$V/${variant}${OSUF}.bin") bytes)"
     ;;
   *) echo "error: unknown command '$cmd'" >&2; exit 1 ;;
 esac
