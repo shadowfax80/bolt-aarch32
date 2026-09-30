@@ -64,3 +64,27 @@ no-reordering stair images with this fix and comparing against the original on
 the Pi again produced checksum 0x5b19056f in all six runs. This is hardware
 validation of the pipeline, not a claim that the Pi exercises big-endian data.
 The upstream patch applied cleanly; upstream compilation remains pending.
+
+## ATFE return terminators and BLX link bit
+
+Work after this point is ATFE only, per the requested scope. ATFE 0017 fixes
+BLX-to-BL conversion when JITLink redirects an ARM call to an ARM stub. Bit 24
+is the BLX H bit but the BL link bit; failing to set it converted H=0 calls
+into plain branches, losing LR. The new regression checks that the emitted
+instruction remains BL and that a jump remains B.
+
+ATFE 0018 recognizes unconditional returns as terminators, including the
+existing POP/updated-LDM return forms. Code after a return now becomes an
+unreachable block instead of remaining in the returning block. Predicated
+returns retain their fallthrough instructions; separate conditional-return
+CFG modeling is not implemented. The regression covers ARM POP, non-PC POP,
+predicated POP, narrow Thumb POP, and wide Thumb POP.
+
+Validation: BOLT ARM 15/15; JITLink AArch32 14/14; full LK emission passed.
+Seven original entries were redirected to rewritten functions on the Pi:
+hot_loop, hot_cold, branch_chain, memcpy, spill_ret, litpool, and interwork.
+All returned to the shell. Result-variable dumps after each workload matched
+the original image. Memcpy and interwork do not update that shared variable,
+so their dump comparison alone is not an independent output checksum.
+The initial interwork run aborted before the BLX fix; baseline recovery and
+the fixed run passed. Dedicated BLX H-bit and alignment cases remain open.

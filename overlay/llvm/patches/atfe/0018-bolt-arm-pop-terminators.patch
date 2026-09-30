@@ -1,0 +1,128 @@
+diff --git a/bolt/lib/Target/ARM/ARMMCPlusBuilder.cpp b/bolt/lib/Target/ARM/ARMMCPlusBuilder.cpp
+--- a/bolt/lib/Target/ARM/ARMMCPlusBuilder.cpp
++++ b/bolt/lib/Target/ARM/ARMMCPlusBuilder.cpp
+@@ -212,17 +212,6 @@
+     // be in the register list, not on the opcode alone, so this has to be
+     // checked here dynamically rather than as a static MCInstrDesc property.
+     //
+-    // NOTE: this recognition feeds isIndirectBranch()'s suppression check
+-    // below (a real, low-risk improvement -- confirmed via a full P0-P10
+-    // rebuild+reverify that it does not regress anything). Deliberately NOT
+-    // also wired into isTerminator(): doing so is semantically correct (a
+-    // POP{pc} really does end a basic block) but empirically corrupts
+-    // emission for any relocated function using it -- confirmed by a
+-    // reproducible before/after test (hot_loop stopped printing its result
+-    // after rewrite, byte-identical function body otherwise). That appears
+-    // to be a latent BOLT-core CFG/emission issue this dynamic-terminator
+-    // case exposes, not something fixable from this target file alone; see
+-    // README's known-limitations section.
+     case ARM::LDMIA_UPD:
+     case ARM::LDMDB_UPD:
+     case ARM::tPOP:
+@@ -235,6 +224,20 @@
+     }
+     }
+     return Analysis->isReturn(Inst);
++  }
++
++  bool isTerminator(const MCInst &Inst) const override {
++    if (isReturn(Inst)) {
++      // Predicated returns can fall through when the condition fails. Keep
++      // them inside the block until conditional-return CFG edges are modeled.
++      const int Pred = Info->get(Inst.getOpcode()).findFirstPredOperandIdx();
++      if (Pred >= 0 && static_cast<unsigned>(Pred) < Inst.getNumOperands() &&
++          Inst.getOperand(Pred).isImm() &&
++          Inst.getOperand(Pred).getImm() != ARMCC::AL)
++        return false;
++      return true;
++    }
++    return MCPlusBuilder::isTerminator(Inst);
+   }
+ 
+   bool isIndirectBranch(const MCInst &Inst) const override {
+diff --git a/bolt/test/ARM/Inputs/arm32-pop-cfg.s b/bolt/test/ARM/Inputs/arm32-pop-cfg.s
+new file mode 100644
+--- /dev/null
++++ b/bolt/test/ARM/Inputs/arm32-pop-cfg.s
+@@ -0,0 +1,50 @@
++ .syntax unified
++ .text
++ .arm
++ .globl _start, arm_pop, arm_no_pc, arm_predicated, thumb_pop, thumb_wide_pop
++ .type _start,%function
++_start:
++ bx lr
++ .size _start,.-_start
++ .type arm_pop,%function
++arm_pop:
++ push {r4,lr}
++ mov r0,#7
++ pop {r4,pc}
++ mov r0,#99
++ bx lr
++ .size arm_pop,.-arm_pop
++ .type arm_no_pc,%function
++arm_no_pc:
++ push {r4,lr}
++ pop {r4,lr}
++ mov r0,#99
++ bx lr
++ .size arm_no_pc,.-arm_no_pc
++ .type arm_predicated,%function
++arm_predicated:
++ push {r4,lr}
++ cmp r0,#0
++ popeq {r4,pc}
++ mov r0,#42
++ pop {r4,pc}
++ .size arm_predicated,.-arm_predicated
++ .thumb
++ .thumb_func
++ .type thumb_pop,%function
++thumb_pop:
++ push {r4,lr}
++ movs r0,#8
++ pop {r4,pc}
++ movs r0,#99
++ bx lr
++ .size thumb_pop,.-thumb_pop
++ .thumb_func
++ .type thumb_wide_pop,%function
++thumb_wide_pop:
++ push.w {r4,lr}
++ movs r0,#8
++ pop.w {r4,pc}
++ movs r0,#99
++ bx lr
++ .size thumb_wide_pop,.-thumb_wide_pop
+diff --git a/bolt/test/ARM/arm-pop-cfg.test b/bolt/test/ARM/arm-pop-cfg.test
+new file mode 100644
+--- /dev/null
++++ b/bolt/test/ARM/arm-pop-cfg.test
+@@ -0,0 +1,26 @@
++## A PC-restoring load terminates a block; ordinary and predicated loads
++## retain their live fallthrough instructions.
++RUN: llvm-mc -triple=armv7-none-eabi -filetype=obj %p/Inputs/arm32-pop-cfg.s -o %t.o
++RUN: ld.lld --emit-relocs -T %p/Inputs/arm32.ld %t.o -o %t.exe
++RUN: llvm-bolt %t.exe -o %t.bolt --print-finalized 2>&1 | FileCheck %s
++CHECK-LABEL: Binary Function "arm_pop" after finalize-functions
++CHECK: pop
++CHECK-NOT: #99
++CHECK: End of Function "arm_pop"
++CHECK-LABEL: Binary Function "arm_no_pc" after finalize-functions
++CHECK: pop
++CHECK: mov{{.*}}#99
++CHECK: End of Function "arm_no_pc"
++CHECK-LABEL: Binary Function "arm_predicated" after finalize-functions
++CHECK: popeq
++CHECK: mov{{.*}}#42
++CHECK: pop
++CHECK: End of Function "arm_predicated"
++CHECK-LABEL: Binary Function "thumb_pop" after finalize-functions
++CHECK: pop
++CHECK-NOT: #0x63
++CHECK: End of Function "thumb_pop"
++CHECK-LABEL: Binary Function "thumb_wide_pop" after finalize-functions
++CHECK: pop.w
++CHECK-NOT: #0x63
++CHECK: End of Function "thumb_wide_pop"

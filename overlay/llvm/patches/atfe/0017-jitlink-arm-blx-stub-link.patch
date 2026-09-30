@@ -1,0 +1,45 @@
+diff --git a/llvm/lib/ExecutionEngine/JITLink/aarch32.cpp b/llvm/lib/ExecutionEngine/JITLink/aarch32.cpp
+--- a/llvm/lib/ExecutionEngine/JITLink/aarch32.cpp
++++ b/llvm/lib/ExecutionEngine/JITLink/aarch32.cpp
+@@ -589,8 +589,10 @@
+         R.Wd = R.Wd | FixupInfo<Arm_Call>::BitBlx;
+         R.Wd = R.Wd & ~FixupInfo<Arm_Call>::BitH;
+       } else {
+-        // Change opcode BLX -> BL
+-        R.Wd = R.Wd & ~FixupInfo<Arm_Call>::BitBlx;
++        // Change opcode BLX -> BL. Bit 24 is H in BLX but L in BL:
++        // set it explicitly, or an H=0 BLX becomes B and loses LR.
++        R.Wd = (R.Wd & ~FixupInfo<Arm_Call>::BitBlx) |
++               FixupInfo<Arm_Call>::BitH;
+       }
+     }
+ 
+diff --git a/llvm/test/ExecutionEngine/JITLink/AArch32/ELF_blx_stub_link_arm.s b/llvm/test/ExecutionEngine/JITLink/AArch32/ELF_blx_stub_link_arm.s
+new file mode 100644
+--- /dev/null
++++ b/llvm/test/ExecutionEngine/JITLink/AArch32/ELF_blx_stub_link_arm.s
+@@ -0,0 +1,24 @@
++# RUN: mkdir -p %t
++# RUN: llvm-mc -triple=armv7-linux-gnueabi -arm-add-build-attributes -filetype=obj %s -o %t/out.o
++# RUN: llvm-jitlink -noexec -slab-address 0x100000 -slab-allocate 10Kb -slab-page-size 4096 -abs ext=0x200000 -check %s %t/out.o
++# A BLX to an external target is redirected to an ARM stub. Converting BLX
++# to BL must set L, even when the original BLX H bit is zero.
++# jitlink-check: (*{4}call)[31:24] = 0xeb
++# jitlink-check: decode_operand(call, 0) = stub_addr(out.o, ext) - next_pc(call)
++# jitlink-check: (*{4}jump)[31:24] = 0xea
++ .syntax unified
++ .arm
++ .text
++ .globl main, call, jump
++ .type main,%function
++main:
++ bx lr
++ .size main,.-main
++ .type call,%function
++call:
++ blx ext
++ .size call,.-call
++ .type jump,%function
++jump:
++ b ext
++ .size jump,.-jump
