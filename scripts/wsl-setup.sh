@@ -16,6 +16,10 @@ SRC="$(cd "$(dirname "$0")/.." && pwd)"
 # WSL_DEST overrides the build location (e.g. a from-scratch reproduction next to the
 # everyday tree).
 DEST="${WSL_DEST:-$HOME/bolt-aarch32}"
+# BASE=atfe (default): the Pi toolchain, with the ATFE-only bare-metal runtimes.
+# BASE=upstream: llvm/llvm-project at the pin plus the upstream patch series, for the
+# upstreaming work; builds llvm-bolt and the lit test dependencies only (no Pi runtimes).
+BASE="${BASE:-atfe}"
 
 case "${1:-}" in
 deps)
@@ -37,7 +41,7 @@ build)
   find overlay scripts cmake docs -type f \( -name '*.patch' -o -name '*.sh' -o -name '*.py' \
     -o -name '*.mk' -o -name '*.c' -o -name '*.h' -o -name '*.cmake' -o -name '*.md' \) \
     -exec sed -i 's/\r$//' {} +
-  export BASE=atfe CC=clang CXX=clang++
+  export BASE CC=clang CXX=clang++
   ./scripts/fetch-sources.sh
   ./scripts/apply-overlays.sh
   source ./scripts/resolve-base.sh
@@ -47,6 +51,12 @@ build)
       -DLLVM_PARALLEL_LINK_JOBS=2
   fi
   JOBS="${JOBS:-12}" ./scripts/build-llvm-bolt.sh
+  if [[ "$BASE" == upstream ]]; then
+    # lit dependencies of check-bolt (FileCheck, llvm-mc, not, ...), then stop.
+    ninja -C "$BUILD_DIR" -j"${JOBS:-12}" bolt-test-depends
+    echo "WSL UPSTREAM BUILD COMPLETE (BASE=upstream, $BUILD_DIR)"
+    exit 0
+  fi
   ninja -C "$BUILD_DIR" -j"${JOBS:-12}" llvm-profdata
   ./scripts/build-bolt-rt-baremetal.sh
   ARCH=arm32 ./scripts/build-bolt-rt-baremetal.sh
@@ -62,7 +72,7 @@ sync)
   find overlay scripts cmake docs -type f \( -name '*.patch' -o -name '*.sh' -o -name '*.py' \
     -o -name '*.mk' -o -name '*.c' -o -name '*.h' -o -name '*.cmake' -o -name '*.md' \) \
     -exec sed -i 's/\r$//' {} +
-  BASE=atfe ./scripts/apply-overlays.sh >/dev/null
+  BASE="$BASE" ./scripts/apply-overlays.sh >/dev/null
   echo "synced"
   ;;
 *)
