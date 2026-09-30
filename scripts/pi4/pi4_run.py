@@ -95,7 +95,11 @@ def main() -> None:
     console = Console(args.log)
     port_name = resolve_port(args.port)
     try:
-        port = serial.Serial(port_name, args.baud, timeout=0.1)
+        # write_timeout: without it a stalled USB-serial adapter blocks port.write() in the
+        # driver forever (a measurement run hung for 31 minutes and the process could not even
+        # be killed). With it a stall raises SerialTimeoutException, the run exits non-zero
+        # and pi4_compare.py / pgo_lab_measure.py retry that boot.
+        port = serial.Serial(port_name, args.baud, timeout=0.1, write_timeout=20)
     except serial.SerialException as e:
         sys.exit(f"error: can't open {port_name} ({e}). Is PuTTY still holding it?")
 
