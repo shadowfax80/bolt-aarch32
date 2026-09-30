@@ -398,9 +398,9 @@ To show a BOLT gain you would need a workload with real layout headroom (a large
 hot working set spread across many functions that overflows the L1I) and
 edge-level profiling on ARM.
 
-## TODO: multi-function BOLT support in the Pi pipeline
+## Multi-function BOLT support in the Pi pipeline (done 2026-09-30, see the six-function section below)
 
-Definite TODO (not a someday-maybe). `scripts/redirect-bolt-entries.py` can only
+Was a definite TODO; kept here for the reasoning. Original problem statement: `scripts/redirect-bolt-entries.py` can only
 make the optimized image run BOLT's code when exactly ONE function was rewritten:
 LK boots from the original text with the MMU off, BOLT drops the moved function's
 symbol, so the tool takes the new entry from the start of the output `.text` and
@@ -624,6 +624,53 @@ remain; it grows toward the cliff (448: -10.1% against baseline but ThinLTO is t
 loss), so the size is a tradeoff between how much ThinLTO gives and how much is left for
 BOLT. One core, one workload, profile collected on the measured input, one rewritten
 function.
+
+## Multi-function BOLT on the Pi: six functions, one of them ARM mode (2026-09-30)
+
+`bolt_bench multi` calls six ~5 KB straight-line functions in turn through function
+pointers (`bolt_bench_mf0..mf5`; `mf5` is compiled in ARM mode, the others in Thumb, so
+both redirect encodings run). Each is aligned to 16 KB, which puts all six on the same
+Cortex-A72 L1I sets (48 KB, 3-way, 16 KB per way): six lines compete for three ways and
+every fetch misses. `scripts/pi4/multi_stage.sh` builds the plain baseline, edge-profiles
+all six (complete profile: 8 edges, hottest count 4,200 = one per call; BOLT reports 6 of
+408 functions with a profile), runs BOLT, and measures the images interleaved (3 rounds x
+2 runs). The result checksum is `0x00000600` in all 24 runs. Raw data:
+`docs/results/multifn_six_functions*.{csv,txt}`.
+
+| Image | Cycles | vs baseline | L1I refills | IPC |
+|---|---|---|---|---|
+| baseline (six functions 16 KB apart) | 32.69M | - | 1,958,018 | 1.09 |
+| BOLT, rewritten but kept 16 KB apart (`--pad-funcs`, the spacing control) | 33.33M | **+1.98%** | 1,996,015 | 1.07 |
+| BOLT, `-reorder-functions=none` | 18.29M | **-44.03%** | 61,353 | 1.95 |
+| BOLT, `-reorder-functions=hfsort+` | 18.41M | **-43.67%** | 60,688 | 1.94 |
+
+What it shows:
+
+- **The gain is contiguous placement, and only that.** BOLT copies the hot functions into
+  one new `.text` back to back (function map: `mf0..mf5` at `0x80046000`, `+0x1418`, ... ;
+  the spacing control has them at `+0x4000` steps). Packed: 61k refills; spaced as before:
+  2.0M refills and slightly *worse* than baseline. Rewriting a function is free of
+  benefit; where it lands is the whole effect.
+- **`-reorder-functions` itself is not what helps here.** `hfsort+` and `none` emit the
+  same order and get the same result; the set conflicts depend on packing, not on order.
+  (The `-reorder-functions=none` image is therefore not a control for "was it moved":
+  BOLT packs the functions even with it off. `--align-functions=16384` is not a control
+  either: its max-bytes limit blocked the ~11 KB of padding, so the functions came out
+  back to back too and gained -43%. Explicit `--pad-funcs=f:11240,...` is what keeps the
+  spacing.)
+- **Redirect, several functions:** `redirect-bolt-entries.py --map` patched all six
+  original entries (five Thumb `b.w`, one ARM `b`), with calls made through a function
+  pointer table reaching them through the patched entries. Refusals verified: a 2-byte
+  function ("cannot hold a 4-byte redirect branch"), a map input address that disagrees
+  with the original ELF, a `--func` name BOLT did not emit, and functions BOLT rewrote
+  that are not in `--func`.
+- **A trap found on the way:** the first version of the workload gave BOLT nothing to
+  profile. A single `if (x == const)` per function was if-converted into a predicated
+  instruction, leaving each function one basic block with zero edges, so BOLT saw "no
+  profile" for all six. An empty `asm` inside the `if` body forces a real branch.
+- **Limits:** synthetic (the layout conflict is built in), one core, the checksum is a
+  weak one (`0x600`: the add/sub constants cancel, so it only proves the functions ran,
+  not their exact arithmetic).
 
 ## Bugs found on the way (debugged with QEMU and the Pi interchangeably)
 

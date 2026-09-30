@@ -1,0 +1,43 @@
+== fdata: edges, total count, max count
+8 33600 4200
+== baseline_bolt
+BOLT-WARNING: '-reorder-functions=hfsort+' is deprecated, please use '-reorder-functions=cdsort' instead
+BOLT-INFO: pre-processing profile using branch profile reader
+BOLT-INFO: 6 out of 408 functions in the binary (1.5%) have non-empty execution profile
+BOLT-INFO: profile quality metrics for the hottest 6 functions (reporting top 5% values): function CFG discontinuity 0.00%; call graph flow conservation gap 100.00%; CFG flow conservation gap 37.59% (weighted) 100.00% (worst); exception handling usage 0.00% (of total BBEC) 0.00% (of total InvokeEC)
+BOLT-INFO: basic block reordering modified layout of 0 functions (0.00% of profiled, 0.00% of total)
+BOLT-INFO: 0 Functions were reordered by LoopInversionPass
+function map (name input-addr output-addr size):
+bolt_bench_mf0 80010000 80046000 1418
+bolt_bench_mf1 80014000 80047418 1418
+bolt_bench_mf2 80018000 80048840 1418
+bolt_bench_mf3 8001c000 80049c58 1418
+bolt_bench_mf4 80020000 8004b080 1418
+bolt_bench_mf5 80024000 8004c498 2678
+== baseline_bolt_nofnreorder
+BOLT-INFO: pre-processing profile using branch profile reader
+BOLT-INFO: 6 out of 408 functions in the binary (1.5%) have non-empty execution profile
+BOLT-INFO: profile quality metrics for the hottest 6 functions (reporting top 5% values): function CFG discontinuity 0.00%; call graph flow conservation gap 100.00%; CFG flow conservation gap 37.59% (weighted) 100.00% (worst); exception handling usage 0.00% (of total BBEC) 0.00% (of total InvokeEC)
+BOLT-INFO: basic block reordering modified layout of 0 functions (0.00% of profiled, 0.00% of total)
+BOLT-INFO: 0 Functions were reordered by LoopInversionPass
+function map (name input-addr output-addr size):
+bolt_bench_mf0 80010000 80046000 1418
+bolt_bench_mf1 80014000 80047418 1418
+bolt_bench_mf2 80018000 80048840 1418
+bolt_bench_mf3 8001c000 80049c58 1418
+bolt_bench_mf4 80020000 8004b080 1418
+bolt_bench_mf5 80024000 8004c498 2678
+== baseline_bolt_pad16k
+BOLT-WARNING: '-reorder-functions=hfsort+' is deprecated, please use '-reorder-functions=cdsort' instead
+BOLT-INFO: pre-processing profile using branch profile reader
+BOLT-INFO: 6 out of 408 functions in the binary (1.5%) have non-empty execution profile
+BOLT-INFO: profile quality metrics for the hottest 6 functions (reporting top 5% values): function CFG discontinuity 0.00%; call graph flow conservation gap 100.00%; CFG flow conservation gap 37.59% (weighted) 100.00% (worst); exception handling usage 0.00% (of total BBEC) 0.00% (of total InvokeEC)
+BOLT-INFO: basic block reordering modified layout of 0 functions (0.00% of profiled, 0.00% of total)
+BOLT-INFO: 0 Functions were reordered by LoopInversionPass
+function map (name input-addr output-addr size):
+bolt_bench_mf0 80010000 80046000 4000
+bolt_bench_mf1 80014000 8004a000 4000
+bolt_bench_mf2 80018000 8004e000 4000
+bolt_bench_mf3 8001c000 80052000 4000
+bolt_bench_mf4 80020000 80056000 4000
+bolt_bench_mf5 80024000 8005a000 2678

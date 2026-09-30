@@ -44,7 +44,9 @@ BOLT_ARGS=(
   # BOLT_REORDER_BLOCKS=none gives the no-reorder control: the function is still
   # rewritten and moved to the new .text, but keeps its block order.
   -reorder-blocks="${BOLT_REORDER_BLOCKS:-ext-tsp}"
-  -reorder-functions=hfsort+
+  # BOLT_REORDER_FUNCTIONS=none gives the control for function ordering: the functions
+  # are still rewritten but keep their original relative order and spacing.
+  -reorder-functions="${BOLT_REORDER_FUNCTIONS:-hfsort+}"
   -icf=all
   # NOT included -- confirmed hard-gated to X86/AArch64 only in this LLVM
   # version, not merely untested (each errors out immediately rather than
@@ -75,6 +77,15 @@ if [[ "$ARCH" == "arm32" ]]; then
   # redirect-bolt-entries.py needs it to branch every original entry to its copy.
   BOLT_ARGS+=(--emit-function-map="$OUT.funcmap")
 fi
+
+# BOLT_ALIGN_FUNCTIONS=<n>: align every emitted function at n bytes (relocation mode). With
+# n=16384 the rewritten functions keep the original 16 KB spacing -- the control that
+# separates "rewritten" from "packed" (BOLT emits functions back to back otherwise).
+[[ -n "${BOLT_ALIGN_FUNCTIONS:-}" ]] && BOLT_ARGS+=(--align-functions="$BOLT_ALIGN_FUNCTIONS" --align-functions-max-bytes="$BOLT_ALIGN_FUNCTIONS")
+# BOLT_PAD_FUNCS="f1:n,f2:n": pad after the named functions. --align-functions did NOT keep
+# the 16 KB spacing (its max-bytes limit blocked the ~11 KB of padding: the functions came
+# out back to back), so the spacing control pads explicitly.
+[[ -n "${BOLT_PAD_FUNCS:-}" ]] && BOLT_ARGS+=(--pad-funcs="$BOLT_PAD_FUNCS")
 
 # --no-lse-atomics is AArch64's option (QEMU cortex-a53 has no LSE). The ARM
 # target never reads it -- its counter path is ldrex/strex unconditionally.

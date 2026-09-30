@@ -828,6 +828,87 @@ __attribute__((noinline)) void bolt_bench_pgo_lab(void) {
     pl_run("pl_d", pl_d, 1000000u);
 }
 
+/* --- multi: a hot path that spans several functions ------------------------------
+ * Six ~5 KB straight-line functions called in turn through function pointers (so every
+ * entry is reached the way a vector or callback table would reach it). Each is aligned
+ * to 16 KB, which puts all six on the same Cortex-A72 L1I sets (48 KB, 3-way, 16 KB per
+ * way): six lines compete for three ways, so every fetch misses. Packed contiguously
+ * (what BOLT's --reorder-functions does to hot functions) they fit. bolt_bench_mf5 is
+ * compiled in ARM mode, the others in Thumb, so both redirect encodings are exercised.
+ * The one data-dependent branch per function is what gives BOLT an edge profile to
+ * find them hot (a branch-free function has no edges to count). The empty asm between
+ * groups stops the compiler folding the adds into one. */
+#define MF_G()                                                              \
+    {                                                                       \
+        a += 0x100u + (__COUNTER__ & 0x7FFu);                               \
+        b -= 0x100u + (__COUNTER__ & 0x7FFu);                               \
+        c += 0x100u + (__COUNTER__ & 0x7FFu);                               \
+        d -= 0x100u + (__COUNTER__ & 0x7FFu);                               \
+        __asm__ volatile("" : "+r"(a), "+r"(b), "+r"(c), "+r"(d));          \
+    }
+#define MF_R2(m) m() m()
+#define MF_R4(m) MF_R2(m) MF_R2(m)
+#define MF_R16(m) MF_R4(m) MF_R4(m) MF_R4(m) MF_R4(m)
+#define MF_R64(m) MF_R16(m) MF_R16(m) MF_R16(m) MF_R16(m)
+#define MF_R256(m) MF_R64(m) MF_R64(m) MF_R64(m) MF_R64(m)
+#define MF_BODY                                                             \
+    {                                                                       \
+        uint32_t a = x, b = x + 1u, c = x + 2u, d = x + 3u;                 \
+        if (__builtin_expect(x == 0xFFFFFFF1u, 0)) {                        \
+            a++; __asm__ volatile("" : "+r"(a));                                                            \
+        }                                                                   \
+        MF_R256(MF_G) MF_R64(MF_G)                                          \
+        return a ^ b ^ c ^ d;                                               \
+    }
+#define MF_FN(N, MODE) __attribute__((noinline, aligned(16384), target(MODE))) uint32_t bolt_bench_mf##N(uint32_t x) MF_BODY
+MF_FN(0, "thumb")
+MF_FN(1, "thumb")
+MF_FN(2, "thumb")
+MF_FN(3, "thumb")
+MF_FN(4, "thumb")
+MF_FN(5, "arm")
+
+static uint32_t (*volatile const g_mf[6])(uint32_t) = {
+    bolt_bench_mf0, bolt_bench_mf1, bolt_bench_mf2, bolt_bench_mf3, bolt_bench_mf4, bolt_bench_mf5,
+};
+
+#define BOLT_BENCH_MULTI_ITERS 4000u
+
+__attribute__((noinline)) void bolt_bench_multi(void) {
+    struct bolt_pmu p0, p1;
+    bolt_pmu_init();
+    thread_t *self = get_current_thread();
+    int old_pin = thread_pinned_cpu(self);
+    uint start_cpu = arch_curr_cpu_num();
+    thread_set_pinned_cpu(self, (int)start_cpu);
+    uint32_t x = 1u;
+    for (uint32_t i = 0; i < 200u; i++) { /* warm-up */
+        for (uint32_t f = 0; f < 6; f++) {
+            x = g_mf[f](x);
+        }
+    }
+    arch_disable_ints();
+    lk_time_t t0 = arch_cycle_count();
+    bolt_pmu_read(&p0);
+    for (uint32_t i = 0; i < BOLT_BENCH_MULTI_ITERS; i++) {
+        for (uint32_t f = 0; f < 6; f++) {
+            x = g_mf[f](x);
+        }
+    }
+    bolt_pmu_read(&p1);
+    lk_time_t cyc = arch_cycle_count() - t0;
+    arch_enable_ints();
+    bench_banner("multi", cyc);
+    if (arch_curr_cpu_num() != start_cpu) {
+        printf("bolt_bench: multi pmu INVALID (migrated)\n");
+    } else {
+        bolt_pmu_report("multi", &p0, &p1);
+    }
+    thread_set_pinned_cpu(self, old_pin);
+    printf("bolt_bench: multi acc=0x%08x\n", (unsigned)x);
+    g_bolt_bench_sink = x;
+}
+
 static void run_one(const char *name) {
     if (!strcmp(name, "hot_loop")) {
         bolt_bench_hot_loop();
@@ -867,6 +948,8 @@ static void run_one(const char *name) {
         bolt_bench_stair();
     } else if (!strcmp(name, "pgo_lab")) {
         bolt_bench_pgo_lab();
+    } else if (!strcmp(name, "multi")) {
+        bolt_bench_multi();
     } else if (!strcmp(name, "all")) {
         bolt_bench_hot_loop();
         bolt_bench_hot_cold();
@@ -893,7 +976,7 @@ static void run_one(const char *name) {
 
 static int bolt_bench_cmd(int argc, const console_cmd_args *argv) {
     if (argc < 2) {
-        printf("usage: bolt_bench <hot_loop|hot_cold|branch_chain|memcpy|far_call|it_cond|interwork|switch|spill_ret|litpool|indirect_call|interwork_tail|regpressure|hotcold_split|icf|shrinkwrap|composite|stair|pgo_lab|all>\n");
+        printf("usage: bolt_bench <hot_loop|hot_cold|branch_chain|memcpy|far_call|it_cond|interwork|switch|spill_ret|litpool|indirect_call|interwork_tail|regpressure|hotcold_split|icf|shrinkwrap|composite|stair|pgo_lab|multi|all>\n");
         return -1;
     }
     g_pmu_set_req = (argc > 2 && argv[2].i == 1) ? 1 : 0;
