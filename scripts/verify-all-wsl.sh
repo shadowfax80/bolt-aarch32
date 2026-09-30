@@ -16,13 +16,16 @@ mkdir -p "$LOGS"
   || { echo "FAIL build-lk-aarch32 (qemu-virt-arm32-test), see $LOGS/build-qemu-lk.log"; exit 1; }
 
 declare -a RESULTS=()
+FAILED=0
 run() { # name, command...
   local name="$1"; shift
   local t0=$SECONDS
   if timeout 1800 "$@" > "$LOGS/$name.log" 2>&1; then
     RESULTS+=("PASS  $name  ($((SECONDS - t0)) s)")
   else
-    RESULTS+=("FAIL  $name  ($((SECONDS - t0)) s, exit $?)  -> $LOGS/$name.log")
+    local status=$?
+    FAILED=1
+    RESULTS+=("FAIL  $name  ($((SECONDS - t0)) s, exit $status)  -> $LOGS/$name.log")
   fi
 }
 
@@ -34,3 +37,4 @@ run workloads  env ARCH=arm32 ./scripts/verify-bolt-workloads.sh
 
 echo "=== QEMU gates (BASE=atfe, ARCH=arm32)"
 printf '%s\n' "${RESULTS[@]}"
+exit "$FAILED"

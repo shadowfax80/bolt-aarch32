@@ -123,6 +123,7 @@ def main() -> int:
     accs = sorted({r.get("acc", "") for r in records})
     if len(accs) != 1 or not accs[0]:
         print(f"CHECKSUM MISMATCH across runs/variants: {accs}", file=sys.stderr)
+        return 1
     else:
         print(f"checksum {accs[0]} identical in all {len(records)} runs\n")
     base = None

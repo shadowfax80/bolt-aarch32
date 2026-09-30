@@ -1,0 +1,102 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: bolt-aarch32 overlay <overlay@localhost>
+Date: Wed, 30 Sep 2026 18:29:48 +0000
+Subject: [PATCH] [BOLT][ARM] Reject unsupported EHABI unwind descriptors
+
+---
+ bolt/lib/Rewrite/RewriteInstance.cpp    | 26 +++++++++++++++++++++++++
+ bolt/test/ARM/Inputs/arm32-unwind.s     | 16 +++++++++++++++
+ bolt/test/ARM/arm-unwind-rejection.test | 17 ++++++++++++++++
+ 3 files changed, 59 insertions(+)
+ create mode 100644 bolt/test/ARM/Inputs/arm32-unwind.s
+ create mode 100644 bolt/test/ARM/arm-unwind-rejection.test
+
+diff --git a/bolt/lib/Rewrite/RewriteInstance.cpp b/bolt/lib/Rewrite/RewriteInstance.cpp
+index 97335091f..1f9dd7569 100644
+--- a/bolt/lib/Rewrite/RewriteInstance.cpp
++++ b/bolt/lib/Rewrite/RewriteInstance.cpp
+@@ -54,6 +54,7 @@
+ #include "llvm/Support/CommandLine.h"
+ #include "llvm/Support/DataExtractor.h"
+ #include "llvm/Support/Errc.h"
++#include "llvm/Support/Endian.h"
+ #include "llvm/Support/Error.h"
+ #include "llvm/Support/FileSystem.h"
+ #include "llvm/Support/ManagedStatic.h"
+@@ -2257,6 +2258,31 @@ Error RewriteInstance::readSpecialSections() {
+     check_error(SectionNameOrErr.takeError(), "cannot get section name");
+     StringRef SectionName = *SectionNameOrErr;
+ 
++    if (BC->isARM()) {
++      if (SectionName.starts_with(".ARM.extab") && Section.getSize())
++        return createStringError(errc::not_supported,
++                                 "AArch32 unwind tables (.ARM.extab) are not "
++                                 "supported; refusing to rewrite");
++      if (ELFSectionRef(Section).getType() == ELF::SHT_ARM_EXIDX) {
++        Expected<StringRef> Contents = Section.getContents();
++        if (!Contents)
++          return Contents.takeError();
++        if (Contents->size() % 8)
++          return createStringError(errc::invalid_argument,
++                                   "malformed AArch32 unwind index: size is "
++                                   "not a multiple of 8");
++        // An all-CANTUNWIND index has no stack-unwinding information to
++        // relocate. Reject compact descriptors and extab references until
++        // EHABI index rewriting (including sorting) is implemented.
++        for (size_t Offset = 0; Offset < Contents->size(); Offset += 8)
++          if (support::endian::read32le(Contents->data() + Offset + 4) != 1)
++            return createStringError(errc::not_supported,
++                                     "AArch32 unwind descriptors are not "
++                                     "supported; only CANTUNWIND entries "
++                                     "can be rewritten");
++      }
++    }
++
+     // Detect a debug section and check if it's compressed.
+     // Compressed debug sections currently aren't supported.
+     if (isDebugSection(SectionName)) {
+diff --git a/bolt/test/ARM/Inputs/arm32-unwind.s b/bolt/test/ARM/Inputs/arm32-unwind.s
+new file mode 100644
+index 000000000..654004e79
+--- /dev/null
++++ b/bolt/test/ARM/Inputs/arm32-unwind.s
+@@ -0,0 +1,16 @@
++        .syntax unified
++        .arm
++        .text
++        .globl _start
++        .type _start, %function
++_start:
++        .fnstart
++        .ifdef CANTUNWIND
++        .cantunwind
++        .else
++        .save {lr}
++        .endif
++        push {lr}
++        pop {pc}
++        .fnend
++        .size _start, .-_start
+diff --git a/bolt/test/ARM/arm-unwind-rejection.test b/bolt/test/ARM/arm-unwind-rejection.test
+new file mode 100644
+index 000000000..68356e0e9
+--- /dev/null
++++ b/bolt/test/ARM/arm-unwind-rejection.test
+@@ -0,0 +1,17 @@
++## Reject genuine EHABI unwind descriptors before code can be reordered.
++## All-CANTUNWIND tables (the bare-metal harness) remain supported.
++RUN: llvm-mc -triple=armv7-none-eabi -filetype=obj %p/Inputs/arm32-unwind.s -o %t.o
++RUN: ld.lld --emit-relocs --unresolved-symbols=ignore-all -T %p/Inputs/arm32.ld %t.o -o %t.exe
++RUN: not llvm-bolt %t.exe -o %t.bolt 2>&1 | FileCheck %s --check-prefix=UNWIND
++RUN: llvm-mc -triple=armv7-none-eabi -defsym CANTUNWIND=1 -filetype=obj %p/Inputs/arm32-unwind.s -o %t.cant.o
++RUN: ld.lld --emit-relocs -T %p/Inputs/arm32.ld %t.cant.o -o %t.cant.exe
++RUN: llvm-bolt %t.cant.exe -o %t.cant.bolt
++RUN: %python -c "open('%t.bad', 'wb').write(bytes(4))"
++RUN: llvm-objcopy --update-section .ARM.exidx=%t.bad %t.cant.exe %t.bad.exe
++RUN: not llvm-bolt %t.bad.exe -o %t.bad.bolt 2>&1 | FileCheck %s --check-prefix=MALFORMED
++RUN: llvm-objcopy --add-section .ARM.extab=%t.bad %t.cant.exe %t.extab.exe
++RUN: not llvm-bolt %t.extab.exe -o %t.extab.bolt 2>&1 | FileCheck %s --check-prefix=EXTAB
++
++UNWIND: AArch32 unwind descriptors are not supported; only CANTUNWIND entries can be rewritten
++MALFORMED: malformed AArch32 unwind index: size is not a multiple of 8
++EXTAB: AArch32 unwind tables (.ARM.extab) are not supported; refusing to rewrite
