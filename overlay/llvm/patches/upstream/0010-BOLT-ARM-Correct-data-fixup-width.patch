@@ -1,0 +1,141 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: bolt-aarch32 overlay <overlay@localhost>
+Date: Wed, 30 Sep 2026 18:44:10 +0000
+Subject: [PATCH] [BOLT][ARM] Correct 64-bit data fixups and ELF32 address map
+ relocations
+
+---
+ bolt/lib/Core/AddressMap.cpp                  | 27 ++++++++++++++-----
+ .../Target/ARM/MCTargetDesc/ARMAsmBackend.cpp | 11 ++++++++
+ .../ARM/MCTargetDesc/ARMELFObjectWriter.cpp   |  8 +++---
+ llvm/test/MC/ARM/elf-data8-relocation.s       | 24 +++++++++++++++++
+ 4 files changed, 61 insertions(+), 9 deletions(-)
+ create mode 100644 llvm/test/MC/ARM/elf-data8-relocation.s
+
+diff --git a/bolt/lib/Core/AddressMap.cpp b/bolt/lib/Core/AddressMap.cpp
+index bf3fc4c36..dc7747171 100644
+--- a/bolt/lib/Core/AddressMap.cpp
++++ b/bolt/lib/Core/AddressMap.cpp
+@@ -19,15 +19,30 @@ namespace bolt {
+ const char *const AddressMap::AddressSectionName = ".bolt.addr2addr_map";
+ const char *const AddressMap::LabelSectionName = ".bolt.label2addr_map";
+ 
+-static void emitAddress(MCStreamer &Streamer, uint64_t InputAddress,
++// The map format uses 64-bit fields, but ELF32 addresses require a 32-bit
++// relocation. Emit the address at target width and explicitly zero-extend it.
++static void emitMappedAddress(MCStreamer &Streamer, const BinaryContext &BC,
++                              const MCSymbol *OutputLabel) {
++  const unsigned PointerSize = BC.AsmInfo->getCodePointerSize();
++  assert((PointerSize == 4 || PointerSize == 8) && "unsupported address width");
++  if (PointerSize == 4 && !BC.AsmInfo->isLittleEndian())
++    Streamer.emitIntValue(0, 4);
++  Streamer.emitSymbolValue(OutputLabel, PointerSize);
++  if (PointerSize == 4 && BC.AsmInfo->isLittleEndian())
++    Streamer.emitIntValue(0, 4);
++}
++
++static void emitAddress(MCStreamer &Streamer, const BinaryContext &BC,
++                        uint64_t InputAddress,
+                         const MCSymbol *OutputLabel) {
+   Streamer.emitIntValue(InputAddress, 8);
+-  Streamer.emitSymbolValue(OutputLabel, 8);
++  emitMappedAddress(Streamer, BC, OutputLabel);
+ }
+ 
+-static void emitLabel(MCStreamer &Streamer, const MCSymbol *OutputLabel) {
++static void emitLabel(MCStreamer &Streamer, const BinaryContext &BC,
++                      const MCSymbol *OutputLabel) {
+   Streamer.emitIntValue(reinterpret_cast<uint64_t>(OutputLabel), 8);
+-  Streamer.emitSymbolValue(OutputLabel, 8);
++  emitMappedAddress(Streamer, BC, OutputLabel);
+ }
+ 
+ void AddressMap::emit(MCStreamer &Streamer, BinaryContext &BC) {
+@@ -49,14 +64,14 @@ void AddressMap::emit(MCStreamer &Streamer, BinaryContext &BC) {
+         continue;
+ 
+       Streamer.switchSection(BC.getDataSection(LabelSectionName));
+-      emitLabel(Streamer, BB.getLabel());
++      emitLabel(Streamer, BC, BB.getLabel());
+ 
+       if (!BB.hasLocSyms())
+         continue;
+ 
+       Streamer.switchSection(BC.getDataSection(AddressSectionName));
+       for (auto [Offset, Symbol] : BB.getLocSyms())
+-        emitAddress(Streamer, BFAddress + Offset, Symbol);
++        emitAddress(Streamer, BC, BFAddress + Offset, Symbol);
+     }
+   }
+ }
+diff --git a/llvm/lib/Target/ARM/MCTargetDesc/ARMAsmBackend.cpp b/llvm/lib/Target/ARM/MCTargetDesc/ARMAsmBackend.cpp
+index b4f549e33..c9ea46b5a 100644
+--- a/llvm/lib/Target/ARM/MCTargetDesc/ARMAsmBackend.cpp
++++ b/llvm/lib/Target/ARM/MCTargetDesc/ARMAsmBackend.cpp
+@@ -1116,6 +1116,17 @@ void ARMAsmBackend::applyFixup(const MCFragment &F, const MCFixup &Fixup,
+   auto Kind = Fixup.getKind();
+   if (mc::isRelocation(Kind))
+     return;
++  // Resolved 64-bit data expressions need all eight bytes, including the
++  // high word. The instruction fixup adjustment below returns only 32 bits.
++  // Unresolved ELF32 ARM expressions are rejected by the object writer.
++  if (Kind == FK_Data_8) {
++    assert(Fixup.getOffset() + 8 <= F.getSize() && "Invalid fixup offset!");
++    for (unsigned I = 0; I != 8; ++I) {
++      unsigned Idx = Endian == llvm::endianness::little ? I : 7 - I;
++      Data[Idx] |= uint8_t(Value >> (I * 8));
++    }
++    return;
++  }
+   MCContext &Ctx = getContext();
+   Value = adjustFixupValue(*Asm, Fixup, Target, Value, IsResolved, Ctx,
+                            getSubtargetInfo(F));
+diff --git a/llvm/lib/Target/ARM/MCTargetDesc/ARMELFObjectWriter.cpp b/llvm/lib/Target/ARM/MCTargetDesc/ARMELFObjectWriter.cpp
+index 67701f8d0..81b2f5f87 100644
+--- a/llvm/lib/Target/ARM/MCTargetDesc/ARMELFObjectWriter.cpp
++++ b/llvm/lib/Target/ARM/MCTargetDesc/ARMELFObjectWriter.cpp
+@@ -208,9 +208,11 @@ unsigned ARMELFObjectWriter::getRelocType(const MCFixup &Fixup,
+     reportError(Fixup.getLoc(), "unsupported relocation type");
+     return ELF::R_ARM_NONE;
+   case FK_Data_8:
+-    // BOLT/ELF32 may emit 64-bit symbol diffs for padded functions. ARM has
+-    // no R_ARM_ABS64; the addend/value still fits in 32 bits.
+-    return ELF::R_ARM_ABS32;
++    // ELF32 ARM has no absolute 64-bit relocation. A resolved constant or
++    // same-section symbol difference needs no relocation and never gets here.
++    // Do not silently relocate only the low word of an unresolved .quad.
++    reportError(Fixup.getLoc(), "unsupported relocation type: 64-bit data on ELF32 ARM");
++    return ELF::R_ARM_NONE;
+   case FK_Data_1:
+     switch (Specifier) {
+     default:
+diff --git a/llvm/test/MC/ARM/elf-data8-relocation.s b/llvm/test/MC/ARM/elf-data8-relocation.s
+new file mode 100644
+index 000000000..6f5134bf4
+--- /dev/null
++++ b/llvm/test/MC/ARM/elf-data8-relocation.s
+@@ -0,0 +1,24 @@
++@ RUN: split-file %s %t
++@ RUN: not llvm-mc -triple=armv7-none-eabi -filetype=obj %t/unresolved.s -o %t/bad.o 2>&1 | FileCheck %s --check-prefix=ERROR
++@ RUN: llvm-mc -triple=armv7-none-eabi -filetype=obj %t/resolved.s -o %t/good.o
++@ RUN: llvm-readobj --relocations --hex-dump=.data %t/good.o | FileCheck %s --check-prefix=RESOLVED
++@ RUN: llvm-mc -triple=armebv7-none-eabi -filetype=obj %t/resolved.s -o %t/be.o
++@ RUN: llvm-readobj --hex-dump=.data %t/be.o | FileCheck %s --check-prefix=BIG
++@ ERROR: error: unsupported relocation type: 64-bit data on ELF32 ARM
++@ ERROR: error: unsupported relocation type: 64-bit data on ELF32 ARM
++@ RESOLVED: Relocations [
++@ RESOLVED-NEXT: ]
++@ RESOLVED: 08000000 01000000 88776655 44332211
++@ BIG: 00000001 00000008 11223344 55667788
++
++@--- unresolved.s
++.data
++.quad external
++.quad external + 0x100000000
++
++@--- resolved.s
++.data
++start:
++.quad end - start + 0x100000000
++end:
++.quad 0x1122334455667788

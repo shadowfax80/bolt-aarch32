@@ -48,3 +48,19 @@ Run `python3 scripts/tests/check-verification-failures.py` under Linux/WSL to
 check all-pass, failed-child, later-gate execution, and checksum failure paths
 without requiring hardware. Real serial observations are mocked for this
 failure-path test; hardware verification above used the actual Pi.
+
+## Data fixup width
+
+Upstream 0010 and ATFE 0016 remove the FK_Data_8-to-R_ARM_ABS32 substitution.
+Unresolved 64-bit symbolic ARM ELF data now reports an error. Resolved 64-bit
+expressions write all eight bytes instead of silently becoming zero or losing
+the high word. Tests cover high-word values and both byte orders. BOLT address
+maps retain 64-bit records but use target-width symbolic relocations with
+explicit zero extension, avoiding unsupported relocations on ELF32.
+
+ATFE validation passed: 32 selected ARM MC relocation tests, BOLT ARM 14/14,
+JITLink AArch32 13/13, and full LK image emission. Rebuilding the optimized and
+no-reordering stair images with this fix and comparing against the original on
+the Pi again produced checksum 0x5b19056f in all six runs. This is hardware
+validation of the pipeline, not a claim that the Pi exercises big-endian data.
+The upstream patch applied cleanly; upstream compilation remains pending.
