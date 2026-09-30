@@ -443,6 +443,28 @@ To show a BOLT gain you would need a workload with real layout headroom (a large
 hot working set spread across many functions that overflows the L1I) and
 edge-level profiling on ARM.
 
+**Step 10 re-run, 2026-09-30 (no-FPU runtimes, complete edge profile, control, `taken`).**
+The same composite workload through `WORKLOAD=composite BOLT_FUNC=bolt_bench_composite
+SKIP_LAB=1 scripts/pi4/bolt_stage.sh 6:3` (fresh PGO training, BOLT edge profile with every
+edge counted: 8 edges, hottest 999,999 = one per iteration, BOLT rewrote 1 function; 3 rounds
+x 2 runs interleaved; checksum `0x939f4ea0` identical in all 30 runs;
+`docs/results/step10_rerun_composite_*`):
+
+| Image | Cycles | vs baseline | Taken branches | L1I refills |
+|---|---|---|---|---|
+| baseline | 6.103M | - | 4.002M | 20 |
+| +PGO | 6.103M | -0.00% (95% CI +-0.00 pp, not significant) | 4.002M | 22 |
+| +PGO+ThinLTO | 4.102M | **-32.79%** | 2.002M | 5 |
+| BOLT control (moved, not reordered) | 4.102M | -32.79% | 2.002M | 7 |
+| +BOLT | 4.102M | -32.79% | 2.002M | 11 |
+
+Same numbers as the first run, so the Step 10 conclusion stands with a complete profile:
+ThinLTO is the whole gain, PGO and BOLT add nothing, because the loop and its callees fit in the
+L1I (5-20 refills) and the hot path is already one straight run. The `taken` counter now
+shows *why* ThinLTO wins: inlining `composite_process` removes exactly half of the taken
+branches (4.00M -> 2.00M, a call and a return per iteration), matching the -33% instructions.
+BOLT differs from ThinLTO by +190 cycles (0.005%), inside the run-to-run spread.
+
 ## Multi-function BOLT support in the Pi pipeline (done 2026-09-30, see the six-function section below)
 
 Was a definite TODO; kept here for the reasoning. Original problem statement: `scripts/redirect-bolt-entries.py` can only

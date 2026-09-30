@@ -1,0 +1,16 @@
+== fdata: edges, total count, max count
+8 2000006 999999
+== pgo_thinlto_bolt
+BOLT-WARNING: '-reorder-functions=hfsort+' is deprecated, please use '-reorder-functions=cdsort' instead
+BOLT-INFO: pre-processing profile using branch profile reader
+BOLT-INFO: 1 out of 413 functions in the binary (0.2%) have non-empty execution profile
+BOLT-INFO: profile quality metrics for the hottest 1 functions (reporting top 5% values): function CFG discontinuity 0.00%; call graph flow conservation gap 100.00%; CFG flow conservation gap 14.36% (weighted) 0.00% (worst); exception handling usage 0.00% (of total BBEC) 0.00% (of total InvokeEC)
+BOLT-INFO: basic block reordering modified layout of 1 functions (100.00% of profiled, 0.24% of total)
+BOLT-INFO: 0 Functions were reordered by LoopInversionPass
+bolt_bench_composite 80008440 80061000 f2
+== pgo_thinlto_bolt_noreorder
+BOLT-WARNING: '-reorder-functions=hfsort+' is deprecated, please use '-reorder-functions=cdsort' instead
+BOLT-INFO: pre-processing profile using branch profile reader
+BOLT-INFO: 1 out of 413 functions in the binary (0.2%) have non-empty execution profile
+BOLT-INFO: profile quality metrics for the hottest 1 functions (reporting top 5% values): function CFG discontinuity 0.00%; call graph flow conservation gap 100.00%; CFG flow conservation gap 14.36% (weighted) 0.00% (worst); exception handling usage 0.00% (of total BBEC) 0.00% (of total InvokeEC)
+bolt_bench_composite 80008440 80061000 ee

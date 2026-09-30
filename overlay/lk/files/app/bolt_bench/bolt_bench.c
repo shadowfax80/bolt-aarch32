@@ -544,6 +544,8 @@ __attribute__((noinline)) void bolt_bench_composite(void) {
         bolt_pmu_report("composite", &p0, &p1);
     }
     thread_set_pinned_cpu(self, old_pin);
+    /* Result checksum, so the comparison tools can verify every image computes the same. */
+    printf("bolt_bench: composite acc=0x%08x\n", (unsigned)acc);
     g_bolt_bench_sink = acc;
 }
 
