@@ -15,10 +15,23 @@ check() { # name, hash-a, hash-b
   else say "DIFF  $1  everyday=${2:0:16}  fresh=${3:0:16}"; fail=$((fail + 1)); fi
 }
 
+# .bin: byte-identical. .elf: embeds each tree's absolute path in its debug info (different
+# lengths, so every later offset shifts) and ThinLTO names promoted locals after a path hash
+# (foo.llvm.<hash>); compare its symbol addresses/sizes with that hash normalised instead.
+check_file() { # name relative to build-atfe/variants
+  local f="$1" a b
+  if [[ "$f" == *.elf ]]; then
+    a=$(nm -S -n "$E/build-atfe/variants/$f" | sed "s/.llvm.[0-9]*/.llvm.N/" | sha256sum | cut -d' ' -f1); b=$(nm -S -n "$R/build-atfe/variants/$f" | sed "s/.llvm.[0-9]*/.llvm.N/" | sha256sum | cut -d' ' -f1)
+    check "$f (symbol table)" "$a" "$b"
+  else
+    check "$f" "$(sha256sum "$E/build-atfe/variants/$f" | cut -d' ' -f1)" "$(sha256sum "$R/build-atfe/variants/$f" | cut -d' ' -f1)"
+  fi
+}
+
 say "== 1. patched source trees (git diff + untracked file list, after overlay patches)"
 for name in llvm-project-atfe lk; do
-  ha=$(cd "$E/third_party/$name" && { git diff HEAD; git status --porcelain | sort; } | sha256sum | cut -d' ' -f1)
-  hb=$(cd "$R/third_party/$name" && { git diff HEAD; git status --porcelain | sort; } | sha256sum | cut -d' ' -f1)
+  ha=$(cd "$E/third_party/$name" && { git diff --full-index HEAD; git status --porcelain | sort; } | sha256sum | cut -d' ' -f1)
+  hb=$(cd "$R/third_party/$name" && { git diff --full-index HEAD; git status --porcelain | sort; } | sha256sum | cut -d' ' -f1)
   check "third_party/$name" "$ha" "$hb"
 done
 
@@ -35,7 +48,7 @@ sha_e=$(sha256sum "$E/build-atfe/pgo/pgo.profdata" | cut -c1-16); say "   pgo.pr
 build_in "$E"; build_in "$R"
 for v in baseline pgo_thinlto; do
   for ext in bin elf; do
-    check "$v.$ext" "$(sha256sum "$E/build-atfe/variants/$v.$ext" | cut -d' ' -f1)" "$(sha256sum "$R/build-atfe/variants/$v.$ext" | cut -d' ' -f1)"
+    check_file "$v.$ext"
   done
 done
 
@@ -47,7 +60,7 @@ instr_in() { # tree
 say "== 3. BOLT edge-instrumented image"
 instr_in "$E"; instr_in "$R"
 for ext in bin elf; do
-  check "pgo_thinlto.instr.$ext" "$(sha256sum "$E/build-atfe/variants/pgo_thinlto.instr.$ext" | cut -d' ' -f1)" "$(sha256sum "$R/build-atfe/variants/pgo_thinlto.instr.$ext" | cut -d' ' -f1)"
+  check_file "pgo_thinlto.instr.$ext"
 done
 
 opt_in() { # tree
@@ -58,7 +71,7 @@ opt_in() { # tree
 say "== 4. BOLT output from the same counters (the profile collected on the Pi)"
 opt_in "$E"; opt_in "$R"
 for f in pgo_thinlto.fdata pgo_thinlto_bolt.elf.funcmap pgo_thinlto_bolt.bin pgo_thinlto_bolt.elf; do
-  check "$f" "$(sha256sum "$E/build-atfe/variants/$f" | cut -d' ' -f1)" "$(sha256sum "$R/build-atfe/variants/$f" | cut -d' ' -f1)"
+  check_file "$f"
 done
 say ""
 say "RESULT: $pass identical, $fail different"

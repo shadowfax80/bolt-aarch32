@@ -66,3 +66,22 @@ only needed if LK is hung or a non-LK payload was loaded (not needed so far).
 - A stale `pi4_run.py` holds `COM5`; if a run hangs, kill it before retrying.
 
 Results are in [RPI4_HARDWARE_VERIFICATION.md](RPI4_HARDWARE_VERIFICATION.md).
+
+## Reproducibility from a fresh clone (verified 2026-09-30)
+
+A fresh `git clone` of this repo, a full toolchain build (`wsl-setup.sh build`, about 1.5 h with
+4 jobs) and `scripts/repro-compare.sh <counters.bin>` produce the same results as the everyday
+tree: 12 of 12 comparisons identical at commit 6bfec33+. Covered: patched LLVM and LK source
+trees, the `baseline` and `pgo_thinlto` images, the BOLT edge-instrumented image, and BOLT's
+`.fdata`, function map and optimized image from the same Pi counters. All `.bin` files are
+byte-identical. `.elf` files are not byte-identical (each embeds its tree's absolute path in
+debug info, and ThinLTO names promoted locals `foo.llvm.<path hash>`), so those are compared by
+symbol table with the hash normalised.
+
+The check found one real bug: 24 tracked `.sh` files were mode 100644 (Windows records no exec
+bit), so `build-pgo-rt-baremetal.sh` failed with "Permission denied" on a Linux clone. Fixed in
+6bfec33 with `git update-index --chmod=+x`; run that for any new script.
+
+Other notes: `PI4_FAST_LOADER=<img>` (see `tools/pi4-serialboot-fast/`) hot-loads the 3 Mbaud
+chainloader for every Pi script, no SD-card change needed. `scripts/mem-guard.sh` drops the
+page cache when WSL memory runs low; run one heavy job at a time.
