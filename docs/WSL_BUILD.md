@@ -49,6 +49,7 @@ the patches and breaks shell scripts. `wsl-setup.sh` normalizes the WSL copy to 
 | `scripts/pi4/multi_stage.sh` | multi-function BOLT: six functions, spacing control |
 | `scripts/pi4/stair_sweep.sh` | ThinLTO footprint sweep |
 | `scripts/pi4/pgo_lab_measure.py`, `pi4_compare.py` | the interleaved measurement (checksum-checked, 95% confidence intervals via `stats_util.py`, one retry on a hung boot) |
+| `scripts/verify-all-wsl.sh` (run inside WSL) | all five QEMU gates on `BASE=atfe`, PASS/FAIL summary, logs in `~/verify-logs/`. Last run 2026-09-30: harness, veneer, workloads PASS; milestones and identity FAIL at P1 (known U2 gap, see KNOWN_LIMITATIONS) |
 | `bolt_bench pmu_probe <hex ev> ...` | which PMU events this core counts (Step 9 in the results doc) |
 
 Runs use the LK watchdog `reboot` command for a software reset; a physical power cycle is

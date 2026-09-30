@@ -132,6 +132,21 @@ two tables.
 supported type and an explicit, diagnosed rejection for unsupported ones —
 rather than adding kinds one at a time as failures surface.
 
+**New evidence (2026-09-30, WSL re-run of the QEMU gates, `BASE=atfe`): U2 now fails the
+P1 gate.** The full-image identity rewrite of `qemu-virt-arm32-test`'s `lk.elf`
+(`verify-bolt-arm32-milestones.sh` P1, `verify-bolt-arm32-identity.sh`) fails with 21×
+`error: unsupported relocation type` and `BOLT-ERROR: Emission failed`. Bisecting over all
+1,424 functions leaves four: `arm_reset`, `arm_secondary_setup` (LK's ARM-mode startup
+assembly) and `float_neon_arm_instruction_test`, `float_vfp_arm_instruction_test` (LK's
+upstream float self-tests). All four contain **ARM-mode (A32) PC-relative literal loads**,
+`ldr rX, [pc, #imm]`: BOLT symbolizes them into a form the ARM ELF object writer cannot
+encode (`R_ARM_LDR_PC_G0`, listed above as absent from both halves), and `--print-cfg` asserts
+("Cannot print this instruction") on the same instruction. Thumb literal loads are handled;
+ARM-mode ones are not. **Not caused by the 2026-09-29/30 changes:** skipping every new
+`bolt_bench` workload changes nothing, and with patches 0011 and 0012 reversed and
+`llvm-bolt` rebuilt the count is identical (21). Why the gates were recorded green on
+2026-09-17 is not known (that run was on the deleted volume; its logs are gone).
+
 ### U3 — No `.ARM.exidx` / `.ARM.extab` unwind-table handling **[verified absent; consequence reasoned]**
 
 Grep across all ten patches finds **zero** mentions of `exidx`, `extab`, or

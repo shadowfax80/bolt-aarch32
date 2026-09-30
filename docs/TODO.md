@@ -36,7 +36,9 @@ Goal: reviewable PRs in llvm-project main. The tracker with evidence and repros 
 
 3. **U2 relocation matrix.** BOLT-core handles 20 `R_ARM_*` types, JITLink 11, nearly disjoint.
    One documented, cross-checked table, a test per supported type, a clean diagnostic for
-   unsupported ones (`THM_JUMP19` is the symptom that blocks `-split-functions`).
+   unsupported ones (`THM_JUMP19` is the symptom that blocks `-split-functions`). **Now also
+   fails the P1 QEMU gate** (2026-09-30): ARM-mode `ldr rX, [pc, #imm]` literal loads
+   (`R_ARM_LDR_PC_G0`) in four LK functions cannot be emitted; see U2 in KNOWN_LIMITATIONS.
 4. **U3 `.ARM.exidx` / `.ARM.extab`.** Rewrite and re-sort the index, or (proposed first-backend
    position) detect the section and refuse with a clear diagnostic.
 5. **U4 lit tests for P9 (instrumentation) and P10 (optimization)**, plus negative/diagnostic tests
