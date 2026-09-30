@@ -21,6 +21,8 @@ import subprocess
 import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, HERE)
+from stats_util import welch_delta_pct  # noqa: E402
 CYC_RE = re.compile(r"bolt_bench: (pl_\w) done \((\d+) cycles\)")
 PMU_RE = re.compile(
     r"bolt_bench: (pl_\w) pmu inst=(\d+) l1i_refill=(\d+) l1d_refill=(\d+) br_mispred=(\d+)"
@@ -103,11 +105,13 @@ def main() -> int:
             sd = statistics.pstdev(r["cycles"] for r in rs)
             mis = statistics.mean(r["br_mispred"] for r in rs)
             l1i = statistics.mean(r["l1i_refill"] for r in rs)
+            cyc_vals = [r["cycles"] for r in rs]
             if base is None:
-                base = cyc
-                delta = "      -"
+                base = cyc_vals
+                delta = "                 -"
             else:
-                delta = f"{100.0 * (cyc - base) / base:+6.2f}%"
+                pct, half, sig = welch_delta_pct(base, cyc_vals)
+                delta = f"{pct:+6.2f}%+-{half:.2f}{'' if sig else '?'}"
             print(f"   {name:<12}{cyc:>14,.0f} cyc (sd {sd:>7,.0f}) {delta}  inst {inst:>13,.0f}  "
                   f"ipc {inst / cyc:5.2f}  mispred {mis:>9,.0f}  l1i {l1i:>7,.0f}")
     return 0

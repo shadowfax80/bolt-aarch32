@@ -1,0 +1,161 @@
+event_hex,name,count_100k_iterations,counts
+0x00,SW_INCR,0,no (reads 0)
+0x01,L1I_CACHE_REFILL,3,yes
+0x02,L1I_TLB_REFILL,0,no (reads 0)
+0x03,L1D_CACHE_REFILL,91464,yes
+0x04,L1D_CACHE,300033,yes
+0x05,L1D_TLB_REFILL,0,no (reads 0)
+0x06,LD_RETIRED,0,no (reads 0)
+0x07,ST_RETIRED,0,no (reads 0)
+0x08,INST_RETIRED,2150039,yes
+0x09,EXC_TAKEN,0,no (reads 0)
+0x0a,EXC_RETURN,0,no (reads 0)
+0x0b,CID_WRITE_RETIRED,0,no (reads 0)
+0x0c,PC_WRITE_RETIRED,0,no (reads 0)
+0x0d,BR_IMMED_RETIRED,0,no (reads 0)
+0x0e,BR_RETURN_RETIRED,0,no (reads 0)
+0x0f,UNALIGNED_LDST_RETIRED,0,no (reads 0)
+0x10,BR_MIS_PRED,9,yes
+0x11,CPU_CYCLES,1270257,yes
+0x12,BR_PRED,450028,yes
+0x13,MEM_ACCESS,300039,yes
+0x14,L1I_CACHE,700300,yes
+0x15,L1D_CACHE_WB,99705,yes
+0x16,L2D_CACHE,299558,yes
+0x17,L2D_CACHE_REFILL,0,no (reads 0)
+0x18,L2D_CACHE_WB,0,no (reads 0)
+0x19,BUS_ACCESS,0,no (reads 0)
+0x1a,MEMORY_ERROR,0,no (reads 0)
+0x1b,INST_SPEC,2150337,yes
+0x1c,TTBR_WRITE_RETIRED,0,no (reads 0)
+0x1d,BUS_CYCLES,423656,yes
+0x1e,(unnamed / impl-defined),0,no (reads 0)
+0x1f,L1D_CACHE_ALLOCATE,0,no (reads 0)
+0x20,L2D_CACHE_ALLOCATE,0,no (reads 0)
+0x21,BR_RETIRED,0,no (reads 0)
+0x22,BR_MIS_PRED_RETIRED,0,no (reads 0)
+0x23,STALL_FRONTEND,0,no (reads 0)
+0x24,STALL_BACKEND,0,no (reads 0)
+0x25,L1D_TLB,0,no (reads 0)
+0x26,L1I_TLB,0,no (reads 0)
+0x27,(unnamed / impl-defined),0,no (reads 0)
+0x28,(unnamed / impl-defined),0,no (reads 0)
+0x29,(unnamed / impl-defined),0,no (reads 0)
+0x2a,(unnamed / impl-defined),0,no (reads 0)
+0x2b,(unnamed / impl-defined),0,no (reads 0)
+0x2c,(unnamed / impl-defined),0,no (reads 0)
+0x2d,(unnamed / impl-defined),0,no (reads 0)
+0x2e,(unnamed / impl-defined),0,no (reads 0)
+0x2f,(unnamed / impl-defined),0,no (reads 0)
+0x30,(unnamed / impl-defined),0,no (reads 0)
+0x31,(unnamed / impl-defined),0,no (reads 0)
+0x32,(unnamed / impl-defined),0,no (reads 0)
+0x33,(unnamed / impl-defined),0,no (reads 0)
+0x34,(unnamed / impl-defined),0,no (reads 0)
+0x35,(unnamed / impl-defined),0,no (reads 0)
+0x36,(unnamed / impl-defined),0,no (reads 0)
+0x37,(unnamed / impl-defined),0,no (reads 0)
+0x38,(unnamed / impl-defined),0,no (reads 0)
+0x39,(unnamed / impl-defined),0,no (reads 0)
+0x3a,(unnamed / impl-defined),0,no (reads 0)
+0x3b,(unnamed / impl-defined),0,no (reads 0)
+0x3c,(unnamed / impl-defined),0,no (reads 0)
+0x3d,(unnamed / impl-defined),0,no (reads 0)
+0x3e,(unnamed / impl-defined),0,no (reads 0)
+0x3f,(unnamed / impl-defined),0,no (reads 0)
+0x40,L1D_CACHE_LD,200013,yes
+0x41,L1D_CACHE_ST,100036,yes
+0x42,L1D_CACHE_REFILL_LD,21167,yes
+0x43,L1D_CACHE_REFILL_ST,70294,yes
+0x44,(unnamed / impl-defined),0,no (reads 0)
+0x45,(unnamed / impl-defined),0,no (reads 0)
+0x46,L1D_CACHE_WB_VICTIM,99740,yes
+0x47,L1D_CACHE_WB_CLEAN,0,no (reads 0)
+0x48,L1D_CACHE_INVAL,0,no (reads 0)
+0x49,(unnamed / impl-defined),0,no (reads 0)
+0x4a,(unnamed / impl-defined),0,no (reads 0)
+0x4b,(unnamed / impl-defined),0,no (reads 0)
+0x4c,L1D_TLB_REFILL_LD,0,no (reads 0)
+0x4d,L1D_TLB_REFILL_ST,0,no (reads 0)
+0x4e,(unnamed / impl-defined),0,no (reads 0)
+0x4f,(unnamed / impl-defined),0,no (reads 0)
+0x50,L2D_CACHE_LD,149860,yes
+0x51,L2D_CACHE_ST,149858,yes
+0x52,L2D_CACHE_REFILL_LD,0,no (reads 0)
+0x53,L2D_CACHE_REFILL_ST,0,no (reads 0)
+0x54,(unnamed / impl-defined),0,no (reads 0)
+0x55,(unnamed / impl-defined),0,no (reads 0)
+0x56,L2D_CACHE_WB_VICTIM,0,no (reads 0)
+0x57,L2D_CACHE_WB_CLEAN,0,no (reads 0)
+0x58,L2D_CACHE_INVAL,0,no (reads 0)
+0x59,(unnamed / impl-defined),0,no (reads 0)
+0x5a,(unnamed / impl-defined),0,no (reads 0)
+0x5b,(unnamed / impl-defined),0,no (reads 0)
+0x5c,(unnamed / impl-defined),0,no (reads 0)
+0x5d,(unnamed / impl-defined),0,no (reads 0)
+0x5e,(unnamed / impl-defined),0,no (reads 0)
+0x5f,(unnamed / impl-defined),0,no (reads 0)
+0x60,BUS_ACCESS_LD,0,no (reads 0)
+0x61,BUS_ACCESS_ST,0,no (reads 0)
+0x62,(unnamed / impl-defined),0,no (reads 0)
+0x63,(unnamed / impl-defined),0,no (reads 0)
+0x64,(unnamed / impl-defined),0,no (reads 0)
+0x65,(unnamed / impl-defined),0,no (reads 0)
+0x66,MEM_ACCESS_LD,200011,yes
+0x67,MEM_ACCESS_ST,100029,yes
+0x68,UNALIGNED_LD_SPEC,0,no (reads 0)
+0x69,UNALIGNED_ST_SPEC,0,no (reads 0)
+0x6a,UNALIGNED_LDST_SPEC,0,no (reads 0)
+0x6b,(unnamed / impl-defined),0,no (reads 0)
+0x6c,LDREX_SPEC,0,no (reads 0)
+0x6d,STREX_PASS_SPEC,0,no (reads 0)
+0x6e,STREX_FAIL_SPEC,0,no (reads 0)
+0x6f,(unnamed / impl-defined),0,no (reads 0)
+0x70,LD_SPEC,200033,yes
+0x71,ST_SPEC,100033,yes
+0x72,LDST_SPEC,300066,yes
+0x73,DP_SPEC,1400304,yes
+0x74,ASE_SPEC,0,no (reads 0)
+0x75,VFP_SPEC,0,no (reads 0)
+0x76,PC_WRITE_SPEC,450060,yes
+0x77,CRYPTO_SPEC,0,no (reads 0)
+0x78,BR_IMMED_SPEC,350023,yes
+0x79,BR_RETURN_SPEC,100006,yes
+0x7a,BR_INDIRECT_SPEC,100006,yes
+0x7b,(unnamed / impl-defined),0,no (reads 0)
+0x7c,ISB_SPEC,5,yes
+0x7d,DSB_SPEC,0,no (reads 0)
+0x7e,DMB_SPEC,0,no (reads 0)
+0x7f,(unnamed / impl-defined),0,no (reads 0)
+0xc0,(unnamed / impl-defined),0,no (reads 0)
+0xc1,(unnamed / impl-defined),0,no (reads 0)
+0xc2,(unnamed / impl-defined),0,no (reads 0)
+0xc3,(unnamed / impl-defined),0,no (reads 0)
+0xc4,(unnamed / impl-defined),0,no (reads 0)
+0xc5,(unnamed / impl-defined),0,no (reads 0)
+0xc6,(unnamed / impl-defined),0,no (reads 0)
+0xc7,(unnamed / impl-defined),0,no (reads 0)
+0xc8,(unnamed / impl-defined),0,no (reads 0)
+0xc9,(unnamed / impl-defined),0,no (reads 0)
+0xca,(unnamed / impl-defined),0,no (reads 0)
+0xcb,(unnamed / impl-defined),0,no (reads 0)
+0xcc,(unnamed / impl-defined),0,no (reads 0)
+0xcd,(unnamed / impl-defined),0,no (reads 0)
+0xce,(unnamed / impl-defined),0,no (reads 0)
+0xcf,(unnamed / impl-defined),0,no (reads 0)
+0xd0,(unnamed / impl-defined),0,no (reads 0)
+0xd1,(unnamed / impl-defined),0,no (reads 0)
+0xd2,(unnamed / impl-defined),0,no (reads 0)
+0xd3,(unnamed / impl-defined),0,no (reads 0)
+0xd4,(unnamed / impl-defined),0,no (reads 0)
+0xd5,(unnamed / impl-defined),0,no (reads 0)
+0xd6,(unnamed / impl-defined),0,no (reads 0)
+0xd7,(unnamed / impl-defined),0,no (reads 0)
+0xd8,(unnamed / impl-defined),0,no (reads 0)
+0xd9,(unnamed / impl-defined),0,no (reads 0)
+0xda,(unnamed / impl-defined),0,no (reads 0)
+0xdb,(unnamed / impl-defined),0,no (reads 0)
+0xdc,(unnamed / impl-defined),0,no (reads 0)
+0xdd,(unnamed / impl-defined),0,no (reads 0)
+0xde,(unnamed / impl-defined),0,no (reads 0)
+0xdf,(unnamed / impl-defined),0,no (reads 0)

@@ -383,6 +383,30 @@ L1D refills and branch mispredicts (Cortex-A72 architectural events 0x08, 0x01,
   instead of printing wrong numbers.
 - Programming it that way exposed the NEON panic below.
 
+**Which events this core really counts (2026-09-30).** The first choice of extra events
+(`STALL_FRONTEND` 0x23, `STALL_BACKEND` 0x24, `PC_WRITE_RETIRED` 0x0C, `BR_RETIRED` 0x21,
+`L1I_TLB_REFILL` 0x02) read 0 on the Pi's Cortex-A72 even in workloads that obviously do
+those things. `bolt_bench pmu_probe <hex event> ...` (up to 5 per run) runs a fixed
+workload (calls/returns, taken and not-taken branches, loads and stores over a buffer
+larger than the L1D, unaligned accesses) and prints what each event counted; sweeping
+0x00-0x7F and 0xC0-0xDF (160 events, `docs/results/pmu_event_sweep_cortex_a72.csv`):
+
+- **31 events count.** Among them: L1I_CACHE_REFILL/L1I_CACHE, the L1D and L2D cache events,
+  INST_RETIRED/INST_SPEC, CPU_CYCLES, BR_MIS_PRED, BR_PRED, MEM_ACCESS, and the
+  speculative branch events `PC_WRITE_SPEC` (0x76, taken branches/calls/returns),
+  `BR_IMMED_SPEC` (0x78), `BR_RETURN_SPEC` (0x79), `BR_INDIRECT_SPEC` (0x7A).
+- **The `_RETIRED` branch events do not** (0x0C, 0x0D, 0x0E, 0x21, 0x22), nor do
+  STALL_FRONTEND/STALL_BACKEND, any TLB event (0x02, 0x05, 0x25, 0x26), TTBR/CID writes,
+  exception events, or any implementation-defined event I tried (0xC0-0xDF, 0x2x-0x3x).
+  **There is no front-end stall counter on this core**; L1I refills, `l2d_acc` (which tracks
+  instruction refills: 3.84M L2 accesses for 1.96M L1I refills in the multi-function
+  baseline) and IPC stand in for it.
+- **Current sets:** set 0 (`bolt_bench <wl>`): L1I refill, L1D refill, INST_RETIRED,
+  BR_MIS_PRED, `taken` = PC_WRITE_SPEC. Set 1 (`bolt_bench <wl> 1`): `l1i_acc` (0x14),
+  `br_pred` (0x12), `inst_spec` (0x1B), `ret_spec` (0x79), `l2d_acc` (0x16). `taken` is
+  speculative (wrong-path taken branches are included), so compare it between images
+  rather than reading it as an exact retired count.
+
 ## Step 10 — final staged comparison (real Pi 4B)
 
 `scripts/pi4/pi4_compare.py`: 5 rounds x 4 variants x 4 runs per boot = 80 runs,
@@ -508,9 +532,10 @@ disassembling the full `lk.elf`: 0 FP/NEON instructions in 20,176.
   small to measure. The real BOLT lever is instruction-fetch footprint.
 - v2 (written, not yet measured): 640 sites with two ~70-byte helper arms, so the
   interleaved layout exceeds the 48 KB L1I and BOLT's packing should fit it. Adds a
-  second PMU set (`bolt_bench stair 1`: `stall_fe`, `stall_be`, `l1i_acc`, `br_ret`,
-  `itlb_refill`), warm-up, interrupts off in the window, and a `taken` counter
-  (PC_WRITE_RETIRED). Each stage has a predicted counter signature; a stage counts
+  second PMU set (`bolt_bench stair 1`; its first event choice -- stall, TLB and
+  `_RETIRED` branch events -- turned out to read 0 on this core, see "Which events this
+  core really counts" under Step 9), warm-up, interrupts off in the window, and a `taken`
+  counter (now PC_WRITE_SPEC). Each stage has a predicted counter signature; a stage counts
   as demonstrated only if that counter moves. The BOLT stage also needs a
   no-reorder control to separate "code moved" from "code reordered".
 

@@ -48,7 +48,8 @@ the patches and breaks shell scripts. `wsl-setup.sh` normalizes the WSL copy to 
 | `scripts/pi4/bolt_stage.sh <M or M:X>` | one full staged point: PGO, ThinLTO, BOLT edge profile, BOLT + no-reorder control, interleaved measurement of the stair function and of the `pgo_lab` kernels |
 | `scripts/pi4/multi_stage.sh` | multi-function BOLT: six functions, spacing control |
 | `scripts/pi4/stair_sweep.sh` | ThinLTO footprint sweep |
-| `scripts/pi4/pgo_lab_measure.py`, `pi4_compare.py` | the interleaved measurement (checksum-checked, one retry on a hung boot) |
+| `scripts/pi4/pgo_lab_measure.py`, `pi4_compare.py` | the interleaved measurement (checksum-checked, 95% confidence intervals via `stats_util.py`, one retry on a hung boot) |
+| `bolt_bench pmu_probe <hex ev> ...` | which PMU events this core counts (Step 9 in the results doc) |
 
 Runs use the LK watchdog `reboot` command for a software reset; a physical power cycle is
 only needed if LK is hung or a non-LK payload was loaded (not needed so far).

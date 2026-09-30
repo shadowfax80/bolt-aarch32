@@ -44,27 +44,36 @@ static void bench_banner(const char *name, lk_time_t cycles) {
  * moved cycles, not just that it did. What BOLT and LTO change is exactly
  * instruction-side behavior: L1I refills and branch mispredicts. */
 #define BOLT_PMU_NCTR 5
-/* Set 0: what changed. Set 1: why the front end stalled. `bolt_bench <wl> 1` selects
- * set 1; the workload is deterministic, so two passes give ten events. */
+/* Set 0: what changed. Set 1: more front-end / branch detail. `bolt_bench <wl> 1` selects
+ * set 1; the workload is deterministic, so two passes give ten events.
+ * Only events the Pi 4B's Cortex-A72 really counts are used (swept 160 events with
+ * `bolt_bench pmu_probe`, 2026-09-30): it counts the speculative _SPEC events but NOT the
+ * _RETIRED branch events (0x0C, 0x0D, 0x0E, 0x21, 0x22), STALL_FRONTEND/BACKEND (0x23/0x24)
+ * or any TLB event -- those read 0. `taken` is therefore PC_WRITE_SPEC (speculatively
+ * executed taken branches, calls and returns), and there is no front-end stall counter:
+ * L1I refills and IPC stand in for it. */
 static const uint32_t bolt_pmu_sets[2][BOLT_PMU_NCTR] = {
     {
         0x01, /* L1I_CACHE_REFILL */
         0x03, /* L1D_CACHE_REFILL */
         0x08, /* INST_RETIRED */
         0x10, /* BR_MIS_PRED */
-        0x0C, /* PC_WRITE_RETIRED: taken branches, calls and returns */
+        0x76, /* PC_WRITE_SPEC: taken branches, calls and returns (speculative) */
     },
     {
-        0x23, /* STALL_FRONTEND */
-        0x24, /* STALL_BACKEND */
         0x14, /* L1I_CACHE (accesses) */
-        0x21, /* BR_RETIRED */
-        0x02, /* L1I_TLB_REFILL */
+        0x12, /* BR_PRED (predictable branches speculatively executed) */
+        0x1B, /* INST_SPEC (instructions speculatively executed) */
+        0x79, /* BR_RETURN_SPEC */
+        0x16, /* L2D_CACHE (accesses) */
     },
 };
 static uint32_t bolt_pmu_events[BOLT_PMU_NCTR];
 static int g_pmu_set_req;
 static int g_pmu_set_cur = -1;
+/* Set 2: arbitrary events chosen at run time (`bolt_bench pmu_probe <hex> ...`), used to
+ * find out which events this core really counts. */
+static uint32_t g_pmu_custom[BOLT_PMU_NCTR];
 
 struct bolt_pmu {
     uint32_t v[BOLT_PMU_NCTR];
@@ -99,7 +108,7 @@ static void bolt_pmu_init(void) {
     }
     g_pmu_set_cur = g_pmu_set_req;
     for (uint32_t i = 0; i < BOLT_PMU_NCTR; i++) {
-        bolt_pmu_events[i] = bolt_pmu_sets[g_pmu_set_cur][i];
+        bolt_pmu_events[i] = (g_pmu_set_cur == 2) ? g_pmu_custom[i] : bolt_pmu_sets[g_pmu_set_cur][i];
     }
     mp_sync_exec(MP_IPI_TARGET_ALL, 0, bolt_pmu_init_this_cpu, NULL);
 }
@@ -114,8 +123,16 @@ static void bolt_pmu_read(struct bolt_pmu *s) {
 }
 
 static void bolt_pmu_report(const char *name, const struct bolt_pmu *a, const struct bolt_pmu *b) {
+    if (g_pmu_set_cur == 2) {
+        printf("bolt_bench: %s pmuX", name);
+        for (uint32_t i = 0; i < BOLT_PMU_NCTR; i++) {
+            printf(" 0x%02x=%u", (unsigned)g_pmu_custom[i], (unsigned)(b->v[i] - a->v[i]));
+        }
+        printf("\n");
+        return;
+    }
     if (g_pmu_set_cur == 1) {
-        printf("bolt_bench: %s pmu2 stall_fe=%u stall_be=%u l1i_acc=%u br_ret=%u itlb_refill=%u\n", name,
+        printf("bolt_bench: %s pmu2 l1i_acc=%u br_pred=%u inst_spec=%u ret_spec=%u l2d_acc=%u\n", name,
                (unsigned)(b->v[0] - a->v[0]), (unsigned)(b->v[1] - a->v[1]), (unsigned)(b->v[2] - a->v[2]),
                (unsigned)(b->v[3] - a->v[3]), (unsigned)(b->v[4] - a->v[4]));
         return;
@@ -549,7 +566,7 @@ __attribute__((noinline)) void bolt_bench_composite(void) {
  *            hot path spans ~2x the cache lines it needs -- more than the 48 KB L1I.
  *            BOLT profiles the final inlined binary, packs each site's hot arm and
  *            splits the cold ones away.
- *            expect: `l1i_refill` and `stall_fe` drop, cycles follow.
+ *            expect: `l1i_refill` drops and IPC recovers, cycles follow.
  * Blocks are independent (no dependency chain) so the kernel is front-end bound;
  * the empty asm keeps them real branches rather than IT-predicated code. */
 #ifndef STAIR_M
@@ -909,6 +926,55 @@ __attribute__((noinline)) void bolt_bench_multi(void) {
     g_bolt_bench_sink = x;
 }
 
+/* --- pmu_probe: which PMU events does this core really count? -------------------
+ * `bolt_bench pmu_probe <ev> [<ev> ...]` (hex, up to 5) runs one fixed workload -- calls and
+ * returns, taken and not-taken branches, loads and stores over a buffer larger than the L1D,
+ * unaligned accesses -- and prints what each event counted. An event that reads 0 here while
+ * the workload obviously does that thing is not implemented (or not enabled) on this core. */
+static uint8_t g_pp_buf[65536 + 64];
+
+__attribute__((noinline)) static uint32_t pp_leaf(uint32_t x) {
+    return x * 3u + 1u;
+}
+
+__attribute__((noinline)) static uint32_t pp_kernel(uint32_t n) {
+    uint32_t x = 1u, s = 0u;
+    volatile uint8_t *buf = g_pp_buf;
+    for (uint32_t i = 0; i < n; i++) {
+        x = pp_leaf(x);
+        if (x & 4u) {
+            s += 3u;
+            __asm__ volatile("" : "+r"(s));
+        } else {
+            s ^= 5u;
+            __asm__ volatile("" : "+r"(s));
+        }
+        s += buf[(i * 67u) & 0xFFFFu];
+        buf[(i * 131u) & 0xFFFFu] = (uint8_t)s;
+        s += *(volatile uint32_t *)(buf + 1u + ((i * 8u) & 0x3FF0u)); /* unaligned load */
+    }
+    return s ^ x;
+}
+
+static void bolt_bench_pmu_probe(void) {
+    struct bolt_pmu p0, p1;
+    bolt_pmu_init();
+    thread_t *self = get_current_thread();
+    int old_pin = thread_pinned_cpu(self);
+    uint start_cpu = arch_curr_cpu_num();
+    thread_set_pinned_cpu(self, (int)start_cpu);
+    uint32_t acc = pp_kernel(2000u); /* warm-up */
+    arch_disable_ints();
+    bolt_pmu_read(&p0);
+    acc ^= pp_kernel(100000u);
+    bolt_pmu_read(&p1);
+    arch_enable_ints();
+    bolt_pmu_report("pmu_probe", &p0, &p1);
+    thread_set_pinned_cpu(self, old_pin);
+    printf("bolt_bench: pmu_probe iters=100000 acc=0x%08x\n", (unsigned)acc);
+    g_bolt_bench_sink = acc;
+}
+
 static void run_one(const char *name) {
     if (!strcmp(name, "hot_loop")) {
         bolt_bench_hot_loop();
@@ -978,6 +1044,15 @@ static int bolt_bench_cmd(int argc, const console_cmd_args *argv) {
     if (argc < 2) {
         printf("usage: bolt_bench <hot_loop|hot_cold|branch_chain|memcpy|far_call|it_cond|interwork|switch|spill_ret|litpool|indirect_call|interwork_tail|regpressure|hotcold_split|icf|shrinkwrap|composite|stair|pgo_lab|multi|all>\n");
         return -1;
+    }
+    if (!strcmp(argv[1].str, "pmu_probe")) {
+        for (uint32_t i = 0; i < BOLT_PMU_NCTR; i++) {
+            g_pmu_custom[i] = ((int)i + 2 < argc) ? (uint32_t)strtoul(argv[i + 2].str, NULL, 16) : 0x08u;
+        }
+        g_pmu_set_req = 2;
+        g_pmu_set_cur = -1; /* re-arm the counters with the events just given */
+        bolt_bench_pmu_probe();
+        return 0;
     }
     g_pmu_set_req = (argc > 2 && argv[2].i == 1) ? 1 : 0;
     run_one(argv[1].str);

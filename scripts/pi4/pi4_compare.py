@@ -25,6 +25,8 @@ import subprocess
 import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, HERE)
+from stats_util import fmt_delta, mean_ci95  # noqa: E402
 CYC_RE = re.compile(r"bolt_bench: (\w+) done \((\d+) cycles\)")
 PMU_RE = re.compile(
     r"bolt_bench: (\w+) pmu inst=(\d+) l1i_refill=(\d+) l1d_refill=(\d+) br_mispred=(\d+)(?: taken=(\d+))?"
@@ -130,11 +132,13 @@ def main() -> int:
                 vals = [1000.0 * r[f] / r["inst"] for r in rs if r.get(f) is not None and r.get("inst")]
                 if vals and any(vals):
                     print(f"   {f + '/kinst':<11}{statistics.mean(vals):>13.3f}")
-        mean_cyc = statistics.mean(r["cycles"] for r in rs)
+        cyc_vals = [r["cycles"] for r in rs]
+        m, half = mean_ci95(cyc_vals)
+        print(f"   {'cycles 95%':<11}{m:>13,.0f} +- {half:,.0f}")
         if base is None:
-            base = mean_cyc
+            base = cyc_vals
         else:
-            print(f"   cycles vs {variants[0][0]}: {100.0 * (mean_cyc - base) / base:+.2f}%")
+            print(f"   cycles vs {variants[0][0]}: {fmt_delta(base, cyc_vals)}")
     return 0
 
 
