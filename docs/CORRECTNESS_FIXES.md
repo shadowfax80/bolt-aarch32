@@ -88,3 +88,20 @@ the original image. Memcpy and interwork do not update that shared variable,
 so their dump comparison alone is not an independent output checksum.
 The initial interwork run aborted before the BLX fix; baseline recovery and
 the fixed run passed. Dedicated BLX H-bit and alignment cases remain open.
+
+## Deterministic stubs and mixed instruction-set alignment
+
+ATFE 0019 visits original blocks in section/address order and assigns distinct
+ordering addresses to generated stubs. It also aligns generated stub sections
+for every contained block and preserves block alignment when BOLT remaps their
+addresses. Previously five identical LK links produced five different text
+hashes. Stable stub order exposed two padding inconsistencies on the Pi;
+those candidates were not pushed. The final candidate passed seven redirected
+workloads with result-variable dumps matching the original.
+
+The regression links a mixed ARM/Thumb fixture eight times, compares text and
+stub bytes, and verifies that ARM calls land on physical ARM stub starts.
+Five LK links also produce identical text hashes. BOLT ARM passed 16/16,
+JITLink AArch32 passed 14/14, and full LK emission passed. Whole ELF files can
+still differ in informational notes containing output paths; this check covers
+generated code/stubs rather than those invocation-specific notes.

@@ -3,7 +3,7 @@
 Last updated: 2026-10-01. Verification details: [CORRECTNESS_FIXES.md](CORRECTNESS_FIXES.md).
 
 Active scope: ATFE only, as requested. Upstream work is stopped and excluded
-from completion criteria. Two items are complete within this scope (2 and 8).
+from completion criteria. Three items are complete within this scope (2, 8, 10).
 
 | # | Work | Status | Remaining work |
 |---|---|---|---|
@@ -16,7 +16,7 @@ from completion criteria. Two items are complete within this scope (2 and 8).
 | 7 | ISA/profile/endianness | Pending | Enforce the supported target feature boundary |
 | 8 | FK_Data_8 / ABS32 mismatch | Complete | ATFE host and Pi checks passed; symbolic 64-bit relocations rejected; resolved values and map width corrected |
 | 9 | Mapping symbols and dropped functions | Pending | Audit odd Thumb mapping symbols and preservation of skipped functions |
-| 10 | Deterministic stubs | Pending | Repeat-link comparison and deterministic allocation |
+| 10 | Deterministic stubs | Complete | Stable visitation and layout, mixed-stub alignment fixed; repeated links and Pi checks passed |
 | 11 | Rewrite coverage | Pending | Unsupported jump tables/GOT/TLS/veneers and explicit rejection policy |
 | 12 | Verification failures and coverage | Partial | Failure propagation fixed and tested; broader regression/hardware coverage remains |
 

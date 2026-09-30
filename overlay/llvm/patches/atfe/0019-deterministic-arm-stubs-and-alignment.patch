@@ -1,0 +1,243 @@
+diff --git a/llvm/lib/ExecutionEngine/JITLink/ELF_aarch32.cpp b/llvm/lib/ExecutionEngine/JITLink/ELF_aarch32.cpp
+--- a/llvm/lib/ExecutionEngine/JITLink/ELF_aarch32.cpp
++++ b/llvm/lib/ExecutionEngine/JITLink/ELF_aarch32.cpp
+@@ -12,6 +12,7 @@
+ 
+ #include "llvm/ExecutionEngine/JITLink/ELF_aarch32.h"
+ 
++#include "llvm/ADT/STLExtras.h"
+ #include "llvm/BinaryFormat/ELF.h"
+ #include "llvm/ExecutionEngine/JITLink/JITLink.h"
+ #include "llvm/ExecutionEngine/JITLink/aarch32.h"
+@@ -238,14 +239,29 @@
+         ArmCfg(std::move(ArmCfg)) {}
+ };
+ 
++// Stub addresses depend on first use. Graph block iteration uses pointer
++// hashing, so visit original sections/addresses in a stable order instead.
++template <typename ManagerT>
++static void visitEdgesInAddressOrder(LinkGraph &G, ManagerT &Manager) {
++  std::vector<Block *> Worklist(G.blocks().begin(), G.blocks().end());
++  llvm::sort(Worklist, [](const Block *A, const Block *B) {
++    if (A->getSection().getOrdinal() != B->getSection().getOrdinal())
++      return A->getSection().getOrdinal() < B->getSection().getOrdinal();
++    return A->getAddress() < B->getAddress();
++  });
++  for (Block *B : Worklist)
++    for (Edge &E : B->edges())
++      Manager.visitEdge(G, B, E);
++}
++
+ template <typename StubsManagerType>
+ Error buildTables_ELF_aarch32(LinkGraph &G) {
+   LLVM_DEBUG(dbgs() << "Visiting edges in graph:\n");
+ 
+   StubsManagerType StubsManager;
+-  visitExistingEdges(G, StubsManager);
++  visitEdgesInAddressOrder(G, StubsManager);
+   aarch32::GOTBuilder GOT;
+-  visitExistingEdges(G, GOT);
++  visitEdgesInAddressOrder(G, GOT);
+ 
+   return Error::success();
+ }
+diff --git a/llvm/lib/ExecutionEngine/JITLink/aarch32.cpp b/llvm/lib/ExecutionEngine/JITLink/aarch32.cpp
+--- a/llvm/lib/ExecutionEngine/JITLink/aarch32.cpp
++++ b/llvm/lib/ExecutionEngine/JITLink/aarch32.cpp
+@@ -827,7 +827,17 @@
+ static Block &allocStub(LinkGraph &G, Section &S, const uint8_t (&Code)[Size],
+                         uint64_t Alignment = 4) {
+   ArrayRef<char> Template(reinterpret_cast<const char *>(Code), Size);
+-  return G.createContentBlock(S, Template, orc::ExecutorAddr(), Alignment, 0);
++  // BasicLayout sorts by section, address and size. Give generated stubs
++  // distinct ordering addresses; otherwise equal-sized address-zero blocks
++  // are laid out in pointer-hash order despite stable edge visitation.
++  uint64_t OrderingAddress = 0;
++  for (const Block *Existing : S.blocks())
++    OrderingAddress = std::max(OrderingAddress,
++                              Existing->getAddress().getValue() +
++                                  Existing->getSize());
++  OrderingAddress = alignTo(OrderingAddress, Alignment);
++  return G.createContentBlock(S, Template, orc::ExecutorAddr(OrderingAddress),
++                              Alignment, 0);
+ }
+ 
+ static Block &createStubPrev7(LinkGraph &G, Section &S, Symbol &Target) {
+diff --git a/bolt/lib/Rewrite/JITLinkLinker.cpp b/bolt/lib/Rewrite/JITLinkLinker.cpp
+--- a/bolt/lib/Rewrite/JITLinkLinker.cpp
++++ b/bolt/lib/Rewrite/JITLinkLinker.cpp
+@@ -68,6 +68,11 @@
+     // which might not be aligned with the minimum alignment used by
+     // BinaryFunction (2). Example failing test when aligning:
+     // bolt/test/X86/addr32.s
++    // Generated ARM/Thumb stubs can have different alignments. Match
++    // sectionSize()/BasicLayout padding when remapping their addresses.
++    if ((LG.getTargetTriple().isARM() || LG.getTargetTriple().isThumb()) &&
++        JLSection->getName().starts_with("__llvm_jitlink_aarch32_STUBS"))
++      BlockAddress = jitlink::alignToBlock(BlockAddress, *Block);
+     Block->setAddress(orc::ExecutorAddr(BlockAddress));
+     BlockAddress += Block->getSize();
+   }
+@@ -149,7 +154,17 @@
+       });
+       Config.PostPrunePasses.push_back([](jitlink::LinkGraph &LG) -> Error {
+         jitlink::aarch32::StubsManager_v7 Stubs;
+-        jitlink::visitExistingEdges(LG, Stubs);
++        // First-use stub allocation must not depend on pointer-hash order.
++        std::vector<jitlink::Block *> Worklist(LG.blocks().begin(),
++                                               LG.blocks().end());
++        llvm::sort(Worklist, [](const auto *A, const auto *B) {
++          if (A->getSection().getOrdinal() != B->getSection().getOrdinal())
++            return A->getSection().getOrdinal() < B->getSection().getOrdinal();
++          return A->getAddress() < B->getAddress();
++        });
++        for (auto *B : Worklist)
++          for (auto &E : B->edges())
++            Stubs.visitEdge(LG, B, E);
+         return Error::success();
+       });
+     }
+diff --git a/bolt/lib/Rewrite/ExecutableFileMemoryManager.cpp b/bolt/lib/Rewrite/ExecutableFileMemoryManager.cpp
+--- a/bolt/lib/Rewrite/ExecutableFileMemoryManager.cpp
++++ b/bolt/lib/Rewrite/ExecutableFileMemoryManager.cpp
+@@ -36,6 +36,14 @@
+ 
+ size_t sectionAlignment(const jitlink::Section &Section) {
+   assert(!Section.empty() && "Cannot get alignment for empty section");
++  if (Section.getName().starts_with("__llvm_jitlink_aarch32_STUBS")) {
++    // Thumb entries may come first, but later ARM entries still require
++    // word alignment. Align the section for every contained block.
++    size_t Alignment = 1;
++    for (const auto *Block : Section.blocks())
++      Alignment = std::max(Alignment, size_t(Block->getAlignment()));
++    return Alignment;
++  }
+   return JITLinkLinker::orderedBlocks(Section).front()->getAlignment();
+ }
+ 
+diff --git a/bolt/test/ARM/Inputs/arm32-stub-order.s b/bolt/test/ARM/Inputs/arm32-stub-order.s
+new file mode 100644
+--- /dev/null
++++ b/bolt/test/ARM/Inputs/arm32-stub-order.s
+@@ -0,0 +1,61 @@
++ .syntax unified
++ .text
++ .arm
++ .globl _start, thumb_one, thumb_two, thumb_three
++ .type _start,%function
++_start:
++ push {lr}
++ blx thumb_one
++ blx thumb_two
++ blx thumb_three
++ pop {pc}
++ .size _start,.-_start
++ .thumb
++ .thumb_func
++ .type thumb_one,%function
++thumb_one:
++ movs r0,#1
++ bx lr
++ .size thumb_one,.-thumb_one
++ .thumb_func
++ .type thumb_two,%function
++thumb_two:
++ movs r0,#2
++ bx lr
++ .size thumb_two,.-thumb_two
++ .thumb_func
++ .type thumb_three,%function
++thumb_three:
++ movs r0,#3
++ bx lr
++ .size thumb_three,.-thumb_three
++
++ .thumb
++ .thumb_func
++ .globl thumb_caller
++ .type thumb_caller,%function
++thumb_caller:
++ push {lr}
++ bl arm_callee
++ pop {pc}
++ .size thumb_caller,.-thumb_caller
++ .arm
++ .globl arm_second, arm_callee
++ .type arm_second,%function
++arm_second:
++ push {lr}
++ blx thumb_four
++ pop {pc}
++ .size arm_second,.-arm_second
++ .type arm_callee,%function
++arm_callee:
++ bx lr
++ .size arm_callee,.-arm_callee
++ .thumb
++ .thumb_func
++ .globl thumb_four
++ .type thumb_four,%function
++thumb_four:
++ movs r0,#4
++ bx lr
++ .size thumb_four,.-thumb_four
+diff --git a/bolt/test/ARM/Inputs/check-stub-determinism.py b/bolt/test/ARM/Inputs/check-stub-determinism.py
+new file mode 100644
+--- /dev/null
++++ b/bolt/test/ARM/Inputs/check-stub-determinism.py
+@@ -0,0 +1,46 @@
++import pathlib
++import subprocess
++import sys
++bolt = sys.argv[1:-3]
++objcopy, source, prefix = sys.argv[-3:]
++reference = None
++for run in range(8):
++    output = f"{prefix}.{run}.bolt"
++    text = f"{prefix}.{run}.text"
++    stubs = f"{prefix}.{run}.stubs"
++    mapping = f"{prefix}.{run}.map"
++    subprocess.run([*bolt, source, "-o", output,
++                    "--funcs=_start,thumb_caller,arm_second",
++                    f"--emit-function-map={mapping}"], check=True)
++    subprocess.run([objcopy, f"--dump-section=.text={text}",
++                    f"--dump-section=__llvm_jitlink_aarch32_STUBS_v7={stubs}",
++                    output], check=True)
++    code = pathlib.Path(text).read_bytes()
++    stub_code = pathlib.Path(stubs).read_bytes()
++    addresses = {}
++    for line in pathlib.Path(mapping).read_text().splitlines():
++        name, original, rewritten, size = line.split()
++        addresses[name] = int(rewritten, 16)
++    base = min(addresses.values())
++    stub_base = (base + len(code) + 3) & ~3
++    assert stub_code, "No stubs generated"
++    # Each ARM call must land on the physical start of an ARM stub, including
++    # after a halfword-aligned Thumb stub has been allocated in the section.
++    for name in ("_start", "arm_second"):
++        pc = addresses[name] + 4
++        offset = pc - base
++        word = int.from_bytes(code[offset:offset+4], "little")
++        assert word >> 24 == 0xeb, "Call lost its link bit"
++        displacement = (word & 0xffffff) << 2
++        if displacement & (1 << 25):
++            displacement -= 1 << 26
++        target = pc + 8 + displacement
++        offset = target - stub_base
++        assert 0 <= offset <= len(stub_code)-12, "Call outside stub section"
++        instruction = int.from_bytes(stub_code[offset:offset+4], "little")
++        assert instruction & 0xfff0f000 == 0xe300c000, "Call misses ARM stub start"
++    contents = (code, stub_code)
++    if reference is None:
++        reference = contents
++    elif contents != reference:
++        raise SystemExit(f"Rewritten text/stubs differ in link {run}")
+diff --git a/bolt/test/ARM/arm-stub-determinism.test b/bolt/test/ARM/arm-stub-determinism.test
+new file mode 100644
+--- /dev/null
++++ b/bolt/test/ARM/arm-stub-determinism.test
+@@ -0,0 +1,4 @@
++## Repeated links must allocate interworking stubs in a stable order.
++RUN: llvm-mc -triple=armv7-none-eabi -filetype=obj %p/Inputs/arm32-stub-order.s -o %t.o
++RUN: ld.lld --emit-relocs -T %p/Inputs/arm32.ld %t.o -o %t.exe
++RUN: %python %p/Inputs/check-stub-determinism.py llvm-bolt llvm-objcopy %t.exe %t
