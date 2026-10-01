@@ -87,3 +87,25 @@ Not part of the six items above; recorded so they are not lost.
 - **Linux user-space instrumentation runtime** for AArch32 (only the bare-metal one exists).
 - **Full EHABI rewriting** of `.ARM.exidx`/`.ARM.extab` (today: refused with a diagnostic).
 - **Upstream work:** RFC, upstream patch series, U1–U9 (see [TODO.md](TODO.md)).
+
+## Progress on the six items
+
+### 1. Hot/cold splitting — DONE (overlay 0022, 2026-10-01)
+
+- JITLink: new `Thumb_Jump19` edge kind for `R_ARM_THM_JUMP19` (B<c>.W, T3), read/apply,
+  ±1 MiB range check, condition field preserved, interworking stub when the target is ARM.
+- BOLT JITLink pass: split-fragment symbols (`foo.cold.0`) are now marked Thumb. Without
+  this, every hot→cold conditional branch went through an ARM-state stub and the Pi
+  hung/panicked the first time cold code ran (found on the Pi with the shifted input).
+- BOLT core: Thumb `BL`/`B.W` relocation values were decoded with the halfwords swapped and no
+  PC bias (0 of 1,635 matched their symbol in the LK image; now 1,588, the rest are lld
+  veneers); ARM-mode branches lacked the +8 bias and BLX's H bit; `PREL31` used 32 bits.
+  ARM now follows AArch64's absolute-target convention in `analyzeRelocation`.
+  `THM_JUMP19` is recognized on input.
+- Tests: JITLink `ELF_relocations_thumb_jump19.s`, BOLT `arm-thumb-split.test`; all 33 ARM +
+  JITLink AArch32 lit tests and 15 JITLink unit tests pass.
+- Pi (stair, 432 sites, `-split-functions -split-all-cold`, 2 rounds × 2 runs, checksums
+  identical in all runs): training input bolt −10.38%, bolt+split −10.38% vs baseline;
+  shifted input (cold code executes) bolt +44.5%, bolt+split +42.9%.
+  `docs/results/split_functions_stair_v*.csv`. Enable with `BOLT_SPLIT=1`.
+- Not supported: `-split-strategy=cdsplit` (upstream LongJmp limitation, >2 fragments).

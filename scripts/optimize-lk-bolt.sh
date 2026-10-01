@@ -60,10 +60,10 @@ BOLT_ARGS=(
   #                     "calculated pseudos 1, set pseudos 0" on
   #                     bolt_bench_interwork, then asserts in
   #                     BinaryBasicBlock::size() (hasInstructions()).
-  #   -split-functions  widens a Thumb conditional branch to B<cond>.W, whose
-  #                     R_ARM_THM_JUMP19 relocation the aarch32 JITLink
-  #                     backend rejects ("Unsupported aarch32 relocation 51").
+  # -split-functions works since overlay 0022 (R_ARM_THM_JUMP19 in JITLink, Thumb
+  # fragment symbols); opt in with BOLT_SPLIT=1.
 )
+[[ "${BOLT_SPLIT:-0}" == 1 ]] && BOLT_ARGS+=(-split-functions -split-all-cold)
 
 # Prefer rewriting only profiled benches on ARM32 — full-image layout
 # still hits trampoline/literal-pool issues outside bolt_bench_*.
