@@ -1,5 +1,22 @@
 # Correctness fixes
 
+## ATFE source replay guard (2026-10-02)
+
+The isolated verifier exports patch-touched files from the pinned ATFE base,
+applies the complete series in a separate Git directory and compares source
+contents without changing live files. It rejects changed patch contents,
+uncovered source changes, unsafe paths and live mutations. Existing evidence
+directories are preserved. Host validation: 25 profile/replay tests pass, including
+changed-patch detection and source preservation.
+
+All 24 real ATFE patches apply, but four live files differ due to unexported
+ARM attribute-feature and kept-code handling. The diff was preserved; the audit
+correctly refuses source-equality certification. This is a validation guard,
+not a completed clean replay or build provenance claim. Review/export and focused
+tests for the unrecorded changes, content stamps and a clean build remain open.
+See [replay workflow](ATFE_OVERLAY_REPLAY.md) and
+[audit evidence](results/correctness_atfe_replay_20261002.json).
+
 ## Sampling artifact identity (2026-10-01)
 
 The Pi sampling path now requires an ELF/binary pair sealed before collection.

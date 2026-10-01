@@ -29,6 +29,7 @@ dump = load('validation_dump', 'scripts/ram-dump-to-fdata.py')
 samples = load('validation_samples', 'scripts/samples_to_fdata.py')
 identity = load('validation_identity', 'scripts/profile_identity.py')
 collector = load('validation_collector', 'scripts/pi4/pi4_sample_profile.py')
+overlay_replay = load('validation_overlay_replay', 'scripts/verify-atfe-overlays.py')
 
 
 class ValidationTests(unittest.TestCase):
@@ -360,6 +361,53 @@ class ValidationTests(unittest.TestCase):
         self.assertEqual(len(observations['workload_results']), 18)
         with self.assertRaises(ValueError):
             collector.validate_capture(text, buffer, 'all', 3, 20000)
+
+    def replay_fixture(self):
+        source = self.base / 'source'; source.mkdir()
+        overlay_replay.git(source, 'init', '-q')
+        overlay_replay.git(source, 'config', 'core.autocrlf', 'false')
+        original = source / 'code.txt'; original.write_bytes(b'start\none\nend\n')
+        overlay_replay.git(source, 'add', 'code.txt')
+        overlay_replay.git(source, '-c', 'user.name=Test', '-c', 'user.email=test@localhost', 'commit', '-qm', 'base')
+        base = overlay_replay.git(source, 'rev-parse', 'HEAD').decode().strip()
+        patches = self.base / 'series'; patches.mkdir()
+        original.write_bytes(b'start\ntwo\nend\n')
+        (patches / '0001.patch').write_bytes(overlay_replay.git(source, 'diff', '--', 'code.txt'))
+        overlay_replay.git(source, 'add', 'code.txt')
+        overlay_replay.git(source, '-c', 'user.name=Test', '-c', 'user.email=test@localhost', 'commit', '-qm', 'first')
+        original.write_bytes(b'start\nthree\nend\n')
+        (patches / '0002.patch').write_bytes(overlay_replay.git(source, 'diff', '--', 'code.txt'))
+        return source, base, patches
+
+    def test_clean_overlay_replay_preserves_live_source_and_rejects_changed_content(self):
+        source, base, patches = self.replay_fixture()
+        before = (source / 'code.txt').read_bytes()
+        result = overlay_replay.replay(source, base, patches, self.base / 'replay')
+        self.assertTrue(result['success'])
+        self.assertTrue(result['live_source_preserved'])
+        self.assertEqual((source / 'code.txt').read_bytes(), before)
+        # The same filename with changed patch content cannot inherit success.
+        patch = patches / '0002.patch'
+        patch.write_bytes(patch.read_bytes().replace(b'+three', b'+changed'))
+        changed = overlay_replay.replay(source, base, patches, self.base / 'changed-replay')
+        self.assertFalse(changed['success'])
+        self.assertNotEqual(result['source_identity_sha256'], changed['source_identity_sha256'])
+        self.assertEqual(changed['mismatched_source_files'], ['code.txt'])
+        self.assertEqual((source / 'code.txt').read_bytes(), before)
+
+    def test_overlay_replay_rejects_uncovered_source_and_unsafe_destinations(self):
+        source, base, patches = self.replay_fixture()
+        (source / 'extra-code.c').write_bytes(b'extra source')
+        result = overlay_replay.replay(source, base, patches, self.base / 'uncovered-replay')
+        self.assertFalse(result['success'])
+        self.assertEqual(result['uncovered_source_changes'], ['extra-code.c'])
+        with self.assertRaises(ValueError):
+            overlay_replay.replay(source, base, patches, source / 'replay')
+        with self.assertRaises(ValueError):
+            overlay_replay.replay(source, base, patches, self.base / 'uncovered-replay')
+        for path in ('../outside', '/outside', 'C:/outside', '.git/config', 'nested/.git/config', 'nested\\outside'):
+            with self.subTest(path=path), self.assertRaises(ValueError):
+                overlay_replay.safe_path(path)
 
 
 if __name__ == '__main__':

@@ -1,0 +1,25 @@
+{
+    "schema":  1,
+    "date":  "2026-10-02",
+    "parent_revision":  "bf69f15",
+    "replay_success":  false,
+    "live_source_preserved":  true,
+    "base_commit":  "bcc08884995ff3cbee70749524621803b9bd258a",
+    "live_head":  "bcc08884995ff3cbee70749524621803b9bd258a",
+    "patch_count":  24,
+    "compared_file_count":  89,
+    "source_identity_sha256":  "fe7c1a07a0af3f24db51893f0ab7ca114c105e57f599f69f6bce10a513c09283",
+    "mismatched_source_files":  [
+                                    "bolt/include/bolt/Rewrite/RewriteInstance.h",
+                                    "bolt/lib/Core/BinaryContext.cpp",
+                                    "bolt/lib/Core/BinaryFunction.cpp",
+                                    "bolt/lib/Rewrite/RewriteInstance.cpp"
+                                ],
+    "uncovered_source_changes":  [
+
+                                 ],
+    "preserved_diff_sha256":  "22b34785a245dd058df38f5237e4f71ac815a7941ecf931f32ffab9caf02c1f1",
+    "host_profile_and_replay_tests":  25,
+    "scope":  "pinned base plus complete patch series; source contents only, not clean full build/binary provenance",
+    "next_action":  "Review and export unrecorded ARM attribute/kept-code changes with focused tests; require successful replay before migrating filename-only content stamps."
+}

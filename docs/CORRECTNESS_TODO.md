@@ -237,6 +237,10 @@ rewriting need not be implemented to close an explicitly bounded scope.
 - [ ] Replay ATFE overlays in an isolated clean tree and compare provenance.
   Filename-only patch stamps do not detect changed patch contents. Preserve dirty
   WSL source; do not reset it to make a check pass.
+  The new isolated verifier applies all 24 patches and compares live contents.
+  It detects four files with unexported ARM attribute/kept-code changes; the diff
+  is preserved. Review/export those changes with scoped tests, achieve source
+  equality, then migrate content stamps. See ATFE_OVERLAY_REPLAY.md.
 - [x] Protect `.git/` and `out/` during WSL build/sync (fixed in current GitHub scripts).
 - [x] Reject empty/partial PC sample words; failed perf2bolt conversion leaves an
   existing profile intact. Real ATFE perf2bolt smoke test passes.

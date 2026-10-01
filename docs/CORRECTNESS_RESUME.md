@@ -2,6 +2,19 @@
 
 ## Active implementation after review
 
+Sampling identity fixes and bound-profile Pi evidence are pushed as bf69f15.
+The next #12 replay audit applies all 24 ATFE patches in an isolated file tree,
+but finds source-content differences in RewriteInstance.h, BinaryContext.cpp,
+BinaryFunction.cpp and RewriteInstance.cpp. Live additions include ARM attribute
+feature propagation and ignored-code/branch handling for -use-old-text; these
+are absent from the GitHub overlays. The source was preserved, and the full diff
+is saved in out/correctness/atfe-clean-replay-20261002/unexported-source.diff.
+No uncovered source files were found. The verifier's changed-content/preservation
+regressions pass (25 profile/replay tests total). Review/export those existing
+changes with focused tests, then obtain successful replay and migrate content
+stamps; do not overwrite live code or infer clean binary provenance from patch hashes.
+See ATFE_OVERLAY_REPLAY.md and results/correctness_atfe_replay_20261002.json.
+
 Latest local work adds sampling build/capture/profile identity and a pure ARM
 ELF32 parser in scripts/profile_identity.py. The collector uploads isolated
 session copies and checks workload repetitions, buffer/count/saturation and
