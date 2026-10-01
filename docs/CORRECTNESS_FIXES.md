@@ -1,5 +1,49 @@
 # Correctness fixes
 
+## Complete workload gates and profile input validation (2026-10-01)
+
+`passes_check.py` now requires the explicit 18-workload result set, rejects
+conflicting duplicates, reported workload failures and nonzero child exits, and
+can save complete attempt logs. A matching one-workload baseline/candidate pair
+can no longer pass. Counter conversion checks dump addresses, declared counter
+array lengths, metadata bounds and referenced counters/locations before publishing
+buffered output. A later invalid descriptor cannot overwrite an existing profile
+with partial output. Sample conversion rejects empty or partial PC words and stages
+perf2bolt output so a failed child cannot overwrite an existing profile.
+
+Validation: 10/10 host negative/positive tests in
+`scripts/tests/test_profile_validation.py`; real WSL ATFE perf2bolt converted three
+synthetic PCs from the existing baseline ELF; the new counter converter processed
+existing instrumentation metadata with 61 synthetic counters (3,520 output bytes).
+These are input/conversion checks, not new hardware profiling evidence. Full graph
+consistency, exact image identity and full-image execution proof remain open in #12.
+Ignored detailed logs are in `out/correctness/validation-fix/`.
+
+## Independent Pi workload results (2026-10-01)
+
+Memcpy initializes nonzero source data and a different destination, validates
+every destination byte and publishes its FNV checksum. Far-call consumes a
+callee return value; Thumb IT publishes its conditional-loop result (ARM builds
+publish an explicit unavailable marker); interworking publishes its accumulator.
+These workloads no longer inherit the previous workload's shared result.
+
+An isolated snapshot of the existing LK source built successfully using ATFE.
+Baseline and an ext-tsp ATFE image redirecting the four workloads both completed
+all 18 workloads on Pi with matching results. The new values also match independent
+calculations: memcpy `5acd3dc5`, far_call `b7082fa9`, it_cond `021e8480`, interwork
+`2fb21555`. This fixture executes Thumb IT and explicit ARM/Thumb callees; the
+ARM-only IT skip path and multiple inputs/pass combinations remain unverified.
+
+The redirected image sampled PCs while running all workloads, then dumped the
+512 KiB buffer with per-chunk checksum verification. All 3,390 kept/taken samples
+were present, with observed PCs inside rewritten IT (250), interworking (2) and
+memcpy (2). Far-call was redirected and returned the expected value but no sampled
+PC landed inside its short body. Four functions were selected/emitted/redirected;
+only three have independent sampled execution evidence. This does not validate
+the full-image script's 403/411 emission claim. Image, map, benchmark source and
+log hashes, results and scoped coverage are recorded in
+[the manifest](results/correctness_validation_20261001.json).
+
 ## Thumb entry and moved symbols (2026-10-01)
 
 ATFE overlay 0021 normalizes the Thumb state bit before looking up ARM function

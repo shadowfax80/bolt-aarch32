@@ -1,8 +1,8 @@
 # ATFE correctness TODO
 
-Reviewed 2026-10-01 against the restored WSL workspace. **3 of the original
+Re-evaluated 2026-10-01 at GitHub `bbae817`, with ATFE overlays through 0024. **3 of the original
 12 items are complete within their stated scope; 9 remain open.** IDs are stable.
-See [review evidence](CORRECTNESS_REVIEW.md), [status](CORRECTNESS_STATUS.md), and
+See [review evidence](CORRECTNESS_REVIEW_BBAE817.md), [status](CORRECTNESS_STATUS.md), and
 [previous fixes](CORRECTNESS_FIXES.md).
 
 Active development is **ATFE only**. Set `BASE=atfe` explicitly: generic scripts
@@ -11,12 +11,13 @@ host tests check encodings/diagnostics and QEMU is supplemental.
 
 ## Recommended order
 
-1. Finish #9 symbol and mapping coverage, then the remaining #4 conditional-return/PC-load cases.
-2. #12 profile validation and proof that selected rewritten code executes.
-3. #1 relocation contract, then #3 pseudo/CFG invariants.
-4. #5 instrumentation semantics and #6 enforced operating scope.
-5. #7 ISA/ABI admission and #11 rewrite coverage boundaries.
-6. Finish remaining #4/#9 cases and the Pi matrix under #12.
+1. #12: prove rewritten execution; require complete independent workload results;
+   reject truncated/stale counter and sampling profiles.
+2. #5 counter carry/registers/flags/IT and #6 enforced instrumentation scope.
+3. #3 assertions-on/off CFG invariants and #4 conditional returns/PC writes/pass safety.
+4. #1 relocation boundaries, then #9 aliases, secondary entries and pointer targets.
+5. #7 ISA/ABI admission and #11 inline-table/pass/unsupported-input coverage.
+6. #12 clean overlay replay and the complete Pi validation matrix.
 
 Keep #2/#8/#10 regressions green throughout. P0 means a confirmed semantic defect
 or a validation gap that can hide one. P1 means a required boundary or missing
@@ -26,10 +27,11 @@ coverage. A boot or passing lit suite alone does not close an item.
 
 - [x] A32 literal encoding/JITLink support and BLX-to-BL link-bit fix.
 - [ ] Publish a matrix covering input recognition, code-relocation recording,
-  addend decoding, MC emission, JITLink application and final data writes. Core and
-  JITLink each declare 18 types, with 13 shared; this is not end-to-end support.
-- [ ] Implement or reject `THM_JUMP19` correctly. Audit narrow Thumb branches
-  currently grouped with `THM_JUMP24` in `createRelocation()`.
+  addend decoding, MC emission, JITLink application and final data writes. Refresh
+  the declaration sets after overlay 0022; declarations are not end-to-end support.
+- [x] Implement THM_JUMP19 and Thumb split-fragment state marking (overlay 0022).
+- [ ] Test THM_JUMP19 range/alignment/interworking boundaries. Audit narrow Thumb
+  branches grouped with THM_JUMP24 in `createRelocation()`.
 - [ ] Resolve core-only PC24/PLT32/TARGET2/ALU_PC_G0 and JITLink-only
   LDR_PC_G0/THM_PC12/MOVW-MOVT PREL paths. Justify intentional NONE/V4BX skips.
 - [ ] Test PC bias, signed addends/limits, alignment, Thumb state bits, BLX H=0/H=1,
@@ -49,9 +51,11 @@ fail clearly; ARM/Thumb call and literal cases execute correctly on Pi.
 Completion is a rejection boundary, not unwind-table rewriting. Full EHABI remains
 deferred. Endianness admission is #7; arbitrary unwind consumers are not certified.
 
-## 3. Pseudo counts and CFG invariants — open, P0
+## 3. Pseudo counts and CFG invariants - partial, P0
 
-- [ ] Reduce `-peepholes` pseudo-count failures and invalid CFGs to tests.
+- [x] Fix the reported ARM `B` pseudo emitted by peepholes; generate `Bcc AL`
+  instead (overlay 0023). Current pass regressions pass.
+- [ ] Reduce any remaining invalid CFGs to tests.
 - [ ] Repair bookkeeping at the mutation that causes the mismatch.
   `getNumPseudos()` currently repairs/ignores ARM only inside `#ifndef NDEBUG`.
 - [ ] Audit per-function ARM/Thumb builder selection in CFG repair and synthesized
@@ -66,6 +70,8 @@ safe; unsupported cases cannot return a successful partially corrupted output.
 ## 4. Control flow, returns and branch flags — partial, P0
 
 - [x] Recognize unconditional POP/updated-LDM PC returns as terminators.
+- [x] Fix ARM Bcc target operands and branch-based tail calls; add restricted
+  same-ISA leaf inlining and literal materialization hooks (overlay 0023).
 - [x] **Fix CBZ/CBNZ expansion:** replace the flag-clobbering `CMP; Bcc` with an
   inverted CBZ/CBNZ over a wide branch. Test both opcodes with flags consumed on
   both successor paths; Pi dispatcher/argument-parser workloads matched baseline.
@@ -78,6 +84,8 @@ safe; unsupported cases cannot return a successful partially corrupted output.
   interworking and tail calls; distinguish returns from other computed branches.
 - [ ] Check flag-writing self-move/no-op recognition and branch reversal under
   reordering, peepholes and splitting.
+- [ ] Cover inlining safety overrides (`--force-inline` bypasses the ARM safety
+  filter), IT call sites and pass combinations with negative fixtures.
 
 **Done:** host CFG/encoding tests and Pi results cover ARM/Thumb, predication,
 live flags, return values, LR/SP and fallthrough.
@@ -144,6 +152,8 @@ relocations (#1).
   the Thumb state bit in the moved entry. The previously asserting fixture passes.
 - [x] Keep a moved `$t` at its even byte address and carry the Thumb state bit
   on moved `STT_FUNC` symbols. Preserve marker size zero.
+- [x] Mark split fragments Thumb, use `$a/$t` after constant islands, mark inline
+  tables, and preserve ARM call targets in mixed JITLink blocks (0022/0024).
 - [ ] Preserve moved/skipped function symbols, aliases, sizes, secondary entries
   and pointer targets. The missing moved `probe` symbol is fixed in the fixture;
   the other cases still need regression coverage.
@@ -164,18 +174,22 @@ original-entry and secondary-entry routes.
 Keep the mixed-stub gate. Completion covers generated code/stubs, not identical
 whole ELF files with different invocation notes or every branch case under #1.
 
-## 11. Rewrite coverage and unsupported constructs — open, P1
+## 11. Rewrite coverage and unsupported constructs - partial, P1
 
 - [ ] Enumerate selected/emitted/redirected/skipped/executed functions with skip
-  reasons. Re-measure full-image coverage; the old 7% figure is historical.
-- [ ] Implement or reject TBB/TBH and unresolved indirect branches. Current default
-  workload lists include the known-unsupported switch case.
+  reasons. The reported 403/411 full-image figure measures emitted symbols;
+  prove actual execution after correcting the restoration/redirection gate.
+- [x] Implement inline PC-relative TBB/TBH, CFG edges, TBH emission and reverse-layout
+  stubs (0024); normal and reversed layout regressions pass.
+- [ ] Cover table reach limits, malformed/ambiguous data islands, shared cases,
+  instrumentation/splitting interactions, ARM tables and unresolved indirect branches.
 - [ ] Prove safe handling or reject GOT/TLS/PLT/PIC/shared-library constructs.
   `isGOT()`/`isTLS()` returning false does not establish safe exclusion.
 - [ ] Audit veneers beyond LLD names, PC-relative addresses, constant islands,
   system/exception instructions, data-to-code references and ignored callees.
-- [ ] Publish a supported pass matrix. Gate unsafe peepholes/splitting until
-  #1/#3/#4 close; a pass doing no work is not tested transformation coverage.
+- [x] Publish a functionality/pass matrix with scoped Pi results.
+- [ ] Enforce safe pass boundaries and combinations while #1/#3/#4 remain open;
+  a pass doing no work is not tested transformation coverage.
 
 **Done:** the supported subset preserves references and reports actual coverage;
 unsupported inputs cannot masquerade as successful optimization. General kernel
@@ -185,24 +199,37 @@ rewriting need not be implemented to close an explicitly bounded scope.
 
 - [x] Propagate failed child gates and missing/mismatched Pi checksums.
 - [x] Re-run all 30 focused ARM tests and failure-path tests after WSL restoration.
-- [ ] **Reject truncated dumps:** two declared counters with one present currently
-  become `[7, 0]`. Validate byte ranges, counts, indices, metadata lengths and graph
-  consistency before writing fdata; never publish partial output.
+- [x] Re-evaluate bbae817: 36/36 focused host tests pass; full-image emission and
+  isolated negative probes recorded in CORRECTNESS_REVIEW_BBAE817.md.
+- [x] Reject truncated counter arrays, invalid counter addresses/indices and
+  truncated metadata; buffer conversion and publish only after it succeeds.
+  Ten validation tests pass; real ATFE metadata with 61 counters converts.
+- [ ] Validate graph consistency, inferred edges and leaf/function identity before
+  publishing fdata. Byte-range validation alone does not prove a correct profile.
 - [ ] Bind dumps/metadata/maps/profiles to exact images and toolchain/patch digests;
   reject stale or mismatched artifacts.
 - [ ] Require execution/redirection evidence in every optimization gate. The
-  generic workload gate restores original sections without calling the redirect script.
-- [ ] Add independent memcpy/interwork output checks; those workloads do not update
-  the shared sink used in earlier comparisons. Cover ARM/Thumb/mixed modes, flags,
-  memory, returns, multiple inputs/seeds, faults and timeouts.
+  new full-image gate also restores original sections and entry without redirection.
+- [x] Require all 18 named workloads in `passes_check.py`; reject missing/extra
+  results, conflicting duplicates, reported workload failures and nonzero child exits.
+- [x] Add independent memcpy/far_call/it_cond/interwork results. On Pi, all 18
+  baseline/redirected results agree; the four new values match independent calculations.
+  PC samples observe rewritten memcpy, Thumb IT and ARM interworking code.
+- [ ] Extend independent checks across ARM/Thumb/mixed modes, flags, memory,
+  returns, multiple inputs/seeds, faults and timeouts. Far-call has a correct result
+  and a static redirect, but no sampled execution PC in this short fixture.
 - [ ] Validate section restoration and manual hooks: bounded scratch allocation,
   whole instructions, PC-relative prologues, section-size mismatches and warning-only
   failures. Prefer one documented execution path.
 - [ ] Replay ATFE overlays in an isolated clean tree and compare provenance.
   Filename-only patch stamps do not detect changed patch contents. Preserve dirty
   WSL source; do not reset it to make a check pass.
-- [ ] Protect `.git` and evidence during sync: `wsl-setup.sh sync` currently uses
-  `rsync --delete` without excluding `.git`/`out`.
+- [x] Protect `.git/` and `out/` during WSL build/sync (fixed in current GitHub scripts).
+- [x] Reject empty/partial PC sample words; failed perf2bolt conversion leaves an
+  existing profile intact. Real ATFE perf2bolt smoke test passes.
+- [ ] Harden sampled profiles: validate image/buffer identity,
+  kept/taken counts, saturation, core/PMU ownership and workload completion. Record
+  IRQ-masked blind spots and avoid presenting PC samples as exact edge counts.
 - [ ] Record durable Pi manifests: revisions/options, image/profile hashes,
   selected/emitted/executed functions, expected/observed outputs and complete logs.
 

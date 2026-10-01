@@ -1,0 +1,97 @@
+{
+  "date": "2026-10-01",
+  "reviewed_parent": "bbae817",
+  "atfe_overlays": "through 0024; preexisting dirty source preserved",
+  "scope": "four workload functions emitted and redirected; no full-image execution claim",
+  "host_validation_tests": 10,
+  "real_tool_conversions": {
+    "real_perf2bolt": true,
+    "counter_conversion": {
+      "counters": 61,
+      "profile_bytes": 3520
+    }
+  },
+  "baseline_and_candidate_workloads": {
+    "hot_loop": "0x6a4ae6e0",
+    "hot_cold": "0x00000000",
+    "branch_chain": "0x007a5100",
+    "memcpy": "0x5acd3dc5",
+    "far_call": "0xb7082fa9",
+    "it_cond": "0x021e8480",
+    "interwork": "0x2fb21555",
+    "switch": "0xa953bbf0",
+    "spill_ret": "0x504980a0",
+    "litpool": "0x16b596e0",
+    "indirect_call": "0x0e6aac80",
+    "interwork_tail": "0xda3416f0",
+    "regpressure": "0xc5da3550",
+    "hotcold_split": "0xd4751003",
+    "icf": "0xdc7c3be0",
+    "shrinkwrap": "0x6a1b87d4",
+    "composite": "0x939f4ea0",
+    "stair": "0x9fef2a18"
+  },
+  "independent_expected": {
+    "memcpy": "0x5acd3dc5",
+    "far_call": "0xb7082fa9",
+    "it_cond": "0x021e8480",
+    "interwork": "0x2fb21555"
+  },
+  "kept_samples": 3390,
+  "taken_samples": 3390,
+  "selected_emitted_redirected": [
+    {
+      "name": "bolt_bench_far_call",
+      "input": "0x8000a7c6",
+      "output": "0x800d6000",
+      "output_size": 40,
+      "redirected": true,
+      "pc_samples": 0,
+      "execution_observed": false
+    },
+    {
+      "name": "bolt_bench_it_cond",
+      "input": "0x8000a7ee",
+      "output": "0x800d6040",
+      "output_size": 90,
+      "redirected": true,
+      "pc_samples": 250,
+      "execution_observed": true
+    },
+    {
+      "name": "bolt_bench_interwork",
+      "input": "0x8000a858",
+      "output": "0x800d609c",
+      "output_size": 128,
+      "redirected": true,
+      "pc_samples": 2,
+      "execution_observed": true
+    },
+    {
+      "name": "bolt_bench_memcpy",
+      "input": "0x8000aa34",
+      "output": "0x800d611c",
+      "output_size": 220,
+      "redirected": true,
+      "pc_samples": 2,
+      "execution_observed": true
+    }
+  ],
+  "hashes": {
+    "lk.elf": "424606a869c34b5be5f3c97f66a9cec8ea16844ac788c14c77839edcfef2459b",
+    "lk.bin": "ee9982ba422fa5e40854f0c21c298b20c4be02eb349413eefe7fdcf53bedd612",
+    "lk.bolt.elf": "374388d9de839146e3871623c6ac7837c3de3523e4a9536b297e7f969fb31e30",
+    "lk.bolt.bin": "db6cf42052f0ff7987179152059859b2b8e3de56941bb606104a984e483ecde2",
+    "lk.bolt.funcmap": "ffa30b62a6f66db0741217eecd521ed2546f0bc6f25b6675dff0d91adc09a88b",
+    "pi-baseline.log": "0498f1e25a74be1c4a8ecdf892a7c3e2feecb14f79deaabdb84921d1ca16c6a6",
+    "pi-bolt.log": "1dd7182b2ebc5f174a6fe6b9b06410aa3601b62b5773505d9757d6f562787740"
+  },
+  "benchmark_source_sha256": "3589018a2ce711a801b9fcec8994b6c20a0659e5bdafd65b2d51311267aa8eab",
+  "remaining": [
+    "full-image redirection and execution gate",
+    "exact artifact identity enforcement",
+    "graph consistency",
+    "multiple inputs/pass combinations",
+    "clean overlay replay"
+  ]
+}

@@ -9,10 +9,13 @@ counter values from the guest RAM dump produced by dump-bolt-counters.py.
 from __future__ import annotations
 
 import argparse
+import io
+import os
 import re
 import struct
 import subprocess
 import sys
+import tempfile
 from dataclasses import dataclass
 
 SECTION_RE = re.compile(
@@ -203,10 +206,14 @@ def getter_address(toolchain: str, elf: str, name: str) -> int:
 
 
 def parse_tables_note(elf_data: bytes, file_off: int, size: int) -> ProfileWriterContext:
+    if file_off < 0 or size < 12 or file_off + size > len(elf_data):
+        raise ValueError("instrumentation note is outside the ELF or truncated")
     blob = elf_data[file_off : file_off + size]
     namesz = struct.unpack_from("<I", blob, 0)[0]
     descsz = struct.unpack_from("<I", blob, 4)[0]
     name_end = 12 + ((namesz + 3) // 4) * 4
+    if name_end + descsz > len(blob):
+        raise ValueError("instrumentation note descriptor is truncated")
     desc = blob[name_end : name_end + descsz]
 
     ind_call_desc_size = struct.unpack_from("<I", desc, 0)[0]
@@ -215,6 +222,8 @@ def parse_tables_note(elf_data: bytes, file_off: int, size: int) -> ProfileWrite
         "<I", desc, 8 + ind_call_desc_size + ind_call_target_size
     )[0]
     func_start = 12 + ind_call_desc_size + ind_call_target_size
+    if func_start + func_desc_size > len(desc):
+        raise ValueError("instrumentation function descriptions are truncated")
     func_descriptions = desc[func_start : func_start + func_desc_size]
     strings = desc[func_start + func_desc_size :]
     return ProfileWriterContext(func_descriptions, strings)
@@ -427,7 +436,11 @@ def load_counters(
         blob = fh.read()
     loc_off = locations - dump_base
     count_off = num_counters_addr - dump_base
+    if count_off < 0 or count_off + 4 > len(blob):
+        raise ValueError("counter-count address is outside the dump or truncated")
     count = int.from_bytes(blob[count_off : count_off + 4], "little")
+    if loc_off < 0 or loc_off > len(blob) or count > (len(blob) - loc_off) // 8:
+        raise ValueError(f"counter dump is truncated or misplaced: {count} counters at offset {loc_off}, {len(blob)} bytes available")
     return [
         int.from_bytes(blob[loc_off + i * 8 : loc_off + i * 8 + 8], "little")
         for i in range(count)
@@ -472,27 +485,42 @@ def main() -> int:
     call_flow: dict[int, int] = {}
     off = 0
     func_blob = ctx.func_descriptions
-    out = sys.stdout if args.output == "-" else open(args.output, "w")
-    try:
-        for _ in range(10000):
-            if off >= len(func_blob):
-                break
-            func, next_off = FunctionDescription.parse(func_blob, off)
-            leaf_name = None
-            if func.num_edges == 0 and func.num_calls == 0 and leaf_names:
-                leaf_name = leaf_names.pop(0)
-            write_function_profile(
-                out, ctx, func, counters, call_flow, leaf_name=leaf_name
-            )
-            if next_off <= off:
-                break
-            off = next_off
-    finally:
-        if args.output != "-":
-            out.close()
-            print(f"wrote {args.output}", file=sys.stderr)
+    out = io.StringIO()
+    while off < len(func_blob):
+        func, next_off = FunctionDescription.parse(func_blob, off)
+        if next_off <= off or next_off > len(func_blob):
+            raise ValueError("invalid function descriptor length")
+        for counter in ([n.counter for n in func.leaf_nodes] +
+                        [e.counter for e in func.edges] + [c.counter for c in func.calls]):
+            if counter != INFERRED and counter >= len(counters):
+                raise ValueError(f"descriptor refers to missing counter {counter}")
+        for loc in ([e.from_loc for e in func.edges] + [e.to_loc for e in func.edges] +
+                    [c.from_loc for c in func.calls] + [c.to_loc for c in func.calls]):
+            serialize_loc(ctx.strings, loc)  # Validate even locations with zero counts.
+        leaf_name = None
+        if func.num_edges == 0 and func.num_calls == 0 and leaf_names:
+            leaf_name = leaf_names.pop(0)
+        write_function_profile(out, ctx, func, counters, call_flow, leaf_name=leaf_name)
+        off = next_off
+    if args.output == "-":
+        sys.stdout.write(out.getvalue())
+    else:
+        destination = os.path.abspath(args.output)
+        temporary = None
+        try:
+            with tempfile.NamedTemporaryFile(mode="w", encoding="utf-8", dir=os.path.dirname(destination), delete=False) as stream:
+                temporary = stream.name
+                stream.write(out.getvalue())
+            os.replace(temporary, destination)
+        finally:
+            if temporary and os.path.exists(temporary):
+                os.unlink(temporary)
+        print(f"wrote {args.output}", file=sys.stderr)
     return 0
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    try:
+        sys.exit(main())
+    except (OSError, ValueError, IndexError, struct.error) as error:
+        sys.exit(f"error: invalid profile input: {error}")

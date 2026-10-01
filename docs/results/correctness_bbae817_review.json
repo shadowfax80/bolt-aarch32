@@ -1,0 +1,27 @@
+{
+  "reviewed_revision": "bbae817",
+  "date": "2026-10-01",
+  "focused_host_tests": {"passed": 36, "discovered": 36},
+  "new_pi_execution": false,
+  "full_image_repro": {
+    "entry_identical_to_input": true,
+    "byte_identical_restored_sections": {
+      ".text": 175524,
+      ".data": 260,
+      ".rodata": 15164,
+      "commands": 144,
+      "apps": 40
+    }
+  },
+  "partial_workload_gate_probe": {
+    "serial_mocked": true,
+    "workloads_supplied_per_image": 1,
+    "exit_code": 0,
+    "reported": "PASS"
+  },
+  "truncated_dump_probe": {
+    "declared_counters": 2,
+    "present_counters": 1,
+    "returned_counters": [7, 0]
+  }
+}

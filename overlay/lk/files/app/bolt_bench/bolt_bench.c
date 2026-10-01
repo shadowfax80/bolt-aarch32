@@ -216,12 +216,14 @@ __attribute__((noinline)) void bolt_bench_branch_chain(void) {
     g_bolt_bench_sink = acc;
 }
 
-__attribute__((noinline)) void bolt_bench_far_target(void) {
+__attribute__((noinline)) uint32_t bolt_bench_far_target(uint32_t value) {
     /* Callee for P5 far-call experiments (optional BOLT_BENCH_FAR_PAD). */
+    __asm__ volatile("" : "+r"(value));
+    return value ^ 0xa53c79d1u;
 }
 
 __attribute__((noinline)) void bolt_bench_far_call(void) {
-    bolt_bench_far_target();
+    g_bolt_bench_sink = bolt_bench_far_target(0x12345678u);
     printf("bolt_bench: far_call done\n");
 }
 
@@ -246,11 +248,11 @@ __attribute__((noinline)) void bolt_bench_it_cond(void) {
             : "cc");
     }
     bench_banner("it_cond", arch_cycle_count() - t0);
-    (void)y;
-    (void)z;
+    g_bolt_bench_sink = (y << 24) ^ z;
 #else
     /* IT encoding is Thumb-only; ARM-mode P4 builds skip this workload. */
     printf("bolt_bench: it_cond skipped (ARM mode)\n");
+    g_bolt_bench_sink = 0x49544e41u; /* Explicit unavailable marker, not stale data. */
 #endif
 }
 
@@ -280,6 +282,7 @@ void bolt_bench_interwork(void) {
     if (acc == 0)
         printf("bolt_bench: interwork unexpected zero\n");
     bench_banner("interwork", arch_cycle_count() - t0);
+    g_bolt_bench_sink = acc;
 }
 
 __attribute__((noinline)) static uint32_t bolt_bench_switch_pick(uint32_t x) {
@@ -365,11 +368,26 @@ __attribute__((noinline)) void bolt_bench_litpool(void) {
 }
 
 __attribute__((noinline)) void bolt_bench_memcpy(void) {
+    /* A nonzero source and a different destination make a skipped/broken copy
+     * observable. Read every destination byte after the timed copies. */
+    for (uint32_t i = 0; i < sizeof(bench_src); i++) {
+        bench_src[i] = (uint8_t)(i * 37u + 11u);
+        bench_dst[i] = (uint8_t)~bench_src[i];
+    }
     lk_time_t t0 = arch_cycle_count();
     for (uint32_t r = 0; r < BOLT_BENCH_MEMCPY_ROUNDS; r++) {
         memcpy(bench_dst, bench_src, sizeof(bench_src));
     }
     bench_banner("memcpy", arch_cycle_count() - t0);
+    uint32_t hash = 2166136261u;
+    uint32_t mismatch = 0;
+    for (uint32_t i = 0; i < sizeof(bench_dst); i++) {
+        mismatch |= bench_dst[i] ^ bench_src[i];
+        hash = (hash ^ bench_dst[i]) * 16777619u;
+    }
+    if (mismatch)
+        printf("bolt_bench: memcpy FAIL: destination mismatch\n");
+    g_bolt_bench_sink = hash;
 }
 
 /* --- Richer ARM<->Thumb interworking: indirect (function-pointer) calls ---
