@@ -1,5 +1,14 @@
 # Known limitations and improvement items
 
+> **Current status (2026-10-01):** this page retains historical upstream-era
+> findings and measurements. Use [CORRECTNESS_REVIEW.md](CORRECTNESS_REVIEW.md),
+> [CORRECTNESS_TODO.md](CORRECTNESS_TODO.md) and
+> [CORRECTNESS_STATUS.md](CORRECTNESS_STATUS.md) for current ATFE status.
+> U3 is closed via rejection, L8 is fixed, D3 is partially fixed, and deterministic
+> stub code/alignment is fixed on ATFE. U1's old coverage percentage is not a new
+> measurement. ARM instrumentation currently masks IRQ around a low-word increment;
+> the LDREX/STREX description below is obsolete. Upstream work remains stopped.
+
 This doc exists so gaps stay visible instead of getting lost once the verify
 scripts go green. Where something is fixed, that's stated; where it isn't, the
 repro or the evidence is given rather than a vague caveat.

@@ -8,7 +8,9 @@ Upstream [llvm-project](https://github.com/llvm/llvm-project) and [lk](https://g
 
 | Doc | What |
 |-----|------|
-| [docs/TODO.md](docs/TODO.md) | Open TODOs, deferred by the owner: chainloader reflash, upstream blockers (ordered list) |
+| [docs/TODO.md](docs/TODO.md) | Active ATFE correctness work and owner-deferred scope |
+| [docs/CORRECTNESS_TODO.md](docs/CORRECTNESS_TODO.md) | Twelve correctness workstreams, priorities and completion criteria |
+| [docs/CORRECTNESS_REVIEW.md](docs/CORRECTNESS_REVIEW.md) | Fresh source review, reproduced defects and verification limits |
 | [docs/WSL_BUILD.md](docs/WSL_BUILD.md) | **Start here** — build the toolchain locally in WSL2 and measure on the Pi |
 | [docs/RPI4_HARDWARE_VERIFICATION.md](docs/RPI4_HARDWARE_VERIFICATION.md) | Real Pi 4B results: staged PGO / ThinLTO / BOLT, multi-function BOLT, PGO lab, bugs found |
 | [docs/VOLUME_RECREATION.md](docs/VOLUME_RECREATION.md) | Historical — recreating the RunPod volume (both volumes are now deleted) |
@@ -54,11 +56,12 @@ The QEMU path (`scripts/run-qemu-lk.sh`, `scripts/verify-bolt-workloads.sh`) sti
 
 ## Two LLVM bases, one repo
 
-The AArch32 backend is built and verified against **two** LLVM forks side by
-side — `BASE=upstream` (`llvm/llvm-project`, pinned, the actual upstreaming
-target) and `BASE=atfe` (`arm/arm-toolchain`'s `arm-software` branch, Arm's
-own actively-synced integration branch). Set `BASE` before running any
-source/build/patch script; it defaults to `upstream` when unset:
+The repository retains overlays for two LLVM bases: `BASE=upstream`
+(`llvm/llvm-project`) and `BASE=atfe` (`arm/arm-toolchain`'s `arm-software`
+branch). **Current correctness development and verification are ATFE only;
+upstream work is stopped by owner request.** The latest fixes are not certified
+on upstream. Set `BASE=atfe` before running source/build/patch scripts; the
+generic scripts still default to `upstream` when unset:
 
 ```bash
 BASE=atfe ./scripts/ensure-llvm-source.sh

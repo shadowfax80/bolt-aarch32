@@ -1,5 +1,12 @@
 # Architecture
 
+> Current operating context (2026-10-01): ATFE base
+> `bcc08884995ff3cbee70749524621803b9bd258a`, LLVM 24.0.0git,
+> Release **with assertions enabled**, in WSL at `/home/user/bolt-aarch32`.
+> Pi 4 is the primary execution target; QEMU is supplemental. Upstream work is
+> stopped. The historical baseline and RunPod paths below are retained as design
+> history; current correctness scope is in [CORRECTNESS_TODO.md](CORRECTNESS_TODO.md).
+
 Bare-metal BOLT on LK: overlay patches plus host tooling. Upstream LLVM and LK stay unmodified in `third_party/`; only deltas live in `overlay/`.
 
 For why a post-link optimizer earns its place after PGO and LTO at all, see [why-bolt.md](why-bolt.md).
