@@ -74,3 +74,16 @@ Pass matrix: run `llvm-bolt pgo_thinlto.elf -data=pgo_thinlto.fdata -o out.elf <
 in `~/bolt-aarch32/build-atfe/variants` and check the log for `BOLT-ERROR`/`UNREACHABLE`.
 Instrumentation: add `-instrument --instrumentation-sleep-time=1
 --runtime-instrumentation-lib=build-atfe/bolt-rt-baremetal-arm/libbolt_rt_baremetal.a`.
+
+## Out of scope for now — deferred TODO (owner, 2026-10-01: "can be taken up later")
+
+Not part of the six items above; recorded so they are not lost.
+
+- **X86-only passes:** `-frame-opt` (shrink-wrapping), `-reg-reassign`, `-three-way-branch`,
+  `-cmov-conversion`, `-jt-footprint-reduction`. Code-gated to X86 upstream; an ARM version
+  of shrink-wrapping (`-frame-opt`) is the only one with a clear AArch32 payoff.
+- **`-hugify`:** links an x86 runtime object; no AArch32 runtime exists.
+- **PIC / dynamic images:** GOT, TLS, PLT, shared libraries (`isGOT()`/`isTLS()` return false).
+- **Linux user-space instrumentation runtime** for AArch32 (only the bare-metal one exists).
+- **Full EHABI rewriting** of `.ARM.exidx`/`.ARM.extab` (today: refused with a diagnostic).
+- **Upstream work:** RFC, upstream patch series, U1–U9 (see [TODO.md](TODO.md)).
