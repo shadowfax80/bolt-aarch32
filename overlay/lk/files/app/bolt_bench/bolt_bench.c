@@ -34,6 +34,12 @@ static uint8_t bench_dst[4096] __attribute__((aligned(64)));
  * here that reliably keeps a pure-arithmetic loop's body in the binary. */
 static volatile uint32_t g_bolt_bench_sink;
 
+/* Result check: each workload's final value, printed after it returns, so a
+ * rewritten image can be compared with the original workload by workload. */
+static void print_sink(const char *name) {
+    printf("bolt_bench: %s sink=0x%08x\n", name, (unsigned)g_bolt_bench_sink);
+}
+
 static void bench_banner(const char *name, lk_time_t cycles) {
     printf("bolt_bench: %s done (%llu cycles)\n", name, (unsigned long long)cycles);
 }
@@ -1035,23 +1041,41 @@ static void run_one(const char *name) {
         bolt_bench_multi();
     } else if (!strcmp(name, "all")) {
         bolt_bench_hot_loop();
+        print_sink("hot_loop");
         bolt_bench_hot_cold();
+        print_sink("hot_cold");
         bolt_bench_branch_chain();
+        print_sink("branch_chain");
         bolt_bench_memcpy();
+        print_sink("memcpy");
         bolt_bench_far_call();
+        print_sink("far_call");
         bolt_bench_it_cond();
+        print_sink("it_cond");
         bolt_bench_interwork();
+        print_sink("interwork");
         bolt_bench_switch();
+        print_sink("switch");
         bolt_bench_spill_ret();
+        print_sink("spill_ret");
         bolt_bench_litpool();
+        print_sink("litpool");
         bolt_bench_indirect_call();
+        print_sink("indirect_call");
         bolt_bench_interwork_tail();
+        print_sink("interwork_tail");
         bolt_bench_regpressure();
+        print_sink("regpressure");
         bolt_bench_hotcold_split();
+        print_sink("hotcold_split");
         bolt_bench_icf();
+        print_sink("icf");
         bolt_bench_shrinkwrap();
+        print_sink("shrinkwrap");
         bolt_bench_composite();
+        print_sink("composite");
         bolt_bench_stair();
+        print_sink("stair");
     } else {
         printf("unknown workload %s\n", name);
     }

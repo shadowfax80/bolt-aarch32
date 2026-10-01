@@ -1,0 +1,577 @@
+--- a/bolt/lib/Core/BinaryEmitter.cpp
++++ b/bolt/lib/Core/BinaryEmitter.cpp
+@@ -335,15 +335,19 @@
+           ++II;
+           continue;
+         }
+-        if (MIB->isConditionalBranch(Instr) &&
+-            TSym->getName().find("bench_banner") == StringRef::npos) {
+-          // Keep real conditional branches; banner tail is a fake Bcc.
+-          const StringRef OpName = BC.MII->getName(Instr.getOpcode());
+-          if (OpName == "Bcc" && Instr.getOperand(0).isExpr()) {
+-            // Fall through to expand — target wrongly in op0.
+-          } else {
+-            ++II;
+-            continue;
++        // An ARM-mode B (Bcc with AL) to Thumb code becomes movw/movt/bx below.
++        // A conditional one cannot: the expansion would drop the condition.
++        if (MIB->isConditionalBranch(Instr)) {
++          const int Pred =
++              BC.MII->get(Instr.getOpcode()).findFirstPredOperandIdx();
++          const bool Always =
++              Pred >= 0 && Instr.getOperand(Pred).isImm() &&
++              Instr.getOperand(Pred).getImm() == 14; // ARMCC::AL
++          if (!Always) {
++            BC.errs() << "BOLT-ERROR: conditional ARM-state branch to Thumb "
++                      << "code in " << Function << " (target " << TSym->getName()
++                      << ") is not supported\n";
++            exit(1);
+           }
+         }
+         InstructionListType Seq;
+--- a/bolt/lib/Core/BinaryFunction.cpp
++++ b/bolt/lib/Core/BinaryFunction.cpp
+@@ -2683,7 +2683,9 @@
+     const MCSymbol *CTCTargetLabel = BC.MIB->getTargetSymbol(*CTCInstr);
+     assert(CTCTargetLabel && "symbol expected for conditional tail call");
+     MCInst TailCallInstr;
+-    BC.MIB->createTailCall(TailCallInstr, CTCTargetLabel, BC.Ctx.get());
++    // AArch32: build the branch in this function's instruction set.
++    BC.getMIBFor(BC.isARM() && isARMThumb())
++        ->createTailCall(TailCallInstr, CTCTargetLabel, BC.Ctx.get());
+ 
+     // Move offset from CTCInstr to TailCallInstr.
+     if (const std::optional<uint32_t> Offset = BC.MIB->getOffset(*CTCInstr)) {
+--- a/bolt/lib/Passes/Inliner.cpp
++++ b/bolt/lib/Passes/Inliner.cpp
+@@ -155,8 +155,50 @@
+   return SizeOfTailCallInst;
+ }
+ 
++/// AArch32 callees are inlined only when removing the BL cannot change their
++/// behaviour: a leaf whose only use of LR is a final unconditional `bx lr`,
++/// that does not touch SP or PC (no push/pop, no literal loads, no computed
++/// branches) and has no constant islands.
++static bool isSafeToInlineARM(const BinaryFunction &BF) {
++  const BinaryContext &BC = BF.getBinaryContext();
++  if (BF.hasConstantIsland())
++    return false;
++  const MCPhysReg SP = BC.MIB->getStackPointer();
++  const MCPhysReg LR = BC.MRI->getRARegister();
++  const MCPhysReg PC = BC.MRI->getProgramCounter();
++  for (const BinaryBasicBlock &BB : BF) {
++    const MCInst *Last = BB.getLastNonPseudoInstr();
++    for (const MCInst &Inst : BB) {
++      if (BC.MIB->isPseudo(Inst) || BC.MIB->isCFI(Inst))
++        continue;
++      if (BC.MIB->isCall(Inst) || BC.MIB->isTailCall(Inst) ||
++          BC.MIB->isIndirectBranch(Inst) || BC.MIB->hasPCRelOperand(Inst) ||
++          BC.MIB->isPush(Inst) || BC.MIB->isPop(Inst))
++        return false;
++      if (BC.MIB->isReturn(Inst)) {
++        // Only an unconditional BX LR that ends its block.
++        if (!BC.MIB->isTerminator(Inst) || &Inst != Last)
++          return false;
++        if (!Inst.getNumOperands() || !Inst.getOperand(0).isReg() ||
++            Inst.getOperand(0).getReg() != LR)
++          return false;
++        continue;
++      }
++      // Direct branches inside the callee write PC; the inliner retargets them.
++      if (BC.MIB->isBranch(Inst))
++        continue;
++      for (MCPhysReg R : {SP, LR, PC})
++        if (BC.MIB->hasDefOfPhysReg(Inst, R) || BC.MIB->hasUseOfPhysReg(Inst, R))
++          return false;
++    }
++  }
++  return true;
++}
++
+ InliningInfo getInliningInfo(const BinaryFunction &BF) {
+   const BinaryContext &BC = BF.getBinaryContext();
++  if (BC.isARM() && !opts::mustConsider(BF) && !isSafeToInlineARM(BF))
++    return INL_NONE;
+   bool DirectSP = false;
+   bool HasCFI = false;
+   bool IsLeaf = true;
+@@ -335,7 +377,9 @@
+       // targets of direct branches will be fixed later and don't matter
+       // in the CFG state. However, disassembly may look misleading, and
+       // hence we do the fixing.
+-      if (MIB.isBranch(Inst) && !MIB.isTailCall(Inst)) {
++      // (AArch32 BX LR is both a branch and a return; returns are handled
++      // below.)
++      if (MIB.isBranch(Inst) && !MIB.isTailCall(Inst) && !MIB.isReturn(Inst)) {
+         assert(!MIB.isIndirectBranch(Inst) &&
+                "unexpected indirect branch in callee");
+         const BinaryBasicBlock *TargetBB =
+@@ -426,6 +470,27 @@
+   return std::make_pair(FirstInlinedBB, FirstInlinedBB->end());
+ }
+ 
++/// True if \p It is covered by a Thumb-2 IT header earlier in \p BB.
++static bool isInsideITBlock(const BinaryBasicBlock &BB,
++                            BinaryBasicBlock::const_iterator It) {
++  const BinaryContext &BC = BB.getFunction()->getBinaryContext();
++  for (unsigned Back = 0; Back < 4 && It != BB.begin(); ++Back) {
++    --It;
++    if (BC.MIB->isPrefix(*It))
++      return true;
++  }
++  return false;
++}
++
++/// True if an AArch32 instruction has no condition (or the AL condition).
++static bool isUnpredicatedARM(const BinaryContext &BC, const MCInst &Inst) {
++  const int Pred = BC.MII->get(Inst.getOpcode()).findFirstPredOperandIdx();
++  if (Pred < 0 || static_cast<unsigned>(Pred) >= Inst.getNumOperands())
++    return true;
++  const MCOperand &Op = Inst.getOperand(Pred);
++  return !Op.isImm() || Op.getImm() == 14; // ARMCC::AL
++}
++
+ bool Inliner::inlineCallsInFunction(BinaryFunction &Function) {
+   BinaryContext &BC = Function.getBinaryContext();
+   std::vector<BinaryBasicBlock *> Blocks(Function.getLayout().block_begin(),
+@@ -439,8 +504,19 @@
+   for (BinaryBasicBlock *BB : Blocks) {
+     for (auto InstIt = BB->begin(); InstIt != BB->end();) {
+       MCInst &Inst = *InstIt;
+-      if (!BC.MIB->isCall(Inst) || MCPlus::getNumPrimeOperands(Inst) != 1 ||
+-          !Inst.getOperand(0).isExpr()) {
++      // AArch32 BL carries predicate operands besides its target. Inline only
++      // unconditional direct calls outside IT blocks, into a caller of the
++      // same instruction set (checked below).
++      if (BC.isARM()) {
++        if (!BC.MIB->isCall(Inst) || BC.MIB->isIndirectCall(Inst) ||
++            !BC.MIB->getTargetSymbol(Inst) || !isUnpredicatedARM(BC, Inst) ||
++            isInsideITBlock(*BB, InstIt)) {
++          ++InstIt;
++          continue;
++        }
++      } else if (!BC.MIB->isCall(Inst) ||
++                 MCPlus::getNumPrimeOperands(Inst) != 1 ||
++                 !Inst.getOperand(0).isExpr()) {
+         ++InstIt;
+         continue;
+       }
+@@ -462,6 +538,11 @@
+         ++InstIt;
+         continue;
+       }
++
++      if (BC.isARM() && TargetFunction->isARMThumb() != Function.isARMThumb()) {
++        ++InstIt;
++        continue;
++      }
+ 
+       auto IInfo = InliningCandidates.find(TargetFunction);
+       if (IInfo == InliningCandidates.end()) {
+--- a/bolt/lib/Target/ARM/ARMMCPlusBuilder.cpp
++++ b/bolt/lib/Target/ARM/ARMMCPlusBuilder.cpp
+@@ -368,6 +368,119 @@
+     }
+   }
+ 
++  /// Number of registers moved by an SP-based register-list push (PUSH,
++  /// STMDB SP!) or pop (POP, LDMIA SP!); 0 for anything else. Single-register
++  /// STR/LDR pre/post-indexed forms are not recognized, which only makes
++  /// stack analyses more conservative.
++  unsigned getSPRegListSize(const MCInst &Inst, bool Push) const {
++    switch (Inst.getOpcode()) {
++    case ARM::tPUSH:
++      if (!Push)
++        return 0;
++      break;
++    case ARM::tPOP:
++      if (Push)
++        return 0;
++      break;
++    case ARM::STMDB_UPD:
++    case ARM::t2STMDB_UPD:
++    case ARM::LDMIA_UPD:
++    case ARM::t2LDMIA_UPD: {
++      const bool IsStore = Inst.getOpcode() == ARM::STMDB_UPD ||
++                           Inst.getOpcode() == ARM::t2STMDB_UPD;
++      if (IsStore != Push || !Inst.getOperand(1).isReg() ||
++          Inst.getOperand(1).getReg() != ARM::SP)
++        return 0;
++      break;
++    }
++    default:
++      return 0;
++    }
++    const int Pred = Info->get(Inst.getOpcode()).findFirstPredOperandIdx();
++    if (Pred < 0)
++      return 0;
++    unsigned NumRegs = 0;
++    for (unsigned I = Pred + 2, E = MCPlus::getNumPrimeOperands(Inst); I < E;
++         ++I)
++      if (Inst.getOperand(I).isReg())
++        ++NumRegs;
++    return NumRegs;
++  }
++
++  bool isPush(const MCInst &Inst) const override {
++    return getSPRegListSize(Inst, /*Push=*/true) != 0;
++  }
++
++  /// A pop that loads PC is a return, not a stack-only pop.
++  bool isPop(const MCInst &Inst) const override {
++    return getSPRegListSize(Inst, /*Push=*/false) != 0 && !isReturn(Inst);
++  }
++
++  int getPushSize(const MCInst &Inst) const override {
++    return 4 * getSPRegListSize(Inst, /*Push=*/true);
++  }
++
++  int getPopSize(const MCInst &Inst) const override {
++    return isPop(Inst) ? 4 * getSPRegListSize(Inst, /*Push=*/false) : 0;
++  }
++
++  /// Replace a word literal-pool load from read-only data with MOVW (+MOVT).
++  /// Only unconditional loads: a load inside an IT block is predicated and
++  /// cannot grow into two instructions. Needs ARMv6T2+ for MOVW/MOVT.
++  InstructionListType materializeConstant(BinaryContext &BC,
++                                          const MCInst &Inst,
++                                          StringRef ConstantData,
++                                          uint64_t Offset) const override {
++    bool Thumb;
++    switch (Inst.getOpcode()) {
++    case ARM::tLDRpci:
++    case ARM::t2LDRpci:
++    case ARM::t2LDRi12:
++      Thumb = true;
++      break;
++    case ARM::LDRi12:
++      Thumb = false;
++      break;
++    default:
++      return {};
++    }
++    if (!STI->hasFeature(ARM::HasV6T2Ops))
++      return {};
++    const int Pred = Info->get(Inst.getOpcode()).findFirstPredOperandIdx();
++    if (Pred < 0 || !Inst.getOperand(Pred).isImm() ||
++        Inst.getOperand(Pred).getImm() != ARMCC::AL)
++      return {};
++    if (!Inst.getOperand(0).isReg())
++      return {};
++    const MCPhysReg Rt = Inst.getOperand(0).getReg();
++    if (Rt == ARM::SP || Rt == ARM::PC)
++      return {};
++    if (Offset + 4 > ConstantData.size())
++      return {};
++    const uint32_t Value =
++        support::endian::read32le(ConstantData.data() + Offset);
++
++    InstructionListType Insts;
++    MCInst MovW;
++    MovW.setOpcode(Thumb ? ARM::t2MOVi16 : ARM::MOVi16);
++    MovW.addOperand(MCOperand::createReg(Rt));
++    MovW.addOperand(MCOperand::createImm(Value & 0xffff));
++    MovW.addOperand(MCOperand::createImm(ARMCC::AL));
++    MovW.addOperand(MCOperand::createReg(0));
++    Insts.push_back(MovW);
++    if (Value >> 16) {
++      MCInst MovT;
++      MovT.setOpcode(Thumb ? ARM::t2MOVTi16 : ARM::MOVTi16);
++      MovT.addOperand(MCOperand::createReg(Rt));
++      MovT.addOperand(MCOperand::createReg(Rt));
++      MovT.addOperand(MCOperand::createImm(Value >> 16));
++      MovT.addOperand(MCOperand::createImm(ARMCC::AL));
++      MovT.addOperand(MCOperand::createReg(0));
++      Insts.push_back(MovT);
++    }
++    return Insts;
++  }
++
+   bool setOperandToSymbolRef(MCInst &Inst, int OpNum,
+                              const MCSymbol *Symbol, int64_t Addend,
+                              MCContext *Ctx, uint32_t RelType) const override {
+@@ -442,13 +555,15 @@
+     switch (Inst.getOpcode()) {
+     default:
+       return false;
++    // ARM-mode B<c> is Bcc (target, pred, predreg): the target is operand 0,
++    // like B/BL. (It used to say 2, the predicate register: ARM-mode
++    // conditional branches were then never symbolized and kept their input
++    // displacement, which is only right while their blocks do not move.)
+     case ARM::B:
+     case ARM::BL:
+     case ARM::BLXi:
+-      OpNum = 0;
+-      return true;
+     case ARM::Bcc:
+-      OpNum = 2;
++      OpNum = 0;
+       return true;
+     // tB / tBcc / t2B / t2Bcc: target is the first in-operand.
+     case ARM::tB:
+@@ -700,7 +815,12 @@
+                  .addImm(ARMCC::AL)
+                  .addReg(0);
+     } else {
+-      Inst = MCInstBuilder(ARM::B).addExpr(MCSymbolRefExpr::create(TBB, *Ctx));
++      // ARM::B is a codegen pseudo (expanded to Bcc AL by the AsmPrinter); MC
++      // cannot encode it and BOLT would count it as a pseudo instruction.
++      Inst = MCInstBuilder(ARM::Bcc)
++                 .addExpr(MCSymbolRefExpr::create(TBB, *Ctx))
++                 .addImm(ARMCC::AL)
++                 .addReg(0);
+     }
+   }
+ 
+@@ -709,10 +829,13 @@
+     createUncondBranch(Inst, Target, Ctx);
+   }
+ 
++  // A tail call is a plain branch (B / B.W) annotated as a tail call. It must
++  // not be a BL: that would overwrite LR, and the callee would return to the
++  // instruction after the BL instead of to our caller.
+   void createTailCall(MCInst &Inst, const MCSymbol *Target,
+                       MCContext *Ctx) override {
+-    createCall(Inst, Target, Ctx);
+-    convertJmpToTailCall(Inst);
++    createUncondBranch(Inst, Target, Ctx);
++    setTailCall(Inst);
+   }
+ 
+   void createBreakpoint(MCInst &Inst) const override { createTrap(Inst); }
+@@ -731,9 +854,10 @@
+ 
+   void createDirectCall(MCInst &Inst, const MCSymbol *Target, MCContext *Ctx,
+                         bool IsTailCall) override {
+-    createCall(Inst, Target, Ctx);
+     if (IsTailCall)
+-      convertJmpToTailCall(Inst);
++      createTailCall(Inst, Target, Ctx);
++    else
++      createCall(Inst, Target, Ctx);
+   }
+ 
+   bool convertJmpToTailCall(MCInst &Inst) override {
+--- /dev/null
++++ b/bolt/test/ARM/arm-passes.test
+@@ -0,0 +1,22 @@
++## AArch32 behaviour of BOLT's generic passes (patch 0023).
++RUN: llvm-mc -triple=thumbv7-none-eabi -filetype=obj %p/Inputs/arm32-passes.s -o %t.o
++RUN: ld.lld --emit-relocs -T %p/Inputs/arm32.ld %t.o -o %t.exe
++
++## ARM-mode Bcc targets are symbolized (operand 0), so a reordered layout keeps
++## them pointing at the right block.
++RUN: llvm-bolt %t.exe -o %t.reorder --no-huge-pages --data %p/Inputs/arm32-passes.fdata \
++RUN:   -lite=0 -reorder-blocks=ext-tsp
++RUN: %python %p/Inputs/check-passes.py llvm-objdump %t.reorder arm_cond
++
++## The double-jump peephole creates a tail call: a B, never a BL.
++RUN: llvm-bolt %t.exe -o %t.peep --no-huge-pages -lite=0 -peepholes=double-jumps
++RUN: %python %p/Inputs/check-passes.py llvm-objdump %t.peep tailcall
++
++## Inlining: only a leaf that touches neither SP, LR (beyond bx lr) nor PC, in
++## the caller's instruction set.
++RUN: llvm-bolt %t.exe -o %t.inline --no-huge-pages -lite=0 -inline-all
++RUN: %python %p/Inputs/check-passes.py llvm-objdump %t.inline inline
++
++## Constant literal-pool loads become MOVW/MOVT.
++RUN: llvm-bolt %t.exe -o %t.rodata --no-huge-pages -lite=0 -simplify-rodata-loads
++RUN: %python %p/Inputs/check-passes.py llvm-objdump %t.rodata rodata
+--- /dev/null
++++ b/bolt/test/ARM/Inputs/arm32-passes.s
+@@ -0,0 +1,111 @@
++@ Inputs for arm-passes.test: one function per pass under test.
++	.syntax unified
++	.text
++
++@ ARM-mode conditional branch whose blocks get reordered (profile: L1 hot).
++	.arm
++	.globl	arm_cond
++	.type	arm_cond,%function
++	.p2align	2
++arm_cond:
++	cmp	r0, #0
++	beq	1f
++	add	r0, r0, #5
++	b	2f
++1:	sub	r0, r0, #7
++	sub	r0, r0, #7
++2:	bx	lr
++	.size	arm_cond, .-arm_cond
++
++@ Thumb block that only jumps to a block that only tail-calls: the double-jump
++@ peephole turns it into a direct tail call, which must be a B, not a BL.
++	.thumb
++	.globl	tail_target
++	.type	tail_target,%function
++	.p2align	1
++	.thumb_func
++tail_target:
++	adds	r0, #3
++	bx	lr
++	.size	tail_target, .-tail_target
++
++	.globl	dj_func
++	.type	dj_func,%function
++	.p2align	1
++	.thumb_func
++dj_func:
++	cmp	r0, #0
++	beq	3f
++	adds	r0, #1
++	b.w	4f
++3:	subs	r0, #1
++	bx	lr
++4:	b.w	tail_target
++	.size	dj_func, .-dj_func
++
++@ Inlining: a safe Thumb leaf, a leaf with push/pop, an ARM-mode leaf.
++	.globl	leaf_ok
++	.type	leaf_ok,%function
++	.p2align	1
++	.thumb_func
++leaf_ok:
++	adds	r0, #11
++	bx	lr
++	.size	leaf_ok, .-leaf_ok
++
++	.globl	leaf_push
++	.type	leaf_push,%function
++	.p2align	1
++	.thumb_func
++leaf_push:
++	push	{r4, lr}
++	adds	r0, #13
++	pop	{r4, pc}
++	.size	leaf_push, .-leaf_push
++
++	.arm
++	.globl	leaf_arm
++	.type	leaf_arm,%function
++	.p2align	2
++leaf_arm:
++	add	r0, r0, #17
++	bx	lr
++	.size	leaf_arm, .-leaf_arm
++
++	.thumb
++	.globl	caller
++	.type	caller,%function
++	.p2align	1
++	.thumb_func
++caller:
++	push	{r4, lr}
++	bl	leaf_ok
++	bl	leaf_push
++	blx	leaf_arm
++	pop	{r4, pc}
++	.size	caller, .-caller
++
++@ Literal-pool load of a constant: -simplify-rodata-loads -> movw/movt.
++	.globl	lit_func
++	.type	lit_func,%function
++	.p2align	2
++	.thumb_func
++lit_func:
++	ldr	r0, 5f
++	bx	lr
++	.p2align	2
++5:	.word	0x12345678
++	.size	lit_func, .-lit_func
++
++	.globl	_start
++	.type	_start,%function
++	.p2align	1
++	.thumb_func
++_start:
++	movs	r0, #0
++	blx	arm_cond
++	bl	dj_func
++	bl	caller
++	bl	lit_func
++	b	_start
++	.size	_start, .-_start
+--- /dev/null
++++ b/bolt/test/ARM/Inputs/arm32-passes.fdata
+@@ -0,0 +1,9 @@
++no_lbr
++1 arm_cond 0 1000
++1 arm_cond 10 1000
++1 arm_cond 14 1000
++1 arm_cond 18 1000
++1 dj_func 0 100
++1 caller 0 100
++1 lit_func 0 100
++1 leaf_ok 0 100
+--- /dev/null
++++ b/bolt/test/ARM/Inputs/check-passes.py
+@@ -0,0 +1,69 @@
++"""arm-passes.test checker: disassembles the BOLT output and checks one property per pass."""
++import re
++import subprocess
++import sys
++
++objdump, elf, which = sys.argv[1], sys.argv[2], sys.argv[3]
++
++
++def disasm(func, triple):
++    out = subprocess.run([objdump, "-d", f"--triple={triple}", f"--disassemble-symbols={func}", elf],
++                         capture_output=True, text=True, check=True).stdout
++    insns = {}
++    for line in out.splitlines():
++        m = re.match(r"\s*([0-9a-f]+):\s+(?:[0-9a-f]{2,8} ?)+\s+(\S+)\s*(.*)", line)
++        if m:
++            insns[int(m[1], 16)] = (m[2], m[3])
++    if not insns:
++        sys.exit(f"FAIL: no instructions for {func}")
++    return insns
++
++
++def target(args):
++    m = re.search(r"0x([0-9a-f]+)", args)
++    return int(m[1], 16) if m else None
++
++
++if which == "arm_cond":
++    ins = disasm("arm_cond", "armv7a-none-eabi")
++    conds = [(a, op, target(arg)) for a, (op, arg) in ins.items() if re.fullmatch(r"b(eq|ne)", op)]
++    if len(conds) != 1:
++        sys.exit(f"FAIL: expected one conditional branch, got {conds}")
++    a, op, t = conds[0]
++    if op != "bne":
++        sys.exit(f"FAIL: arm_cond was not reordered (still {op}); the test proves nothing")
++    if t not in ins:
++        sys.exit(f"FAIL: {op} at {a:#x} targets {t:#x}, not an instruction start")
++    # beq must reach the `sub` path, bne the `add` path, whatever the layout.
++    want = "sub" if op == "beq" else "add"
++    if ins[t][0] != want:
++        sys.exit(f"FAIL: {op} at {a:#x} reaches {ins[t]}, expected {want}")
++    for a, (op, arg) in ins.items():
++        if op in ("b", "beq", "bne") and target(arg) not in ins:
++            sys.exit(f"FAIL: {op} at {a:#x} leaves the function ({arg})")
++elif which == "tailcall":
++    ins = disasm("dj_func", "thumbv7a-none-eabi")
++    if any(op.startswith("bl") for op, _ in ins.values()):
++        sys.exit(f"FAIL: tail call emitted as a call: {ins}")
++    for a, (op, arg) in ins.items():
++        t = target(arg)
++        if op.startswith("b") and t in ins and ins[t][0] in ("b", "b.w"):
++            sys.exit(f"FAIL: double jump left at {a:#x} -> {t:#x}")
++    if not any(op.startswith("b") and "tail_target" in arg for op, arg in ins.values()):
++        sys.exit(f"FAIL: no branch to tail_target in dj_func: {ins}")
++elif which == "inline":
++    ins = disasm("caller", "thumbv7a-none-eabi")
++    calls = [arg for op, arg in ins.values() if op.startswith("bl")]
++    if any("leaf_ok" in c for c in calls):
++        sys.exit(f"FAIL: leaf_ok not inlined: {calls}")
++    if not any(op.startswith("add") and "#0xb" in arg for op, arg in ins.values()):
++        sys.exit(f"FAIL: inlined body of leaf_ok missing: {ins}")
++    if not any("leaf_push" in c for c in calls) or not any("leaf_arm" in c for c in calls):
++        sys.exit(f"FAIL: unsafe callees must stay calls: {calls}")
++elif which == "rodata":
++    ins = disasm("lit_func", "thumbv7a-none-eabi")
++    ops = [(op, arg) for op, arg in ins.values()]
++    if not (any(op == "movw" and "0x5678" in arg for op, arg in ops)
++            and any(op == "movt" and "0x1234" in arg for op, arg in ops)):
++        sys.exit(f"FAIL: literal load not materialized: {ops}")
++print(f"PASS {which}")

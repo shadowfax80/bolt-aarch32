@@ -1,0 +1,20 @@
+== bolt: 
+BOLT-INFO: ICF folded 1 out of 411 functions in 3 passes. 0 functions had jump tables.
+== inline: -inline-all
+BOLT-INFO: ICF folded 1 out of 411 functions in 3 passes. 0 functions had jump tables.
+BOLT-INFO: inlined 40000 calls at 2 call sites in 2 iteration(s). Change in binary size: 32 bytes.
+== rodata: -simplify-rodata-loads
+BOLT-INFO: ICF folded 1 out of 411 functions in 3 passes. 0 functions had jump tables.
+BOLT-INFO: simplified 1 out of 1 loads from statically computed addresses
+BOLT-INFO: simplified 1 out of 1 dynamic loads
+== split: -split-functions -split-all-cold
+BOLT-INFO: ICF folded 1 out of 411 functions in 3 passes. 0 functions had jump tables.
+== peep: -peepholes=all
+BOLT-INFO: ICF folded 1 out of 411 functions in 3 passes. 0 functions had jump tables.
+== sctc: -simplify-conditional-tail-calls
+BOLT-INFO: ICF folded 1 out of 411 functions in 3 passes. 0 functions had jump tables.
+== all: -inline-all -simplify-rodata-loads -peepholes=all -simplify-conditional-tail-calls -split-functions -split-all-cold
+BOLT-INFO: ICF folded 1 out of 411 functions in 3 passes. 0 functions had jump tables.
+BOLT-INFO: simplified 1 out of 1 loads from statically computed addresses
+BOLT-INFO: simplified 1 out of 1 dynamic loads
+BOLT-INFO: inlined 40000 calls at 2 call sites in 2 iteration(s). Change in binary size: 32 bytes.

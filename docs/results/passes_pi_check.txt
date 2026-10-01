@@ -1,0 +1,17 @@
+== baseline
+   18 workload results: hot_loop=0x6a4ae6e0 hot_cold=0x00000000 branch_chain=0x007a5100 memcpy=0x007a5100 far_call=0x007a5100 it_cond=0x007a5100 interwork=0x007a5100 switch=0xa953bbf0 spill_ret=0x504980a0 litpool=0x16b596e0 indirect_call=0x0e6aac80 interwork_tail=0xda3416f0 regpressure=0xc5da3550 hotcold_split=0xd4751003 icf=0xdc7c3be0 shrinkwrap=0x6a1b87d4 composite=0x939f4ea0 stair=0x9fef2a18
+== bolt
+   all 18 results identical to baseline
+== inline
+   all 18 results identical to baseline
+== rodata
+   all 18 results identical to baseline
+== split
+   all 18 results identical to baseline
+== peep
+   all 18 results identical to baseline
+== sctc
+   all 18 results identical to baseline
+== all
+   all 18 results identical to baseline
+RESULT: PASS

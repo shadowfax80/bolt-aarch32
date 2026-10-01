@@ -34,7 +34,7 @@ build)
   mkdir -p "$DEST"
   # third_party and build outputs stay on the WSL side; they are gitignored anyway.
   rsync -a --delete --exclude build/ --exclude 'build-*/' --exclude third_party/ \
-    --exclude legacy-archives/ --exclude __pycache__/ "$SRC"/ "$DEST"/
+    --exclude legacy-archives/ --exclude __pycache__/ --exclude .git/ --exclude out/ "$SRC"/ "$DEST"/
   cd "$DEST"
   # The Windows checkout can have CRLF line endings (git autocrlf); `git am` then
   # cannot match patch context and shell scripts break. Normalize the WSL copy only.
@@ -67,7 +67,7 @@ sync)
   # Push the current Windows checkout (edited overlay files, scripts) into the WSL
   # copy and re-install the overlay into third_party/lk. Cheap; no rebuild.
   rsync -a --delete --exclude build/ --exclude 'build-*/' --exclude third_party/ \
-    --exclude legacy-archives/ --exclude __pycache__/ "$SRC"/ "$DEST"/
+    --exclude legacy-archives/ --exclude __pycache__/ --exclude .git/ --exclude out/ "$SRC"/ "$DEST"/
   cd "$DEST"
   find overlay scripts cmake docs -type f \( -name '*.patch' -o -name '*.sh' -o -name '*.py' \
     -o -name '*.mk' -o -name '*.c' -o -name '*.h' -o -name '*.cmake' -o -name '*.md' \) \

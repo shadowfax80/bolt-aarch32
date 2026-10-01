@@ -82,11 +82,16 @@ case "$cmd" in
     python3 "$ROOT/scripts/ram-dump-to-fdata.py" --elf "$V/$variant.instr.elf" \
       --dump "$counters" --toolchain "$TOOLCHAIN" -o "$V/$variant.fdata"
     BASE="$BASE" ARCH=arm32 ELF="$V/$variant.elf" FDATA="$V/$variant.fdata" \
-      OUT="$V/${variant}${OSUF}.elf" OPTIMIZE_FUNCS="$FUNC" \
+      OUT="$V/${variant}${OSUF}.elf" OPTIMIZE_FUNCS="${BOLT_OPTIMIZE_FUNCS:-$FUNC}" \
       "$ROOT/scripts/optimize-lk-bolt.sh" $BOLT_EXTRA_ARGS > "$V/${variant}${OSUF}.log" 2>&1 \
       || { tail -20 "$V/${variant}${OSUF}.log" >&2; exit 1; }
+    # BOLT_OPTIMIZE_FUNCS (optional, a superset of BOLT_FUNC): functions BOLT may also
+    # rewrite, e.g. small helpers given only as inlining candidates. They are not
+    # redirected; code outside the rewritten set keeps calling the original copies.
     python3 "$ROOT/scripts/redirect-bolt-entries.py" "$V/${variant}${OSUF}.elf" \
-      --original "$V/$variant.elf" --map "$V/${variant}${OSUF}.elf.funcmap" --func "$FUNC"       --toolchain "$TOOLCHAIN"
+      --original "$V/$variant.elf" --map "$V/${variant}${OSUF}.elf.funcmap" --func "$FUNC" \
+      --also-rewritten "${BOLT_OPTIMIZE_FUNCS:-}" ${BOLT_ALLOW_MISSING:+--allow-missing} \
+      --toolchain "$TOOLCHAIN"
     "$TOOLCHAIN/llvm-objcopy" -O binary "$V/${variant}${OSUF}.elf" "$V/${variant}${OSUF}.bin"
     echo "image: $V/${variant}${OSUF}.bin ($(stat -c %s "$V/${variant}${OSUF}.bin") bytes)"
     ;;

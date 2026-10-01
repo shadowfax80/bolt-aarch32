@@ -109,3 +109,32 @@ Not part of the six items above; recorded so they are not lost.
   shifted input (cold code executes) bolt +44.5%, bolt+split +42.9%.
   `docs/results/split_functions_stair_v*.csv`. Enable with `BOLT_SPLIT=1`.
 - Not supported: `-split-strategy=cdsplit` (upstream LongJmp limitation, >2 fragments).
+
+### 2. Missing hooks, crashing passes, peepholes — DONE (overlay 0023, 2026-10-01)
+
+Hooks: `isPush`/`isPop`/`getPushSize`/`getPopSize` (SP register lists), `materializeConstant`
+(word literal load → MOVW/MOVT, unconditional only, v6T2+). Bugs found and fixed on the way:
+
+- **ARM-mode `Bcc` target was read from operand 2** (the predicate register) instead of 0, so
+  ARM-mode conditional branches were never symbolized and kept their input displacement —
+  correct only while their blocks did not move. Now symbolized; the emitter's workaround for it
+  no longer drops the condition of an ARM→Thumb conditional branch (now a clear error).
+- **ARM-mode unconditional branch was built as `ARM::B`**, a codegen pseudo MC cannot encode;
+  BOLT counted it as a pseudo, the debug check "recovered" by ignoring the function mid-pass,
+  and `-peepholes` crashed. Now `Bcc` AL.
+- **Tail calls were built as `BL`** (a call, overwrites LR) instead of a branch; used by the
+  double-jump peephole and conditional-tail-call expansion. Now `B`/`B.W` annotated as tail
+  call; the CTC expansion also picks the function's ARM/Thumb builder.
+- **Inliner on AArch32:** call-site filter could never match a `BL` (predicate operands), and
+  `BX LR` was retargeted as a branch. Now inlines only same-ISA, unconditional calls outside IT
+  blocks into callees that are leaves touching neither SP, LR (beyond a final `bx lr`) nor PC,
+  without constant islands; everything else stays a call.
+
+Now run on the full LK image: `-peepholes=all`, `-simplify-conditional-tail-calls`,
+`-inline-small-functions`, `-inline-all`, `-simplify-rodata-loads` (plus all earlier passes).
+Tests: `arm-passes.test` (ARM Bcc after reordering, tail call is B, inlining rules, MOVW/MOVT);
+34/34 ARM + JITLink lit pass. Pi: `scripts/pi4/passes_stage.sh` — 18 workload results of
+`bolt_bench all` identical to baseline for 7 images (plain, inline, rodata, split, peepholes,
+SCTC, all combined; `docs/results/passes_pi_check.txt`); multi-function rerun −45.4%, checksums
+identical. Inlining here: 2 call sites, 40,000 dynamic calls; rodata: 1 hot load.
+`bolt_bench all` now prints each workload's result (`<name> sink=`).

@@ -108,6 +108,12 @@ def main() -> int:
     ap.add_argument("--instrumented", action="store_true",
                     help="redirect into BOLT's *instrumented* copy: its entry runs counter "
                          "code before the original prologue, so skip the prologue check")
+    ap.add_argument("--also-rewritten", default="",
+                    help="comma-separated functions BOLT may rewrite without being redirected "
+                         "(small helpers given to the optimizer only as inlining candidates; "
+                         "code outside the rewritten set keeps calling the original copy)")
+    ap.add_argument("--allow-missing", action="store_true",
+                    help="tolerate --func names BOLT did not emit (e.g. folded by -icf)")
     args = ap.parse_args()
     if not args.map and not args.func:
         ap.error("need --map FILE and/or --func NAME")
@@ -127,17 +133,25 @@ def main() -> int:
     if args.map:
         entries = read_map(args.map)
         wanted = [f for f in (args.func or "").split(",") if f]
-        for f in wanted:
-            if f not in entries:
+        for f in list(wanted):
+            if f not in entries and args.allow_missing:
+                # e.g. folded into an identical function by -icf: rewritten callers use
+                # the kept copy, old callers keep the original.
+                print(f"note: BOLT did not emit {f}; leaving its original entry alone")
+                wanted.remove(f)
+            elif f not in entries:
                 raise SystemExit(
                     f"{args.map}: BOLT did not emit {f} (emitted: {', '.join(sorted(entries)) or 'none'})"
                 )
         if wanted:
-            extra = sorted(set(entries) - set(wanted))
+            allowed = {f for f in args.also_rewritten.split(",") if f}
+            extra = sorted(set(entries) - set(wanted) - allowed)
             if extra:
                 raise SystemExit(f"{args.map}: BOLT also rewrote {', '.join(extra)}; not in --func")
         orig_syms = nm_symbols(nm, args.original)
         for name, (in_addr, out_addr, _size) in entries.items():
+            if wanted and name not in wanted:
+                continue
             # The map's input address is authoritative; the symbol only has to agree.
             if name in orig_syms and orig_syms[name][0] != in_addr:
                 raise SystemExit(
