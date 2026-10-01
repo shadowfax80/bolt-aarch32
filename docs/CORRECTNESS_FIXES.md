@@ -1,5 +1,30 @@
 # Correctness fixes
 
+## CBZ/CBNZ flags and long-range branches (2026-10-01)
+
+ATFE overlay 0020 replaces the Thumb compare-and-branch expansion that used
+`CMP; Bcc`. The original CBZ/CBNZ preserves NZCV, whereas CMP overwrote it.
+An inverted CBZ/CBNZ now skips one 4-byte wide unconditional branch to the
+original target. Both instructions preserve NZCV; the short skip is always in
+range and the wide branch handles layout changes. A fixture with flags consumed
+on both successor paths checks emitted instructions for both opcodes.
+
+Validation: ATFE rebuilt; BOLT ARM and JITLink AArch32 focused suites passed
+31/31 combined, including the new test; full QEMU-LK image emission passed.
+On the Pi, `app_start_by_name` and `strtoul` were rewritten and redirected.
+The output code was decoded and confirmed to contain the new sequences. Original
+and rewritten images both completed seven benchmark commands with matching
+shared-result dumps: hot_loop e0e64a6a, hot_cold 00000000, branch_chain
+00517a00, memcpy 00517a00, spill_ret a0804950, litpool e096b516,
+interwork e096b516. Memcpy and interwork do not update this shared variable,
+so those comparisons alone are not independent checksums. The synthetic
+flag-sensitive paths were checked at the emitted-instruction level; a dedicated
+Pi execution check for both paths remains on the TODO list.
+
+The patch was exported from the live ATFE tree and `git apply --reverse --check`
+passed against that tree. The dirty parent/source checkout still needs a clean
+replay/provenance check under item #12.
+
 ## A32 literal loads (2026-09-30)
 
 The upstream 0008 and ATFE 0014 overlays correct backward literal-load

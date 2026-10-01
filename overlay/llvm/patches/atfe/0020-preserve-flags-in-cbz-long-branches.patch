@@ -1,0 +1,148 @@
+diff --git a/bolt/lib/Target/ARM/ARMMCPlusBuilder.cpp b/bolt/lib/Target/ARM/ARMMCPlusBuilder.cpp
+--- a/bolt/lib/Target/ARM/ARMMCPlusBuilder.cpp
++++ b/bolt/lib/Target/ARM/ARMMCPlusBuilder.cpp
+@@ -1252,18 +1252,16 @@
+           continue;
+         }
+         const MCPhysReg Rn = Inst.getOperand(0).getReg();
+-        const bool IsCBNZ = Op == ARM::tCBNZ;
+         InstructionListType Seq(2);
+-        // cmp Rn, #0
+-        Seq[0] = MCInstBuilder(ARM::tCMPi8)
++        // The inverted CBZ/CBNZ skips the immediately following B.W (4 bytes).
++        // Its immediate is the byte displacement from PC+4 to the instruction
++        // after B.W: 2. Neither instruction changes the condition flags.
++        Seq[0] = MCInstBuilder(Op == ARM::tCBZ ? ARM::tCBNZ : ARM::tCBZ)
+                      .addReg(Rn)
+-                     .addImm(0)
++                     .addImm(2);
++        Seq[1] = MCInstBuilder(ARM::t2B)
++                     .addExpr(MCSymbolRefExpr::create(Tgt, *BC.Ctx))
+                      .addImm(ARMCC::AL)
+-                     .addReg(0);
+-        // beq / bne target (Thumb-2, wide range)
+-        Seq[1] = MCInstBuilder(ARM::t2Bcc)
+-                     .addExpr(MCSymbolRefExpr::create(Tgt, *BC.Ctx))
+-                     .addImm(IsCBNZ ? ARMCC::NE : ARMCC::EQ)
+                      .addReg(0);
+         II = BB.replaceInstruction(II, Seq);
+         II = std::next(II, 2);
+diff --git a/bolt/test/ARM/arm-cbz-flags.test b/bolt/test/ARM/arm-cbz-flags.test
+new file mode 100644
+--- /dev/null
++++ b/bolt/test/ARM/arm-cbz-flags.test
+@@ -0,0 +1,5 @@
++## CBZ/CBNZ preserve NZCV across a long-branch expansion.
++RUN: llvm-mc -triple=thumbv7-none-eabi -filetype=obj %p/Inputs/arm32-cbz-flags.s -o %t.o
++RUN: ld.lld --emit-relocs -T %p/Inputs/arm32-cbz-flags.ld %t.o -o %t.exe
++RUN: llvm-bolt %t.exe -o %t.bolt --no-huge-pages --emit-function-map=%t.map
++RUN: %python %p/Inputs/check-cbz-flags.py llvm-mc llvm-readelf %t.bolt %t.map
+diff --git a/bolt/test/ARM/Inputs/arm32-cbz-flags.s b/bolt/test/ARM/Inputs/arm32-cbz-flags.s
+new file mode 100644
+--- /dev/null
++++ b/bolt/test/ARM/Inputs/arm32-cbz-flags.s
+@@ -0,0 +1,58 @@
++// Review fixture: flags are live after CBZ on both successors.
++// THUMB_ENTRY additionally reproduces odd e_entry translation failure.
++.syntax unified
++.cpu cortex-a9
++.text
++.ifdef THUMB_ENTRY
++.thumb
++.else
++.arm
++.endif
++.global _start
++.type _start,%function
++.ifdef THUMB_ENTRY
++.thumb_func
++.endif
++_start:
++.ifdef THUMB_ENTRY
++  bl probe
++.else
++  blx probe
++.endif
++  bx lr
++.size _start, .-_start
++.thumb
++.global probe
++.type probe,%function
++.thumb_func
++probe:
++  cmp r1, #0
++  cbz r0, .Ltarget
++  bne .Lwrong
++  mov.w r0, #7
++  bx lr
++.Ltarget:
++  bne .Lwrong
++  mov.w r0, #9
++  bx lr
++.Lwrong:
++  mov.w r0, #3
++  bx lr
++.size probe, .-probe
++.global probe_nz
++.type probe_nz,%function
++.thumb_func
++probe_nz:
++  cmp r1, #0
++  cbnz r0, .Lnz_target
++  bne .Lnz_wrong
++  mov.w r0, #7
++  bx lr
++.Lnz_target:
++  bne .Lnz_wrong
++  mov.w r0, #9
++  bx lr
++.Lnz_wrong:
++  mov.w r0, #3
++  bx lr
++.size probe_nz, .-probe_nz
+diff --git a/bolt/test/ARM/Inputs/arm32-cbz-flags.ld b/bolt/test/ARM/Inputs/arm32-cbz-flags.ld
+new file mode 100644
+--- /dev/null
++++ b/bolt/test/ARM/Inputs/arm32-cbz-flags.ld
+@@ -0,0 +1,6 @@
++ENTRY(_start)
++SECTIONS {
++  . = 0x10000;
++  .text : { *(.text*) }
++  .data : { *(.data*) }
++}
+diff --git a/bolt/test/ARM/Inputs/check-cbz-flags.py b/bolt/test/ARM/Inputs/check-cbz-flags.py
+new file mode 100644
+--- /dev/null
++++ b/bolt/test/ARM/Inputs/check-cbz-flags.py
+@@ -0,0 +1,30 @@
++#!/usr/bin/env python3
++"""Check the emitted Thumb instruction sequence despite odd $t mapping symbols."""
++import re
++import subprocess
++import sys
++
++mc, readelf, image, map_path = sys.argv[1:]
++sections = subprocess.check_output([readelf, '--sections', image], text=True)
++text = re.search(r'\[\s*\d+\]\s+\.text\s+\S+\s+([0-9a-fA-F]+)\s+([0-9a-fA-F]+)\s+([0-9a-fA-F]+)', sections)
++assert text, 'missing .text section'
++base, file_off, _ = (int(part, 16) for part in text.groups())
++with open(image, 'rb') as fh:
++    data = fh.read()
++entries = {}
++for line in open(map_path, encoding='utf-8'):
++    name, _old, new, size = line.split()
++    entries[name] = (int(new, 16) & ~1, int(size, 16))
++for name, inverse in [('probe', 'cbnz'), ('probe_nz', 'cbz')]:
++    addr, size = entries[name]
++    code = data[file_off + addr - base:file_off + addr - base + size]
++    result = subprocess.run([mc, '--disassemble', '--triple=thumbv7-none-eabi'],
++        input=' '.join('0x%02x' % byte for byte in code),
++        text=True, capture_output=True, check=True)
++    insns = [line.strip() for line in result.stdout.splitlines() if line.strip()]
++    assert re.search(r'^cmp\s+r1, #0$', insns[0]), (name, insns)
++    assert re.search(r'^' + inverse + r'\s+r0, #2$', insns[1]), (name, insns)
++    assert re.search(r'^b\.w\s+#8$', insns[2]), (name, insns)
++    assert re.search(r'^bne\s+', insns[3]), (name, insns)
++    assert all(not line.startswith('cmp') for line in insns[1:]), (name, insns)
++    print(name + ': flags preserved, nearby skip and original target checked')

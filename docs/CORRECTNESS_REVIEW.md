@@ -2,6 +2,11 @@
 
 ## Assessment
 
+> Follow-up 2026-10-01: R1 has been fixed in ATFE overlay 0020 and verified with
+> 31 focused host tests, full LK emission, and a scoped Pi run. See
+> [CORRECTNESS_FIXES.md](CORRECTNESS_FIXES.md). The observations below document
+> the pre-fix behavior found during this review; other findings remain open.
+
 The project implements an experimental AArch32 ARM/Thumb BOLT backend as overlays
 on a pinned ATFE tree. Little Kernel provides the bare-metal execution harness;
 host tools extract RAM counters and feed profiles back into BOLT. The Pi pipeline

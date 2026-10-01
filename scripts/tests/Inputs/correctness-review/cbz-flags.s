@@ -39,3 +39,20 @@ probe:
   mov.w r0, #3
   bx lr
 .size probe, .-probe
+.global probe_nz
+.type probe_nz,%function
+.thumb_func
+probe_nz:
+  cmp r1, #0
+  cbnz r0, .Lnz_target
+  bne .Lnz_wrong
+  mov.w r0, #7
+  bx lr
+.Lnz_target:
+  bne .Lnz_wrong
+  mov.w r0, #9
+  bx lr
+.Lnz_wrong:
+  mov.w r0, #3
+  bx lr
+.size probe_nz, .-probe_nz

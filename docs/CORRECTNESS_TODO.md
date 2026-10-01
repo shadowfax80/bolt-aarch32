@@ -11,7 +11,7 @@ host tests check encodings/diagnostics and QEMU is supplemental.
 
 ## Recommended order
 
-1. #4 CBZ/CBNZ flag preservation; #9 Thumb ELF entry translation.
+1. #9 Thumb ELF entry translation, then the remaining #4 conditional-return/PC-load cases.
 2. #12 profile validation and proof that selected rewritten code executes.
 3. #1 relocation contract, then #3 pseudo/CFG invariants.
 4. #5 instrumentation semantics and #6 enforced operating scope.
@@ -66,9 +66,12 @@ safe; unsupported cases cannot return a successful partially corrupted output.
 ## 4. Control flow, returns and branch flags — partial, P0
 
 - [x] Recognize unconditional POP/updated-LDM PC returns as terminators.
-- [ ] **Fix CBZ/CBNZ expansion:** `CMP; Bcc` destroys flags the original preserves.
-  Preserve flags, prove them dead, or reject. Test both branch outcomes with flags
-  consumed on both successor paths.
+- [x] **Fix CBZ/CBNZ expansion:** replace the flag-clobbering `CMP; Bcc` with an
+  inverted CBZ/CBNZ over a wide branch. Test both opcodes with flags consumed on
+  both successor paths; Pi dispatcher/argument-parser workloads matched baseline.
+- [ ] Add a dedicated Pi result check for both flag-consuming successor paths;
+  the current Pi workload comparison verifies real rewritten dispatch code but
+  does not force both branches of the synthetic fixture.
 - [ ] Model conditional returns with taken exits and fallthrough, or exclude
   transformations requiring that model.
 - [ ] Audit non-updating LDM, LDR-to-PC, MOV-to-PC, BX, predicated variants,

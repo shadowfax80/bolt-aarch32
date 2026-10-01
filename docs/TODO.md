@@ -9,8 +9,8 @@ other work was done was incorrect.
 - [Twelve-item status tracker](CORRECTNESS_STATUS.md)
 - [Completed fixes and verification evidence](CORRECTNESS_FIXES.md)
 
-Start with CBZ/CBNZ flag preservation (#4), Thumb ELF entry translation (#9),
-and profile/execution validation (#12), then the relocation matrix (#1) and
+CBZ/CBNZ flag preservation (#4) has a scoped fix. Next are Thumb ELF entry
+translation (#9) and profile/execution validation (#12), then relocations (#1) and
 CFG invariants (#3). Pi execution takes priority over QEMU.
 
 Upstream changes/builds, RFC posting and PR submission remain stopped by owner
