@@ -170,3 +170,13 @@ identical. Inlining here: 2 call sites, 40,000 dynamic calls; rodata: 1 hot load
   Pi: `bolt_bench all`, 18 results identical to baseline for 7 images (plain, inline, rodata,
   split, peepholes, SCTC, all combined) with 29 functions incl. the switch dispatcher and all
   static helpers; inlining now 4 call sites / 240,000 calls.
+
+### Full-image rewrite boots on the Pi (2026-10-01)
+
+`scripts/pi4/full_image_wsl.sh`: BOLT over the whole `baseline` LK image, no function
+allowlist (`-lite=0`, ext-tsp, hfsort+, ICF): **403 of 411 functions** rewritten into the new
+`.text`; left in place: startup/MMU assembly (`arm_reset`, `arm_secondary_setup`,
+`.Lmmu_setup`, `arm32_hyp_to_svc`, `unsupported_cpu_trap`) and `arm_generic_timer_init`,
+`cmd_pmm`, `qsort` (undisassemblable instructions). Booted on the Pi (Non-secure SVC):
+`bolt_bench all`, 18 results identical to baseline (`docs/results/full_image_*`). This retires
+the old U1 figure (7% coverage) for this image; output determinism is tracked separately.

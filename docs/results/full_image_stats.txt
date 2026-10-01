@@ -1,0 +1,2 @@
+functions in input: 411; rewritten into the new .text: 403
+left in place: .Lmmu_setup, arm32_hyp_to_svc, arm_generic_timer_init, arm_reset, arm_secondary_setup, cmd_pmm, qsort, unsupported_cpu_trap
