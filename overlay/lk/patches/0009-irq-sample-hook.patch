@@ -1,0 +1,26 @@
+diff --git a/dev/interrupt/arm_gic/gic_v2.c b/dev/interrupt/arm_gic/gic_v2.c
+index b72a88a..afabd5d 100644
+--- a/dev/interrupt/arm_gic/gic_v2.c
++++ b/dev/interrupt/arm_gic/gic_v2.c
+@@ -133,6 +133,12 @@ status_t arm_gicv2_sgi(u_int irq, u_int flags, u_int cpu_mask) {
+     return NO_ERROR;
+ }
+ 
++// bolt-aarch32 sampling hook: register_int_handler() callbacks only get
++// (void *arg), but a PC-sampling profiler needs the interrupted register
++// state, which is only in scope here. The weak default does nothing; the
++// bolt_bench sampler overrides it (see app/bolt_bench).
++__WEAK void bolt_sample_on_irq(struct iframe *frame, unsigned int vector) {}
++
+ enum handler_return arm_gicv2_platform_irq(struct iframe *frame) {
+     // get the current vector
+     uint32_t iar = GICCREG_READ(0, GICC_PRIMARY_IAR);
+@@ -143,6 +149,8 @@ enum handler_return arm_gicv2_platform_irq(struct iframe *frame) {
+         return INT_NO_RESCHEDULE;
+     }
+ 
++    bolt_sample_on_irq(frame, vector);
++
+     THREAD_STATS_INC(interrupts);
+     KEVLOG_IRQ_ENTER(vector);
+ 

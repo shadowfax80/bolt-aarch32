@@ -34,6 +34,20 @@ static uint8_t bench_dst[4096] __attribute__((aligned(64)));
  * here that reliably keeps a pure-arithmetic loop's body in the binary. */
 static volatile uint32_t g_bolt_bench_sink;
 
+/* Timed regions run with interrupts masked for clean numbers -- except while `bolt_sample`
+ * is on: the PC sampler is interrupt-driven (an IRQ on this non-secure Pi), so it would see
+ * none of a masked region (measured: ~1/8 of the expected samples, all at its edges). A
+ * profiling run does not need clean timing. */
+static volatile uint32_t g_bolt_sampling;
+static inline void bench_ints_off(void) {
+    if (!g_bolt_sampling)
+        arch_disable_ints();
+}
+static inline void bench_ints_on(void) {
+    if (!g_bolt_sampling)
+        arch_enable_ints();
+}
+
 /* Result check: each workload's final value, printed after it returns, so a
  * rewritten image can be compared with the original workload by workload. */
 static void print_sink(const char *name) {
@@ -677,7 +691,7 @@ __attribute__((noinline)) void bolt_bench_stair(void) {
     for (uint32_t i = 0; i < BOLT_BENCH_STAIR_WARMUP; i++) {
         acc = bolt_bench_stair_kernel(acc + i, g_stair_sel);
     }
-    arch_disable_ints();
+    bench_ints_off();
     lk_time_t t0 = arch_cycle_count();
     bolt_pmu_read(&p0);
     for (uint32_t i = 0; i < BOLT_BENCH_STAIR_ITERS; i++) {
@@ -685,7 +699,7 @@ __attribute__((noinline)) void bolt_bench_stair(void) {
     }
     bolt_pmu_read(&p1);
     lk_time_t cyc = arch_cycle_count() - t0;
-    arch_enable_ints();
+    bench_ints_on();
     bench_banner("stair", cyc);
     if (arch_curr_cpu_num() != start_cpu) {
         printf("bolt_bench: stair pmu INVALID (migrated cpu%u -> cpu%u)\n", start_cpu,
@@ -844,13 +858,13 @@ static void pl_run(const char *name, uint32_t (*fn)(uint32_t, uint32_t), uint32_
     uint start_cpu = arch_curr_cpu_num();
     thread_set_pinned_cpu(self, (int)start_cpu);
     uint32_t acc = fn(1u, n / 16u + 1u); /* warm-up: caches and predictors */
-    arch_disable_ints();
+    bench_ints_off();
     lk_time_t t0 = arch_cycle_count();
     bolt_pmu_read(&p0);
     acc ^= fn(2u, n);
     bolt_pmu_read(&p1);
     lk_time_t cyc = arch_cycle_count() - t0;
-    arch_enable_ints();
+    bench_ints_on();
     bench_banner(name, cyc);
     if (arch_curr_cpu_num() == start_cpu) {
         bolt_pmu_report(name, &p0, &p1);
@@ -927,7 +941,7 @@ __attribute__((noinline)) void bolt_bench_multi(void) {
             x = g_mf[f](x);
         }
     }
-    arch_disable_ints();
+    bench_ints_off();
     lk_time_t t0 = arch_cycle_count();
     bolt_pmu_read(&p0);
     for (uint32_t i = 0; i < BOLT_BENCH_MULTI_ITERS; i++) {
@@ -937,7 +951,7 @@ __attribute__((noinline)) void bolt_bench_multi(void) {
     }
     bolt_pmu_read(&p1);
     lk_time_t cyc = arch_cycle_count() - t0;
-    arch_enable_ints();
+    bench_ints_on();
     bench_banner("multi", cyc);
     if (arch_curr_cpu_num() != start_cpu) {
         printf("bolt_bench: multi pmu INVALID (migrated)\n");
@@ -987,11 +1001,11 @@ static void bolt_bench_pmu_probe(void) {
     uint start_cpu = arch_curr_cpu_num();
     thread_set_pinned_cpu(self, (int)start_cpu);
     uint32_t acc = pp_kernel(2000u); /* warm-up */
-    arch_disable_ints();
+    bench_ints_off();
     bolt_pmu_read(&p0);
     acc ^= pp_kernel(100000u);
     bolt_pmu_read(&p1);
-    arch_enable_ints();
+    bench_ints_on();
     bolt_pmu_report("pmu_probe", &p0, &p1);
     thread_set_pinned_cpu(self, old_pin);
     printf("bolt_bench: pmu_probe iters=100000 acc=0x%08x\n", (unsigned)acc);
@@ -1257,6 +1271,128 @@ static int wdog_cmd(int argc, const console_cmd_args *argv) {
     return 0;
 }
 #define BB_HAVE_WDOG 1
+
+/* PC sampler for sample-based BOLT profiles (no instrumented image): `bolt_sample start
+ * <cycles>` arms PMU event counter 5 on every core to count CPU cycles and interrupt on
+ * overflow; each overflow records the interrupted PC (bit 0 = Thumb) in bolt_sample_buf.
+ * `bolt_sample stop` disarms and prints the count; the host reads the buffer back with
+ * bolt_dump and turns it into perf2bolt's pre-aggregated format
+ * (scripts/pi4/samples_to_fdata.py). Design after lk-perf's PMU mode (same SPIs 48..51,
+ * level-triggered, always acknowledged), but counter 5 is reached through PMEVCNTR5 /
+ * PMEVTYPER5 directly (ARMv8 AArch32), never PMSELR, so an overflow in the middle of a
+ * workload's own PMSELR-based counter read cannot corrupt it; counters 0..4 and the cycle
+ * counter stay the workloads'. */
+#include <kernel/mp.h>
+#include <arch/atomic.h>
+#include <dev/interrupt/arm_gic.h>
+#include <platform/interrupts.h>
+
+#define BB_SAMPLE_MAX (1u << 17)
+#define BB_SAMPLE_CTR 5u
+#define BB_SAMPLE_SPI 48u /* GIC SPI 16 + 32: PMU of cpu0; cpu n is 48 + n */
+#define BB_SAMPLE_MIN_PERIOD 10000u
+
+uint32_t bolt_sample_buf[BB_SAMPLE_MAX];
+static volatile uint32_t g_sample_n;
+static volatile uint32_t g_sample_on;
+static uint32_t g_sample_reload;
+static uint32_t g_sample_cpu;
+static volatile uint32_t g_sample_irqs[4]; /* PMU overflow interrupts seen, per core */
+
+/* not in a public header; defined by dev/interrupt/arm_gic */
+status_t gic_configure_interrupt(unsigned int vector, enum interrupt_trigger_mode tm,
+                                 enum interrupt_polarity pol);
+
+static inline void sample_ctr_write(uint32_t v) {
+    __asm__ volatile("mcr p15, 0, %0, c14, c8, 5" ::"r"(v)); /* PMEVCNTR5 */
+}
+
+void bolt_sample_on_irq(struct arm_iframe *frame, unsigned int vector) {
+    if (vector < BB_SAMPLE_SPI || vector >= BB_SAMPLE_SPI + 4)
+        return;
+    /* level-triggered: always acknowledge, even when disarmed, or it storms */
+    __asm__ volatile("mcr p15, 0, %0, c9, c12, 3" ::"r"(1u << BB_SAMPLE_CTR)); /* PMOVSR */
+    g_sample_irqs[arch_curr_cpu_num() & 3]++;
+    if (!g_sample_on)
+        return;
+    sample_ctr_write(g_sample_reload);
+    uint32_t i = atomic_add((volatile int *)&g_sample_n, 1);
+    if (i < BB_SAMPLE_MAX)
+        bolt_sample_buf[i] = (frame->pc & ~1u) | ((frame->spsr >> 5) & 1u);
+}
+
+static void sample_arm_this_cpu(void *unused) {
+    __asm__ volatile("mcr p15, 0, %0, c14, c12, 5" ::"r"(0x11u)); /* PMEVTYPER5 = CPU_CYCLES */
+    sample_ctr_write(g_sample_reload);
+    __asm__ volatile("mcr p15, 0, %0, c9, c12, 1" ::"r"(1u << BB_SAMPLE_CTR)); /* PMCNTENSET */
+    __asm__ volatile("mcr p15, 0, %0, c9, c14, 1" ::"r"(1u << BB_SAMPLE_CTR)); /* PMINTENSET */
+    uint32_t pmcr;
+    __asm__ volatile("mrc p15, 0, %0, c9, c12, 0" : "=r"(pmcr));
+    __asm__ volatile("mcr p15, 0, %0, c9, c12, 0" ::"r"(pmcr | 1u)); /* E */
+    __asm__ volatile("isb" ::: "memory");
+}
+
+static void sample_disarm_this_cpu(void *unused) {
+    __asm__ volatile("mcr p15, 0, %0, c9, c14, 2" ::"r"(1u << BB_SAMPLE_CTR)); /* PMINTENCLR */
+    __asm__ volatile("mcr p15, 0, %0, c9, c12, 2" ::"r"(1u << BB_SAMPLE_CTR)); /* PMCNTENCLR */
+    __asm__ volatile("mcr p15, 0, %0, c9, c12, 3" ::"r"(1u << BB_SAMPLE_CTR)); /* PMOVSR */
+    __asm__ volatile("isb" ::: "memory");
+}
+
+static void bolt_pmu_init(void);
+
+static int sample_cmd(int argc, const console_cmd_args *argv) {
+    if (argc > 2 && !strcmp(argv[1].str, "start")) {
+        uint32_t period = (uint32_t)argv[2].u;
+        if (period < BB_SAMPLE_MIN_PERIOD) {
+            printf("bolt_sample: period must be >= %u cycles\n", BB_SAMPLE_MIN_PERIOD);
+            return -1;
+        }
+        bolt_pmu_init(); /* program the workloads' counters now: it resets event counters */
+        static bool routed;
+        if (!routed) {
+            /* one SPI per core (gic init routes every SPI to cpu0) */
+            volatile uint32_t *itargetsr =
+                (volatile uint32_t *)(BCM_GIC_BASE_VIRT + 0x1000 + 0x800 + BB_SAMPLE_SPI);
+            *itargetsr = 0x08040201;
+            for (unsigned i = 0; i < 4; i++) {
+                gic_configure_interrupt(BB_SAMPLE_SPI + i, IRQ_TRIGGER_MODE_LEVEL,
+                                        IRQ_POLARITY_ACTIVE_HIGH);
+                unmask_interrupt(BB_SAMPLE_SPI + i);
+            }
+            routed = true;
+        }
+        g_sample_reload = 0u - period;
+        g_sample_n = 0;
+        g_sample_on = 1;
+        g_bolt_sampling = 1;
+        /* Keep the shell (and the workloads it runs) on the core it is on for the whole
+         * session, like the workloads themselves do: one core, one PMU. */
+        g_sample_cpu = arch_curr_cpu_num();
+        thread_set_pinned_cpu(get_current_thread(), (int)g_sample_cpu);
+        for (unsigned i = 0; i < 4; i++)
+            g_sample_irqs[i] = 0;
+        mp_sync_exec(MP_IPI_TARGET_ALL, 0, sample_arm_this_cpu, NULL);
+        printf("bolt_sample: on, every %u cycles\n", (unsigned)period);
+        return 0;
+    }
+    if (argc > 1 && !strcmp(argv[1].str, "stop")) {
+        g_sample_on = 0;
+        g_bolt_sampling = 0;
+        mp_sync_exec(MP_IPI_TARGET_ALL, 0, sample_disarm_this_cpu, NULL);
+        thread_set_pinned_cpu(get_current_thread(), -1);
+        uint32_t n = g_sample_n < BB_SAMPLE_MAX ? g_sample_n : BB_SAMPLE_MAX;
+        printf("bolt_sample: %u samples (%u taken) buf=0x%08lx bytes=0x%x\n", (unsigned)n,
+               (unsigned)g_sample_n, (unsigned long)(uintptr_t)bolt_sample_buf,
+               (unsigned)(n * 4u));
+        printf("bolt_sample: cpu %u; PMU interrupts per core: %u %u %u %u\n",
+               (unsigned)g_sample_cpu, (unsigned)g_sample_irqs[0], (unsigned)g_sample_irqs[1],
+               (unsigned)g_sample_irqs[2], (unsigned)g_sample_irqs[3]);
+        return 0;
+    }
+    printf("usage: bolt_sample start <cycles> | stop\n");
+    return -1;
+}
 #endif
 
 #if WITH_LIB_CONSOLE
@@ -1265,6 +1401,7 @@ STATIC_COMMAND("bolt_bench", "BOLT synthetic bare-metal workloads", &bolt_bench_
 STATIC_COMMAND("bolt_dump", "dump raw memory over UART for BOLT profiling (addr_hex size_hex)", &bolt_dump_cmd)
 #if BB_HAVE_WDOG
 STATIC_COMMAND("wdog", "hang guard: reset the Pi unless disarmed within <seconds> (0 = off)", &wdog_cmd)
+STATIC_COMMAND("bolt_sample", "PC sampling for BOLT profiles: start <cycles> | stop", &sample_cmd)
 #endif
 #if WITH_BOLT_PGO
 STATIC_COMMAND("bolt_pgo_dump", "serialize PGO counters into a buffer, print addr/size for bolt_dump", &bolt_pgo_dump_cmd)

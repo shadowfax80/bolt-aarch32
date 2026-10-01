@@ -1,0 +1,68 @@
+round 1/3  baseline ...
+round 1/3  pgo_thinlto ...
+round 1/3  bolt_instr ...
+round 1/3  bolt_sampled ...
+round 2/3  baseline ...
+round 2/3  pgo_thinlto ...
+round 2/3  bolt_instr ...
+round 2/3  bolt_sampled ...
+round 3/3  baseline ...
+round 3/3  pgo_thinlto ...
+round 3/3  bolt_instr ...
+round 3/3  bolt_sampled ...
+
+24 runs -> C:/Users/User/CURSOR/ClaudeProjects/BOLT_AARCH32/build/sample/compare.csv
+
+checksum 0x5b19056f identical in all 24 runs
+
+== baseline (6 runs)
+   cycles       8,860,304.3  [8,859,915 .. 8,860,548]  sd 202.2
+   inst        19,752,346.0  [19,752,346 .. 19,752,346]  sd 0.0
+   l1i_refill           1.7  [0 .. 2]  sd 0.7
+   l1d_refill           0.0  [0 .. 0]  sd 0.0
+   br_mispred       7,056.8  [7,040 .. 7,071]  sd 9.5
+   taken        1,785,915.0  [1,785,915 .. 1,785,915]  sd 0.0
+   ipc                2.229
+   taken/kinst       90.415
+   l1i_refill/kinst        0.000
+   br_mispred/kinst        0.357
+   cycles 95%     8,860,304 +- 233
+== pgo_thinlto (6 runs)
+   cycles       7,896,110.0  [7,894,616 .. 7,896,946]  sd 724.7
+   inst        15,231,013.0  [15,231,013 .. 15,231,013]  sd 0.0
+   l1i_refill         789.2  [766 .. 833]  sd 24.9
+   l1d_refill           0.0  [0 .. 0]  sd 0.0
+   br_mispred       7,170.5  [7,090 .. 7,206]  sd 37.6
+   taken        1,139,099.8  [1,139,099 .. 1,139,100]  sd 0.4
+   ipc                1.929
+   taken/kinst       74.788
+   l1i_refill/kinst        0.052
+   br_mispred/kinst        0.471
+   cycles 95%     7,896,110 +- 833
+   cycles vs baseline: -10.88% (95% CI +-0.01 pp, significant)
+== bolt_instr (6 runs)
+   cycles       7,939,668.3  [7,939,058 .. 7,940,303]  sd 392.4
+   inst        15,086,554.0  [15,086,554 .. 15,086,554]  sd 0.0
+   l1i_refill       1,463.8  [1,444 .. 1,480]  sd 12.5
+   l1d_refill           0.0  [0 .. 0]  sd 0.0
+   br_mispred       7,494.2  [7,459 .. 7,517]  sd 22.1
+   taken          995,282.3  [995,253 .. 995,299]  sd 17.8
+   ipc                1.900
+   taken/kinst       65.971
+   l1i_refill/kinst        0.097
+   br_mispred/kinst        0.497
+   cycles 95%     7,939,668 +- 451
+   cycles vs baseline: -10.39% (95% CI +-0.01 pp, significant)
+== bolt_sampled (6 runs)
+   cycles       7,954,454.3  [7,952,553 .. 7,955,212]  sd 887.4
+   inst        15,138,594.0  [15,138,594 .. 15,138,594]  sd 0.0
+   l1i_refill       2,054.3  [2,023 .. 2,090]  sd 27.6
+   l1d_refill           0.0  [0 .. 0]  sd 0.0
+   br_mispred       7,493.8  [7,408 .. 7,534]  sd 40.3
+   taken        1,047,094.0  [1,047,055 .. 1,047,109]  sd 18.7
+   ipc                1.903
+   taken/kinst       69.167
+   l1i_refill/kinst        0.136
+   br_mispred/kinst        0.495
+   cycles 95%     7,954,454 +- 1,020
+   cycles vs baseline: -10.22% (95% CI +-0.01 pp, significant)

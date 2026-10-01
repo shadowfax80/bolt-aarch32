@@ -148,16 +148,24 @@ def reboot_to_chainloader(port: serial.Serial, console: Console,
             print("chainloader already waiting; no reboot needed")
             return
 
-    print(f"no chainloader prompt; sending `reboot` to LK at {lk_baud} baud")
-    switch_baud(port, lk_baud)
-    port.write(b"\rreboot\r")
-    port.flush()
-    end = time.monotonic() + 0.5
-    while time.monotonic() < end:
-        data = port.read(port.in_waiting or 1)
-        if data:
-            console.write(data)
-    switch_baud(port, loader_baud)
+    # The running image may be a different one than the next (bolt-aarch32's LK runs at
+    # 3 Mbaud, lk-perf's at 6 Mbaud): try the requested rate first, then the other.
+    for baud in dict.fromkeys((lk_baud, 3_000_000, 6_000_000)):
+        print(f"no chainloader prompt; sending `reboot` to LK at {baud} baud")
+        switch_baud(port, baud)
+        port.write(b"\rreboot\r")
+        port.flush()
+        end = time.monotonic() + 0.5
+        while time.monotonic() < end:
+            data = port.read(port.in_waiting or 1)
+            if data:
+                console.write(data)
+        switch_baud(port, loader_baud)
+        deadline = time.monotonic() + probe
+        while time.monotonic() < deadline:
+            line = read_line(port, deadline)
+            if line is not None and line.startswith("SBOOT?"):
+                return
 
 
 FAST_BAUD = 3_000_000

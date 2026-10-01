@@ -180,3 +180,31 @@ allowlist (`-lite=0`, ext-tsp, hfsort+, ICF): **403 of 411 functions** rewritten
 `cmd_pmm`, `qsort` (undisassemblable instructions). Booted on the Pi (Non-secure SVC):
 `bolt_bench all`, 18 results identical to baseline (`docs/results/full_image_*`). This retires
 the old U1 figure (7% coverage) for this image; output determinism is tracked separately.
+
+### 4. Sample-based profiles (no instrumented image) — DONE (2026-10-01)
+
+Pipeline: `bolt_sample start <cycles>` → workload → `bolt_sample stop` → `bolt_dump` (seq/crc)
+→ `scripts/samples_to_fdata.py` (perf2bolt `-nl -pa`, `S <pc> <count>`) → `BOLT_FDATA=… bolt-variant.sh optimize`.
+Driver: `scripts/pi4/pi4_sample_profile.py <image.bin> <out.samples> --buf <bolt_sample_buf>
+--period N --workload W --repeat R`.
+
+- Sampler (in `bolt_bench`, Pi only): PMU event counter 5 counts CPU cycles and interrupts on
+  overflow (SPIs 48–51, level-triggered, always acknowledged); counter 5 is accessed through
+  `PMEVCNTR5`/`PMEVTYPER5`, never `PMSELR`, so it cannot disturb the workloads' own counters 0–4
+  or the cycle counter. LK patch `0009-irq-sample-hook.patch` passes the interrupted register
+  frame to it. The session is pinned to the core it starts on.
+- Interrupt-masked code is invisible to an IRQ sampler on this non-secure Pi (FIQ is not
+  available to LK here; the Secure SVC target can use FIQ). The timed workloads masked IRQs, so
+  they now keep them enabled while sampling is on (`bench_ints_off/on`): measured 1/8 of the
+  expected samples before, 902 for an 8.35 M-cycle run at period 10,007 after.
+- Pi result (stair, 432 sites, same ThinLTO image, 3 rounds × 2 runs, checksums identical in
+  24 runs; `docs/results/sampled_vs_instrumented_stair.*`): 17,858 samples (96% in the stair
+  kernel). Baseline 8.860 M cycles; ThinLTO −10.88%; BOLT with the **instrumented** profile
+  −10.39%; BOLT with the **sampled** profile −10.22%. The sampled profile gets within 0.17 pp
+  of the instrumented one without an instrumented image or a counter dump. (In this build
+  ThinLTO alone happens to beat both BOLT images: the 512 KB sample buffer moved the image
+  layout and this workload sits at the L1I cliff.)
+- lk-perf bug found and fixed in its repo (shadowfax80/lk-perf `fd68193`): `profiler stat` used
+  the PMU-sampling counter 0 and PMCR.P, so with `pmustart` armed it reported 1 L1D refill
+  (fixed: 645) and that core stopped sampling during stat; its IRQ paths now keep `PMSELR`.
+- Host: `pi4_run.py`'s soft reboot now tries 3 and 6 Mbaud (bolt-aarch32 vs lk-perf images).

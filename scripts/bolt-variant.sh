@@ -78,9 +78,15 @@ case "$cmd" in
     echo "COUNTERS addr=$addr size=$size"
     ;;
   optimize)
-    counters="${3:-}"; [[ -f "$counters" ]] || { echo "error: counters file required" >&2; exit 1; }
-    python3 "$ROOT/scripts/ram-dump-to-fdata.py" --elf "$V/$variant.instr.elf" \
-      --dump "$counters" --toolchain "$TOOLCHAIN" -o "$V/$variant.fdata"
+    if [[ -n "${BOLT_FDATA:-}" ]]; then
+      # A ready profile, e.g. from PC sampling (samples_to_fdata.py): no instrumented
+      # image or counter dump involved.
+      cp "$BOLT_FDATA" "$V/$variant.fdata"
+    else
+      counters="${3:-}"; [[ -f "$counters" ]] || { echo "error: counters file required" >&2; exit 1; }
+      python3 "$ROOT/scripts/ram-dump-to-fdata.py" --elf "$V/$variant.instr.elf" \
+        --dump "$counters" --toolchain "$TOOLCHAIN" -o "$V/$variant.fdata"
+    fi
     BASE="$BASE" ARCH=arm32 ELF="$V/$variant.elf" FDATA="$V/$variant.fdata" \
       OUT="$V/${variant}${OSUF}.elf" OPTIMIZE_FUNCS="${BOLT_OPTIMIZE_FUNCS:-$FUNC}" \
       "$ROOT/scripts/optimize-lk-bolt.sh" $BOLT_EXTRA_ARGS > "$V/${variant}${OSUF}.log" 2>&1 \
