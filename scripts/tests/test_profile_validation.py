@@ -86,8 +86,8 @@ class ValidationTests(unittest.TestCase):
         elf = self.base / 'input.elf'; elf.write_bytes(b'fixture')
         output = self.base / 'profile.fdata'; output.write_text('previous verified profile')
         counter_file = self.blob(struct.pack('<IIQ', 1, 0, 7))
-        valid_leaf = struct.pack('<IIIIII', 1, 0, 0, 0, 0, 0)
-        ctx = dump.ProfileWriterContext(valid_leaf + b'\x01', b'leaf\0')
+        valid_edge = struct.pack('<II', 0, 1) + struct.pack('<IIIIIII', 0, 0, 0, 0, 4, 1, 0) + struct.pack('<II', 0, 0)
+        ctx = dump.ProfileWriterContext(valid_edge + b'\x01', b'leaf\0')
         args = ['converter', '--elf', str(elf), '--dump', counter_file, '-o', str(output)]
         stdout = io.StringIO()
         with patch.object(sys, 'argv', args), patch.object(dump, 'section_info', return_value=(0, 0, 0)), \
@@ -128,6 +128,45 @@ class ValidationTests(unittest.TestCase):
              patch.object(samples.subprocess, 'run', side_effect=succeed), contextlib.redirect_stdout(io.StringIO()):
             self.assertEqual(samples.main(), 0)
         self.assertEqual(output.read_text(), 'no_lbr\n1 test 0 3\n')
+
+    def graph_function(self, edges, leaves=()):
+        return dump.FunctionDescription(len(leaves), list(leaves), len(edges), list(edges), 0, [], 0, [])
+
+    def edge(self, source, target, counter):
+        return dump.EdgeDescription(dump.Location(0, 0), source, dump.Location(0, 4), target, counter)
+
+    def test_valid_inferred_tree_and_sparse_node_ids(self):
+        f = self.graph_function([self.edge(0, 0xffffffff, dump.INFERRED)], [dump.InstrumentedNode(0xffffffff, 0)])
+        ctx = dump.ProfileWriterContext(b'', b'function\0')
+        dump.validate_function(ctx, f, [7])
+        self.assertEqual(dump.Graph(f, [7], {}).edge_freqs, [7])
+        dump.validate_function(ctx, f, [0])
+        self.assertEqual(dump.Graph(f, [0], {}).edge_freqs, [0])
+
+    def test_inferred_cycles_parents_unmeasured_exits_and_duplicates(self):
+        ctx = dump.ProfileWriterContext(b'', b'function\0')
+        cases = [self.graph_function([self.edge(0, 1, dump.INFERRED), self.edge(1, 0, dump.INFERRED)]),
+                 self.graph_function([self.edge(0, 2, dump.INFERRED), self.edge(1, 2, dump.INFERRED)], [dump.InstrumentedNode(2, 0)]),
+                 self.graph_function([self.edge(0, 1, dump.INFERRED)]),
+                 self.graph_function([self.edge(0, 1, 0), self.edge(0, 1, 0)]),
+                 self.graph_function([self.edge(0, 1, 0)], [dump.InstrumentedNode(1, dump.INFERRED)])]
+        for f in cases:
+            with self.subTest(function=f), self.assertRaises(ValueError):
+                dump.validate_function(ctx, f, [0])
+
+    def test_negative_inferred_flow_is_not_clamped(self):
+        f = self.graph_function([self.edge(0, 2, dump.INFERRED), self.edge(1, 2, 1)], [dump.InstrumentedNode(2, 0)])
+        with self.assertRaisesRegex(ValueError, 'negative inferred'):
+            dump.validate_function(dump.ProfileWriterContext(b'', b'function\0'), f, [3, 7])
+
+    def test_leaf_name_and_string_boundary_cannot_be_guessed(self):
+        ctx = dump.ProfileWriterContext(b'', b'first\0second\0')
+        f = self.graph_function([], [dump.InstrumentedNode(0, 0)])
+        with self.assertRaisesRegex(ValueError, 'function identity'):
+            dump.validate_function(ctx, f, [7])
+        for offset in (1, 99):
+            with self.subTest(offset=offset), self.assertRaises(ValueError):
+                dump.serialize_loc(ctx.strings, dump.Location(offset, 0))
 
 
 if __name__ == '__main__':

@@ -1,5 +1,27 @@
 # Correctness fixes
 
+## Profile graph consistency (2026-10-01)
+
+The counter converter validates every descriptor, including cold graphs. It rejects
+duplicate CFG edges/nodes/counter assignments, missing counter coverage, inferred
+cycles or multiple parents, unmeasured inferred exits/calls, contradictory measured
+leaf/call counts and negative inferred edges. It no longer clamps invalid inferred
+counts to zero. Sparse node IDs are mapped to compact indices, so metadata cannot
+request an allocation proportional to a huge node ID. Function string offsets must
+start at a nonempty, whitespace-free string; one descriptor cannot mix source names
+or contain unsupported cross-function CFG edges.
+
+Leaf-only descriptors without source locations are rejected: assigning the first
+string or trusting an unbound positional --funcs list could label counts as the
+wrong function. This is an explicit profile-format boundary, not newly implemented
+leaf profiling. Names/offsets still need binding to the exact source ELF under #12.
+
+Validation: 14/14 profile tests, including a valid inferred tree with sparse IDs,
+zero counters, cycles, multiple parents, unmeasured exits, negative flow and string
+boundary/identity failures. Existing real ATFE conservative metadata with 61 counters
+still converts to a 3,520-byte profile. Counter values in that conversion are
+synthetic; it does not certify instrumentation counter semantics under #5.
+
 ## Full-image execution gate and redirect bounds (2026-10-01)
 
 `full_image_wsl.sh` now delegates to `full_image_build.py`, requires an explicit

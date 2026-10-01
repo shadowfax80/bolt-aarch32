@@ -204,8 +204,11 @@ rewriting need not be implemented to close an explicitly bounded scope.
 - [x] Reject truncated counter arrays, invalid counter addresses/indices and
   truncated metadata; buffer conversion and publish only after it succeeds.
   Ten validation tests pass; real ATFE metadata with 61 counters converts.
-- [ ] Validate graph consistency, inferred edges and leaf/function identity before
-  publishing fdata. Byte-range validation alone does not prove a correct profile.
+- [x] Validate CFG/inferred-forest structure, missing/duplicate counter coverage,
+  negative inferred flows and string boundaries. Reject leaf-only metadata without
+  a verifiable name. Cold descriptors are validated too; node IDs cannot force huge allocations.
+- [ ] Bind named locations and offsets to the exact original function/image when
+  publishing fdata; string-table consistency alone does not establish source identity.
 - [ ] Bind dumps/metadata/maps/profiles to exact images and toolchain/patch digests;
   reject stale or mismatched artifacts.
 - [x] Correct the full-image path: explicit redirects, strict section restoration,

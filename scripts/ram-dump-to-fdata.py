@@ -9,6 +9,7 @@ counter values from the guest RAM dump produced by dump-bolt-counters.py.
 from __future__ import annotations
 
 import argparse
+from collections import deque
 import io
 import os
 import re
@@ -230,9 +231,43 @@ def parse_tables_note(elf_data: bytes, file_off: int, size: int) -> ProfileWrite
 
 
 def serialize_loc(strings: bytes, loc: Location) -> str:
+    if not 0 <= loc.function_name < len(strings) or (loc.function_name and strings[loc.function_name - 1] != 0):
+        raise ValueError('function name offset is not a string-table boundary')
     end = strings.index(b"\0", loc.function_name)
     name = strings[loc.function_name : end].decode()
+    if not name or any(c.isspace() for c in name):
+        raise ValueError('invalid function name in profile metadata')
     return f"1 {name} {loc.offset:x} "
+
+
+def validate_function(ctx, func, counters):
+    if (func.num_leaf_nodes, func.num_edges, func.num_calls, func.num_entry_nodes) != (
+            len(func.leaf_nodes), len(func.edges), len(func.calls), len(func.entry_nodes)):
+        raise ValueError('descriptor counts do not match records')
+    if len({n.node for n in func.leaf_nodes}) != len(func.leaf_nodes):
+        raise ValueError('duplicate leaf node')
+    if len({n.node for n in func.entry_nodes}) != len(func.entry_nodes):
+        raise ValueError('duplicate entry node')
+    if len({(e.from_node, e.to_node) for e in func.edges}) != len(func.edges):
+        raise ValueError('duplicate CFG edge')
+    for counter in ([n.counter for n in func.leaf_nodes] + [e.counter for e in func.edges] + [c.counter for c in func.calls]):
+        if counter != INFERRED and not 0 <= counter < len(counters):
+            raise ValueError(f'descriptor refers to missing counter {counter}')
+    if any(n.counter == INFERRED for n in func.leaf_nodes):
+        raise ValueError('leaf frequency must have a measured counter')
+    for loc in ([e.from_loc for e in func.edges] + [e.to_loc for e in func.edges] +
+                [c.from_loc for c in func.calls] + [c.to_loc for c in func.calls]):
+        serialize_loc(ctx.strings, loc)
+    if any(e.from_loc.function_name != e.to_loc.function_name for e in func.edges):
+        raise ValueError('cross-function CFG edge is not supported by this profile format')
+    owners = {serialize_loc(ctx.strings, e.from_loc).split()[1] for e in func.edges}
+    owners |= {serialize_loc(ctx.strings, c.from_loc).split()[1] for c in func.calls}
+    if len(owners) > 1:
+        raise ValueError('one descriptor has multiple source functions')
+    if func.leaf_nodes and not owners:
+        raise ValueError('leaf-only metadata has no verifiable function identity')
+    # Validate the graph even if every measured counter is zero.
+    Graph(func, counters, {})
 
 
 class Graph:
@@ -251,83 +286,85 @@ class Graph:
 
     def _build(self) -> None:
         d = self.func
-        max_nodes = -1
-        for e in d.edges:
-            max_nodes = max(max_nodes, e.from_node, e.to_node)
-        for n in d.leaf_nodes:
-            max_nodes = max(max_nodes, n.node)
-        for c in d.calls:
-            max_nodes = max(max_nodes, c.from_node)
-        if max_nodes < 0:
+        node_ids = sorted({n.node for n in d.leaf_nodes} | {n.node for n in d.entry_nodes} |
+                          {e.from_node for e in d.edges} | {e.to_node for e in d.edges} |
+                          {c.from_node for c in d.calls})
+        if not node_ids:
             return
-        num_nodes = max_nodes + 1
+        # IDs are metadata, not allocation sizes. A sparse/malformed ID cannot
+        # force allocation of billions of list elements.
+        indices = {node: index for index, node in enumerate(node_ids)}
+        num_nodes = len(node_ids)
 
         cfg_in = [0] * num_nodes
         cfg_out = [0] * num_nodes
         st_in = [0] * num_nodes
         st_out = [0] * num_nodes
         for e in d.edges:
-            cfg_out[e.from_node] += 1
-            cfg_in[e.to_node] += 1
+            source, target = indices[e.from_node], indices[e.to_node]
+            cfg_out[source] += 1
+            cfg_in[target] += 1
             if e.counter == INFERRED:
-                st_out[e.from_node] += 1
-                st_in[e.to_node] += 1
+                st_out[source] += 1
+                st_in[target] += 1
+        if any(parents > 1 for parents in st_in):
+            raise ValueError('inferred edges do not form a forest: multiple parents')
 
         cfg_out_edges: list[list[tuple[int, int]]] = [[] for _ in range(num_nodes)]
         cfg_in_edges: list[list[tuple[int, int]]] = [[] for _ in range(num_nodes)]
         st_out_edges: list[list[tuple[int, int]]] = [[] for _ in range(num_nodes)]
         st_in_edges: list[list[tuple[int, int]]] = [[] for _ in range(num_nodes)]
         for i, e in enumerate(d.edges):
-            cfg_out_edges[e.from_node].append((e.to_node, i))
-            cfg_in_edges[e.to_node].append((e.from_node, i))
+            source, target = indices[e.from_node], indices[e.to_node]
+            cfg_out_edges[source].append((target, i))
+            cfg_in_edges[target].append((source, i))
             if e.counter == INFERRED:
-                st_out_edges[e.from_node].append((e.to_node, i))
-                st_in_edges[e.to_node].append((e.from_node, i))
+                st_out_edges[source].append((target, i))
+                st_in_edges[target].append((source, i))
 
         calls_by_node: list[list[int]] = [[] for _ in range(num_nodes)]
         for i, c in enumerate(d.calls):
-            calls_by_node[c.from_node].append(i)
+            calls_by_node[indices[c.from_node]].append(i)
 
         leaf_freq = [0] * num_nodes
+        measured_leaves = set()
         for n in d.leaf_nodes:
-            leaf_freq[n.node] = self.counters[n.counter]
+            leaf_freq[indices[n.node]] = self.counters[n.counter]
+            measured_leaves.add(indices[n.node])
         entry_addr = [0] * num_nodes
         for n in d.entry_nodes:
-            entry_addr[n.node] = n.address
+            entry_addr[indices[n.node]] = n.address
 
         for i, e in enumerate(d.edges):
             if e.counter != INFERRED:
                 self.edge_freqs[i] = self.counters[e.counter]
 
-        visited = [0] * num_nodes  # 0=new, 1=visiting, 2=visited
-        stack: list[int] = []
-        for i in range(num_nodes):
-            if st_in[i] == 0:
-                stack.append(i)
-
-        while stack:
-            cur = stack.pop()
-            if visited[cur] == 0:
-                visited[cur] = 1
-                stack.append(cur)
-                for succ, _ in st_out_edges[cur]:
-                    stack.append(succ)
-                continue
-            if visited[cur] == 2:
-                continue
-            visited[cur] = 2
-
-            cur_node_freq = leaf_freq[cur]
-            if not cur_node_freq:
-                for _, edge_id in cfg_out_edges[cur]:
-                    cur_node_freq += self.edge_freqs[edge_id]
-            if cur_node_freq < 0:
-                cur_node_freq = 0
+        pending = list(st_in)
+        ready = deque(i for i in range(num_nodes) if pending[i] == 0)
+        order = []
+        while ready:
+            node = ready.popleft()
+            order.append(node)
+            for successor, _ in st_out_edges[node]:
+                pending[successor] -= 1
+                if pending[successor] == 0:
+                    ready.append(successor)
+        if len(order) != num_nodes:
+            raise ValueError('inferred edges contain a cycle')
+        for cur in reversed(order):
+            if st_in[cur] and not cfg_out_edges[cur] and cur not in measured_leaves:
+                raise ValueError('inferred flow has an unmeasured exit; use conservative instrumentation')
+            outgoing = sum(self.edge_freqs[edge_id] for _, edge_id in cfg_out_edges[cur])
+            cur_node_freq = leaf_freq[cur] if cur in measured_leaves else outgoing
+            if cur in measured_leaves and cfg_out_edges[cur] and outgoing != cur_node_freq:
+                raise ValueError('measured leaf and outgoing edge counts disagree')
 
             call_freq = 0
             for call_id in calls_by_node[cur]:
                 c = d.calls[call_id]
                 if c.counter == INFERRED:
+                    if cur not in measured_leaves and not cfg_out_edges[cur]:
+                        raise ValueError('inferred call frequency has no measured node flow')
                     self.call_freqs[call_id] = cur_node_freq
                 else:
                     val = self.counters[c.counter]
@@ -339,19 +376,20 @@ class Graph:
                         + self.call_freqs[call_id]
                     )
             if call_freq > cur_node_freq:
+                if cur in measured_leaves:
+                    raise ValueError('call frequency exceeds measured node frequency')
                 cur_node_freq = call_freq
             if cur_node_freq > 0 and entry_addr[cur]:
                 self.call_flow[entry_addr[cur]] = cur_node_freq
 
             if st_in[cur] == 0:
                 continue
-            assert st_in[cur] == 1
             parent_edge = st_in_edges[cur][0][1]
             parent_edge_freq = cur_node_freq
             for _, edge_id in cfg_in_edges[cur]:
                 parent_edge_freq -= self.edge_freqs[edge_id]
             if parent_edge_freq < 0:
-                parent_edge_freq = 0
+                raise ValueError('inconsistent counters would produce a negative inferred edge')
             self.edge_freqs[parent_edge] = parent_edge_freq
 
     def has_profile(self) -> bool:
@@ -486,22 +524,24 @@ def main() -> int:
     off = 0
     func_blob = ctx.func_descriptions
     out = io.StringIO()
+    seen_counters = set()
     while off < len(func_blob):
         func, next_off = FunctionDescription.parse(func_blob, off)
         if next_off <= off or next_off > len(func_blob):
             raise ValueError("invalid function descriptor length")
-        for counter in ([n.counter for n in func.leaf_nodes] +
-                        [e.counter for e in func.edges] + [c.counter for c in func.calls]):
-            if counter != INFERRED and counter >= len(counters):
-                raise ValueError(f"descriptor refers to missing counter {counter}")
-        for loc in ([e.from_loc for e in func.edges] + [e.to_loc for e in func.edges] +
-                    [c.from_loc for c in func.calls] + [c.to_loc for c in func.calls]):
-            serialize_loc(ctx.strings, loc)  # Validate even locations with zero counts.
+        validate_function(ctx, func, counters)
+        references = [n.counter for n in func.leaf_nodes] + [e.counter for e in func.edges] + [c.counter for c in func.calls]
+        references = [counter for counter in references if counter != INFERRED]
+        if len(references) != len(set(references)) or seen_counters.intersection(references):
+            raise ValueError('metadata assigns one counter to multiple records')
+        seen_counters.update(references)
         leaf_name = None
         if func.num_edges == 0 and func.num_calls == 0 and leaf_names:
             leaf_name = leaf_names.pop(0)
         write_function_profile(out, ctx, func, counters, call_flow, leaf_name=leaf_name)
         off = next_off
+    if seen_counters != set(range(len(counters))):
+        raise ValueError('declared counters do not match descriptor counter coverage')
     if args.output == "-":
         sys.stdout.write(out.getvalue())
     else:
