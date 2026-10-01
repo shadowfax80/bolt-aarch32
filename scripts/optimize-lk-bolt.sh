@@ -36,6 +36,12 @@ if [[ ! -s "$FDATA" ]]; then
   exit 1
 fi
 
+# ARM no-LBR profiles must come from a sealed Pi capture of this exact ELF.
+# Counter-profile binding is tracked separately in correctness item #12.
+if [[ "$ARCH" == arm32 ]] && [[ "$(head -n 1 "$FDATA")" == no_lbr ]]; then
+  python3 "$ROOT/scripts/profile_identity.py" check-profile --elf "$ELF" --profile "$FDATA"
+fi
+
 mkdir -p "$(dirname "$OUT")"
 
 BOLT_ARGS=(

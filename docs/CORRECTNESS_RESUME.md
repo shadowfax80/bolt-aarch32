@@ -1,6 +1,29 @@
-# ATFE correctness checkpoint - 2026-10-01
+# ATFE correctness checkpoint - 2026-10-02
 
 ## Active implementation after review
+
+Latest local work adds sampling build/capture/profile identity and a pure ARM
+ELF32 parser in scripts/profile_identity.py. The collector uploads isolated
+session copies and checks workload repetitions, buffer/count/saturation and
+PMU/core reports. Conversion validates source-function offsets and tool identity;
+debug-unbound outputs cannot pass the optimization profile gate. The ARM no-LBR
+wrapper and explicit full-image --profile path consume sidecars. Counter profiles
+remain unbound; do not claim #12 closed or advance to #5 yet.
+
+Twenty-three profile host tests and fourteen execution-gate tests pass. The independent
+lk.elf/lk.bin fixture seals against actual ATFE tool/patch hashes. Real perf2bolt
+synthetic diagnostics and the 61-counter/3520-byte conversion pass; synthetic
+samples are explicitly unbound. Power cycling recovered the Pi on reassigned COM6.
+Fresh bound capture passes with 6,772 samples/two workload repetitions. A duplicate
+acc/sink repetition bug was fixed; strict conversion rejects unbounded arch_idle,
+while explicit benchmark projection records exclusions. Real scoped conversion,
+wrong-payload/ELF negative gates and failure preservation pass. Its full-image
+candidate (411/417 emitted, four redirects) passes ten repetitions/all 18 outputs;
+33,850 PCs observe rewritten IT/interworking/memcpy (2,506/24/16), far-call zero.
+Evidence: out/correctness/sampling-bound and full-gate-bound; tracked summary
+docs/results/correctness_sampling_bound_pi_20261002.json. WSL is running; dirty
+source and unrelated Microsoft/ were preserved. Next finish counter identity,
+clean replay/content stamps and the other #12 gates before advancing to #5.
 
 User authorized proceeding in the updated priority order. #12 complete-result and
 truncated-profile fixes pass 10/10 host tests plus real ATFE sample/61-counter

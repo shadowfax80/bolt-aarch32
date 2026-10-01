@@ -1,5 +1,43 @@
 # Correctness fixes
 
+## Sampling artifact identity (2026-10-01)
+
+The Pi sampling path now requires an ELF/binary pair sealed before collection.
+A portable ELF32 reader checks uploaded section bytes and records the source
+function table and buffer. Isolated session copies prevent an in-progress build
+from silently changing the upload. The collector checks workload repetitions,
+sample count/saturation, dump range/completion/checksums and PMU/core reports,
+then saves the full log and capture identity. Failed children preserve prior outputs.
+
+Conversion requires the capture payload and ELF hashes plus the sealed perf2bolt
+digest, checks named offsets against unambiguous source function ranges, and
+publishes a profile sidecar. The ARM no-LBR wrapper and explicit full-image
+`--profile` path reject absent/stale/unbound profiles. Debug synthetic conversion
+remains available but its output cannot pass the optimization identity gate.
+See [workflow and limits](PI_PROFILE_IDENTITY.md).
+
+Validation: 23 profile tests and 14 execution-gate tests, including stale payloads,
+wrong source ranges, changed tools, incomplete/saturated captures, failed children
+and late-failure preservation. The actual independent LK fixture ELF/binary seals
+against ATFE tool/patch digests; real perf2bolt synthetic diagnostics validate source
+locations. Existing 61-counter/3,520-byte conversion remains green. Synthetic
+samples/counters do not certify hardware semantics.
+
+The initial Pi attempt failed on COM5. After power cycling, Windows assigned COM6.
+A host repetition bug exposed by composite/stair's duplicate acc/sink observations
+was fixed and regression-tested, then a fresh capture passed: 6,772 samples and
+two repetitions of all 18 workloads. Unbounded arch_idle locations fail strict
+conversion; an explicit four-function projection records all excluded counts.
+Real ATFE conversion and negative stale-payload/wrong-ELF checks pass, preserving
+the previous profile and sidecar on failure. The profile-guided whole-image
+candidate emits 411/417 functions with four explicit redirects. Ten Pi repetitions
+match all 18 baseline results; 33,850 samples observe rewritten IT/interworking/
+memcpy (2,506/24/16 PCs), while far-call remains unobserved. See the
+[bound-profile hardware manifest](results/correctness_sampling_bound_pi_20261002.json).
+#12 remains open for counter binding,
+single-core sampling ownership, other execution gates, broader fixtures and clean
+overlay replay. Recorded patch hashes alone do not prove build-source provenance.
+
 ## Profile graph consistency (2026-10-01)
 
 The counter converter validates every descriptor, including cold graphs. It rejects

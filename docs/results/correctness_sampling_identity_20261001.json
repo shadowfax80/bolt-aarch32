@@ -1,0 +1,33 @@
+{
+  "schema": 1,
+  "scope": "sampling artifact identity; not completion of correctness item 12",
+  "host_tests": {"profile_validation": 21, "execution_gate": 14, "passed": true},
+  "atfe_diagnostics": {
+    "elf_binary_section_identity": true,
+    "elf_sha256": "424606a869c34b5be5f3c97f66a9cec8ea16844ac788c14c77839edcfef2459b",
+    "binary_sha256": "ee9982ba422fa5e40854f0c21c298b20c4be02eb349413eefe7fdcf53bedd612",
+    "llvm_bolt_and_perf2bolt_sha256": "3cb5a61acacd74a9344f8c9c2545a6a8a3f650a3e78e67870f86a2b3ffd88b65",
+    "llvm_objcopy_sha256": "f80e39c3121994c8b5baf3b9c2e586d4ffcd8da332e6c2c51b9f86fb482207de",
+    "recorded_atfe_patch_count": 24,
+    "sample_buffer": {"address": "0x800420f0", "size": 524288},
+    "real_perf2bolt_synthetic_conversion": true,
+    "synthetic_source_locations_checked": true,
+    "synthetic_samples_verified_binding": false,
+    "counter_conversion": {"synthetic": true, "counters": 61, "profile_bytes": 3520}
+  },
+  "fresh_pi_capture": {
+    "verified": false,
+    "port": "COM5",
+    "failure": "ReadFile device error; 3M/6M software reboot attempts did not reach the loader",
+    "published_capture_manifest": false,
+    "next_action": "physical power cycle and repeat the prospective bound capture"
+  },
+  "remaining": [
+    "counter dump/source-location binding",
+    "single-core sampling ownership",
+    "fresh Pi verification of the bound collection path",
+    "other optimization execution gates",
+    "broader independent fixtures",
+    "clean overlay replay and build-source provenance"
+  ]
+}

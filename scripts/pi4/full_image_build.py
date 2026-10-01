@@ -16,6 +16,8 @@ import subprocess
 import sys
 
 ROOT = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(ROOT / 'scripts'))
+from profile_identity import check_profile
 spec = importlib.util.spec_from_file_location('redirect_entries', ROOT / 'scripts/redirect-bolt-entries.py')
 redirect = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(redirect)
@@ -49,6 +51,7 @@ def main():
     workspace = Path(os.environ.get('BOLT_WORKSPACE', str(Path.home() / 'bolt-aarch32')))
     parser.add_argument('--input', type=Path, default=workspace / 'build-atfe/variants/baseline.elf')
     parser.add_argument('--toolchain', type=Path, default=workspace / 'build-atfe/bin')
+    parser.add_argument('--profile', type=Path, help='explicit fdata with matching .manifest.json identity sidecar')
     parser.add_argument('--redirect-functions', required=True,
                         help='exact comma-separated emitted names whose original entries will branch to new code')
     raw = sys.argv[1:]
@@ -59,7 +62,9 @@ def main():
     if any(k.startswith('funcs') or k in ('data', 'o', 'emit-function-map', 'instrument', 'instrument-calls') for k in keys):
         parser.error('selection/profile/output/instrumentation overrides are not supported by this builder')
     if os.environ.get('FDATA') or os.environ.get('BOLT_FDATA'):
-        parser.error('profiles require explicit image binding; this builder currently runs without a profile')
+        parser.error('use --profile with an identity sidecar; implicit environment profiles are rejected')
+    if args.profile:
+        check_profile(args.input, args.profile)
     out = args.outdir.resolve()
     out.mkdir(parents=True, exist_ok=True)
     names = ('baseline.elf', 'baseline.bin', 'baseline_full.elf', 'baseline_full.bin', 'full.funcmap', 'full_manifest.json')
@@ -70,6 +75,10 @@ def main():
     elf, mapping, report = out / 'baseline_full.elf', out / 'full.funcmap', out / 'full_manifest.json'
     baseline = out / 'baseline.elf'
     shutil.copy2(original, baseline)
+    if args.profile:
+        shutil.copy2(args.profile, out / 'profile.fdata')
+        shutil.copy2(str(args.profile) + '.manifest.json', out / 'profile.fdata.manifest.json')
+        check_profile(baseline, out / 'profile.fdata')
 
     def run(name, command):
         process = subprocess.run([str(x) for x in command], capture_output=True, text=True)
@@ -79,6 +88,8 @@ def main():
         return process.stdout
 
     bolt_options = ['--no-huge-pages', '-lite=0', '-reorder-blocks=ext-tsp', '-reorder-functions=hfsort+', '-icf=all', *extra]
+    if args.profile:
+        bolt_options += [f'-data={out / "profile.fdata"}']
     run('full', [tc / 'llvm-bolt', baseline, '-o', elf, *bolt_options, f'--emit-function-map={mapping}'])
     run('fix-paddr', [sys.executable, ROOT / 'scripts/fix-kernel-elf-paddr.py', elf])
     run('fix-entry', [sys.executable, ROOT / 'scripts/fix-kernel-elf-entry.py', elf, '--original', baseline, '--readelf', tc / 'llvm-readelf'])
@@ -94,6 +105,10 @@ def main():
     if 'bolt_sample_buf' not in symbols or symbols['bolt_sample_buf'][1] != 0x80000:
         raise ValueError('missing or unexpected LK sample buffer')
     manifest = json.loads(report.read_text())
+    if args.profile:
+        check_profile(baseline, out / 'profile.fdata')
+        manifest['profile'] = dict(profile_sha256=redirect.sha256(out / 'profile.fdata'),
+                                   manifest_sha256=redirect.sha256(out / 'profile.fdata.manifest.json'))
     manifest.update(binary_sha256=redirect.sha256(out / 'baseline_full.bin'),
                     baseline_binary_sha256=redirect.sha256(out / 'baseline.bin'),
                     sample_buffer=dict(address=symbols['bolt_sample_buf'][0], size=symbols['bolt_sample_buf'][1]),

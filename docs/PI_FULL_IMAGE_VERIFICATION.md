@@ -16,7 +16,9 @@ python3 scripts/pi4/full_image_build.py out/full-check \
 
 `full_image_wsl.sh` is an equivalent wrapper. Its old implicit-profile/variants
 output behavior was removed because a nearby profile could belong to another image.
-This builder currently accepts no profile; profile binding is still being completed.
+An explicit `--profile FILE` requires the matching identity sidecar and exact
+input ELF hash; both files are copied into the artifact directory and checked
+by the Pi gate. See [sampling identity workflow](PI_PROFILE_IDENTITY.md).
 Extra BOLT transformation options follow `--`; input selection, instrumentation,
 profile and output overrides are rejected.
 

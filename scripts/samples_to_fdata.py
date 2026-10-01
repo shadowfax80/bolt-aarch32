@@ -20,6 +20,8 @@ import subprocess
 import sys
 import tempfile
 
+from profile_identity import (check_capture, sha256, validate_sample_fdata, write_json)
+
 
 def load_samples(path: str) -> tuple[int, ...]:
     with open(path, "rb") as stream:
@@ -37,9 +39,23 @@ def main() -> int:
     ap.add_argument("samples")
     ap.add_argument("-o", "--out", required=True)
     ap.add_argument("--toolchain", default=os.environ.get("TOOLCHAIN", "build-atfe/bin"))
+    ap.add_argument("--capture-manifest", help="default: SAMPLES.manifest.json")
+    ap.add_argument("--functions", help="explicit comma-separated source functions; record all excluded profile counts")
+    ap.add_argument("--debug-unbound", action="store_true",
+                    help="diagnostic conversion only; output cannot pass the optimization identity gate")
     args = ap.parse_args()
+    selected = args.functions.split(',') if args.functions is not None else None
+    if selected is not None and args.debug_unbound:
+        ap.error('source function scoping requires a bound capture')
 
+    manifest_path = args.capture_manifest or args.samples + '.manifest.json'
+    capture = None if args.debug_unbound else check_capture(manifest_path, args.samples, args.elf, 'pi-pc-capture')
+    capture_hash = sha256(manifest_path) if capture else None
+    converter_hash = sha256(os.path.join(args.toolchain, 'perf2bolt')) if capture else None
+    if capture and converter_hash != capture['build']['tools']['perf2bolt']:
+        raise ValueError('perf2bolt differs from the sealed toolchain')
     words = load_samples(args.samples)
+    profile_scope = dict(selected_functions=None, excluded_profile_counts={})
     counts = collections.Counter(w & ~1 for w in words)
     preagg = args.out + ".preagg"
     destination = os.path.abspath(args.out)
@@ -55,8 +71,24 @@ def main() -> int:
         if r.returncode != 0 or not os.path.exists(staged_fdata) or not os.path.getsize(staged_fdata):
             sys.stderr.write(r.stderr[-1500:])
             sys.exit("perf2bolt failed")
+        if capture:
+            profile_scope = validate_sample_fdata(staged_fdata, capture['build']['functions'], selected)
+            # Do not publish a conversion if its inputs changed while perf2bolt ran.
+            check_capture(manifest_path, args.samples, args.elf, 'pi-pc-capture')
+            if sha256(manifest_path) != capture_hash or sha256(os.path.join(args.toolchain, 'perf2bolt')) != converter_hash:
+                raise ValueError('capture manifest or perf2bolt changed during conversion')
+        profile_manifest = dict(schema=1, kind='bolt-profile', profile_type='pc-samples',
+                                verified_binding=bool(capture), profile_sha256=sha256(staged_fdata),
+                                source_elf_sha256=capture['build']['source_elf_sha256'] if capture else None,
+                                capture_manifest_sha256=capture_hash, perf2bolt_sha256=converter_hash,
+                                build=capture['build'] if capture else None,
+                                profile_scope=profile_scope,
+                                limitations='IRQ-masked code is invisible; PC frequencies are not exact edge counts')
         os.replace(staged_preagg, preagg)
         os.replace(staged_fdata, destination)
+        # A crash between profile and sidecar publication leaves a hash mismatch,
+        # so a consumer fails closed rather than accepting the previous identity.
+        write_json(destination + '.manifest.json', profile_manifest)
     print(f"{len(words)} samples, {len(counts)} distinct PCs -> {args.out}")
     return 0
 
@@ -64,5 +96,5 @@ def main() -> int:
 if __name__ == "__main__":
     try:
         sys.exit(main())
-    except (OSError, ValueError) as error:
+    except (OSError, ValueError, KeyError) as error:
         sys.exit(f"error: invalid sample input: {error}")

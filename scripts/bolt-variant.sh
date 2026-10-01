@@ -82,6 +82,11 @@ case "$cmd" in
       # A ready profile, e.g. from PC sampling (samples_to_fdata.py): no instrumented
       # image or counter dump involved.
       cp "$BOLT_FDATA" "$V/$variant.fdata"
+      if [[ -f "$BOLT_FDATA.manifest.json" ]]; then
+        cp "$BOLT_FDATA.manifest.json" "$V/$variant.fdata.manifest.json"
+      else
+        rm -f "$V/$variant.fdata.manifest.json"
+      fi
     else
       counters="${3:-}"; [[ -f "$counters" ]] || { echo "error: counters file required" >&2; exit 1; }
       python3 "$ROOT/scripts/ram-dump-to-fdata.py" --elf "$V/$variant.instr.elf" \

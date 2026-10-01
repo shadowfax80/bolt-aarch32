@@ -22,6 +22,7 @@ sys.path[:0] = [str(HERE), str(HERE.parent)]
 from passes_check import parse_results
 from proc_util import run_bounded
 from bolt_dump_reassemble import parse_dump_stream
+from profile_identity import check_profile
 
 
 def sha256(path):
@@ -100,6 +101,12 @@ def check_artifacts(out, manifest):
     for name, key in files.items():
         if sha256(out / name) != manifest[key]:
             raise ValueError(f'{name} does not match the build manifest')
+    if 'profile' in manifest:
+        profile = manifest['profile']
+        if (sha256(out / 'profile.fdata') != profile['profile_sha256']
+                or sha256(out / 'profile.fdata.manifest.json') != profile['manifest_sha256']):
+            raise ValueError('profile or its identity manifest changed after the build')
+        check_profile(out / 'baseline.elf', out / 'profile.fdata')
     image = (out / 'baseline_full.bin').read_bytes()
     elf = (out / 'baseline_full.elf').read_bytes()
     sections = loadable_sections(elf)

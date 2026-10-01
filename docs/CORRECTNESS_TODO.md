@@ -209,8 +209,16 @@ rewriting need not be implemented to close an explicitly bounded scope.
   a verifiable name. Cold descriptors are validated too; node IDs cannot force huge allocations.
 - [ ] Bind named locations and offsets to the exact original function/image when
   publishing fdata; string-table consistency alone does not establish source identity.
+  Sampling conversion now checks source ELF functions/ranges; counter locations
+  still need source-image/map binding. Ambiguous duplicate local symbols are rejected.
 - [ ] Bind dumps/metadata/maps/profiles to exact images and toolchain/patch digests;
   reject stale or mismatched artifacts.
+  The sampling path now seals ELF/binary/buffer identity before capture, preserves
+  full logs and carries hashes into fdata sidecars. Bound host conversion tests and
+  real ATFE ELF/perf2bolt checks pass. After power cycling, Windows reassigned
+  the adapter to COM6. Fresh capture passed with 6,772 samples and two complete
+  workload repetitions. A candidate built from the explicitly scoped profile
+  passed all 18 outputs and sampled rewritten execution (see the 2026-10-02 manifest).
 - [x] Correct the full-image path: explicit redirects, strict section restoration,
   artifact hashes, decoded branch checks and required rewritten PC evidence on Pi.
 - [ ] Require execution/redirection evidence in every other optimization gate.
@@ -235,6 +243,11 @@ rewriting need not be implemented to close an explicitly bounded scope.
 - [ ] Harden sampled profiles: validate image/buffer identity,
   kept/taken counts, saturation, core/PMU ownership and workload completion. Record
   IRQ-masked blind spots and avoid presenting PC samples as exact edge counts.
+  Image/buffer/count/saturation/repetition gates are implemented and host-tested.
+  The runtime still arms all cores; IRQ counts are recorded without claiming
+  per-PC ownership. Fresh hardware capture/conversion/execution now pass;
+  single-core ownership remains open. Unbounded assembly locations are rejected
+  unless excluded by an explicit profile scope with recorded counts.
 - [ ] Record durable Pi manifests: revisions/options, image/profile hashes,
   selected/emitted/executed functions, expected/observed outputs and complete logs.
 

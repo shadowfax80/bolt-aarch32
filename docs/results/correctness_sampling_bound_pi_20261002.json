@@ -1,0 +1,263 @@
+{
+  "schema": 1,
+  "date": "2026-10-02",
+  "parent_revision": "ca73cab",
+  "profile_host_tests": 23,
+  "execution_gate_host_tests": 14,
+  "capture": {
+    "schema": 1,
+    "capture_verified": true,
+    "kept": 6772,
+    "taken": 6772,
+    "workload_results": {
+      "hot_loop": "0x6a4ae6e0",
+      "hot_cold": "0x00000000",
+      "branch_chain": "0x007a5100",
+      "memcpy": "0x5acd3dc5",
+      "far_call": "0xb7082fa9",
+      "it_cond": "0x021e8480",
+      "interwork": "0x2fb21555",
+      "switch": "0xa953bbf0",
+      "spill_ret": "0x504980a0",
+      "litpool": "0x16b596e0",
+      "indirect_call": "0x0e6aac80",
+      "interwork_tail": "0xda3416f0",
+      "regpressure": "0xc5da3550",
+      "hotcold_split": "0xd4751003",
+      "icf": "0xdc7c3be0",
+      "shrinkwrap": "0x6a1b87d4",
+      "composite": "0x939f4ea0",
+      "stair": "0x9fef2a18"
+    },
+    "repetitions": 2,
+    "port": "COM6",
+    "workload_core": 1,
+    "interrupts_per_core": [
+      2,
+      6770,
+      0,
+      0
+    ],
+    "sampling_scope": "all cores; IRQ-masked code is invisible; not exact edge counts",
+    "source_elf_sha256": "424606a869c34b5be5f3c97f66a9cec8ea16844ac788c14c77839edcfef2459b",
+    "payload_sha256": "6cb2e55528f10a2920b93e57bfdd7db0e651c37f0d27103449e2e2f73b2c5d04",
+    "capture_manifest_sha256": "e2a066fb68e29372334f0995a547d0068c619436396430f91479ed04bd7e823e",
+    "capture_log_sha256": "93c0a9ae1b155499214982e224c81b30dd7e2996256d31cdcc2fe1df48e16387",
+    "profile_sha256": "2b5eeabdb724da649c7334c2ac8553af0a0b0f473000c2db15079d7bf4668911",
+    "profile_manifest_sha256": "0bb1c9ed0d711706d416ae67785a395a551fb93124dbfa07daecd3c6373fbf55",
+    "negative_checks": [
+      "stale payload",
+      "wrong capture ELF",
+      "wrong consumer ELF",
+      "prior profile/sidecar preserved"
+    ],
+    "profile_lines": 6,
+    "profile_scope": {
+      "selected_functions": [
+        "bolt_bench_memcpy",
+        "bolt_bench_far_call",
+        "bolt_bench_it_cond",
+        "bolt_bench_interwork"
+      ],
+      "excluded_profile_counts": {
+        "__Thumbv7ABSLongThunk_bolt_bench_tail_arm_callee/1": 2,
+        "__debug_stdio_write/1": 2,
+        "_fprintf_output_func": 1,
+        "arch_idle": 2,
+        "bolt_bench_arm_callee/1": 10,
+        "bolt_bench_branch_chain": 1705,
+        "bolt_bench_composite": 600,
+        "bolt_bench_hotcold_split": 321,
+        "bolt_bench_icf": 14,
+        "bolt_bench_icf_a": 4,
+        "bolt_bench_icf_b": 4,
+        "bolt_bench_ind_thumb_target/1": 17,
+        "bolt_bench_indirect_call": 9,
+        "bolt_bench_interwork_tail": 4,
+        "bolt_bench_litpool": 201,
+        "bolt_bench_regpressure": 1,
+        "bolt_bench_regpressure_calc/1": 29,
+        "bolt_bench_shrinkwrap": 301,
+        "bolt_bench_spill_helper/1": 29,
+        "bolt_bench_spill_ret": 76,
+        "bolt_bench_stair_kernel": 427,
+        "bolt_bench_stair_step": 976,
+        "bolt_bench_switch": 169,
+        "bolt_bench_switch_pick/1": 1035,
+        "bolt_bench_tail_arm_callee/1": 14,
+        "cbuf_read_char": 2,
+        "composite_process": 2,
+        "composite_report_cold": 1,
+        "event_wait_timeout": 1,
+        "memcpy": 54,
+        "platform_dputc": 1,
+        "strlen": 1,
+        "uart_putc": 252,
+        "vfprintf": 1
+      }
+    },
+    "bound_build_directory": "/mnt/c/Users/User/CURSOR/CodexProjects/BOLT_AARCH32/out/correctness/full-gate-bound"
+  },
+  "artifact_hashes": {
+    "input_sha256": "424606a869c34b5be5f3c97f66a9cec8ea16844ac788c14c77839edcfef2459b",
+    "baseline_binary_sha256": "ee9982ba422fa5e40854f0c21c298b20c4be02eb349413eefe7fdcf53bedd612",
+    "elf_sha256": "e27798199ff47eb5daff6b8003911bdf515ff298c2ca876fc1c78dd94e664f52",
+    "binary_sha256": "b1b58627fe804ce1183ab0721978bdb51b5b4f6ed7c92f1549677bfa1f9fdf71",
+    "map_sha256": "4f19364eebf3afb410bfec0eccfce8dd2a480568f206ace516a8b7fe46fd34e5"
+  },
+  "source_tools": {
+    "llvm-bolt": "3cb5a61acacd74a9344f8c9c2545a6a8a3f650a3e78e67870f86a2b3ffd88b65",
+    "perf2bolt": "3cb5a61acacd74a9344f8c9c2545a6a8a3f650a3e78e67870f86a2b3ffd88b65",
+    "llvm-objcopy": "f80e39c3121994c8b5baf3b9c2e586d4ffcd8da332e6c2c51b9f86fb482207de"
+  },
+  "patch_sha256": {
+    "0001-emit-bolt-instr-tables-on-elf.patch": "49269895b37e21ee39d410a2717417b08bddb42974b5e99fba87636e227de16f",
+    "0002-tolerate-secondary-entrypoint-outside-code-section.patch": "2460f45fbe39ad520a591d37edf5925e74d7acc2e107e399ad87607e4dfab41d",
+    "0003-bolt-arm-elf32-and-target.patch": "cb2ed805a49b73c6122d4c6c0481c9703009689fa8873c4c3a06632af354d2f5",
+    "0004-bolt-arm-mcplusbuilder.patch": "d2025105313fefb9c7e304a6dda4df227e483cd4be93ab55902451949932bbb0",
+    "0005-bolt-arm-relocations.patch": "27b15ca9aaf28792ba9b98aaaf2edacc3f46a1e4730deee882e40a4698fe2800",
+    "0006-bolt-arm-rewrite-dispatch.patch": "825de9a51c22543e9c7d9a0cee01a526b4c5fb7e0d1b6b6be9171cea1287dba3",
+    "0007-bolt-arm-lit-tests.patch": "ae0e05384a0d24f6475f425f5cfb90fca98ca94c53d8d0487a151045b70c3d5a",
+    "0008-jitlink-arm-generic-archkind.patch": "7a30ef8fec31cda68bb63e128edecd75eb3bc0aad4141d0a2267e9e5abe3d8ff",
+    "0009-bolt-arm-longjmp-veneers.patch": "2950d0d2dddf856a83d84f45029f8c769b9832cdf10f99f486d50e7f12e7e379",
+    "0010-bolt-arm-instrumentation.patch": "1acf956dab22a687c2d53e1f0e6c49a439309957986644e8325234acb1b067a4",
+    "0011-bolt-arm-reverse-cbz.patch": "ddad8f56439d393eeb5ede2a158e3967540480be99f15425b6a64473caf7db15",
+    "0012-jitlink-arm-thumb-stub-alignment.patch": "15494da3e1e735474b84b39664b3acbadd9cdcc49b34f0a324372852fe6f267d",
+    "0013-bolt-emit-function-map.patch": "99d3c782f692bff0cfb4580d94c549e20ce664aa68eef6762cb5a2ca9282f397",
+    "0014-bolt-arm-literal-loads.patch": "8861406e0bfbd6bb6747adec762b22a85c5dfe87726c5dd4623a0d21acad1da8",
+    "0015-bolt-arm-unwind-rejection.patch": "ade687b385030923f6870345bfb287df44ff8e551749e6366b564383eee8ce54",
+    "0016-bolt-arm-data-fixup-width.patch": "2751b9ac14c11453f4f0cfe90477c157aba202280bac6b18103a6affda4dc568",
+    "0017-jitlink-arm-blx-stub-link.patch": "e50459022d2bf599c619c57ebca46035989cae1c1c5a912e617ca19a0c6b358a",
+    "0018-bolt-arm-pop-terminators.patch": "01722cd389cd657c60045bea3b7ded528e57343444aa58cc75602aee378cf6de",
+    "0019-deterministic-arm-stubs-and-alignment.patch": "179e2642d141217d73ab34a2170a59cdc868de47fb54f7d73afa4de77af530ec",
+    "0020-preserve-flags-in-cbz-long-branches.patch": "9b0923d9d680d3e8453fb755166809db921262ca32fdca577d26dc456b19c315",
+    "0021-preserve-thumb-entry-and-symbol-state.patch": "faaac1ec8a3b0a46fd1808a311b800500b60003175dcbe8d7c9950669f116ae2",
+    "0022-bolt-arm-thumb-jump19-split-functions.patch": "8d51bf51f92eaadb5b23e701c77179a65b17b68ca4705d3c898f96cc252958cd",
+    "0023-bolt-arm-generic-passes.patch": "cc93b6883bab0531ff041d43473128b16b4bb6ca70654c29496a3f0b48801806",
+    "0024-bolt-arm-inline-switch-tables.patch": "b1856915369978bf779613bab9ba40753cc39e52edf2258c55ef0cdf3d61d3a1"
+  },
+  "input_function_count": 417,
+  "emitted_count": 411,
+  "redirected": [
+    {
+      "name": "bolt_bench_far_call",
+      "input": 2147526598,
+      "output": 2148371264,
+      "output_size": 40,
+      "thumb": true,
+      "branch_hex": "cef0bbb9"
+    },
+    {
+      "name": "bolt_bench_it_cond",
+      "input": 2147526638,
+      "output": 2148360192,
+      "output_size": 90,
+      "thumb": true,
+      "branch_hex": "cbf007bc"
+    },
+    {
+      "name": "bolt_bench_interwork",
+      "input": 2147526744,
+      "output": 2148371328,
+      "output_size": 128,
+      "thumb": false,
+      "branch_hex": "c83803ea"
+    },
+    {
+      "name": "bolt_bench_memcpy",
+      "input": 2147527220,
+      "output": 2148360284,
+      "output_size": 220,
+      "thumb": true,
+      "branch_hex": "cbf012bb"
+    }
+  ],
+  "restored_sections": [
+    ".bolt.org.text",
+    ".data",
+    ".rodata",
+    "lk_init",
+    "commands",
+    "apps",
+    ".ctors"
+  ],
+  "bolt_options": [
+    "--no-huge-pages",
+    "-lite=0",
+    "-reorder-blocks=ext-tsp",
+    "-reorder-functions=hfsort+",
+    "-icf=all",
+    "-data=/mnt/c/Users/User/CURSOR/CodexProjects/BOLT_AARCH32/out/correctness/full-gate-bound/profile.fdata"
+  ],
+  "verification": {
+    "schema": 1,
+    "execution_verified": true,
+    "verified_at": "2026-10-01T19:59:32.346637+00:00",
+    "scope": "required redirected functions only; emitted functions are not execution coverage",
+    "manifest_sha256": "b7340bf5daaca1ac9c1600656f74600af9ac1a01cc31327077ef175f6441a353",
+    "baseline_log_sha256": "e1cd0b809bd5a6c7418fc932db0e822f58f6ea55a540de8375ee26695dbd9206",
+    "candidate_log_sha256": "21ad0aeef93e3111e83a359b4106088450dd4cb020822e1e3e303caadea7fec7",
+    "workload_results": {
+      "hot_loop": "0x6a4ae6e0",
+      "hot_cold": "0x00000000",
+      "branch_chain": "0x007a5100",
+      "memcpy": "0x5acd3dc5",
+      "far_call": "0xb7082fa9",
+      "it_cond": "0x021e8480",
+      "interwork": "0x2fb21555",
+      "switch": "0xa953bbf0",
+      "spill_ret": "0x504980a0",
+      "litpool": "0x16b596e0",
+      "indirect_call": "0x0e6aac80",
+      "interwork_tail": "0xda3416f0",
+      "regpressure": "0xc5da3550",
+      "hotcold_split": "0xd4751003",
+      "icf": "0xdc7c3be0",
+      "shrinkwrap": "0x6a1b87d4",
+      "composite": "0x939f4ea0",
+      "stair": "0x9fef2a18"
+    },
+    "sampling_period": 20000,
+    "workload_repetitions": 10,
+    "kept_samples": 33850,
+    "taken_samples": 33850,
+    "redirected_coverage": [
+      {
+        "name": "bolt_bench_far_call",
+        "pc_samples": 0,
+        "execution_observed": false,
+        "required": false
+      },
+      {
+        "name": "bolt_bench_it_cond",
+        "pc_samples": 2506,
+        "execution_observed": true,
+        "required": true
+      },
+      {
+        "name": "bolt_bench_interwork",
+        "pc_samples": 24,
+        "execution_observed": true,
+        "required": true
+      },
+      {
+        "name": "bolt_bench_memcpy",
+        "pc_samples": 16,
+        "execution_observed": true,
+        "required": true
+      }
+    ],
+    "required_executed": [
+      "bolt_bench_it_cond",
+      "bolt_bench_interwork",
+      "bolt_bench_memcpy"
+    ],
+    "sampled_pc_sha256": "dc324cba5ac2d1abfb690b5763f0c2ba150f8a8af68013363d9a6f96d0c0a6d7"
+  },
+  "prior_failures": [
+    "COM5 disappeared after power cycle; Windows assigned COM6",
+    "duplicate composite/stair acc and sink reports exposed a repetition-gate bug; fixed and captured afresh",
+    "unbounded arch_idle source location rejected; explicit benchmark scope records all exclusions"
+  ],
+  "remaining_scope": "Counter binding, per-PC core ownership, other execution gates, broader inputs and clean overlay replay remain open. Far-call is redirected but unobserved by sampled PC."
+}

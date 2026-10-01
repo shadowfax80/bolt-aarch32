@@ -95,6 +95,26 @@ class ExecutionGateTests(unittest.TestCase):
         with patch.object(gate, 'loadable_sections', return_value=self.sections), self.assertRaisesRegex(ValueError, 'redirect bytes'):
             gate.check_artifacts(self.out, manifest)
 
+    def test_full_gate_rejects_stale_or_unbound_profile(self):
+        manifest = self.artifact_fixture()
+        profile = self.out / 'profile.fdata'
+        sidecar = self.out / 'profile.fdata.manifest.json'
+        profile.write_text('no_lbr\n1 function 0 1\n')
+        identity = dict(schema=1, kind='bolt-profile', verified_binding=True,
+                        profile_sha256=gate.sha256(profile), source_elf_sha256=gate.sha256(self.out / 'baseline.elf'))
+        sidecar.write_text(json.dumps(identity))
+        manifest['profile'] = dict(profile_sha256=gate.sha256(profile), manifest_sha256=gate.sha256(sidecar))
+        with patch.object(gate, 'loadable_sections', return_value=self.sections):
+            gate.check_artifacts(self.out, manifest)
+            identity['verified_binding'] = False
+            sidecar.write_text(json.dumps(identity))
+            manifest['profile']['manifest_sha256'] = gate.sha256(sidecar)
+            with self.assertRaisesRegex(ValueError, 'unbound'):
+                gate.check_artifacts(self.out, manifest)
+            profile.write_text('changed profile')
+            with self.assertRaisesRegex(ValueError, 'changed after'):
+                gate.check_artifacts(self.out, manifest)
+
     def sample_fixture(self, pc=0x2001, kept=1, taken=1, address=0x4000):
         manifest = dict(sample_buffer=dict(address=0x4000, size=64), redirected=[dict(name='function', output=0x2000, output_size=8, thumb=True)])
         raw = struct.pack('<I', pc) + b'\0' * 60
