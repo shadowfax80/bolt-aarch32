@@ -1196,10 +1196,76 @@ static void bolt_bench_app_entry(const struct app_descriptor *app, void *args) {
     run_one(name);
 }
 
+/* Hang guard for unattended test runs: `wdog <seconds>` arms the BCM PM watchdog and keeps
+ * petting it from an LK timer until <seconds> have passed; `wdog 0` disarms it. A test image
+ * that hangs (or loops forever) then resets the SoC back into the SD-card chainloader on its
+ * own -- ~15 s after the deadline, or as soon as the timer stops running (interrupts off). */
+#if __has_include(<platform/bcm28xx.h>)
+#include <kernel/timer.h>
+#include <platform.h>
+#include <platform/bcm28xx.h>
+#include <lk/reg.h>
+
+#define BB_PM_RSTC (PM_BASE + 0x1c)
+#define BB_PM_WDOG (PM_BASE + 0x24)
+#define BB_PM_PASSWORD 0x5a000000u
+#define BB_PM_RSTC_WRCFG_MASK 0x00000030u
+#define BB_PM_RSTC_WRCFG_FULL_RESET 0x00000020u
+#define BB_PM_RSTC_RESET 0x00000102u
+#define BB_WDOG_TICKS (15u << 16) /* 65536 ticks/s; the field is 20 bits (< 16 s) */
+
+static timer_t g_wdog_timer;
+static lk_time_t g_wdog_deadline;
+static bool g_wdog_armed;
+
+static void wdog_pet(void) {
+    *REG32(BB_PM_WDOG) = BB_PM_PASSWORD | BB_WDOG_TICKS;
+    uint32_t rstc = *REG32(BB_PM_RSTC) & ~(BB_PM_RSTC_WRCFG_MASK | 0xff000000u);
+    *REG32(BB_PM_RSTC) = BB_PM_PASSWORD | rstc | BB_PM_RSTC_WRCFG_FULL_RESET;
+}
+
+static enum handler_return wdog_tick(timer_t *t, lk_time_t now, void *arg) {
+    if (g_wdog_armed && (int32_t)(g_wdog_deadline - now) > 0)
+        wdog_pet();
+    return INT_NO_RESCHEDULE;
+}
+
+static int wdog_cmd(int argc, const console_cmd_args *argv) {
+    uint32_t secs = (argc > 1) ? (uint32_t)argv[1].u : 0u;
+    static bool timer_ready;
+    if (!timer_ready) { /* timer_cancel() asserts on a never-initialized timer */
+        timer_initialize(&g_wdog_timer);
+        timer_ready = true;
+    }
+    timer_cancel(&g_wdog_timer);
+    if (!secs) {
+        g_wdog_armed = false;
+        *REG32(BB_PM_RSTC) = BB_PM_PASSWORD | BB_PM_RSTC_RESET;
+        printf("wdog: off\n");
+        return 0;
+    }
+    g_wdog_deadline = current_time() + secs * 1000u;
+    g_wdog_armed = true;
+    wdog_pet();
+    timer_set_periodic(&g_wdog_timer, 1000, wdog_tick, NULL);
+    printf("wdog: armed for %u s\n", (unsigned)secs);
+    if (argc > 2 && !strcmp(argv[2].str, "hang")) { /* self-test: spin with IRQs on */
+        printf("wdog: hanging on purpose\n");
+        for (;;)
+            ;
+    }
+    return 0;
+}
+#define BB_HAVE_WDOG 1
+#endif
+
 #if WITH_LIB_CONSOLE
 STATIC_COMMAND_START
 STATIC_COMMAND("bolt_bench", "BOLT synthetic bare-metal workloads", &bolt_bench_cmd)
 STATIC_COMMAND("bolt_dump", "dump raw memory over UART for BOLT profiling (addr_hex size_hex)", &bolt_dump_cmd)
+#if BB_HAVE_WDOG
+STATIC_COMMAND("wdog", "hang guard: reset the Pi unless disarmed within <seconds> (0 = off)", &wdog_cmd)
+#endif
 #if WITH_BOLT_PGO
 STATIC_COMMAND("bolt_pgo_dump", "serialize PGO counters into a buffer, print addr/size for bolt_dump", &bolt_pgo_dump_cmd)
 #endif

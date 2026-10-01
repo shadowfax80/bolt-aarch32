@@ -16,7 +16,9 @@ mkdir -p "$out"
 # Every small workload and helper; not the big ones (stair, composite, pgo_lab, multi), the
 # PMU/console plumbing, or the ICF twins' callers' data.
 funcs() {
-  build-atfe/bin/llvm-nm "$V/baseline.elf" | awk '$2 ~ /^[tT]$/ && $3 ~ /^bolt_bench_/ {print $3}' |
+  # BOLT names a static (local) function "<name>/1"; only that form matches.
+  build-atfe/bin/llvm-nm "$V/baseline.elf" |
+    awk '$2 ~ /^[tT]$/ && $3 ~ /^bolt_bench_/ {print $3 ($2 == "t" ? "/1" : "")}' |
     grep -v -E 'stair|composite|pgo_lab|pl_|multi|_mf[0-9]|pmu|_cmd|print_sink|bench_banner|_init' |
     sort -u | paste -sd, -
 }

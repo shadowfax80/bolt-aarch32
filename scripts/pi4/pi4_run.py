@@ -92,6 +92,10 @@ def main() -> None:
     ap.add_argument("--reboot", action="store_true",
                     help="if LK is running (no SBOOT? prompt), send it `reboot` "
                          "first instead of waiting for a manual power-cycle")
+    ap.add_argument("--wdog", type=int, default=int(os.environ.get("PI4_WDOG", "0") or 0),
+                    help="arm the image's watchdog for this many seconds around the commands, "
+                         "so a hang resets the Pi instead of needing a power cycle "
+                         "(default: $PI4_WDOG or off)")
     args = ap.parse_args()
     # PI4_FAST_LOADER=<img> turns on the 3 Mbaud upload for every script that shells out to
     # this one (pi4_compare.py, pgo_lab_measure.py, pi4_bolt_profile.py, ...): no per-script flag.
@@ -139,9 +143,18 @@ def main() -> None:
         if not run_command(port, console, "", args.max_wait):
             sys.exit(1)
 
+        # Hang guard: the image resets itself back to the chainloader if the commands
+        # do not finish within --wdog seconds (bolt_bench's `wdog`; no-op on images
+        # without it). Disarmed again after the last command.
+        if args.wdog and not run_command(port, console, f"wdog {args.wdog}", args.max_wait):
+            sys.exit(1)
+
         for cmd in args.commands:
             if not run_command(port, console, cmd, args.max_wait):
                 sys.exit(1)
+
+        if args.wdog:
+            run_command(port, console, "wdog 0", args.max_wait)
 
 
 if __name__ == "__main__":
