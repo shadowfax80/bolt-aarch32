@@ -78,8 +78,11 @@ class Console:
         self.log = open(log_path, "ab") if log_path else None
 
     def write(self, data: bytes) -> None:
-        sys.stdout.write(data.decode("utf-8", errors="replace"))
+        # Raw bytes: serial noise (e.g. a reset mid-line) must not crash the run on a
+        # console whose encoding (cp1252 when redirected on Windows) cannot show it.
         sys.stdout.flush()
+        sys.stdout.buffer.write(data)
+        sys.stdout.buffer.flush()
         if self.log:
             self.log.write(data)
             self.log.flush()

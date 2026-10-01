@@ -45,7 +45,12 @@ case "$cmd" in
     counters="$3"
     # Redirect the instrumented functions; let BOLT also see the helpers (inlining
     # candidates). -lite=0 so helpers without a profile are still considered.
-    export BOLT_FUNC="$(cat "$out/instr_funcs.txt")"
+    # Functions under 8 bytes (a lone tail jump, say) are not redirected: BOLT may
+    # rewrite them into a different first instruction, which the redirect script
+    # rightly refuses to patch; callers outside the rewritten set keep the original.
+    tiny="$(build-atfe/bin/llvm-nm -S --defined-only "$V/baseline.elf" |
+      awk 'NF == 4 && strtonum("0x" $2) < 8 {print $4; print $4 "/1"}')"
+    export BOLT_FUNC="$(tr ',' '\n' < "$out/instr_funcs.txt" | grep -vxF -f <(echo "$tiny") | paste -sd, -)"
     export BOLT_OPTIMIZE_FUNCS="$(cat "$out/funcs.txt")" BOLT_ALLOW_MISSING=1
     : > "$out/bolt_stats.txt"
     # suffix | extra llvm-bolt flags

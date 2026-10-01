@@ -138,3 +138,35 @@ Tests: `arm-passes.test` (ARM Bcc after reordering, tail call is B, inlining rul
 SCTC, all combined; `docs/results/passes_pi_check.txt`); multi-function rerun −45.4%, checksums
 identical. Inlining here: 2 call sites, 40,000 dynamic calls; rodata: 1 hot load.
 `bolt_bench all` now prints each workload's result (`<name> sink=`).
+
+### 3. Switch tables (TBB/TBH) — DONE (overlay 0024, 2026-10-01)
+
+- Thumb `TBB`/`TBH [pc, Rm]` with an inline table: the table (the `$d` island after the
+  branch) is decoded into CFG edges; the branch is rewritten as `TBH` with a halfword table
+  emitted right after it (`.short (case - table)/2`, as LLVM's own codegen emits it). Case
+  blocks laid out before the table are reached through `B.W` stubs after it (TBH is forward
+  only). Table branch and cases are kept in one fragment when splitting; instrumentation
+  counts the case edges like jump-table edges. Alignment padding after a TBB table is dropped;
+  any other undecodable entry leaves the function as before (unknown control flow).
+- LK image: all 23 TBB/TBH sites rewritten; a full-image rewrite with no allowlist now covers
+  401 of 409 functions (the rest are startup/MMU assembly and three functions with
+  undisassemblable instructions). ARM-mode table dispatch (`ldr pc, [pc, rN, lsl #2]`) does
+  not occur in this image and is not handled.
+- Bugs found and fixed on the way:
+  - **Mapping symbols:** after a constant island BOLT wrote AArch64's `$x`; now `$t`/`$a`.
+    Inline tables get `$d`/`$t`. (Disassemblers showed the following code as data.)
+  - **ARM/Thumb marking in BOLT's JITLink pass:** every symbol in a block that contains a
+    Thumb function was marked Thumb, so an ARM→ARM `BL` into a rewritten ARM function sharing
+    that block became `BLX` (Pi: undefined-instruction abort). Now only labels inside Thumb
+    function ranges, never named ARM functions.
+  - Host scripts: static functions are `<name>/1` in BOLT (allowlists silently missed them);
+    the redirect script now looks symbols up without that suffix and refuses to guess ARM vs
+    Thumb (it wrote a Thumb `B.W` into an ARM function); tiny (<8 byte) functions are not
+    redirected; serial noise no longer crashes `pi4_run.py`.
+- Infrastructure: `bolt_bench` `wdog <s>` + `pi4_run.py --wdog`/`PI4_WDOG` — a hung test image
+  resets the Pi to the chainloader by itself (verified), no manual power cycle.
+- Tests: `arm-inline-table.test` (normal and fully reversed layout, stubs), updated
+  `arm32-thumb-switch.test`, interwork call-kind check in `arm-passes.test`; 36/36 lit pass.
+  Pi: `bolt_bench all`, 18 results identical to baseline for 7 images (plain, inline, rodata,
+  split, peepholes, SCTC, all combined) with 29 functions incl. the switch dispatcher and all
+  static helpers; inlining now 4 call sites / 240,000 calls.

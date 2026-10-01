@@ -1,0 +1,677 @@
+--- a/bolt/include/bolt/Core/BinaryFunction.h
++++ b/bolt/include/bolt/Core/BinaryFunction.h
+@@ -613,6 +613,11 @@
+   /// All jump table sites in the function before CFG is built.
+   SmallVector<std::pair<uint64_t, uint64_t>, 0> JTSites;
+ 
++  /// AArch32 TBB/TBH: the case labels of each inline table branch, indexed by
++  /// the instruction's "InlineTable" annotation. Emitted right after the
++  /// branch (see BinaryEmitter).
++  std::vector<std::vector<MCSymbol *>> InlineTables;
++
+   /// List of relocations in this function.
+   std::map<uint64_t, Relocation> Relocations;
+ 
+@@ -1699,6 +1704,18 @@
+   bool replaceJumpTableEntryIn(BinaryBasicBlock *BB, BinaryBasicBlock *OldDest,
+                                BinaryBasicBlock *NewDest);
+ 
++  /// Case labels of an AArch32 inline table branch, or null.
++  std::vector<MCSymbol *> *getInlineTable(const MCInst &Inst) {
++    if (auto Idx = BC.MIB->tryGetAnnotationAs<uint32_t>(Inst, "InlineTable"))
++      return &InlineTables[*Idx];
++    return nullptr;
++  }
++  bool hasInlineTables() const { return !InlineTables.empty(); }
++
++  /// (table start, table end) labels of the emitted inline tables, so the
++  /// output symbol table can mark them with $d ... $t.
++  std::vector<std::pair<MCSymbol *, MCSymbol *>> InlineTableMarks;
++
+   /// Split the CFG edge <From, To> by inserting an intermediate basic block.
+   /// Returns a pointer to this new intermediate basic block. BB "From" will be
+   /// updated to jump to the intermediate block, which in turn will have an
+@@ -2384,6 +2401,12 @@
+   void handleIndirectBranch(MCInst &Instruction, uint64_t Size,
+                             uint64_t Offset);
+ 
++  /// Decode an AArch32 TBB/TBH inline table at the end of \p Instruction
++  /// into CFG edges. Returns false (leaving the branch unknown) if the table
++  /// cannot be decoded safely.
++  bool processInlineTableBranch(MCInst &Instruction, uint64_t Size,
++                                uint64_t Offset);
++
+   // Check for linker veneers, which lack relocations and need manual
+   // adjustments.
+   void handleAArch64IndirectCall(MCInst &Instruction, const uint64_t Offset);
+--- a/bolt/include/bolt/Core/MCPlusBuilder.h
++++ b/bolt/include/bolt/Core/MCPlusBuilder.h
+@@ -456,6 +456,20 @@
+     return Analysis->isIndirectBranch(Inst);
+   }
+ 
++  /// AArch32 TBB/TBH: a table branch whose table of forward offsets follows
++  /// the instruction inline. Returns the size of one table entry (1 or 2), or
++  /// 0 if \p Inst is not such a branch (or uses a base other than PC, or is
++  /// predicated).
++  virtual unsigned getInlineTableEntrySize(const MCInst &Inst) const {
++    return 0;
++  }
++
++  /// Turn an inline table branch into its halfword form (TBB -> TBH) so the
++  /// rewritten table can reach up to 128 KiB ahead.
++  virtual void convertToHalfwordTableBranch(MCInst &Inst) const {
++    llvm_unreachable("not implemented");
++  }
++
+   /// Returns true if the instruction unconditionally transfers the control to
+   /// another program point, interrupting sequential code execution, e.g. by a
+   /// call, return, or unconditional jump. This explicitly leaves out
+--- a/bolt/lib/Core/BinaryEmitter.cpp
++++ b/bolt/lib/Core/BinaryEmitter.cpp
+@@ -132,6 +132,10 @@
+ 
+   /// Helper for emitFunctionBody to write data inside a function
+   /// (used for AArch64)
++  void emitInlineTable(BinaryFunction &BF, FunctionFragment &FF,
++                       const BinaryBasicBlock &BranchBB,
++                       const std::vector<MCSymbol *> &Table);
++
+   void emitConstantIslands(BinaryFunction &BF, bool EmitColdPart,
+                            BinaryFunction *OnBehalfOf = nullptr);
+ 
+@@ -589,6 +593,8 @@
+         const MCSubtargetInfo &EmitSTI =
+             (BF.isARMThumb() && BC.ThumbSTI) ? *BC.ThumbSTI : *BC.STI;
+         Streamer.emitInstruction(Clean, EmitSTI);
++        if (const std::vector<MCSymbol *> *Table = BF.getInlineTable(Instr))
++          emitInlineTable(BF, FF, *BB, *Table);
+       } else {
+         Streamer.emitInstruction(Instr, *BC.STI);
+       }
+@@ -599,6 +605,63 @@
+     emitConstantIslands(BF, FF.isSplitFragment());
+ }
+ 
++/// AArch32 TBH table, emitted right after the TBH (whose PC-relative base is
++/// the first table byte): entry = (target - table) / 2, forward only. A case
++/// block laid out before the table is reached through a B.W stub placed after
++/// the table.
++void BinaryEmitter::emitInlineTable(BinaryFunction &BF, FunctionFragment &FF,
++                                    const BinaryBasicBlock &BranchBB,
++                                    const std::vector<MCSymbol *> &Table) {
++  DenseMap<const MCSymbol *, unsigned> Position;
++  unsigned Index = 0;
++  for (const BinaryBasicBlock *BB : FF)
++    Position[BB->getLabel()] = Index++;
++  const unsigned BranchPos = Position.lookup(BranchBB.getLabel());
++
++  // Named (not temporary) so the linker reports their addresses for the
++  // $d/$t mapping symbols written with the output symbol table.
++  const std::string Base = "__bolt_tbh_" + std::to_string(BF.getFunctionNumber()) +
++                           "_" + std::to_string(BF.InlineTableMarks.size());
++  MCSymbol *TableLabel = BC.Ctx->getOrCreateSymbol(Base + "_start");
++  MCSymbol *TableEnd = BC.Ctx->getOrCreateSymbol(Base + "_end");
++  BF.InlineTableMarks.emplace_back(TableLabel, TableEnd);
++  Streamer.emitLabel(TableLabel);
++  std::vector<std::pair<MCSymbol *, MCSymbol *>> Stubs; // stub, target
++  DenseMap<const MCSymbol *, MCSymbol *> StubFor;
++  for (MCSymbol *Target : Table) {
++    auto It = Position.find(Target);
++    if (It == Position.end()) {
++      BC.errs() << "BOLT-ERROR: TBH target " << Target->getName() << " of "
++                << BF << " is not in the same fragment\n";
++      exit(1);
++    }
++    const MCSymbol *Dest = Target;
++    if (It->second <= BranchPos) {
++      MCSymbol *&Stub = StubFor[Target];
++      if (!Stub) {
++        Stub = BC.Ctx->createTempSymbol("tbh_stub");
++        Stubs.emplace_back(Stub, Target);
++      }
++      Dest = Stub;
++    }
++    const MCExpr *Diff = MCBinaryExpr::createSub(
++        MCSymbolRefExpr::create(Dest, *BC.Ctx),
++        MCSymbolRefExpr::create(TableLabel, *BC.Ctx), *BC.Ctx);
++    Streamer.emitValue(MCBinaryExpr::createDiv(
++                           Diff, MCConstantExpr::create(2, *BC.Ctx), *BC.Ctx),
++                       2);
++  }
++  Streamer.emitLabel(TableEnd);
++  MCPlusBuilder *ThumbMIB = BC.getMIBFor(/*IsThumb=*/true);
++  const MCSubtargetInfo &ThumbSTI = BC.ThumbSTI ? *BC.ThumbSTI : *BC.STI;
++  for (auto &[Stub, Target] : Stubs) {
++    Streamer.emitLabel(Stub);
++    MCInst Branch;
++    ThumbMIB->createUncondBranch(Branch, Target, BC.Ctx.get());
++    Streamer.emitInstruction(Branch, ThumbSTI);
++  }
++}
++
+ void BinaryEmitter::emitConstantIslands(BinaryFunction &BF, bool EmitColdPart,
+                                         BinaryFunction *OnBehalfOf) {
+   if (!BF.hasIslandsInfo())
+--- a/bolt/lib/Core/BinaryFunction.cpp
++++ b/bolt/lib/Core/BinaryFunction.cpp
+@@ -46,6 +46,7 @@
+ #include "llvm/Support/raw_ostream.h"
+ #include "llvm/Support/xxhash.h"
+ #include <functional>
++#include <set>
+ #include <limits>
+ #include <numeric>
+ #include <stack>
+@@ -1201,9 +1202,58 @@
+   return BC.getOrCreateGlobalSymbol(TargetAddress, "FUNCat");
+ }
+ 
++bool BinaryFunction::processInlineTableBranch(MCInst &Instruction,
++                                              uint64_t Size, uint64_t Offset) {
++  const unsigned EntrySize = BC.MIB->getInlineTableEntrySize(Instruction);
++  if (!EntrySize || Size != 4)
++    return false;
++  // Thumb PC = instruction + 4 = the first table byte. The table is the data
++  // island ($d) that starts there.
++  const uint64_t TableOffset = Offset + Size;
++  const size_t TableSize = getSizeOfDataInCodeAt(TableOffset);
++  if (!TableSize)
++    return false;
++  ErrorOr<ArrayRef<uint8_t>> Data = getData();
++  if (!Data || TableOffset + TableSize > Data->size())
++    return false;
++
++  std::vector<uint64_t> Targets;
++  for (size_t I = 0; I + EntrySize <= TableSize; I += EntrySize) {
++    uint64_t Entry = (*Data)[TableOffset + I];
++    if (EntrySize == 2)
++      Entry |= uint64_t((*Data)[TableOffset + I + 1]) << 8;
++    Targets.push_back(TableOffset + 2 * Entry);
++  }
++  // Alignment padding after a TBB table reads as entries that point back
++  // into the table itself: drop them from the end.
++  while (!Targets.empty() && Targets.back() < TableOffset + TableSize)
++    Targets.pop_back();
++  if (Targets.empty())
++    return false;
++  for (uint64_t Target : Targets)
++    if (Target < TableOffset + TableSize || Target >= getSize() ||
++        getSizeOfDataInCodeAt(Target) || (Target & 1))
++      return false;
++
++  std::vector<MCSymbol *> Labels;
++  std::set<uint64_t> Seen;
++  for (uint64_t Target : Targets) {
++    Labels.push_back(getOrCreateLocalLabel(getAddress() + Target));
++    if (Seen.insert(Target).second)
++      TakenBranches.emplace_back(Offset, Target);
++  }
++  BC.MIB->convertToHalfwordTableBranch(Instruction);
++  BC.MIB->addAnnotation(Instruction, "InlineTable",
++                        static_cast<uint32_t>(InlineTables.size()));
++  InlineTables.emplace_back(std::move(Labels));
++  return true;
++}
++
+ void BinaryFunction::handleIndirectBranch(MCInst &Instruction, uint64_t Size,
+                                           uint64_t Offset) {
+   auto &MIB = BC.MIB;
++  if (BC.isARM() && processInlineTableBranch(Instruction, Size, Offset))
++    return;
+   uint64_t IndirectTarget = 0;
+   IndirectBranchType Result =
+       processIndirectBranch(Instruction, Size, Offset, IndirectTarget);
+@@ -2183,6 +2233,10 @@
+       if (!BC.MIB->isIndirectBranch(Instr))
+         continue;
+ 
++      // AArch32 TBB/TBH with a decoded inline table: successors are known.
++      if (getInlineTable(Instr))
++        continue;
++
+       // If there's an indirect branch in a single-block function -
+       // it must be a tail call.
+       if (BasicBlocks.size() == 1) {
+@@ -4332,6 +4386,16 @@
+   MCInst *Instr = BB->getLastNonPseudoInstr();
+   if (!Instr || !BC.MIB->isIndirectBranch(*Instr))
+     return false;
++  if (std::vector<MCSymbol *> *Table = getInlineTable(*Instr)) {
++    bool Patched = false;
++    for (MCSymbol *&Label : *Table)
++      if (Label == OldDest->getLabel()) {
++        Label = NewDest->getLabel();
++        Patched = true;
++      }
++    assert(Patched && "Invalid entry to be replaced in inline table");
++    return Patched;
++  }
+   uint64_t JTAddress = BC.MIB->getJumpTable(*Instr);
+   assert(JTAddress && "Invalid jump table address");
+   JumpTable *JT = getJumpTableContainingAddress(JTAddress);
+--- a/bolt/lib/Passes/Instrumentation.cpp
++++ b/bolt/lib/Passes/Instrumentation.cpp
+@@ -490,7 +490,10 @@
+       if (!MIB->getOffset(Inst))
+         continue;
+ 
+-      const bool IsJumpTable = Function.getJumpTable(Inst);
++      // AArch32 TBB/TBH inline tables are instrumented like jump tables:
++      // counters go on split edges, and splitEdge() retargets the entry.
++      const bool IsJumpTable =
++          Function.getJumpTable(Inst) || Function.getInlineTable(Inst);
+       if (IsJumpTable)
+         HasJumpTable = true;
+       else if (MIB->isUnconditionalBranch(Inst))
+--- a/bolt/lib/Passes/SplitFunctions.cpp
++++ b/bolt/lib/Passes/SplitFunctions.cpp
+@@ -806,6 +806,18 @@
+                                                 Layout.block_end());
+   // Never outline the first basic block.
+   NewLayout.front()->setCanOutline(false);
++  // AArch32 TBH tables hold (target - table) / 2: the branch and all its
++  // case blocks must stay in one fragment.
++  if (BC.isARM() && BF.hasInlineTables()) {
++    for (BinaryBasicBlock *const BB : NewLayout) {
++      const MCInst *Last = BB->getLastNonPseudoInstr();
++      if (!Last || !BF.getInlineTable(*Last))
++        continue;
++      BB->setCanOutline(false);
++      for (BinaryBasicBlock *Succ : BB->successors())
++        Succ->setCanOutline(false);
++    }
++  }
+   for (BinaryBasicBlock *const BB : NewLayout) {
+     if (!BB->canOutline())
+       continue;
+--- a/bolt/lib/Rewrite/JITLinkLinker.cpp
++++ b/bolt/lib/Rewrite/JITLinkLinker.cpp
+@@ -148,16 +148,48 @@
+ 
+         // Local labels in a Thumb function body share the function's block but
+         // are not STT_FUNC; propagate ThumbSymbol so Jump24 does not spuriously
+-        // demand an interworking stub.
++        // demand an interworking stub. Only labels inside a Thumb function's
++        // range, and never a named ARM function: several functions of both
++        // instruction sets can share one block, and marking an ARM function
++        // Thumb makes JITLink turn an ARM-to-ARM BL into a BLX.
++        StringSet<> ARMNames;
++        for (auto &KV : Linker.BC.getBinaryFunctions()) {
++          BinaryFunction &BF = KV.second;
++          if (BF.isARMThumb())
++            continue;
++          for (const StringRef Name : BF.getNames())
++            ARMNames.insert(Name);
++          for (const FunctionFragment &FF : BF.getLayout().fragments())
++            if (const MCSymbol *Sym = BF.getSymbol(FF.getFragmentNum()))
++              ARMNames.insert(Sym->getName());
++        }
++        DenseMap<jitlink::Block *, SmallVector<std::pair<uint64_t, uint64_t>, 4>>
++            ThumbRanges;
++        DenseMap<jitlink::Block *, bool> HasARMFunction;
+         for (jitlink::Symbol *S : LG.defined_symbols()) {
+-          if (!(S->getTargetFlags() & jitlink::aarch32::ThumbSymbol))
++          if (S->hasName() && ARMNames.contains(*S->getName()))
++            HasARMFunction[&S->getBlock()] = true;
++          if ((S->getTargetFlags() & jitlink::aarch32::ThumbSymbol) && S->getSize())
++            ThumbRanges[&S->getBlock()].emplace_back(
++                S->getOffset(), S->getOffset() + S->getSize());
++        }
++        for (jitlink::Symbol *O : LG.defined_symbols()) {
++          if (O->getTargetFlags() & jitlink::aarch32::ThumbSymbol)
++            continue;
++          if (O->hasName() && ARMNames.contains(*O->getName()))
++            continue;
++          jitlink::Block &B = O->getBlock();
++          auto It = ThumbRanges.find(&B);
++          if (It == ThumbRanges.end())
+             continue;
+-          jitlink::Block &B = S->getBlock();
+-          for (jitlink::Symbol *O : LG.defined_symbols()) {
+-            if (&O->getBlock() == &B)
+-              O->setTargetFlags(O->getTargetFlags() |
+-                                jitlink::aarch32::ThumbSymbol);
+-          }
++          bool Inside = llvm::any_of(It->second, [&](const auto &R) {
++            return O->getOffset() >= R.first && O->getOffset() < R.second;
++          });
++          // Without ARM functions in the block every label belongs to Thumb
++          // code (the previous behaviour, also covering size-less symbols).
++          if (Inside || !HasARMFunction.lookup(&B))
++            O->setTargetFlags(O->getTargetFlags() |
++                              jitlink::aarch32::ThumbSymbol);
+         }
+         return Error::success();
+       });
+--- a/bolt/lib/Rewrite/RewriteInstance.cpp
++++ b/bolt/lib/Rewrite/RewriteInstance.cpp
+@@ -5844,11 +5844,32 @@
+       DataMarkSym.setType(ELF::STT_NOTYPE);
+       DataMarkSym.setBinding(ELF::STB_LOCAL);
+       ELFSymTy CodeMarkSym = DataMarkSym;
+-      CodeMarkSym.st_name = AddToStrTab("$x");
++      // $x is AArch64's code marker; AArch32 uses $t (Thumb) or $a (ARM).
++      CodeMarkSym.st_name = AddToStrTab(
++          BC->isARM() ? (Function.isARMThumb() ? "$t" : "$a") : "$x");
+       CodeMarkSym.st_value = CodeMark;
+       Symbols.emplace_back(DataMarkSym);
+       Symbols.emplace_back(CodeMarkSym);
+     }
++    // AArch32 inline TBH tables: $d over the table, $t where code resumes.
++    for (const auto &[Start, End] : Function.InlineTableMarks) {
++      std::optional<BOLTLinker::SymbolInfo> S =
++          Linker->lookupSymbolInfo(Start->getName());
++      std::optional<BOLTLinker::SymbolInfo> E =
++          Linker->lookupSymbolInfo(End->getName());
++      if (!S || !E)
++        continue;
++      ELFSymTy Mark = FunctionSymbol;
++      Mark.st_size = 0;
++      Mark.setType(ELF::STT_NOTYPE);
++      Mark.setBinding(ELF::STB_LOCAL);
++      Mark.st_name = AddToStrTab("$d");
++      Mark.st_value = S->Address;
++      Symbols.emplace_back(Mark);
++      Mark.st_name = AddToStrTab("$t");
++      Mark.st_value = E->Address;
++      Symbols.emplace_back(Mark);
++    }
+     if (Function.hasConstantIsland() && Function.isSplit()) {
+       uint64_t DataMark = Function.getOutputColdDataAddress();
+       uint64_t CISize = getConstantIslandSize(Function);
+@@ -5860,7 +5881,9 @@
+       DataMarkSym.setType(ELF::STT_NOTYPE);
+       DataMarkSym.setBinding(ELF::STB_LOCAL);
+       ELFSymTy CodeMarkSym = DataMarkSym;
+-      CodeMarkSym.st_name = AddToStrTab("$x");
++      // $x is AArch64's code marker; AArch32 uses $t (Thumb) or $a (ARM).
++      CodeMarkSym.st_name = AddToStrTab(
++          BC->isARM() ? (Function.isARMThumb() ? "$t" : "$a") : "$x");
+       CodeMarkSym.st_value = CodeMark;
+       Symbols.emplace_back(DataMarkSym);
+       Symbols.emplace_back(CodeMarkSym);
+--- a/bolt/lib/Target/ARM/ARMMCPlusBuilder.cpp
++++ b/bolt/lib/Target/ARM/ARMMCPlusBuilder.cpp
+@@ -240,6 +240,31 @@
+     return MCPlusBuilder::isTerminator(Inst);
+   }
+ 
++  unsigned getInlineTableEntrySize(const MCInst &Inst) const override {
++    unsigned Size;
++    switch (Inst.getOpcode()) {
++    case ARM::t2TBB:
++      Size = 1;
++      break;
++    case ARM::t2TBH:
++      Size = 2;
++      break;
++    default:
++      return 0;
++    }
++    // (Rn, Rm, pred, predreg): only the PC-based form has an inline table.
++    if (MCPlus::getNumPrimeOperands(Inst) < 4 || !Inst.getOperand(0).isReg() ||
++        Inst.getOperand(0).getReg() != ARM::PC || !Inst.getOperand(2).isImm() ||
++        Inst.getOperand(2).getImm() != ARMCC::AL)
++      return 0;
++    return Size;
++  }
++
++  void convertToHalfwordTableBranch(MCInst &Inst) const override {
++    assert(getInlineTableEntrySize(Inst) && "not an inline table branch");
++    Inst.setOpcode(ARM::t2TBH);
++  }
++
+   bool isIndirectBranch(const MCInst &Inst) const override {
+     // Returns are terminators, not indirect CFG edges.
+     if (isReturn(Inst))
+--- a/bolt/test/ARM/Inputs/arm32-passes.s
++++ b/bolt/test/ARM/Inputs/arm32-passes.s
+@@ -97,6 +97,40 @@
+ 5:	.word	0x12345678
+ 	.size	lit_func, .-lit_func
+ 
++
++@ ARM and Thumb callees next to an ARM caller (same output block): the
++@ rewritten caller must keep BL for the ARM callee and BLX for the Thumb one.
++	.arm
++	.globl	iw_arm_leaf
++	.type	iw_arm_leaf,%function
++	.p2align	2
++iw_arm_leaf:
++	add	r0, r0, #7
++	bx	lr
++	.size	iw_arm_leaf, .-iw_arm_leaf
++
++	.thumb
++	.globl	iw_thumb_leaf
++	.type	iw_thumb_leaf,%function
++	.p2align	1
++	.thumb_func
++iw_thumb_leaf:
++	adds	r0, #9
++	bx	lr
++	.size	iw_thumb_leaf, .-iw_thumb_leaf
++
++	.arm
++	.globl	iw_caller
++	.type	iw_caller,%function
++	.p2align	2
++iw_caller:
++	push	{r4, lr}
++	bl	iw_arm_leaf
++	blx	iw_thumb_leaf
++	pop	{r4, pc}
++	.size	iw_caller, .-iw_caller
++
++	.thumb
+ 	.globl	_start
+ 	.type	_start,%function
+ 	.p2align	1
+@@ -107,5 +141,6 @@
+ 	bl	dj_func
+ 	bl	caller
+ 	bl	lit_func
++	blx	iw_caller
+ 	b	_start
+ 	.size	_start, .-_start
+--- a/bolt/test/ARM/Inputs/check-passes.py
++++ b/bolt/test/ARM/Inputs/check-passes.py
+@@ -66,4 +66,10 @@
+     if not (any(op == "movw" and "0x5678" in arg for op, arg in ops)
+             and any(op == "movt" and "0x1234" in arg for op, arg in ops)):
+         sys.exit(f"FAIL: literal load not materialized: {ops}")
++elif which == "interwork":
++    ins = disasm("iw_caller", "armv7a-none-eabi")
++    calls = {re.search(r"<([^>+]+)", arg)[1]: op for op, arg in ins.values()
++             if op in ("bl", "blx") and "<" in arg}
++    if calls.get("iw_arm_leaf") != "bl" or calls.get("iw_thumb_leaf") != "blx":
++        sys.exit(f"FAIL: wrong call kinds in iw_caller: {calls}")
+ print(f"PASS {which}")
+--- a/bolt/test/ARM/arm-passes.test
++++ b/bolt/test/ARM/arm-passes.test
+@@ -20,3 +20,7 @@
+ ## Constant literal-pool loads become MOVW/MOVT.
+ RUN: llvm-bolt %t.exe -o %t.rodata --no-huge-pages -lite=0 -simplify-rodata-loads
+ RUN: %python %p/Inputs/check-passes.py llvm-objdump %t.rodata rodata
++
++## ARM and Thumb functions sharing a JITLink block: only Thumb code gets the
++## Thumb flag, so the ARM-to-ARM call stays BL (it became BLX before patch 0024).
++RUN: %python %p/Inputs/check-passes.py llvm-objdump %t.reorder interwork
+--- a/bolt/test/ARM/arm32-thumb-switch.test
++++ b/bolt/test/ARM/arm32-thumb-switch.test
+@@ -1,31 +1,27 @@
+ ## A dense 4-way switch lowers to a Thumb-2 TBB (table-branch-byte) dispatch.
+ ## isIndirectBranch() must recognize TBB as an indirect branch (not silently
+ ## fall through into its own jump table, and not misclassify it as a
+-## return or an ordinary direct branch). Full jump-table decoding is not
+-## implemented (see docs/KNOWN_LIMITATIONS.md), so BOLT correctly marks
+-## this function's control flow as UNKNOWN and, being conservative, leaves
+-## it un-overwritten rather than risk corrupting it.
++## return or an ordinary direct branch). Since patch 0024 the inline table is
++## decoded into CFG edges and the function is rewritten: TBB becomes TBH with
++## a halfword table emitted right after it (see arm-inline-table.test).
+ 
+ # RUN: llvm-mc -filetype=obj -triple=thumbv7-unknown-linux-gnueabi %p/Inputs/arm32-thumb-switch.s -o %t.o
+ # RUN: ld.lld --emit-relocs -T %p/Inputs/arm32.ld %t.o -o %t.exe
+ # RUN: llvm-objdump -d --triple=thumbv7a-none-eabi %t.exe | FileCheck %s --check-prefix=CHECK-IN
+ # RUN: llvm-bolt %t.exe -o %t.bolt --print-cfg 2>&1 | FileCheck %s --check-prefix=CHECK-LOG
+-# RUN: llvm-objdump -s --section=.text %t.bolt | FileCheck %s --check-prefix=CHECK-OUT
+ 
+ # Input contains the tbb dispatch (disasm of linked input has $t).
+ # CHECK-IN: and{{.*}}r1, r0, #0x3
+ # CHECK-IN-NEXT: tbb [pc, r1]
+ 
+-# TBB must be recognized as indirect-branch control flow, not silently
+-# treated as fallthrough/return/direct-branch. Table decode not
+-# implemented, so this is the correct, conservative outcome.
++# The table is decoded: four case successors, no unknown control flow.
+ # CHECK-LOG: Binary Function "_start
+-# CHECK-LOG: tbb{{.*}}# UNKNOWN CONTROL FLOW
++# CHECK-LOG: IsSimple : 1
++# CHECK-LOG: tbh{{.*}}InlineTable: 0
++# CHECK-LOG-NEXT: Successors: {{.*}}, {{.*}}, {{.*}}, {{.*}}
+ # CHECK-LOG-NOT: BOLT-ERROR
+ # CHECK-LOG-NOT: unable to disassemble
++# This input has no relocations (non-relocation mode): the TBH form with its
++# halfword table is larger than the original TBB slot, so BOLT keeps the
++# original function. The rewritten form is checked by arm-inline-table.test.
+ # CHECK-LOG: BOLT: 0 out of 1 functions were overwritten
+-
+-# Conservative: function left byte-identical rather than risk corrupting
+-# a jump table BOLT can't fully decode.
+-# CHECK-OUT: 00f00301 dfe801f0 02040608 0a207047
+-# CHECK-OUT: 14207047 1e207047 28207047
+--- /dev/null
++++ b/bolt/test/ARM/arm-inline-table.test
+@@ -0,0 +1,18 @@
++## AArch32 TBB/TBH switch tables (patch 0024): decoded into CFG edges, rewritten
++## as TBH with an inline halfword table; case blocks laid out before the table
++## are reached through B.W stubs after it.
++RUN: llvm-mc -triple=thumbv7-none-eabi -filetype=obj %p/Inputs/arm32-tbb.s -o %t.o
++RUN: ld.lld --emit-relocs -T %p/Inputs/arm32.ld %t.o -o %t.exe
++RUN: llvm-bolt %t.exe -o %t.bolt --no-huge-pages -lite=0 -print-cfg -print-only=sw_tbb \
++RUN:   2>&1 | FileCheck %s --check-prefix=CFG
++RUN: %python %p/Inputs/check-inline-table.py llvm-objdump llvm-readelf llvm-objcopy %t.bolt sw_tbb 10 11 12 13 14 | FileCheck %s --check-prefix=TBB
++RUN: %python %p/Inputs/check-inline-table.py llvm-objdump llvm-readelf llvm-objcopy %t.bolt sw_tbh 20 21 22
++RUN: llvm-bolt %t.exe -o %t.rev --no-huge-pages -lite=0 -reorder-blocks=reverse
++RUN: %python %p/Inputs/check-inline-table.py llvm-objdump llvm-readelf llvm-objcopy %t.rev sw_tbb 10 11 12 13 14 | FileCheck %s --check-prefix=REV
++RUN: %python %p/Inputs/check-inline-table.py llvm-objdump llvm-readelf llvm-objcopy %t.rev sw_tbh 20 21 22
++
++CFG: IsSimple : 1
++CFG: tbh
++CFG: Successors: {{.*}}, {{.*}}, {{.*}}, {{.*}}, {{.*}}
++TBB: PASS sw_tbb: 5 entries, 0 via stubs
++REV: PASS sw_tbb: 5 entries, {{[1-5]}} via stubs
+--- /dev/null
++++ b/bolt/test/ARM/Inputs/arm32-tbb.s
+@@ -0,0 +1,62 @@
++@ TBB switch with an inline byte table (and a TBH one), for arm-inline-table.test.
++	.syntax unified
++	.thumb
++	.text
++	.globl	sw_tbb
++	.type	sw_tbb,%function
++	.p2align	1
++	.thumb_func
++sw_tbb:
++	cmp	r0, #4
++	bhi	9f
++	tbb	[pc, r0]
++1:	.byte	(2f-1b)/2
++	.byte	(3f-1b)/2
++	.byte	(4f-1b)/2
++	.byte	(5f-1b)/2
++	.byte	(6f-1b)/2
++	.p2align	1
++2:	movs	r0, #10
++	bx	lr
++3:	movs	r0, #11
++	bx	lr
++4:	movs	r0, #12
++	bx	lr
++5:	movs	r0, #13
++	bx	lr
++6:	movs	r0, #14
++	bx	lr
++9:	movs	r0, #99
++	bx	lr
++	.size	sw_tbb, .-sw_tbb
++
++	.globl	sw_tbh
++	.type	sw_tbh,%function
++	.p2align	1
++	.thumb_func
++sw_tbh:
++	cmp	r0, #2
++	bhi	9f
++	tbh	[pc, r0, lsl #1]
++1:	.short	(2f-1b)/2
++	.short	(3f-1b)/2
++	.short	(4f-1b)/2
++2:	movs	r0, #20
++	bx	lr
++3:	movs	r0, #21
++	bx	lr
++4:	movs	r0, #22
++	bx	lr
++9:	movs	r0, #98
++	bx	lr
++	.size	sw_tbh, .-sw_tbh
++
++	.globl	_start
++	.type	_start,%function
++	.p2align	1
++	.thumb_func
++_start:
++	bl	sw_tbb
++	bl	sw_tbh
++	b	_start
++	.size	_start, .-_start
+--- /dev/null
++++ b/bolt/test/ARM/Inputs/check-inline-table.py
+@@ -0,0 +1,44 @@
++"""arm-inline-table.test checker: follow every TBH table entry (and B.W stub) in the
++BOLT output and check that index i reaches `movs r0, #<expected[i]>`."""
++import re
++import subprocess
++import sys
++
++objdump, readelf, objcopy, elf, func, *expected = sys.argv[1:]
++expected = [int(x) for x in expected]
++
++secs = subprocess.run([readelf, "-S", "-W", elf], capture_output=True, text=True, check=True).stdout
++text = next(l for l in secs.splitlines() if re.search(r"\]\s+\.text\s", l))
++addr = int(text.split()[text.split().index(".text") + 2], 16)
++subprocess.run([objcopy, "-O", "binary", "--only-section=.text", elf, elf + ".text"], check=True)
++data = open(elf + ".text", "rb").read()
++
++dis = subprocess.run([objdump, "-d", "--triple=thumbv7a-none-eabi", "-j", ".text", elf],
++                     capture_output=True, text=True, check=True).stdout
++insn = {}
++for line in dis.splitlines():
++    m = re.match(r"\s*([0-9a-f]+):\s+(?:[0-9a-f]{4} ?)+\s+(\S+)\s*(.*)", line)
++    if m:
++        insn[int(m[1], 16)] = (m[2], m[3])
++
++start = re.search(rf"^([0-9a-f]+) <{func}>:", dis, re.M)
++if not start:
++    sys.exit(f"FAIL: {func} not in output .text")
++pc = int(start[1], 16)
++tbh = next((a for a in sorted(insn) if a >= pc and insn[a][0] == "tbh"), None)
++if tbh is None:
++    sys.exit(f"FAIL: no tbh in {func}")
++table = tbh + 4
++stubs = 0
++for i, want in enumerate(expected):
++    off = table + 2 * i - addr
++    entry = data[off] | data[off + 1] << 8
++    t = table + 2 * entry
++    op, arg = insn.get(t, ("?", ""))
++    if op in ("b.w", "b"):
++        stubs += 1
++        t = int(re.search(r"0x([0-9a-f]+)", arg)[1], 16)
++        op, arg = insn.get(t, ("?", ""))
++    if op != "movs" or f"#0x{want:x}" not in arg and f"#{want}" not in arg:
++        sys.exit(f"FAIL: {func} entry {i} reaches {t:#x} {op} {arg}, want movs r0, #{want}")
++print(f"PASS {func}: {len(expected)} entries, {stubs} via stubs")

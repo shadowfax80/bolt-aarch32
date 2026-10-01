@@ -41,6 +41,7 @@ from __future__ import annotations
 import argparse
 import importlib.util
 import os
+import re
 import subprocess
 import sys
 
@@ -92,6 +93,12 @@ def read_map(path: str) -> dict[str, tuple[int, int, int]]:
                 raise SystemExit(f"{path}:{n}: function {name} listed twice")
             entries[name] = (in_addr & ~1, out_addr & ~1, size)
     return entries
+
+
+def symbol_name(bolt_name: str) -> str:
+    """BOLT names a local (static) function "<symbol>/<n>", sometimes with "(*<n>)";
+    the ELF symbol is just <symbol>."""
+    return re.sub(r"(/\d+)?(\(\*\d+\))?$", "", bolt_name)
 
 
 def branch_bytes(thumb: bool, pc: int, target: int) -> bytes:
@@ -153,9 +160,10 @@ def main() -> int:
             if wanted and name not in wanted:
                 continue
             # The map's input address is authoritative; the symbol only has to agree.
-            if name in orig_syms and orig_syms[name][0] != in_addr:
+            sym = symbol_name(name)
+            if sym in orig_syms and orig_syms[sym][0] != in_addr:
                 raise SystemExit(
-                    f"{name}: map says input 0x{in_addr:x} but {args.original} has 0x{orig_syms[name][0]:x}"
+                    f"{name}: map says input 0x{in_addr:x} but {args.original} has 0x{orig_syms[sym][0]:x}"
                 )
             plan[name] = (in_addr, out_addr)
     else:
@@ -168,7 +176,12 @@ def main() -> int:
 
     orig_syms = nm_symbols(nm, args.original)
     for name, (orig_entry, new_entry) in sorted(plan.items(), key=lambda kv: kv[1][0]):
-        thumb = fix.is_thumb_symbol(nm, args.original, name) if name in orig_syms else True
+        sym = symbol_name(name)
+        if sym not in orig_syms:
+            # Guessing the instruction set would write a Thumb B.W into ARM code (or
+            # the reverse) -- an undefined instruction the first time it runs.
+            raise SystemExit(f"{name}: no symbol {sym} in {args.original}; cannot tell ARM from Thumb")
+        thumb = fix.is_thumb_symbol(nm, args.original, sym)
         # BOLT places a rewritten function in .text (hot) or, when it has no profile,
         # entirely in .text.cold; anything else means the map does not match this image.
         if not any(
@@ -178,7 +191,7 @@ def main() -> int:
             raise SystemExit(
                 f"{name}: new entry 0x{new_entry:x} is not in any output .text* section"
             )
-        size = orig_syms.get(name, (0, 0))[1]
+        size = orig_syms[sym][1]
         if size and size < 4:
             raise SystemExit(f"{name}: only {size} bytes; cannot hold a 4-byte redirect branch")
         orig_off = org_off + (orig_entry - org_addr)
