@@ -171,15 +171,21 @@ identical. Inlining here: 2 call sites, 40,000 dynamic calls; rodata: 1 hot load
   split, peepholes, SCTC, all combined) with 29 functions incl. the switch dispatcher and all
   static helpers; inlining now 4 call sites / 240,000 calls.
 
-### Full-image rewrite boots on the Pi (2026-10-01)
+### Full-image emission and scoped execution (2026-10-01)
 
 `scripts/pi4/full_image_wsl.sh`: BOLT over the whole `baseline` LK image, no function
 allowlist (`-lite=0`, ext-tsp, hfsort+, ICF): **403 of 411 functions** rewritten into the new
 `.text`; left in place: startup/MMU assembly (`arm_reset`, `arm_secondary_setup`,
 `.Lmmu_setup`, `arm32_hyp_to_svc`, `unsupported_cpu_trap`) and `arm_generic_timer_init`,
 `cmd_pmm`, `qsort` (undisassemblable instructions). Booted on the Pi (Non-secure SVC):
-`bolt_bench all`, 18 results identical to baseline (`docs/results/full_image_*`). This retires
-the old U1 figure (7% coverage) for this image; output determinism is tracked separately.
+`bolt_bench all`, 18 results identical to baseline (`docs/results/full_image_*`). The
+original 403/411 figure is emitted-symbol coverage: that script restored original
+sections without redirecting entries, so it does not prove rewritten execution.
+The corrected builder emits 411/417 functions from the independent-result fixture
+and explicitly redirects four. Its Pi gate matches all 18 results and observes
+rewritten IT/interworking/memcpy PCs. This is scoped execution coverage, not execution
+of all emitted functions. See PI_FULL_IMAGE_VERIFICATION.md and
+results/correctness_full_gate_20261001.json.
 
 ### 4. Sample-based profiles (no instrumented image) — DONE (2026-10-01)
 

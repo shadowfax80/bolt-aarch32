@@ -13,9 +13,15 @@ far-call has no sampled PC. Current evidence is Windows
 `out/correctness/validation-fix/` and the tracked
 `docs/results/correctness_validation_20261001.json`. WSL was restarted for these checks.
 
-Next: enforce full-image execution evidence in the gate, then image/profile identity,
-graph consistency and clean overlay replay. Broaden workload inputs/pass combinations.
-The reviewed full-image script still restores originals without redirects. Upstream
+The corrected full-image builder emits 411/417 functions and explicitly redirects
+four. Its Pi gate passed 18 workload results across ten repetitions and observed
+rewritten IT/interworking/memcpy (2,506/27/16 PCs). Far-call remains unobserved.
+Thirteen host gate tests pass. Evidence: out/correctness/full-gate and tracked
+docs/results/correctness_full_gate_20261001.json. Complete #12 before advancing:
+profile/image binding, graph consistency, other execution gates, broader input/pass
+coverage and clean overlay replay. User explicitly requested #12 completion first.
+The reviewed bbae817 full-image script restored originals without redirects; its
+replacement has explicit redirects and scoped hardware verification. Upstream
 work remains stopped; preserve dirty WSL checkouts and unrelated Microsoft/ folder.
 
 ## Latest checkpoint: GitHub bbae817 re-evaluation

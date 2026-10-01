@@ -1,5 +1,35 @@
 # Correctness fixes
 
+## Full-image execution gate and redirect bounds (2026-10-01)
+
+`full_image_wsl.sh` now delegates to `full_image_build.py`, requires an explicit
+redirect set and keeps outputs in a fresh output directory. It no longer silently
+loads a nearby profile. It checks restoration byte-for-byte with exact addresses
+and sizes, and records original/emitted/not-emitted/redirected coverage plus image,
+map, tool and patch hashes. Emission reports execution as unverified.
+
+Redirects use the ELF function's Thumb bit, require matching input/output symbols,
+bounded source/body ranges, alignment, preserved original bytes and nonoverlapping
+entries. An all-missing explicit selection now fails instead of redirecting the
+whole map. A late failure leaves the ELF unchanged. Prologue equality remains a
+conservative restriction; this does not close all alias/secondary-entry cases.
+
+`full_image_verify.py` verifies hashes and independently decodes each redirect
+branch in the ELF/uploaded binary, checks all 18 baseline/candidate results and
+requires checksum-verified samples of the correct ISA inside named rewritten
+bodies. Missing/saturated/corrupt samples fail. Results are scoped to required
+functions, not every emitted function. It saves complete logs and a verification
+manifest in a fresh evidence directory.
+
+Validation: 13/13 host tests. Whole-image ATFE emission: 417 input functions,
+411 emitted, four redirected. One Pi repetition correctly failed when interworking
+had no sampled PC. Ten repetitions passed all 18 results with 33,848 samples:
+rewritten IT 2,506, interworking 27 and memcpy 16; far-call 0. The sampled bodies
+are Thumb/ARM/Thumb respectively. See
+[manifest](results/correctness_full_gate_20261001.json) and
+[usage](PI_FULL_IMAGE_VERIFICATION.md). Profile identity, every other optimization
+gate, graph consistency, broader fixtures and clean replay remain under #12.
+
 ## Complete workload gates and profile input validation (2026-10-01)
 
 `passes_check.py` now requires the explicit 18-workload result set, rejects

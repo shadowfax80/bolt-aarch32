@@ -1,0 +1,175 @@
+{
+  "date": "2026-10-01",
+  "parent_revision": "81dc58a",
+  "host_execution_gate_tests": 13,
+  "input_function_count": 417,
+  "emitted_count": 411,
+  "not_emitted": [
+    "arm_mmu_early_init",
+    "bolt_bench_icf_b",
+    "memmove",
+    "strnicmp",
+    "target_early_init",
+    "target_init",
+    "vmm_init"
+  ],
+  "redirected": [
+    {
+      "name": "bolt_bench_far_call",
+      "input": 2147526598,
+      "output": 2148370944,
+      "output_size": 40,
+      "thumb": true,
+      "branch_hex": "cef01bb9"
+    },
+    {
+      "name": "bolt_bench_it_cond",
+      "input": 2147526638,
+      "output": 2148371008,
+      "output_size": 90,
+      "thumb": true,
+      "branch_hex": "cef027b9"
+    },
+    {
+      "name": "bolt_bench_interwork",
+      "input": 2147526744,
+      "output": 2148371136,
+      "output_size": 128,
+      "thumb": false,
+      "branch_hex": "983803ea"
+    },
+    {
+      "name": "bolt_bench_memcpy",
+      "input": 2147527220,
+      "output": 2148371648,
+      "output_size": 220,
+      "thumb": true,
+      "branch_hex": "cef044b9"
+    }
+  ],
+  "restored_sections": [
+    ".bolt.org.text",
+    ".data",
+    ".rodata",
+    "lk_init",
+    "commands",
+    "apps",
+    ".ctors"
+  ],
+  "bolt_options": [
+    "--no-huge-pages",
+    "-lite=0",
+    "-reorder-blocks=ext-tsp",
+    "-reorder-functions=hfsort+",
+    "-icf=all"
+  ],
+  "tool_sha256": {
+    "llvm-bolt": "3cb5a61acacd74a9344f8c9c2545a6a8a3f650a3e78e67870f86a2b3ffd88b65",
+    "llvm-objcopy": "f80e39c3121994c8b5baf3b9c2e586d4ffcd8da332e6c2c51b9f86fb482207de",
+    "llvm-readelf": "34ffb11d9ed81366c93817f462483e1d76b341c90d35f85895d5b768b0b974ac"
+  },
+  "patch_sha256": {
+    "0001-emit-bolt-instr-tables-on-elf.patch": "49269895b37e21ee39d410a2717417b08bddb42974b5e99fba87636e227de16f",
+    "0002-tolerate-secondary-entrypoint-outside-code-section.patch": "2460f45fbe39ad520a591d37edf5925e74d7acc2e107e399ad87607e4dfab41d",
+    "0003-bolt-arm-elf32-and-target.patch": "cb2ed805a49b73c6122d4c6c0481c9703009689fa8873c4c3a06632af354d2f5",
+    "0004-bolt-arm-mcplusbuilder.patch": "d2025105313fefb9c7e304a6dda4df227e483cd4be93ab55902451949932bbb0",
+    "0005-bolt-arm-relocations.patch": "27b15ca9aaf28792ba9b98aaaf2edacc3f46a1e4730deee882e40a4698fe2800",
+    "0006-bolt-arm-rewrite-dispatch.patch": "825de9a51c22543e9c7d9a0cee01a526b4c5fb7e0d1b6b6be9171cea1287dba3",
+    "0007-bolt-arm-lit-tests.patch": "ae0e05384a0d24f6475f425f5cfb90fca98ca94c53d8d0487a151045b70c3d5a",
+    "0008-jitlink-arm-generic-archkind.patch": "7a30ef8fec31cda68bb63e128edecd75eb3bc0aad4141d0a2267e9e5abe3d8ff",
+    "0009-bolt-arm-longjmp-veneers.patch": "2950d0d2dddf856a83d84f45029f8c769b9832cdf10f99f486d50e7f12e7e379",
+    "0010-bolt-arm-instrumentation.patch": "1acf956dab22a687c2d53e1f0e6c49a439309957986644e8325234acb1b067a4",
+    "0011-bolt-arm-reverse-cbz.patch": "ddad8f56439d393eeb5ede2a158e3967540480be99f15425b6a64473caf7db15",
+    "0012-jitlink-arm-thumb-stub-alignment.patch": "15494da3e1e735474b84b39664b3acbadd9cdcc49b34f0a324372852fe6f267d",
+    "0013-bolt-emit-function-map.patch": "99d3c782f692bff0cfb4580d94c549e20ce664aa68eef6762cb5a2ca9282f397",
+    "0014-bolt-arm-literal-loads.patch": "8861406e0bfbd6bb6747adec762b22a85c5dfe87726c5dd4623a0d21acad1da8",
+    "0015-bolt-arm-unwind-rejection.patch": "ade687b385030923f6870345bfb287df44ff8e551749e6366b564383eee8ce54",
+    "0016-bolt-arm-data-fixup-width.patch": "2751b9ac14c11453f4f0cfe90477c157aba202280bac6b18103a6affda4dc568",
+    "0017-jitlink-arm-blx-stub-link.patch": "e50459022d2bf599c619c57ebca46035989cae1c1c5a912e617ca19a0c6b358a",
+    "0018-bolt-arm-pop-terminators.patch": "01722cd389cd657c60045bea3b7ded528e57343444aa58cc75602aee378cf6de",
+    "0019-deterministic-arm-stubs-and-alignment.patch": "179e2642d141217d73ab34a2170a59cdc868de47fb54f7d73afa4de77af530ec",
+    "0020-preserve-flags-in-cbz-long-branches.patch": "9b0923d9d680d3e8453fb755166809db921262ca32fdca577d26dc456b19c315",
+    "0021-preserve-thumb-entry-and-symbol-state.patch": "faaac1ec8a3b0a46fd1808a311b800500b60003175dcbe8d7c9950669f116ae2",
+    "0022-bolt-arm-thumb-jump19-split-functions.patch": "8d51bf51f92eaadb5b23e701c77179a65b17b68ca4705d3c898f96cc252958cd",
+    "0023-bolt-arm-generic-passes.patch": "cc93b6883bab0531ff041d43473128b16b4bb6ca70654c29496a3f0b48801806",
+    "0024-bolt-arm-inline-switch-tables.patch": "b1856915369978bf779613bab9ba40753cc39e52edf2258c55ef0cdf3d61d3a1"
+  },
+  "artifact_hashes": {
+    "input_sha256": "424606a869c34b5be5f3c97f66a9cec8ea16844ac788c14c77839edcfef2459b",
+    "baseline_binary_sha256": "ee9982ba422fa5e40854f0c21c298b20c4be02eb349413eefe7fdcf53bedd612",
+    "elf_sha256": "6a868a3845f524879889c3e4f4e955980dbf8534016372d4520cd843a5e31401",
+    "binary_sha256": "bddf93cfd11bd4080d5137e1b6d9074b3e1457af551b1bf3c9f819cdf1ada29e",
+    "map_sha256": "af8e8e3e791a102503f976a249595bf2bc5f6722d88ed80728d656a9b0987d02"
+  },
+  "sample_buffer": {
+    "address": 2147754224,
+    "size": 524288
+  },
+  "verification": {
+    "schema": 1,
+    "execution_verified": true,
+    "verified_at": "2026-10-01T08:29:33.173662+00:00",
+    "scope": "required redirected functions only; emitted functions are not execution coverage",
+    "manifest_sha256": "2589f903f13895960e779e15da1c3c07139b1c970c2b46e1a72ced407856f4b1",
+    "baseline_log_sha256": "6d2f6f9832d7f76c3c42fb924673b9ffd021f79c53262c97b82d1285685f2daf",
+    "candidate_log_sha256": "d684cb71ef693fa303cacd6df45894ba49906e0436fdfb26160ba42ba04dd284",
+    "workload_results": {
+      "hot_loop": "0x6a4ae6e0",
+      "hot_cold": "0x00000000",
+      "branch_chain": "0x007a5100",
+      "memcpy": "0x5acd3dc5",
+      "far_call": "0xb7082fa9",
+      "it_cond": "0x021e8480",
+      "interwork": "0x2fb21555",
+      "switch": "0xa953bbf0",
+      "spill_ret": "0x504980a0",
+      "litpool": "0x16b596e0",
+      "indirect_call": "0x0e6aac80",
+      "interwork_tail": "0xda3416f0",
+      "regpressure": "0xc5da3550",
+      "hotcold_split": "0xd4751003",
+      "icf": "0xdc7c3be0",
+      "shrinkwrap": "0x6a1b87d4",
+      "composite": "0x939f4ea0",
+      "stair": "0x9fef2a18"
+    },
+    "sampling_period": 20000,
+    "workload_repetitions": 10,
+    "kept_samples": 33848,
+    "taken_samples": 33848,
+    "redirected_coverage": [
+      {
+        "name": "bolt_bench_far_call",
+        "pc_samples": 0,
+        "execution_observed": false,
+        "required": false
+      },
+      {
+        "name": "bolt_bench_it_cond",
+        "pc_samples": 2506,
+        "execution_observed": true,
+        "required": true
+      },
+      {
+        "name": "bolt_bench_interwork",
+        "pc_samples": 27,
+        "execution_observed": true,
+        "required": true
+      },
+      {
+        "name": "bolt_bench_memcpy",
+        "pc_samples": 16,
+        "execution_observed": true,
+        "required": true
+      }
+    ],
+    "required_executed": [
+      "bolt_bench_it_cond",
+      "bolt_bench_interwork",
+      "bolt_bench_memcpy"
+    ],
+    "sampled_pc_sha256": "9932caab4365df561ee16378826f60723075f24c80190c8689c96bbb51adb428"
+  },
+  "failed_first_attempt": "One repetition matched all outputs but had no interworking PC sample; gate correctly failed.",
+  "remaining_scope": "Not every emitted function executed; full-image scope is emitted coverage plus explicit redirects and required sampled bodies. All other optimization gates, profile identity, graph consistency and clean replay remain open."
+}

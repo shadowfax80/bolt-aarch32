@@ -39,7 +39,9 @@ usage: redirect-bolt-entries.py <bolt.elf> --original <input.elf>
 from __future__ import annotations
 
 import argparse
+import hashlib
 import importlib.util
+import json
 import os
 import re
 import subprocess
@@ -89,6 +91,8 @@ def read_map(path: str) -> dict[str, tuple[int, int, int]]:
                 raise SystemExit(f"{path}:{n}: expected '<name> <in> <out> <size>', got {line!r}")
             name = parts[0]
             in_addr, out_addr, size = (int(x, 16) for x in parts[1:])
+            if not (0 <= in_addr <= 0xffffffff and 0 <= out_addr <= 0xffffffff and size > 0):
+                raise SystemExit(f"{path}:{n}: invalid AArch32 function range")
             if name in entries:
                 raise SystemExit(f"{path}:{n}: function {name} listed twice")
             entries[name] = (in_addr & ~1, out_addr & ~1, size)
@@ -103,6 +107,56 @@ def symbol_name(bolt_name: str) -> str:
 
 def branch_bytes(thumb: bool, pc: int, target: int) -> bytes:
     return fix.encode_thumb_bw(pc, target) if thumb else fix.encode_arm_b(pc, target)
+
+
+def select_entries(entries, requested, allow_missing=False):
+    if requested is None:
+        if not entries:
+            raise SystemExit('BOLT function map is empty')
+        return entries.copy()
+    wanted = requested.split(',')
+    if not all(wanted) or len(set(wanted)) != len(wanted):
+        raise SystemExit('--func must name distinct, nonempty functions')
+    missing = set(wanted) - entries.keys()
+    if missing and not allow_missing:
+        raise SystemExit('BOLT did not emit: ' + ', '.join(sorted(missing)))
+    # An empty explicit selection must never redirect the entire map.
+    selected = {name: entries[name] for name in wanted if name in entries}
+    if not selected:
+        raise SystemExit('none of the explicitly selected functions were emitted')
+    return selected
+
+
+def function_symbols(readelf, elf):
+    """Use ELF STT_FUNC's Thumb bit; nm intentionally strips that bit."""
+    text = subprocess.run([readelf, '--symbols', '--wide', elf], check=True,
+                          capture_output=True, text=True).stdout
+    result = {}
+    for line in text.splitlines():
+        parts = line.split()
+        if len(parts) < 8 or parts[3] != 'FUNC' or parts[6] == 'UND':
+            continue
+        value, size = int(parts[1], 16), int(parts[2], 0)
+        result.setdefault(parts[7], []).append((value & ~1, size, bool(value & 1)))
+    return result
+
+
+def bounded_offset(section, address, length, file_size):
+    base, offset, size = section
+    if length <= 0 or not base <= address or address + length > base + size:
+        raise SystemExit(f'range 0x{address:x}+{length} is outside its section')
+    position = offset + address - base
+    if position < 0 or position + length > file_size:
+        raise SystemExit('redirect range is outside ELF file bytes')
+    return position
+
+
+def sha256(path):
+    digest = hashlib.sha256()
+    with open(path, 'rb') as stream:
+        for chunk in iter(lambda: stream.read(1024 * 1024), b''):
+            digest.update(chunk)
+    return digest.hexdigest()
 
 
 def main() -> int:
@@ -121,9 +175,14 @@ def main() -> int:
                          "code outside the rewritten set keeps calling the original copy)")
     ap.add_argument("--allow-missing", action="store_true",
                     help="tolerate --func names BOLT did not emit (e.g. folded by -icf)")
+    ap.add_argument("--select-emitted", action="store_true",
+                    help="with --func, explicitly leave other emitted functions unredirected")
+    ap.add_argument("--report", help="write hashes and emitted/redirected coverage as JSON")
     args = ap.parse_args()
     if not args.map and not args.func:
         ap.error("need --map FILE and/or --func NAME")
+    if args.select_emitted and (not args.map or not args.func):
+        ap.error("--select-emitted requires --map and --func")
 
     readelf = os.path.join(args.toolchain, "llvm-readelf")
     nm = os.path.join(args.toolchain, "llvm-nm")
@@ -137,28 +196,17 @@ def main() -> int:
 
     # name -> (original entry, new entry)
     plan: dict[str, tuple[int, int]] = {}
+    entries = {}
     if args.map:
         entries = read_map(args.map)
-        wanted = [f for f in (args.func or "").split(",") if f]
-        for f in list(wanted):
-            if f not in entries and args.allow_missing:
-                # e.g. folded into an identical function by -icf: rewritten callers use
-                # the kept copy, old callers keep the original.
-                print(f"note: BOLT did not emit {f}; leaving its original entry alone")
-                wanted.remove(f)
-            elif f not in entries:
-                raise SystemExit(
-                    f"{args.map}: BOLT did not emit {f} (emitted: {', '.join(sorted(entries)) or 'none'})"
-                )
-        if wanted:
+        selected = select_entries(entries, args.func, args.allow_missing)
+        if args.func and not args.select_emitted:
             allowed = {f for f in args.also_rewritten.split(",") if f}
-            extra = sorted(set(entries) - set(wanted) - allowed)
+            extra = sorted(set(entries) - set(selected) - allowed)
             if extra:
                 raise SystemExit(f"{args.map}: BOLT also rewrote {', '.join(extra)}; not in --func")
         orig_syms = nm_symbols(nm, args.original)
-        for name, (in_addr, out_addr, _size) in entries.items():
-            if wanted and name not in wanted:
-                continue
+        for name, (in_addr, out_addr, _size) in selected.items():
             # The map's input address is authoritative; the symbol only has to agree.
             sym = symbol_name(name)
             if sym in orig_syms and orig_syms[sym][0] != in_addr:
@@ -173,6 +221,13 @@ def main() -> int:
 
     with open(args.elf, "rb") as fh:
         data = bytearray(fh.read())
+    with open(args.original, "rb") as fh:
+        original_data = fh.read()
+    original_secs = fix.sections(readelf, args.original)
+    input_functions = function_symbols(readelf, args.original)
+    output_functions = function_symbols(readelf, args.elf)
+    records = []
+    patched_ranges = []
 
     orig_syms = nm_symbols(nm, args.original)
     for name, (orig_entry, new_entry) in sorted(plan.items(), key=lambda kv: kv[1][0]):
@@ -181,7 +236,15 @@ def main() -> int:
             # Guessing the instruction set would write a Thumb B.W into ARM code (or
             # the reverse) -- an undefined instruction the first time it runs.
             raise SystemExit(f"{name}: no symbol {sym} in {args.original}; cannot tell ARM from Thumb")
-        thumb = fix.is_thumb_symbol(nm, args.original, sym)
+        definitions = set(input_functions.get(sym, []))
+        if len(definitions) != 1:
+            raise SystemExit(f"{name}: missing or ambiguous input STT_FUNC symbol")
+        input_address, size, thumb = definitions.pop()
+        if input_address != orig_entry:
+            raise SystemExit(f"{name}: map input does not match its function symbol")
+        output_definitions = set(output_functions.get(sym, []))
+        if (new_entry, thumb) not in {(a, t) for a, _s, t in output_definitions}:
+            raise SystemExit(f"{name}: map destination/mode does not match an output STT_FUNC")
         # BOLT places a rewritten function in .text (hot) or, when it has no profile,
         # entirely in .text.cold; anything else means the map does not match this image.
         if not any(
@@ -191,11 +254,27 @@ def main() -> int:
             raise SystemExit(
                 f"{name}: new entry 0x{new_entry:x} is not in any output .text* section"
             )
-        size = orig_syms[sym][1]
-        if size and size < 4:
+        if size < 4:
             raise SystemExit(f"{name}: only {size} bytes; cannot hold a 4-byte redirect branch")
-        orig_off = org_off + (orig_entry - org_addr)
-        new_off = fix.vaddr_to_offset(secs, new_entry)
+        alignment = 2 if thumb else 4
+        if orig_entry % alignment or new_entry % alignment or orig_entry == new_entry:
+            raise SystemExit(f"{name}: misaligned or unmoved redirect")
+        orig_off = bounded_offset(secs['.bolt.org.text'], orig_entry, 4, len(data))
+        input_off = bounded_offset(original_secs['.text'], orig_entry, 4, len(original_data))
+        output_size = entries[name][2] if args.map else 4
+        if output_size <= 0:
+            raise SystemExit(f"{name}: empty output function")
+        output_section = next((section for section_name, section in secs.items()
+                               if section_name.startswith('.text') and
+                               section[0] <= new_entry < section[0] + section[2]), None)
+        new_off = bounded_offset(output_section, new_entry, max(4, output_size), len(data))
+        if data[orig_off:orig_off + 4] != original_data[input_off:input_off + 4]:
+            raise SystemExit(f"{name}: original entry bytes were not restored correctly")
+        if any(orig_entry < end and start < orig_entry + 4 for start, end in patched_ranges):
+            raise SystemExit(f"{name}: redirect overlaps another entry")
+        if any(orig_entry < a < orig_entry + 4 for definitions in input_functions.values()
+               for a, _s, _t in definitions):
+            raise SystemExit(f"{name}: redirect overwrites a secondary function entry")
         # Sanity: a copy begins like its original (same prologue) unless it is BOLT's
         # instrumented copy, which runs counter code first.
         if not args.instrumented and data[orig_off : orig_off + 4] != data[new_off : new_off + 4]:
@@ -204,11 +283,24 @@ def main() -> int:
                 f"prologue ({bytes(data[new_off:new_off + 4]).hex()} vs "
                 f"{bytes(data[orig_off:orig_off + 4]).hex()}): refusing to redirect"
             )
-        data[orig_off : orig_off + 4] = branch_bytes(thumb, orig_entry, new_entry)
+        branch = branch_bytes(thumb, orig_entry, new_entry)
+        data[orig_off : orig_off + 4] = branch
+        patched_ranges.append((orig_entry, orig_entry + 4))
+        records.append(dict(name=name, input=orig_entry, output=new_entry,
+                            output_size=output_size, thumb=thumb, branch_hex=branch.hex()))
         print(f"redirected {name}: 0x{orig_entry:x} -> {'b.w' if thumb else 'b'} 0x{new_entry:x}")
 
     with open(args.elf, "wb") as fh:
         fh.write(data)
+    if args.report:
+        report = dict(schema=1, input_sha256=sha256(args.original),
+                      elf_sha256=sha256(args.elf), map_sha256=sha256(args.map) if args.map else None,
+                      emitted=[dict(name=n, input=a, output=b, output_size=s)
+                               for n, (a, b, s) in entries.items()],
+                      redirected=records, execution_verified=False)
+        with open(args.report, 'w', encoding='utf-8') as stream:
+            json.dump(report, stream, indent=2)
+            stream.write('\n')
     print(f"{len(plan)} function(s) redirected (new .text is {new_text_size} bytes)")
     return 0
 

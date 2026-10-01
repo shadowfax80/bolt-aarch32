@@ -21,7 +21,7 @@ from completion criteria. Three items are complete within this scope (2, 8, 10).
 | 9 | Entry points and symbols | Partial | Entry, split symbols, mapping and mixed-ISA marking improved; aliases, skipped functions, secondary entries, pointer targets and redirects remain |
 | 10 | Deterministic stubs | Complete | Stable visitation and layout, mixed-stub alignment fixed; repeated links and Pi checks passed |
 | 11 | Rewrite coverage | Partial | TBB/TBH and generic passes implemented; full-image emitted coverage is not execution proof; table/pass boundaries and excluded ELF constructs remain |
-| 12 | Verification and artifact integrity | Partial | Complete-result gate, truncated-input rejection and four independent Pi workload results fixed; full-image execution gate, broader inputs, graph consistency, artifact identity and clean replay remain |
+| 12 | Verification and artifact integrity | Partial | Full-image gate now requires exact artifacts and sampled rewritten execution; profile binding, graph checks, other gates, broader inputs and clean replay remain |
 
 Hardware takes priority for execution verification; QEMU is a supplemental
 debugging tool. Pi checks use serial reboot where possible. A halted shell may

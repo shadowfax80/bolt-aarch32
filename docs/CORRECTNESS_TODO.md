@@ -208,8 +208,10 @@ rewriting need not be implemented to close an explicitly bounded scope.
   publishing fdata. Byte-range validation alone does not prove a correct profile.
 - [ ] Bind dumps/metadata/maps/profiles to exact images and toolchain/patch digests;
   reject stale or mismatched artifacts.
-- [ ] Require execution/redirection evidence in every optimization gate. The
-  new full-image gate also restores original sections and entry without redirection.
+- [x] Correct the full-image path: explicit redirects, strict section restoration,
+  artifact hashes, decoded branch checks and required rewritten PC evidence on Pi.
+- [ ] Require execution/redirection evidence in every other optimization gate.
+  Full-image verification certifies only its explicitly required rewritten bodies.
 - [x] Require all 18 named workloads in `passes_check.py`; reject missing/extra
   results, conflicting duplicates, reported workload failures and nonzero child exits.
 - [x] Add independent memcpy/far_call/it_cond/interwork results. On Pi, all 18
