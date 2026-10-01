@@ -11,7 +11,7 @@ host tests check encodings/diagnostics and QEMU is supplemental.
 
 ## Recommended order
 
-1. #9 Thumb ELF entry translation, then the remaining #4 conditional-return/PC-load cases.
+1. Finish #9 symbol and mapping coverage, then the remaining #4 conditional-return/PC-load cases.
 2. #12 profile validation and proof that selected rewritten code executes.
 3. #1 relocation contract, then #3 pseudo/CFG invariants.
 4. #5 instrumentation semantics and #6 enforced operating scope.
@@ -138,14 +138,15 @@ obey the documented contract. Broader ISA support remains deferred.
 Keep MC/metadata regressions. This does not close counter carry (#5) or other
 relocations (#1).
 
-## 9. Entry points, mapping symbols and preserved functions — open, P0
+## 9. Entry points, mapping symbols and preserved functions — partial, P0
 
-- [ ] **Fix odd Thumb `e_entry`:** normalize lookup addresses and preserve execution
-  state in the output entry. A valid Thumb-entry fixture currently asserts.
-- [ ] Emit `$a/$t/$d` at byte addresses; appropriate Thumb function symbols carry
-  the state bit. Review reproduced `$t=0x22009` for code beginning at `0x22008`.
+- [x] **Fix odd Thumb `e_entry`:** normalize the ARM function lookup and preserve
+  the Thumb state bit in the moved entry. The previously asserting fixture passes.
+- [x] Keep a moved `$t` at its even byte address and carry the Thumb state bit
+  on moved `STT_FUNC` symbols. Preserve marker size zero.
 - [ ] Preserve moved/skipped function symbols, aliases, sizes, secondary entries
-  and pointer targets. Review reproduced a missing moved `probe` symbol.
+  and pointer targets. The missing moved `probe` symbol is fixed in the fixture;
+  the other cases still need regression coverage.
 - [ ] Test code/data transitions, literals, mixed modes, missing mapping symbols,
   function pointers and disassembler interpretation.
 - [ ] Harden redirect maps: exact input matching, source/destination bounds, ISA

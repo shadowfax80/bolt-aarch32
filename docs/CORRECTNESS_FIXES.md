@@ -1,5 +1,22 @@
 # Correctness fixes
 
+## Thumb entry and moved symbols (2026-10-01)
+
+ATFE overlay 0021 normalizes the Thumb state bit before looking up ARM function
+addresses and retains it in a moved ELF entry. Moved Thumb `STT_FUNC` symbols
+now resolve to their rewritten functions, while `$t` mapping symbols retain even
+byte addresses and zero size. The valid Thumb-entry fixture that previously
+asserted now emits `e_entry=0x22001`, moved `_start`, `probe` and `probe_nz`
+symbols, and `$t=0x22000`.
+
+Validation: assertions-enabled ATFE rebuild; 32/32 focused BOLT ARM and JITLink
+AArch32 tests; full QEMU-LK image emission. A rebuilt Pi image redirected
+`app_start_by_name` and `strtoul`; original and rewritten images booted and
+completed seven benchmark commands with matching shared-result dumps. That Pi
+image has an ARM entry, so hardware did not execute the synthetic odd-entry
+fixture. Aliases, skipped functions, code/data transitions and pointer targets
+remain open under item #9. Patch reverse-apply check passed against live ATFE.
+
 ## CBZ/CBNZ flags and long-range branches (2026-10-01)
 
 ATFE overlay 0020 replaces the Thumb compare-and-branch expansion that used

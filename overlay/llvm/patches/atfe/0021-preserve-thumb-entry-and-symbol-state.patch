@@ -1,0 +1,135 @@
+--- a/bolt/lib/Rewrite/RewriteInstance.cpp
++++ b/bolt/lib/Rewrite/RewriteInstance.cpp
+@@ -5898,8 +5898,13 @@
+     if (!IsDynSym && shouldStrip(Symbol))
+       continue;
+ 
++    // The low bit of an ARM STT_FUNC value records Thumb state, not address.
++    const uint64_t SymbolAddress =
++        BC->isARM() && Symbol.getType() == ELF::STT_FUNC
++            ? Symbol.st_value & ~uint64_t(1)
++            : Symbol.st_value;
+     const BinaryFunction *Function =
+-        BC->getBinaryFunctionAtAddress(Symbol.st_value);
++        BC->getBinaryFunctionAtAddress(SymbolAddress);
+     // In relocation mode, if this is a folded function, use the parent function
+     // instead so that the symbol gets updated to the parent's output address.
+     // In non-relocation mode, folded functions are emitted at their original
+@@ -5965,16 +5970,17 @@
+       if (Function->isEmitted()) {
+         // Thumb LSB in st_value
+         NewSymbol.st_value = Function->getOutputAddress();
+-        if (Function->isARMThumb())
++        if (Function->isARMThumb() && Symbol.getType() == ELF::STT_FUNC)
+           NewSymbol.st_value |= 1;
+-        NewSymbol.st_size = Function->getOutputSize();
++        if (Symbol.getType() == ELF::STT_FUNC)
++          NewSymbol.st_size = Function->getOutputSize();
+         NewSymbol.st_shndx = Function->getCodeSection()->getIndex();
+       } else if (Symbol.st_shndx < ELF::SHN_LORESERVE) {
+         NewSymbol.st_shndx = getNewSectionIndex(Symbol.st_shndx);
+       }
+ 
+       // Add new symbols to the symbol table if necessary.
+-      if (!IsDynSym)
++      if (!IsDynSym && Symbol.getType() == ELF::STT_FUNC)
+         addExtraSymbols(*Function, NewSymbol);
+     } else {
+       // Check if the function symbol matches address inside a function, i.e.
+@@ -5992,7 +5998,7 @@
+                                 Symbol.st_size == 0 && !IsMarkerSymbol();
+       Function =
+           (Symbol.getType() == ELF::STT_FUNC || IsLocalLabel)
+-              ? BC->getBinaryFunctionContainingAddress(Symbol.st_value,
++              ? BC->getBinaryFunctionContainingAddress(SymbolAddress,
+                                                        /*CheckPastEnd=*/false,
+                                                        /*UseMaxSize=*/true)
+               : nullptr;
+@@ -6002,7 +6008,7 @@
+ 
+       if (Function && Function->isEmitted()) {
+         const uint64_t OutputAddress =
+-            Function->translateInputToOutputAddress(Symbol.st_value);
++            Function->translateInputToOutputAddress(SymbolAddress);
+ 
+         // Remove symbols that cannot be mapped to the output, e.g.
+         // data-in-code labels (jump tables) whose addresses BOLT
+@@ -6011,7 +6017,7 @@
+           continue;
+ 
+         NewSymbol.st_value = OutputAddress;
+-        if (Function->isARMThumb())
++        if (Function->isARMThumb() && Symbol.getType() == ELF::STT_FUNC)
+           NewSymbol.st_value |= 1;
+         // Force secondary entry points to have zero size.
+         NewSymbol.st_size = 0;
+@@ -6750,7 +6756,10 @@
+ }
+ 
+ uint64_t RewriteInstance::getNewFunctionAddress(uint64_t OldAddress) {
+-  const BinaryFunction *Function = BC->getBinaryFunctionAtAddress(OldAddress);
++  // ARM uses bit zero of a function pointer (including e_entry) for Thumb state.
++  const uint64_t ThumbBit = BC->isARM() ? OldAddress & 1 : 0;
++  const BinaryFunction *Function =
++      BC->getBinaryFunctionAtAddress(OldAddress & ~ThumbBit);
+   if (!Function)
+     return 0;
+ 
+@@ -6759,7 +6768,7 @@
+   if (Function->isFolded())
+     Function = Function->getFoldedIntoFunction();
+ 
+-  return Function->getOutputAddress();
++  return Function->getOutputAddress() | ThumbBit;
+ }
+ 
+ uint64_t RewriteInstance::getNewFunctionOrDataAddress(uint64_t OldAddress) {
+--- a/bolt/test/ARM/arm-thumb-entry.test
++++ b/bolt/test/ARM/arm-thumb-entry.test
+@@ -0,0 +1,6 @@
++## A Thumb entry and STT_FUNC values use bit zero for ISA state. Mapping symbols
++## use the actual even code address after a function moves.
++RUN: llvm-mc -triple=thumbv7-none-eabi -filetype=obj -defsym THUMB_ENTRY=1 %p/Inputs/arm32-cbz-flags.s -o %t.o
++RUN: ld.lld --emit-relocs -T %p/Inputs/arm32-cbz-flags.ld %t.o -o %t.exe
++RUN: llvm-bolt %t.exe -o %t.bolt --no-huge-pages --emit-function-map=%t.map
++RUN: %python %p/Inputs/check-thumb-entry.py llvm-readelf %t.bolt %t.map
+--- a/bolt/test/ARM/Inputs/check-thumb-entry.py
++++ b/bolt/test/ARM/Inputs/check-thumb-entry.py
+@@ -0,0 +1,37 @@
++#!/usr/bin/env python3
++"""Check moved ARM/Thumb entry, function symbols, and mapping symbols."""
++
++import re
++import subprocess
++import sys
++
++
++readelf, binary, function_map = sys.argv[1:]
++header = subprocess.check_output([readelf, '-h', binary], text=True)
++symbols = subprocess.check_output([readelf, '-s', binary], text=True)
++mapping = {}
++with open(function_map, encoding='utf-8') as stream:
++    for line in stream:
++        name, old, new, size = line.split()
++        mapping[name] = (int(old, 16), int(new, 16), int(size, 16))
++
++entry_match = re.search(r'Entry point address:\s+0x([0-9a-f]+)', header)
++assert entry_match, header
++entry = int(entry_match.group(1), 16)
++assert entry == mapping['_start'][1] | 1, (entry, mapping['_start'])
++assert mapping['_start'][0] != mapping['_start'][1], mapping['_start']
++
++found = {}
++for line in symbols.splitlines():
++    match = re.match(r'\s*\d+:\s+([0-9a-f]+)\s+(\d+)\s+(\w+)\s+(\w+)\s+\w+\s+\w+\s+(\S+)', line)
++    if match:
++        value, size, kind, binding, name = match.groups()
++        found[name] = (int(value, 16), int(size), kind, binding)
++
++for name in ('_start', 'probe', 'probe_nz'):
++    old, new, size = mapping[name]
++    assert old != new, (name, mapping[name])
++    assert found[name] == (new | 1, size, 'FUNC', 'GLOBAL'), (name, found.get(name), mapping[name])
++
++assert found['$t'][0] == mapping['_start'][1], (found['$t'], mapping['_start'])
++assert found['$t'][1] == 0 and found['$t'][2] == 'NOTYPE', found['$t']
