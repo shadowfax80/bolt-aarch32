@@ -2,6 +2,25 @@
 
 ## Active implementation after review
 
+User explicitly paused item #12 on 2026-10-02 and requested moving to the next
+items. #5 is now active. Overlay 0026 fixes full-width carry and restores flags
+as well as IRQ state; R0-R3 use a 16-byte frame. 38/38 focused host tests pass,
+including independent ARM/Thumb assembly-byte checks. Pi baseline/zero/seeded
+images match all 18 outputs and all eight counters satisfy seed plus measured
+count. Metadata attributes overflow slots to Thumb IT (index 1, 999999) and
+ARM interwork (index 4, 9999). Evidence: counter-carry-pi/pi-verify-sj3t6e_m and
+docs/results/correctness_counter_carry_20261002.json. Source preimages are in
+instrumentation-audit/source and counter-carry-fix/before.cpp; zero-run snippets
+before the fix are preserved in counter-carry-before. The dirty LK source was
+not changed; hardware images derive from the existing independent baseline ELF.
+Next add dedicated registers/NZCV/IRQ-state cases in both modes, then IT and
+exact-count coverage. Continue #6, #3, #4, #1, #9, #7 and #11 before
+returning to #12. This supersedes the older instruction to finish #12 first.
+Verified #12 work is pushed as 43c9e16. The unfinished content-state prototype is
+saved in out/correctness/atfe-content-stamp-wip.py and .patch; it is untested,
+not installed in WSL and not committed. The tracked verifier was restored to
+the pushed version. Preserve this checkpoint for #12 resumption.
+
 Latest work: overlay 0025 exports the four unrecorded ARM attribute/kept-code
 changes and fixes the kept A32 write/rejection boundary. Source preimages are
 preserved in out/correctness/kept-arm-fix/before*, and the original audit diff

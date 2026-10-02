@@ -1,0 +1,152 @@
+{
+  "schema": 1,
+  "date": "2026-10-02",
+  "parent_revision": "43c9e16",
+  "overlay": "0026-bolt-arm-full-width-counters.patch",
+  "patch_sha256": "52743dc6e4a099df4b6a107537ae18807e3f9ca1ff068c1b715eebe6519c468e",
+  "source_change": {
+    "path": "bolt/lib/Target/ARM/ARMMCPlusBuilder.cpp",
+    "before_sha256": "cb5b6a97daf88da3d47cc892d4bbdb025ab36b8c9d973a4cdfbe81ce5c8efbaa",
+    "after_sha256": "fef3a07f146f210c29e698bb8c72136a42beb2b53fd0ef7773896d6bcf718cf9"
+  },
+  "focused_host_tests": 38,
+  "host_log_sha256": "3055d9e2a7984d17ce12385f7d655eee4f2b31b60a918a36ebe674c3f553f3f2",
+  "build": {
+    "schema": 1,
+    "kind": "pi-counter-carry",
+    "counter_address": 2148368384,
+    "counter_count": 8,
+    "seed": 34359738352,
+    "selected_functions": [
+      "bolt_bench_it_cond",
+      "bolt_bench_interwork"
+    ],
+    "redirects": [
+      {
+        "name": "bolt_bench_it_cond",
+        "input": 2147526638,
+        "output": 2148360192,
+        "output_size": 328,
+        "thumb": true,
+        "branch_hex": "cbf007bc"
+      },
+      {
+        "name": "bolt_bench_interwork",
+        "input": 2147526744,
+        "output": 2148360520,
+        "output_size": 556,
+        "thumb": false,
+        "branch_hex": "3a2e03ea"
+      }
+    ],
+    "tools": {
+      "llvm-bolt": "21035df46cec676857e160cd248c33a45e3567ca639fa4006e1599fd260a10d8",
+      "llvm-objcopy": "f80e39c3121994c8b5baf3b9c2e586d4ffcd8da332e6c2c51b9f86fb482207de"
+    },
+    "runtime_sha256": "eceba9ea9fcfbda21c13e97c78f9b1795a5051223d4bad07666ee2aea431b24d",
+    "files": {
+      "baseline.elf": "424606a869c34b5be5f3c97f66a9cec8ea16844ac788c14c77839edcfef2459b",
+      "baseline.bin": "ee9982ba422fa5e40854f0c21c298b20c4be02eb349413eefe7fdcf53bedd612",
+      "zero.elf": "1082efaa5051fff1588d8dc0181dd40aeca5a95cedf9329385f652683404007f",
+      "zero.bin": "1838348cd3b9243a507d37fce229572a98223c210673ee84be16a1c9ed922684",
+      "seeded.elf": "8cd5b9cb637d0a457514fdeaaa72bce9dc9a1044c771a0b68fe6f7696b28ef63",
+      "seeded.bin": "d3e5112a8a8c87a1a6c8099eeb85c8ab57e47c92b0395edf985a56015d778d1b",
+      "instrumented.funcmap": "39ff3af7de79165135adfa20772bd309492114d164dfee59f4baf286fbbc5cfa",
+      "redirects.json": "c0596aa90d135ba8d995cfcfa71ae15953510b47202bd5051b6b39302b8a35f0"
+    },
+    "scope": "two selected ARM/Thumb benchmark functions; exact seed-plus-observed-count check, not general instrumentation certification"
+  },
+  "per_function": {
+    "bolt_bench_it_cond": {
+      "counter_indices": [
+        0,
+        1,
+        2
+      ],
+      "zero_counts": [
+        1,
+        999999,
+        1
+      ],
+      "wrapped_indices": [
+        1
+      ]
+    },
+    "bolt_bench_interwork": {
+      "counter_indices": [
+        3,
+        4,
+        5,
+        6,
+        7
+      ],
+      "zero_counts": [
+        1,
+        9999,
+        1,
+        1,
+        0
+      ],
+      "wrapped_indices": [
+        4
+      ]
+    }
+  },
+  "verification": {
+    "schema": 1,
+    "verified": true,
+    "scope": "two selected ARM/Thumb benchmark functions; exact seed-plus-observed-count check, not general instrumentation certification",
+    "workload_results": {
+      "hot_loop": "0x6a4ae6e0",
+      "hot_cold": "0x00000000",
+      "branch_chain": "0x007a5100",
+      "memcpy": "0x5acd3dc5",
+      "far_call": "0xb7082fa9",
+      "it_cond": "0x021e8480",
+      "interwork": "0x2fb21555",
+      "switch": "0xa953bbf0",
+      "spill_ret": "0x504980a0",
+      "litpool": "0x16b596e0",
+      "indirect_call": "0x0e6aac80",
+      "interwork_tail": "0xda3416f0",
+      "regpressure": "0xc5da3550",
+      "hotcold_split": "0xd4751003",
+      "icf": "0xdc7c3be0",
+      "shrinkwrap": "0x6a1b87d4",
+      "composite": "0x939f4ea0",
+      "stair": "0x9fef2a18"
+    },
+    "zero_counts": [
+      1,
+      999999,
+      1,
+      1,
+      9999,
+      1,
+      1,
+      0
+    ],
+    "seed": 34359738352,
+    "seeded_counts": [
+      34359738353,
+      34360738351,
+      34359738353,
+      34359738353,
+      34359748351,
+      34359738353,
+      34359738353,
+      34359738352
+    ],
+    "wrapped_counter_indices": [
+      1,
+      4
+    ],
+    "build_manifest_sha256": "3f9880cc82fdbe2210174f605115ea0e5eea57ece0135bfdbd778fa78341e567",
+    "log_sha256": {
+      "baseline": "0c4b3db5bb7b85d4710484fab8b162857af31784c815bbb78b7fa8ecc38d7874",
+      "zero": "e05c1c9b74356bfc72620bd04afce4dc8529fd307167e9c34e064634d06ae8eb",
+      "seeded": "17e05423a70f0dcd01e42752e4c4e9ea01ea919fcf223bed675af6b919bc54dc"
+    }
+  },
+  "limitations": "Selected ARM/Thumb workload paths only. Dedicated register/NZCV/IRQ-state cases, IT-mask combinations, FIQ/reentrancy/SMP enforcement and wider exact CFG counts remain open. #12 is paused by user."
+}

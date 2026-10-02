@@ -11,13 +11,15 @@ host tests check encodings/diagnostics and QEMU is supplemental.
 
 ## Recommended order
 
-1. #12: prove rewritten execution; require complete independent workload results;
-   reject truncated/stale counter and sampling profiles.
-2. #5 counter carry/registers/flags/IT and #6 enforced instrumentation scope.
-3. #3 assertions-on/off CFG invariants and #4 conditional returns/PC writes/pass safety.
-4. #1 relocation boundaries, then #9 aliases, secondary entries and pointer targets.
-5. #7 ISA/ABI admission and #11 inline-table/pass/unsupported-input coverage.
-6. #12 clean overlay replay and the complete Pi validation matrix.
+User revised the order on 2026-10-02: pause #12 and return to it after the next
+correctness items. Its remaining validation gaps still limit completion claims.
+
+1. **#5 active:** counter carry/registers/flags/IT; then #6 enforced instrumentation scope.
+2. #3 assertions-on/off CFG invariants and #4 conditional returns/PC writes/pass safety.
+3. #1 relocation boundaries, then #9 aliases, secondary entries and pointer targets.
+4. #7 ISA/ABI admission and #11 inline-table/pass/unsupported-input coverage.
+5. **#12 paused by user:** resume counter binding, core ownership, other gates,
+   content stamps/clean provenance and the complete Pi validation matrix afterward.
 
 Keep #2/#8/#10 regressions green throughout. P0 means a confirmed semantic defect
 or a validation gap that can hide one. P1 means a required boundary or missing
@@ -93,9 +95,12 @@ live flags, return values, LR/SP and fallthrough.
 ## 5. Instrumentation semantics and counts — partial, P0
 
 - [x] Stair edge collection and optimized/no-reorder checksum comparisons on Pi.
-- [ ] **Resolve counter width:** ARM increments offset 0 of an 8-byte slot; runtime
-  and converter use 64-bit counters. Implement carry or enforce a bounded alternative.
-  Seed near `0xffffffff` to test overflow without billions of iterations.
+- [x] **Resolve counter width:** overlay 0026 increments the full 8-byte slot with
+  low-word ADDS/high-word ADC, saves R0-R3 in a 16-byte frame and restores CPSR_fc.
+  Independent ARM/Thumb assembly-byte checks and 38 focused lit tests pass.
+  Pi zero/seeded images match all 18 outputs; seeding `0x00000007fffffff0` proves
+  carry in both Thumb IT and ARM interwork counters. Dedicated state tests below
+  remain open; this does not close #5 or its operating contract under #6.
 - [ ] Verify GPRs, LR/SP, NZCV, interrupt state and required stack alignment across
   insertion, including pre-disabled IRQ state and nested execution.
 - [ ] Preserve IT header/body groups through insertion, edge splitting, reversal

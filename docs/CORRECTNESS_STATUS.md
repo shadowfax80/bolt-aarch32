@@ -14,14 +14,14 @@ from completion criteria. Three items are complete within this scope (2, 8, 10).
 | 2 | EHABI exidx/extab | Complete via rejection | Unsupported unwind information is rejected; full unwind rewriting remains unsupported |
 | 3 | Pseudo/CFG invariants | Partial | ARM B pseudo root cause fixed; debug-only recovery remains and assertions-on/off parity is unverified |
 | 4 | Control flow and return semantics | Partial | CBZ flags, ARM Bcc and tail calls improved; conditional returns, wider PC writes, live flags, IT and inlining boundaries remain |
-| 5 | Instrumentation correctness | Partial validation | Low-word-only counter update confirmed; carry, registers/flags/IT and exact edge counts remain |
+| 5 | Instrumentation correctness | Active, partial | Full-width carry fixed and verified on Pi in ARM/Thumb; next dedicated registers/flags/IRQ/IT and wider exact-count checks |
 | 6 | Instrumentation scope | Open | Enforce privilege/single-core/IRQ-FIQ contract and reject placeholder indirect-call profiling |
 | 7 | ISA/profile/endianness | Pending | Enforce the supported target feature boundary |
 | 8 | FK_Data_8 / ABS32 mismatch | Complete | ATFE host and Pi checks passed; symbolic 64-bit relocations rejected; resolved values and map width corrected |
 | 9 | Entry points and symbols | Partial | Entry, split symbols, mapping and mixed-ISA marking improved; aliases, skipped functions, secondary entries, pointer targets and redirects remain |
 | 10 | Deterministic stubs | Complete | Stable visitation and layout, mixed-stub alignment fixed; repeated links and Pi checks passed |
 | 11 | Rewrite coverage | Partial | TBB/TBH and generic passes implemented; full-image emitted coverage is not execution proof; table/pass boundaries and excluded ELF constructs remain |
-| 12 | Verification and artifact integrity | Partial, active | Bound sampling/execution pass on Pi; overlay 0025 achieves exact source replay; counter binding, core ownership, other gates, broader inputs, content stamps and clean build provenance remain |
+| 12 | Verification and artifact integrity | Paused by user, partial | Verified fixes pushed as 43c9e16; resume counter binding, core ownership, other gates, broader inputs, content stamps and clean provenance after the next items |
 
 Hardware takes priority for execution verification; QEMU is a supplemental
 debugging tool. Pi checks use serial reboot where possible. A halted shell may
@@ -41,6 +41,13 @@ all 18 results, ten repetitions, and sampled execution in the required rewritten
 IT/interworking/memcpy bodies. Far-call remains unobserved. See
 [overlay 0025 evidence](results/correctness_atfe_0025_20261002.json).
 
+Overlay 0026 fixes the low-word-only counter increment. All 38 focused host tests
+pass. On Pi, zero/near-overflow instrumented images preserve all 18 workload
+outputs and all eight slots satisfy seed plus measured count. Counter 1 in Thumb
+IT and counter 4 in ARM interwork cross the 32-bit boundary correctly. Dedicated
+state/IT and scope tests remain open; see
+[counter carry evidence](results/correctness_counter_carry_20261002.json).
+
 Review validation at bbae817: 36/36 focused ARM tests passed. Isolated emission
 confirmed full-image postprocessing restores original code/entry; a partial-result
 Pi gate and truncated-counter converter incorrectly accept their negative fixtures.
@@ -52,8 +59,9 @@ match independent calculations. Checksum-verified PC samples observe rewritten I
 interworking and memcpy (not the brief far-call). This is scoped execution proof,
 not full-image coverage. Manifest: results/correctness_validation_20261001.json.
 Existing hardware reports retain their documented scope.
-Next order: #12 execution/results/profiles, #5/#6 instrumentation, #3/#4 CFG/control
-flow, #1 relocations, #9 symbols and #7/#11 admission/coverage. #2/#8/#10 remain gates.
+User changed the order on 2026-10-02: #5/#6 instrumentation, #3/#4 CFG/control
+flow, #1 relocations, #9 symbols and #7/#11 admission/coverage, then return to #12.
+#12 is paused explicitly; #2/#8/#10 remain regression gates.
 
 The local monitor is started with `python3 scripts/correctness-monitor.py`.
 It refreshes `out/correctness/progress-monitor.json` every 30 seconds. Its log

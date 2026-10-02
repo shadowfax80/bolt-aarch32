@@ -1,0 +1,254 @@
+--- a/bolt/lib/Target/ARM/ARMMCPlusBuilder.cpp
++++ b/bolt/lib/Target/ARM/ARMMCPlusBuilder.cpp
+@@ -1098,56 +1098,18 @@
+     createStackPointerDecrement(Insts.back(), Regs.size() * 4);
+   }
+ 
+-  // The retry loop needs its load instruction labeled so the trailing
+-  // conditional branch can target it on failure; MCInst has no room for a
+-  // label, so the loop is built as its own basic block inside an injected
+-  // helper function (mirrors AArch64MCPlusBuilder's non-LSE
+-  // createInstrCounterIncrFunc). This also keeps createInstrIncMemory's
+-  // return value a flat instruction sequence, since it is spliced inline at
+-  // arbitrary call sites with no CFG of its own.
+-  //
+-  // Operand orders below are verified against `llvm-mc -show-inst` output
+-  // for each opcode, not assumed from other call sites in this file --
+-  // ADDri in particular has its immediate BEFORE the predicate pair, not
+-  // after (confirmed the previous non-atomic version got this backwards in
+-  // the ARM, non-Thumb encoding path; that path was never exercised by any
+-  // test here since all instrumentation testing used the default Thumb LK
+-  // build).
+-  // Bare-metal, single-core (this target is never run SMP) atomic counter
+-  // bump via IRQ masking rather than an ldrex/strex retry loop.
+-  //
+-  // An ldrex/strex loop needs a backward branch, which -- since this
+-  // function's return value is a flat instruction sequence spliced inline
+-  // at an arbitrary point in an existing basic block, not a CFG node of
+-  // its own -- has no instruction-level home for a label to branch back
+-  // to. AArch64MCPlusBuilder's equivalent solves this by building the
+-  // retry loop as a real basic block in a separate injected helper
+-  // function (createInstrCounterIncrFunc), called via BL from here. That
+-  // pattern does not transfer to this target: BOLT-core's
+-  // Instrumentation.cpp calls createInstrCounterIncrFunc() from exactly
+-  // one call site, gated `if (BC.isAArch64())` -- unconditionally false
+-  // for AArch32, so an ARM override of that hook is simply never invoked,
+-  // confirmed via direct instrumentation of a real LK binary (segfaults
+-  // dereferencing a still-null helper-function pointer otherwise; this
+-  // was an earlier version of this fix's own bug, not a hypothetical).
+-  //
+-  // The actual atomicity requirement here is also different from
+-  // AArch64/x86's: this counter is bumped from bare-metal instrumented
+-  // code with no other CPU ever running concurrently (LK is only ever
+-  // built and run here with smp=1) -- ldrex/strex solves multi-core cache
+-  // coherency, which does not apply. The real hazard is an ISR reading or
+-  // writing the same counter while the mainline increment is
+-  // mid-sequence, which CPSID/CPSIE (IRQ masking) around the
+-  // load-modify-store solves directly, with straight-line code and no
+-  // control flow at all. As a further benefit, CPS does not touch NZCV,
+-  // so (unlike CMP+Bcc) it needs no flag save/restore either.
++  // Increment the full little-endian uint64_t slot: ADDS on the low word
++  // followed by ADC on the high word. Save/restore CPSR flags and IRQ state;
++  // four spilled GPRs preserve the incoming stack alignment. This sequence
++  // requires privileged execution. IRQ masking does not serialize other CPUs
++  // or FIQ handlers; the operating contract is enforced separately.
+   InstructionListType createInstrIncMemory(const MCSymbol *Target,
+                                            MCContext *Ctx, bool IsLeaf,
+                                            unsigned CodePointerSize) override {
+     (void)IsLeaf;
+     (void)CodePointerSize;
+     InstructionListType Insts;
+-    spillRegs(Insts, {ARM::R0, ARM::R1, ARM::R2});
++    spillRegs(Insts, {ARM::R0, ARM::R1, ARM::R2, ARM::R3});
+     InstructionListType Addr = materializeAddress(Target, Ctx, ARM::R0);
+     Insts.insert(Insts.end(), Addr.begin(), Addr.end());
+ 
+@@ -1177,14 +1139,17 @@
+ 
+     Insts.emplace_back();
+     loadReg(Insts.back(), ARM::R1, ARM::R0, /*offset=*/0);
++    Insts.emplace_back();
++    loadReg(Insts.back(), ARM::R3, ARM::R0, /*offset=*/4);
+     if (InThumbMode()) {
+-      // t2ADDri12: Rd, Rn, imm12, pred, predreg
+-      Insts.emplace_back(MCInstBuilder(ARM::t2ADDri12)
++      // t2ADDri has a CPSR def operand; t2ADDri12 cannot set carry.
++      Insts.emplace_back(MCInstBuilder(ARM::t2ADDri)
+                              .addReg(ARM::R1)
+                              .addReg(ARM::R1)
+                              .addImm(1)
+                              .addImm(ARMCC::AL)
+-                             .addReg(0));
++                             .addReg(0)
++                             .addReg(ARM::CPSR));
+     } else {
+       // ADDri: Rd, Rn, imm(shifter), pred, predreg, s-flag-def-reg
+       Insts.emplace_back(MCInstBuilder(ARM::ADDri)
+@@ -1193,29 +1158,39 @@
+                              .addImm(1)
+                              .addImm(ARMCC::AL)
+                              .addReg(0)
+-                             .addReg(0));
+-    }
++                             .addReg(ARM::CPSR));
++    }
++    // ADC consumes low-word carry and leaves flags unchanged. Operand order
++    // verified for both opcodes with llvm-mc -show-inst.
++    Insts.emplace_back(MCInstBuilder(InThumbMode() ? ARM::t2ADCri : ARM::ADCri)
++                           .addReg(ARM::R3)
++                           .addReg(ARM::R3)
++                           .addImm(0)
++                           .addImm(ARMCC::AL)
++                           .addReg(0)
++                           .addReg(0));
+     Insts.emplace_back();
+     storeReg(Insts.back(), ARM::R1, ARM::R0, /*offset=*/0);
+-
+-    // MSR CPSR_c, R2 (mask=1, control field only: mode/T/F/I bits, not
+-    // NZCV) -- restores exactly the interrupt-enable state (and nothing
+-    // else) that was captured before cpsid, whatever it was.
++    Insts.emplace_back();
++    storeReg(Insts.back(), ARM::R3, ARM::R0, /*offset=*/4);
++
++    // MSR CPSR_fc (mask=9) restores NZCV as well as the original IRQ state.
++    // GE is not changed by ADDS/ADC, and saved Q is restored with the flags.
+     Insts.emplace_back();
+     if (InThumbMode())
+       Insts.back() = MCInstBuilder(ARM::t2MSR_AR)
+-                          .addImm(1)
++                          .addImm(9)
+                           .addReg(ARM::R2)
+                           .addImm(ARMCC::AL)
+                           .addReg(0);
+     else
+       Insts.back() = MCInstBuilder(ARM::MSR)
+-                          .addImm(1)
++                          .addImm(9)
+                           .addReg(ARM::R2)
+                           .addImm(ARMCC::AL)
+                           .addReg(0);
+ 
+-    reloadRegs(Insts, {ARM::R0, ARM::R1, ARM::R2});
++    reloadRegs(Insts, {ARM::R0, ARM::R1, ARM::R2, ARM::R3});
+     return Insts;
+   }
+ 
+--- /dev/null
++++ b/bolt/test/ARM/Inputs/arm-counter-probes.s
+@@ -0,0 +1,21 @@
++ .syntax unified
++ .arch armv7-a
++ .text
++ .arm
++ .global _start
++ .type _start,%function
++_start:
++ b _start
++ .size _start,.-_start
++ .global counter_arm
++ .type counter_arm,%function
++counter_arm:
++ bx lr
++ .size counter_arm,.-counter_arm
++ .thumb
++ .global counter_thumb
++ .type counter_thumb,%function
++ .thumb_func
++counter_thumb:
++ bx lr
++ .size counter_thumb,.-counter_thumb
+--- /dev/null
++++ b/bolt/test/ARM/Inputs/arm-counter-runtime.s
+@@ -0,0 +1,19 @@
++## Host-only runtime symbol fixture; no runtime execution claim.
++.syntax unified
++.text
++.arm
++.global __bolt_instr_start
++.type __bolt_instr_start,%function
++__bolt_instr_start:
++ bx lr
++.size __bolt_instr_start,.-__bolt_instr_start
++.global __bolt_instr_fini
++.type __bolt_instr_fini,%function
++__bolt_instr_fini:
++ bx lr
++.size __bolt_instr_fini,.-__bolt_instr_fini
++.global __bolt_instr_clear_counters
++.type __bolt_instr_clear_counters,%function
++__bolt_instr_clear_counters:
++ bx lr
++.size __bolt_instr_clear_counters,.-__bolt_instr_clear_counters
+--- /dev/null
++++ b/bolt/test/ARM/Inputs/check-arm-counter-bytes.py
+@@ -0,0 +1,58 @@
++"""Check MC-builder output against independently assembled counter instructions."""
++from pathlib import Path
++import struct
++import subprocess
++import sys
++
++elf,mapping,out=map(Path,sys.argv[1:4])
++out.mkdir(parents=True,exist_ok=True)
++blob=elf.read_bytes()
++off=struct.unpack_from('<I',blob,32)[0]
++size,count,names=struct.unpack_from('<HHH',blob,46)
++headers=[struct.unpack_from('<10I',blob,off+i*size) for i in range(count)]
++strings=blob[headers[names][4]:headers[names][4]+headers[names][5]]
++sections={strings[h[0]:strings.index(b'\0',h[0])].decode():h for h in headers}
++counters=sections['.bolt.instr.counters']
++rows={p[0]:tuple(int(x,16) for x in p[1:]) for line in mapping.read_text(encoding='utf-8').splitlines() if (p:=line.split())}
++assert set(rows)=={'counter_arm','counter_thumb'}
++for index,mode in enumerate(('arm','thumb')):
++    address=counters[3]+8*index
++    body=f''' .syntax unified
++ .arch armv7-a
++ .text
++ .{mode}
++ sub sp,sp,#16
++ str r0,[sp]
++ str r1,[sp,#4]
++ str r2,[sp,#8]
++ str r3,[sp,#12]
++ movw r0,#{address&65535}
++ movt r0,#{address>>16}
++ mrs r2,cpsr
++ cpsid i
++ ldr r1,[r0]
++ ldr r3,[r0,#4]
++ adds{'.w' if mode=='thumb' else ''} r1,r1,#1
++ adc r3,r3,#0
++ str r1,[r0]
++ str r3,[r0,#4]
++ msr cpsr_fc,r2
++ ldr r0,[sp]
++ ldr r1,[sp,#4]
++ ldr r2,[sp,#8]
++ ldr r3,[sp,#12]
++ add sp,sp,#16
++ bx lr
++'''
++    # Thumb's narrow load/store spellings differ from the builder's wide forms.
++    if mode=='thumb':
++        body=body.replace(' str ',' str.w ').replace(' ldr ',' ldr.w ')
++    asm=out/(mode+'.s');asm.write_text(body,encoding='utf-8')
++    obj=out/(mode+'.o');binary=out/(mode+'.bin')
++    subprocess.run(['llvm-mc','-triple=armv7-none-eabi','-filetype=obj',str(asm),'-o',str(obj)],check=True)
++    subprocess.run(['llvm-objcopy','--dump-section=.text='+str(binary),str(obj)],check=True)
++    _,address,length=rows['counter_'+mode]
++    section=next(h for h in sections.values() if h[1]!=8 and h[3]<=address<address+length<=h[3]+h[5])
++    pos=section[4]+address-section[3]
++    assert blob[pos:pos+length]==binary.read_bytes(),mode+' counter instruction bytes differ from independent assembly'
++print('PASS: ARM/Thumb uint64 carry, CPSR_fc and 16-byte stack-frame bytes')
+--- /dev/null
++++ b/bolt/test/ARM/arm-counter-carry.test
+@@ -0,0 +1,9 @@
++## Encoding regression for full-width slots; semantic seeded carry runs on Pi.
++RUN: llvm-mc -triple=armv7-none-eabi -arm-add-build-attributes -filetype=obj %p/Inputs/arm-counter-probes.s -o %t.o
++RUN: ld.lld --emit-relocs -T %p/Inputs/arm32.ld %t.o -o %t.exe
++RUN: llvm-mc -triple=armv7-none-eabi -filetype=obj %p/Inputs/arm-counter-runtime.s -o %t.rt.o
++RUN: llvm-ar rcs %t.rt.a %t.rt.o
++RUN: llvm-bolt %t.exe -o %t.bolt --no-huge-pages -lite=0 --instrument --instrument-calls=false \
++RUN:   --instrumentation-sleep-time=1 --runtime-instrumentation-lib=%t.rt.a \
++RUN:   --funcs=counter_arm,counter_thumb --emit-function-map=%t.map
++RUN: %python %p/Inputs/check-arm-counter-bytes.py %t.bolt %t.map %t.check

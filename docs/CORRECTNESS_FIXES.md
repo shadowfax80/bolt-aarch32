@@ -1,5 +1,27 @@
 # Correctness fixes
 
+## Full-width ARM/Thumb counters (2026-10-02)
+
+Overlay 0026 replaces the low-word-only increment with ADDS on the low word and
+ADC on the high word. It preserves R0-R3 in a 16-byte stack frame and restores
+both NZCV and the saved IRQ state with CPSR_fc. The emitter operand orders and
+complete bytes are checked against independent ARM/Thumb assembly. The sequence
+still requires privileged execution; IRQ masking does not enforce an SMP/FIQ
+operating contract. Item #6 remains open.
+
+All 38 focused ARM/JITLink lit tests pass, including the portable runtime-symbol
+fixture. The patch reverse-checks against the tested live source. Pi validation
+compares original, zero-counter and near-overflow images with explicit redirects
+into Thumb IT and ARM interwork instrumented bodies. All 18 workload outputs
+match. All eight final seeded values equal `0x00000007fffffff0` plus the zero-run
+counts; the hot Thumb and ARM slots cross `0xffffffff` with increments of 999,999
+and 9,999 respectively. Full dumps/log hashes and per-function counter attribution
+are recorded in [evidence](results/correctness_counter_carry_20261002.json).
+
+This completes the counter-width subitem. Dedicated GPR/LR/SP, all NZCV patterns,
+pre-disabled IRQ state, IT masks, nested execution and wider exact CFG-count
+tests remain under #5. User paused #12 and moved #5 to the active position.
+
 ## ATFE attributes and kept-code export (2026-10-02)
 
 Overlay 0025 exports the four unrecorded live source changes. Input build features
