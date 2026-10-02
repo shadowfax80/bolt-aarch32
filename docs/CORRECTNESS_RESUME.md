@@ -2,7 +2,7 @@
 
 ## Latest: #4 conditional-return instrumentation verified
 
-0035 is pushed as 3e0e57c. Overlay 0036 rejects instrumentation of simple known-CFG
+0035 is pushed as 3e0e57c; 0036 is pushed as 127ba9d. Overlay 0036 rejects instrumentation of simple known-CFG
 ARM functions with unmodeled conditional returns. Host proof:
 conditional-instrumentation/before-probes/conditional-slrd322l; the BXEQ LR path
 returns before either leaf counter and has no taken-exit CFG edge. Twelve old
@@ -28,7 +28,9 @@ remain. Three original items complete (#2/#8/#10); #12 remains explicitly paused
 ATFE only. No upstream work. The planned usage-related pause was cancelled
 after the five-hour window reset to 99% remaining; WSL stays running for continued
 work. No compiler, test or serial job remains active at this verified checkpoint;
-the Pi returned to the loader. Continue the audit; #12 remains paused.
+the Pi returned to the loader. Next active audit: #6 exclusive-memory boundary.
+Source inspection is saved in out/correctness/exclusive-instrumentation/source-audit.log;
+no exclusive-memory production fix has been applied. #12 remains paused.
 
 ## Earlier: #4 exception-return admission verified
 

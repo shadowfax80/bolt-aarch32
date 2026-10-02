@@ -36,7 +36,7 @@ pass combinations. Overlay 0036 additionally rejects instrumentation of
 unmodeled conditional returns while preserving ordinary relocation. Both
 host builds pass twelve rejections/six admissions; fresh nested/IT Pi checks
 pass 2,976 positive cases, two reset faults and ten watchdog returns.
-#12 remains separately paused.
+#6's exclusive-memory boundary is now under review. #12 remains separately paused.
 See CORRECTNESS_RESUME.md.
 
 Fresh source review at `bbae817`: [CORRECTNESS_REVIEW_BBAE817.md](CORRECTNESS_REVIEW_BBAE817.md).
@@ -52,7 +52,7 @@ from completion criteria. Three items are complete within this scope (2, 8, 10).
 | 3 | Pseudo/CFG invariants | Partial | Pseudo-count and fallthrough rejection verified in both build modes; worker fatal errors exit after join; wider CFG audit open |
 | 4 | Control flow and return semantics | Partial; checkpoint verified | POP-to-PC, flags, CBZ/CBNZ and inlining verified; unsupported PC writes/exception returns/IT calls reject; conditional-return instrumentation rejects; general exit model and broader pass combinations remain |
 | 5 | Instrumentation correctness | Partial; operating scope next | Carry, CPU-state, IT, nested Thumb/recursion and real runtime clear pass on Pi; mixed-ISA nested state, active interrupts and live snapshots remain |
-| 6 | Instrumentation scope | Partial | Explicit privileged/single-core/no-FIQ contract and call/process/dynamic rejection pass; audit exclusive-memory and active ISR boundaries |
+| 6 | Instrumentation scope | Partial; exclusive-memory audit active | Explicit privileged/single-core/no-FIQ contract and call/process/dynamic rejection pass; audit exclusive-memory and active ISR boundaries |
 | 7 | ISA/profile/endianness | Pending | Enforce the supported target feature boundary |
 | 8 | FK_Data_8 / ABS32 mismatch | Complete | ATFE host and Pi checks passed; symbolic 64-bit relocations rejected; resolved values and map width corrected |
 | 9 | Entry points and symbols | Partial | Entry, split symbols, mapping and mixed-ISA marking improved; aliases, skipped functions, secondary entries, pointer targets and redirects remain |
