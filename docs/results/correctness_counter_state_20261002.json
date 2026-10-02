@@ -1,0 +1,143 @@
+{
+  "schema": 1,
+  "date": "2026-10-02",
+  "item": 5,
+  "atfe_overlay": "0026",
+  "implementation_commit": "99affc2",
+  "build": {
+    "schema": 1,
+    "kind": "pi-counter-state",
+    "cases": 512,
+    "cases_per_mode": 256,
+    "files": {
+      "baseline.elf": "8ef5ce8f4ca9b83bf9f0a9def3b6eb6e120903c1121a36a4c7ed4d684782a9c0",
+      "baseline.bin": "4bc202e3ac2b235165d36c05c61d1706d13380b73106888028d915db9a828bda",
+      "instrumented.elf": "4853d481db98553ebc9bbdbd1d1173bf7e7452852e4cfe9892afb78516540a6d",
+      "instrumented.bin": "429640379a51b6b19fc513b9926c28452f3ca1eea3d59041c47250617fdb8b01",
+      "instrumented.funcmap": "9a4344c92534c0099675ba3fc585d29527fad8daca8b97e2093af2bfd7281d79",
+      "redirects.json": "97ee3c66dbf466fb1dbe69a1cf74944daedc9cc8d5cbda7b22d3437b15914688",
+      "independent-bytes.log": "2d7e071d83fc959b4664771614dbf8d61e80699233103cee1f8d3b75aba86355",
+      "disassembly.log": "95c8baf271bb20db5eb3c391a2909c9d5c7f31e7a5080a682911a69a9b444d04",
+      "bad-carry.elf": "67fa1dcc4f3939272649d52b8eabb064b5426d7611385cbc448c2ba5499cd867",
+      "bad-carry.bin": "a30790a8658f8397297e7e66aabd4d73780ccce36b3038154e856157cc0f3eb5",
+      "bad-irq.elf": "91cb646060ab336a4727ee9956f414586d85cd0fbfd2cfaafc1dfb1e2ba560cc",
+      "bad-irq.bin": "253a60d6acd6b7ed51076582a8c2c27def9ea2f9bb9396be83fa1f29e02aff3c",
+      "bad-register.elf": "9a585d3e76d2f22b5c232427a69da803118217c02d37aaffcc89646089d20b23",
+      "bad-register.bin": "ff427bab3048b4a81b669aa92be2a7e495ad5301cbaf1213180caf089142f0b8"
+    },
+    "fixture": {
+      "link.ld": "f5e75a6276a00a3eed2731ff7425e72d13e8cf67ebd2c5d92c992a0d9b686580",
+      "main.c": "9df07b8e66d84f498fd74f98855dd4c9a4aae443be2d03834802aceeeaf05fa2",
+      "reference.s": "f3f10cb1620e6962b6b97926256b76a3514cf8b68b12ddd8b7f4f1a098427b96",
+      "start.s": "113db2ffbd9c1acfb40da7c605bb18887918ab9fe0c89a5b51d9ce0aff06b112"
+    },
+    "tools": {
+      "clang": "296dd268c36e9431e2fcc4e2f89ee3fa1cf66e47f5487df73fca85ea8999ecc6",
+      "llvm-mc": "0419ed87fde9fa95b827a58cc1e6d2817c0970304c9fb0bd7779e7188122dbed",
+      "ld.lld": "21f3d1e800b8de414efc347ed4630126d22996cddf663d92004af5e089b51be9",
+      "llvm-bolt": "21035df46cec676857e160cd248c33a45e3567ca639fa4006e1599fd260a10d8",
+      "llvm-objcopy": "f80e39c3121994c8b5baf3b9c2e586d4ffcd8da332e6c2c51b9f86fb482207de"
+    },
+    "runtime_sha256": "eceba9ea9fcfbda21c13e97c78f9b1795a5051223d4bad07666ee2aea431b24d",
+    "builder_sha256": "2cba227d6affc971b012aed8242465c4f7eef70e864cc2b9609ecf938fdbf8b7",
+    "bolt_options": [
+      "--no-huge-pages",
+      "-lite=0",
+      "--instrument",
+      "--instrument-calls=false",
+      "--instrumentation-sleep-time=1",
+      "--runtime-instrumentation-lib=/home/user/bolt-aarch32/build-atfe/bolt-rt-baremetal-arm/libbolt_rt_baremetal.a",
+      "--funcs=counter_arm,counter_thumb",
+      "--emit-function-map=/mnt/c/Users/User/CURSOR/CodexProjects/BOLT_AARCH32/out/correctness/counter-state-pi/build-ro6zv3x6/instrumented.funcmap"
+    ],
+    "counters": {
+      "address": 49152,
+      "count": 2
+    },
+    "negative_cases": {
+      "bad-carry": {
+        "case_id": 1,
+        "field": 21
+      },
+      "bad-irq": {
+        "case_id": 0,
+        "field": 15
+      },
+      "bad-register": {
+        "case_id": 0,
+        "field": 0
+      }
+    },
+    "scope": "privileged MMU-off single-core ARM/Thumb leaf insertion; no active ISR, IT, nested, FIQ or SMP execution"
+  },
+  "verification": {
+    "schema": 1,
+    "verified": true,
+    "scope": "privileged MMU-off single-core ARM/Thumb leaf insertion; no active ISR, IT, nested, FIQ or SMP execution",
+    "port": "COM5",
+    "results": {
+      "baseline": {
+        "passed": true,
+        "cases": 512,
+        "mode": 26,
+        "delta": 0
+      },
+      "instrumented": {
+        "passed": true,
+        "cases": 512,
+        "mode": 26,
+        "delta": 1
+      },
+      "bad-carry": {
+        "expected_failure": true,
+        "case_id": 1,
+        "field": 21,
+        "expected": 8,
+        "actual": 7
+      },
+      "bad-irq": {
+        "expected_failure": true,
+        "case_id": 0,
+        "field": 15,
+        "expected": 983386,
+        "actual": 983514
+      },
+      "bad-register": {
+        "expected_failure": true,
+        "case_id": 0,
+        "field": 0,
+        "expected": 2684358656,
+        "actual": 0
+      }
+    },
+    "build_manifest_sha256": "3bc945c368ee6d7b2761eca4d35aa129b917af616236d40c95f4d62cf844b170",
+    "verifier_sha256": "a9b603c78b4405ddf76661e10232ccfd2deef918e035befc2500d3080dc27c77",
+    "loader_sha256": "20d8a44f44c62ce001c3cd49007a0b73b9a6890d92bdb37f9d5a573246453ab0",
+    "log_sha256": {
+      "baseline": "96db7147d03006ea2b224da75fbb073867bea3fc7eefcf4ac9b08ad06add3690",
+      "instrumented": "1f5727acfa351f345204003d74d9c1ecea663768c09a0c2bf1a45372084c3916",
+      "bad-carry": "44484f377ebe037a05b30053d695c399c49f4249db9730c88f10316aa2638f89",
+      "bad-irq": "d954b87ac30d726949216a95231c4b673b0703a416c261a6ec8aec9e252cedfa",
+      "bad-register": "6efa3a82a1ffe68a793edab1ae36f0bef8c5671e8aefe8f91200c9371ffe895e"
+    }
+  },
+  "local_evidence": "out/correctness/counter-state-pi/build-ro6zv3x6/pi-verify-haiq1khs",
+  "host_result_parser_tests": 6,
+  "coverage": [
+    "R0-R12 distinct sentinels",
+    "LR return target",
+    "SP equality and 8-byte entry alignment",
+    "all 16 NZCV patterns with Q clear/set",
+    "16 GE patterns",
+    "IRQ enabled and pre-disabled; FIQ kept disabled",
+    "full captured CPSR equality",
+    "single leaf counter +1 including low-word carry and uint64 wrap"
+  ],
+  "remaining": [
+    "IT insertion and transformations",
+    "nested execution and active interrupt behavior",
+    "wider exact CFG counts/reset/snapshot",
+    "enforced operating contract under item 6"
+  ],
+  "item_complete": false
+}

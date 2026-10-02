@@ -1,5 +1,23 @@
 # Correctness fixes
 
+## Dedicated ARM/Thumb counter-state checks (2026-10-02)
+
+The Pi fixture executes actual generated leaf bodies through two explicit
+redirects. Baseline and instrumented firmware each pass 512 cases covering
+R0-R12, LR/SP, full CPSR equality, all NZCV/Q patterns, sixteen GE patterns,
+enabled/pre-disabled IRQ and four seeds including full uint64 wrap. Both
+complete emitted bodies match independent assembly. Three deliberately broken
+images prove detection of lost high-word carry, missing IRQ restoration and R0
+clobbering. Six host result-parser tests reject partial/contradictory output.
+
+Every image watchdog-reboots back to the serial loader; software reboot from LK
+also succeeded. The run uses privileged HYP mode on COM5, a private aligned
+stack and parked secondary cores. No active interrupt handler is invoked and
+FIQ stays disabled. IT, nested execution, broader count/reset/snapshot cases and
+the enforced operating contract still remain. Item #5 is partial and #12 remains
+paused. See [workflow](PI_COUNTER_STATE.md) and
+[hardware evidence](results/correctness_counter_state_20261002.json).
+
 ## Full-width ARM/Thumb counters (2026-10-02)
 
 Overlay 0026 replaces the low-word-only increment with ADDS on the low word and
@@ -18,9 +36,9 @@ counts; the hot Thumb and ARM slots cross `0xffffffff` with increments of 999,99
 and 9,999 respectively. Full dumps/log hashes and per-function counter attribution
 are recorded in [evidence](results/correctness_counter_carry_20261002.json).
 
-This completes the counter-width subitem. Dedicated GPR/LR/SP, all NZCV patterns,
-pre-disabled IRQ state, IT masks, nested execution and wider exact CFG-count
-tests remain under #5. User paused #12 and moved #5 to the active position.
+This completes the counter-width subitem. The dedicated leaf state checks above
+also pass; IT masks, nested execution and wider exact CFG-count tests remain
+under #5. User paused #12 and moved #5 to the active position.
 
 ## ATFE attributes and kept-code export (2026-10-02)
 

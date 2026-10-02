@@ -14,7 +14,7 @@ from completion criteria. Three items are complete within this scope (2, 8, 10).
 | 2 | EHABI exidx/extab | Complete via rejection | Unsupported unwind information is rejected; full unwind rewriting remains unsupported |
 | 3 | Pseudo/CFG invariants | Partial | ARM B pseudo root cause fixed; debug-only recovery remains and assertions-on/off parity is unverified |
 | 4 | Control flow and return semantics | Partial | CBZ flags, ARM Bcc and tail calls improved; conditional returns, wider PC writes, live flags, IT and inlining boundaries remain |
-| 5 | Instrumentation correctness | Active, partial | Full-width carry fixed and verified on Pi in ARM/Thumb; next dedicated registers/flags/IRQ/IT and wider exact-count checks |
+| 5 | Instrumentation correctness | Active, partial | Carry and 512 ARM/Thumb register/flag/IRQ-state cases pass on Pi; IT, nested execution and wider exact counts remain |
 | 6 | Instrumentation scope | Open | Enforce privilege/single-core/IRQ-FIQ contract and reject placeholder indirect-call profiling |
 | 7 | ISA/profile/endianness | Pending | Enforce the supported target feature boundary |
 | 8 | FK_Data_8 / ABS32 mismatch | Complete | ATFE host and Pi checks passed; symbolic 64-bit relocations rejected; resolved values and map width corrected |
@@ -45,8 +45,16 @@ Overlay 0026 fixes the low-word-only counter increment. All 38 focused host test
 pass. On Pi, zero/near-overflow instrumented images preserve all 18 workload
 outputs and all eight slots satisfy seed plus measured count. Counter 1 in Thumb
 IT and counter 4 in ARM interwork cross the 32-bit boundary correctly. Dedicated
-state/IT and scope tests remain open; see
+IT, nested and scope tests remain open; see
 [counter carry evidence](results/correctness_counter_carry_20261002.json).
+
+The dedicated state fixture also passes on Pi: 512 baseline and 512 generated
+ARM/Thumb leaf cases preserve R0-R12, LR/SP and the complete CPSR across all
+NZCV/Q patterns and both IRQ-mask states. Six host parser tests pass; three
+deliberately broken images fail at their specified checks. Every payload returns
+to the serial loader through the watchdog. This quiet HYP-mode fixture does not
+exercise active IRQ/FIQ, nested execution, IT or SMP. See
+[state evidence](results/correctness_counter_state_20261002.json).
 
 Review validation at bbae817: 36/36 focused ARM tests passed. Isolated emission
 confirmed full-image postprocessing restores original code/entry; a partial-result

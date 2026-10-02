@@ -13,8 +13,15 @@ docs/results/correctness_counter_carry_20261002.json. Source preimages are in
 instrumentation-audit/source and counter-carry-fix/before.cpp; zero-run snippets
 before the fix are preserved in counter-carry-before. The dirty LK source was
 not changed; hardware images derive from the existing independent baseline ELF.
-Next add dedicated registers/NZCV/IRQ-state cases in both modes, then IT and
-exact-count coverage. Continue #6, #3, #4, #1, #9, #7 and #11 before
+Dedicated leaf state cases now pass on Pi: 512 baseline and 512 instrumented
+ARM/Thumb cases preserve R0-R12, LR/SP and full CPSR, with all NZCV/Q patterns,
+sixteen GE patterns, both IRQ masks and four seeds including uint64 wrap.
+Three faulty images fail at expected checks; all five images watchdog-return
+to the loader. Six host parser tests pass. Evidence is counter-state-pi/
+build-ro6zv3x6/pi-verify-haiq1khs and the tracked counter-state result JSON.
+The new build/verify scripts and fixtures are in scripts/pi4; no backend changes
+were needed beyond 0026. Next: IT, nested execution and wider exact-count
+coverage. Continue #6, #3, #4, #1, #9, #7 and #11 before
 returning to #12. This supersedes the older instruction to finish #12 first.
 Verified #12 work is pushed as 43c9e16. The unfinished content-state prototype is
 saved in out/correctness/atfe-content-stamp-wip.py and .patch; it is untested,
@@ -38,7 +45,8 @@ now rejects text-placement overrides. #12 remains active; next finish content
 stamps/clean provenance, counter identity, core ownership and the other gates
 before advancing to #5. WSL remains running and the dirty parent is preserved.
 
-The paragraphs below retain earlier checkpoints and evidence.
+The paragraphs below retain historical checkpoints and evidence. Their older
+priority/pause instructions are superseded by the active checkpoint above.
 
 Sampling identity fixes and bound-profile Pi evidence are pushed as bf69f15.
 The next #12 replay audit applies all 24 ATFE patches in an isolated file tree,

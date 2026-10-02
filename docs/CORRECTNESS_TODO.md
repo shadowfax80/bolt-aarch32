@@ -99,10 +99,15 @@ live flags, return values, LR/SP and fallthrough.
   low-word ADDS/high-word ADC, saves R0-R3 in a 16-byte frame and restores CPSR_fc.
   Independent ARM/Thumb assembly-byte checks and 38 focused lit tests pass.
   Pi zero/seeded images match all 18 outputs; seeding `0x00000007fffffff0` proves
-  carry in both Thumb IT and ARM interwork counters. Dedicated state tests below
-  remain open; this does not close #5 or its operating contract under #6.
-- [ ] Verify GPRs, LR/SP, NZCV, interrupt state and required stack alignment across
-  insertion, including pre-disabled IRQ state and nested execution.
+  carry in both Thumb IT and ARM interwork counters. Dedicated leaf state tests
+  below now pass; this does not close #5 or its operating contract under #6.
+- [x] Verify quiet single-core leaf insertion state on Pi: 512 ARM/Thumb cases
+  preserve R0-R12, LR/SP, the complete CPSR, NZCV/Q/GE and both IRQ-mask states.
+  Counter seeds exercise low carry and uint64 wrap; three deliberately broken
+  images fail at the expected checks. The eight-byte entry alignment and emitted
+  sixteen-byte frame are checked. See PI_COUNTER_STATE.md and recorded evidence.
+- [ ] Verify nested execution, active interrupt behavior and other insertion sites;
+  the leaf state fixture keeps FIQ disabled and does not invoke an ISR.
 - [ ] Preserve IT header/body groups through insertion, edge splitting, reversal
   and reordering; test masks and terminal conditional branches.
 - [ ] Compare exact counts against known CFGs: zero edges, loops, multiple entries,
