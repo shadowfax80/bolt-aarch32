@@ -1,5 +1,26 @@
 # Correctness fixes
 
+## Exclusive-memory function instrumentation boundary (2026-10-02)
+
+Overlay 0037 rejects instrumentation of simple known-CFG ARM functions containing
+exclusive accesses or CLREX. All ARM/Thumb byte, halfword, word and doubleword
+LDREX/STREX/LDAEX/STLEX forms are classified. Before the gate, all 24 tested
+normal/reverse/conservative configurations inserted counter spill/store traffic
+between exclusive load and store. This is host emitted-code proof of reservation
+window intrusion; no new Pi runtime corruption reproduction is claimed.
+
+Both builds pass 104 instrumentation rejections, 52 ordinary relocation admissions
+and 38 actual decoder cases: 34 exclusive/monitor forms plus four ordinary-memory
+controls. Acquire/release decoders use independent feature-enabled subtargets.
+The focused suites pass 47/46 tests (one debug-only skip off); both pass
+58 CoreTests/31 skips. Fresh supported nested/IT builds match all five executed
+0036 Pi images in each mode, reusing the byte-identical hardware evidence without
+new execution. This function-local exclusion does not establish safety for
+reservations held across calls into separately instrumented functions. That and
+active ISR boundaries remain under #6. A separate pure-Thumb ELF-entry assertion
+is retained under #9. See
+[evidence](results/correctness_exclusive_instrumentation_20261002.json).
+
 ## Conditional-return instrumentation boundary (2026-10-02)
 
 Overlay 0036 rejects instrumentation of simple known-CFG ARM functions with

@@ -211,6 +211,12 @@ and measured counts match the expected model, including carry tests.
 - [x] Reject excluded contract/call/process/shared combinations before output, including
   direct llvm-bolt invocations that bypass wrappers.
 - [ ] Audit exclusive-memory sequences and reservations across insertion sites.
+- [x] Reject instrumentation of functions containing exclusive instructions
+  or CLREX. Overlay 0037 covers all ARM/Thumb LDREX/STREX/LDAEX/STLEX widths.
+  Both builds pass 104 rejections, 52 ordinary relocation admissions and 38
+  actual decoder cases. Fresh supported Pi payloads match the five executed
+  0036 images in both modes. Reservations spanning calls into independently
+  instrumented functions, including skipped callers, remain open above.
 - [ ] Extend active ISR/mixed-ISA reentrancy coverage; compile-time contract
   acknowledgement cannot prove runtime concurrency. MPIDR checks the executing
   core, while the fixture's loader parks secondary cores.
@@ -248,6 +254,12 @@ Keep MC/metadata regressions. This does not close counter carry (#5) or other
 relocations (#1).
 
 ## 9. Entry points, mapping symbols and preserved functions — partial, P0
+
+- [ ] Normalize the Thumb ELF-entry bit before instrumentation startup lookup.
+  The pure-Thumb entry probe asserts `Entry point function not found` in
+  createAuxiliaryFunctions; equivalent A32-start/Thumb-function probes succeed.
+  Evidence: out/correctness/exclusive-instrumentation/probe-yozkp1rs. No fix or
+  assertions-off result is claimed yet; retain this for #9's priority turn.
 
 - [x] **Fix odd Thumb `e_entry`:** normalize the ARM function lookup and preserve
   the Thumb state bit in the moved entry. The previously asserting fixture passes.

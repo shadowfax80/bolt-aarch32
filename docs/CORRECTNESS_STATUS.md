@@ -36,7 +36,11 @@ pass combinations. Overlay 0036 additionally rejects instrumentation of
 unmodeled conditional returns while preserving ordinary relocation. Both
 host builds pass twelve rejections/six admissions; fresh nested/IT Pi checks
 pass 2,976 positive cases, two reset faults and ten watchdog returns.
-#6's exclusive-memory boundary is now under review. #12 remains separately paused.
+#6's exclusive-memory boundary has a verified function-local exclusion in 0037:
+104 rejection cases, 52 relocation admissions and 38 actual decoder cases pass
+in each build. Fresh supported Pi payloads match executed 0036 images. Reservations
+spanning calls into instrumented code and active ISR coverage remain open. A
+separate Thumb ELF-entry assertion is recorded for #9. #12 remains separately paused.
 See CORRECTNESS_RESUME.md.
 
 Fresh source review at `bbae817`: [CORRECTNESS_REVIEW_BBAE817.md](CORRECTNESS_REVIEW_BBAE817.md).
@@ -52,10 +56,10 @@ from completion criteria. Three items are complete within this scope (2, 8, 10).
 | 3 | Pseudo/CFG invariants | Partial | Pseudo-count and fallthrough rejection verified in both build modes; worker fatal errors exit after join; wider CFG audit open |
 | 4 | Control flow and return semantics | Partial; checkpoint verified | POP-to-PC, flags, CBZ/CBNZ and inlining verified; unsupported PC writes/exception returns/IT calls reject; conditional-return instrumentation rejects; general exit model and broader pass combinations remain |
 | 5 | Instrumentation correctness | Partial; operating scope next | Carry, CPU-state, IT, nested Thumb/recursion and real runtime clear pass on Pi; mixed-ISA nested state, active interrupts and live snapshots remain |
-| 6 | Instrumentation scope | Partial; exclusive-memory audit active | Explicit privileged/single-core/no-FIQ contract and call/process/dynamic rejection pass; audit exclusive-memory and active ISR boundaries |
+| 6 | Instrumentation scope | Partial; cross-function reservation audit next | Explicit operating contract passes; functions containing exclusive accesses/CLREX reject instrumentation; cross-function reservations and active ISR boundaries remain |
 | 7 | ISA/profile/endianness | Pending | Enforce the supported target feature boundary |
 | 8 | FK_Data_8 / ABS32 mismatch | Complete | ATFE host and Pi checks passed; symbolic 64-bit relocations rejected; resolved values and map width corrected |
-| 9 | Entry points and symbols | Partial | Entry, split symbols, mapping and mixed-ISA marking improved; aliases, skipped functions, secondary entries, pointer targets and redirects remain |
+| 9 | Entry points and symbols | Partial | Pure-Thumb instrumentation startup assertion recorded; aliases, skipped functions, secondary entries, pointer targets and redirects remain |
 | 10 | Deterministic stubs | Complete | Stable visitation and layout, mixed-stub alignment fixed; repeated links and Pi checks passed |
 | 11 | Rewrite coverage | Partial | TBB/TBH and generic passes implemented; full-image emitted coverage is not execution proof; table/pass boundaries and excluded ELF constructs remain |
 | 12 | Verification and artifact integrity | Paused by user, partial | Verified fixes pushed as 43c9e16; resume counter binding, core ownership, other gates, broader inputs, content stamps and clean provenance after the next items |

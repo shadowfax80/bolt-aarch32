@@ -1,6 +1,42 @@
 # ATFE correctness checkpoint - 2026-10-02
 
-## Latest: #4 conditional-return instrumentation verified
+## Latest: #6 exclusive-memory function exclusion verified
+
+0036 is pushed as 127ba9d; its compact evidence/next audit checkpoint is c3a91e5.
+Overlay 0037 rejects instrumentation of simple known-CFG ARM functions containing
+exclusive accesses or CLREX. All ARM/Thumb LDREX/STREX/LDAEX/STLEX widths are
+classified. Both builds pass 104 rejection/52 relocation cases, 38 actual decoder
+cases (34 exclusive/monitor forms, four ordinary-memory controls), 47/46 focused
+tests (one debug-only skip off), and 58 CoreTests/31 skips per mode.
+
+Before: exclusive-instrumentation/probe-hi6v7oy4; all 24 emitted variants insert
+counter store traffic between LDREX/STREX. No Pi runtime corruption reproduction
+is claimed. Fresh supported nested/IT images match all five executed 0036 payloads
+in each mode: assertions-on-pi-positive/build-lb10bwg1 and
+assertions-off-pi-positive/build-asvog53k under exclusive-instrumentation. Hardware
+evidence is reused through identical bytes; no new Pi execution for 0037. Report:
+results/correctness_exclusive_instrumentation_20261002.json. Reverse-apply checked.
+
+Source before/after/hashes, probes, decoder encodings and logs are saved under
+out/correctness/exclusive-instrumentation. One-time scripts already applied:
+apply-exclusive-instrumentation-boundary.py, refine-exclusive-decoder-tests.py,
+finish-exclusive-decoder-tests.py; do not rerun them. The refinement first tried
+to mutate immutable subtargets and failed compilation; the final test uses
+feature-enabled copies and independent decoders, then passes both build modes.
+
+This is a function-local exclusion. Next #6: reservations spanning calls into
+separately instrumented functions, including skipped/unselected callers, and
+active ISR boundaries. #5 mixed-ISA nested state/snapshots also remain. Separate
+#9 deferred issue: pure-Thumb ELF-entry lookup asserts in createAuxiliaryFunctions;
+probe-yozkp1rs preserves all failures. Equivalent A32-start/Thumb-function probes
+pass. Assertions-off behavior is not claimed. No entry-point fix applied yet.
+
+Three original items remain complete (#2/#8/#10); #12 stays explicitly paused.
+WSL running, Pi waiting in loader, no active compiler/test/serial job at this
+verified checkpoint. Usage-related pause cancelled after the five-hour reset.
+ATFE only; no upstream work. Preserve dirty WSL ATFE/LK and unrelated Microsoft/.
+
+## Earlier: #4 conditional-return instrumentation verified
 
 0035 is pushed as 3e0e57c; 0036 is pushed as 127ba9d. Overlay 0036 rejects instrumentation of simple known-CFG
 ARM functions with unmodeled conditional returns. Host proof:

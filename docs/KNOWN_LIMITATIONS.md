@@ -24,6 +24,12 @@ taken exits are absent from the profile graph. Supported ordinary relocation
 remains covered; general conditional-exit CFG modeling is still open. See the
 [conditional-return evidence](results/correctness_conditional_instrumentation_20261002.json).
 
+Overlay 0037 rejects instrumentation of functions containing exclusive accesses
+or CLREX; ordinary relocation remains supported. Reservations held across calls
+into other instrumented functions are not certified by this function-local gate.
+A separate pure-Thumb ELF-entry instrumentation assertion is recorded under #9.
+See [exclusive-memory evidence](results/correctness_exclusive_instrumentation_20261002.json).
+
 **Verification status is marked per item**, because it matters for how much to
 trust each entry:
 

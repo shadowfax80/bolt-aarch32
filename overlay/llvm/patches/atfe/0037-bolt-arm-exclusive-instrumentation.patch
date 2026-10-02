@@ -1,0 +1,208 @@
+--- a/bolt/include/bolt/Core/MCPlusBuilder.h
++++ b/bolt/include/bolt/Core/MCPlusBuilder.h
+@@ -921,6 +921,12 @@
+ 
+   virtual bool mayStore(const MCInst &Inst) const {
+     return Info->get(Inst.getOpcode()).mayStore();
++  }
++
++  /// True for target exclusive accesses/monitor operations that cannot have
++  /// profiling memory traffic inserted into their reservation window.
++  virtual bool isExclusiveMemoryAccess(const MCInst &Inst) const {
++    return false;
+   }
+ 
+   virtual bool isAArch64ExclusiveLoad(const MCInst &Inst) const {
+--- a/bolt/lib/Target/ARM/ARMMCPlusBuilder.cpp
++++ b/bolt/lib/Target/ARM/ARMMCPlusBuilder.cpp
+@@ -323,6 +323,48 @@
+             return true;
+     }
+     return MCPlusBuilder::hasDefOfPhysReg(Inst, Reg);
++  }
++
++  bool isExclusiveMemoryAccess(const MCInst &Inst) const override {
++    switch (Inst.getOpcode()) {
++    case ARM::LDREX:
++    case ARM::LDREXB:
++    case ARM::LDREXH:
++    case ARM::LDREXD:
++    case ARM::STREX:
++    case ARM::STREXB:
++    case ARM::STREXH:
++    case ARM::STREXD:
++    case ARM::LDAEX:
++    case ARM::LDAEXB:
++    case ARM::LDAEXH:
++    case ARM::LDAEXD:
++    case ARM::STLEX:
++    case ARM::STLEXB:
++    case ARM::STLEXH:
++    case ARM::STLEXD:
++    case ARM::t2LDREX:
++    case ARM::t2LDREXB:
++    case ARM::t2LDREXH:
++    case ARM::t2LDREXD:
++    case ARM::t2STREX:
++    case ARM::t2STREXB:
++    case ARM::t2STREXH:
++    case ARM::t2STREXD:
++    case ARM::t2LDAEX:
++    case ARM::t2LDAEXB:
++    case ARM::t2LDAEXH:
++    case ARM::t2LDAEXD:
++    case ARM::t2STLEX:
++    case ARM::t2STLEXB:
++    case ARM::t2STLEXH:
++    case ARM::t2STLEXD:
++    case ARM::CLREX:
++    case ARM::t2CLREX:
++      return true;
++    default:
++      return false;
++    }
+   }
+ 
+   bool isUnsupportedPCWrite(const MCInst &Inst) const override {
+--- a/bolt/lib/Passes/Instrumentation.cpp
++++ b/bolt/lib/Passes/Instrumentation.cpp
+@@ -675,12 +675,18 @@
+       if (SkipPredicate(BF) || BF.hasUnknownControlFlow())
+         continue;
+       MCPlusBuilder *MIB = BC.getMIBFor(BF.isARMThumb());
+-      for (const BinaryBasicBlock &BB : BF)
+-        for (const MCInst &Inst : BB)
++      for (const BinaryBasicBlock &BB : BF) {
++        for (const MCInst &Inst : BB) {
++          if (MIB->isExclusiveMemoryAccess(Inst))
++            return createFatalBOLTError(
++                "AArch32 instrumentation does not support exclusive-memory accesses in " +
++                BF.getPrintName());
+           if (MIB->isReturn(Inst) && !MIB->isTerminator(Inst))
+             return createFatalBOLTError(
+                 "AArch32 instrumentation does not support conditional returns in " +
+                 BF.getPrintName());
++        }
++      }
+     }
+   }
+ 
+--- a/bolt/unittests/Core/ARMReturns.cpp
++++ b/bolt/unittests/Core/ARMReturns.cpp
+@@ -10,6 +10,8 @@
+ #include "llvm/BinaryFormat/ELF.h"
+ #include "llvm/DebugInfo/DWARF/DWARFContext.h"
+ #include "llvm/MC/MCInstBuilder.h"
++#include "llvm/MC/MCSubtargetInfo.h"
++#include "llvm/MC/TargetRegistry.h"
+ #include "llvm/MC/MCDisassembler/MCDisassembler.h"
+ #include "llvm/MC/MCExpr.h"
+ #include "llvm/Support/TargetSelect.h"
+@@ -195,5 +197,69 @@
+   ERET.setOpcode(ARM::ERET);
+   EXPECT_TRUE(BC->MIB->isUnsupportedPCWrite(ERET));
+ }
++TEST_F(ARMReturns, ExclusiveMemoryInstrumentationBoundary) {
++  // Enable the acquire/release feature for the actual v8 encodings; default
++  // ELF feature admission is tested separately from this target query.
++  MCSubtargetInfo ARMSTI(*BC->STI), ThumbSTI(*BC->ThumbSTI);
++  ARMSTI.ApplyFeatureFlag("+acquire-release");
++  ThumbSTI.ApplyFeatureFlag("+acquire-release");
++  std::unique_ptr<MCDisassembler> ARMDecoder(
++      BC->TheTarget->createMCDisassembler(ARMSTI, *BC->Ctx));
++  std::unique_ptr<MCDisassembler> ThumbDecoder(
++      BC->TheTarget->createMCDisassembler(ThumbSTI, *BC->Ctx));
++  ASSERT_NE(ARMDecoder, nullptr);
++  ASSERT_NE(ThumbDecoder, nullptr);
++  struct Case { bool Thumb; std::vector<uint8_t> Bytes; bool Exclusive; };
++  const Case Cases[] = {
++      {false, {0x9f,0x0f,0x92,0xe1}, true}, // arm ldrex r0,[r2]
++      {false, {0x9f,0x0f,0xd2,0xe1}, true}, // arm ldrexb r0,[r2]
++      {false, {0x9f,0x0f,0xf2,0xe1}, true}, // arm ldrexh r0,[r2]
++      {false, {0x9f,0x0f,0xb2,0xe1}, true}, // arm ldrexd r0,r1,[r2]
++      {false, {0x9f,0x0e,0x92,0xe1}, true}, // arm ldaex r0,[r2]
++      {false, {0x9f,0x0e,0xd2,0xe1}, true}, // arm ldaexb r0,[r2]
++      {false, {0x9f,0x0e,0xf2,0xe1}, true}, // arm ldaexh r0,[r2]
++      {false, {0x9f,0x0e,0xb2,0xe1}, true}, // arm ldaexd r0,r1,[r2]
++      {false, {0x90,0x3f,0x82,0xe1}, true}, // arm strex r3,r0,[r2]
++      {false, {0x90,0x3f,0xc2,0xe1}, true}, // arm strexb r3,r0,[r2]
++      {false, {0x90,0x3f,0xe2,0xe1}, true}, // arm strexh r3,r0,[r2]
++      {false, {0x90,0x3f,0xa2,0xe1}, true}, // arm strexd r3,r0,r1,[r2]
++      {false, {0x90,0x3e,0x82,0xe1}, true}, // arm stlex r3,r0,[r2]
++      {false, {0x90,0x3e,0xc2,0xe1}, true}, // arm stlexb r3,r0,[r2]
++      {false, {0x90,0x3e,0xe2,0xe1}, true}, // arm stlexh r3,r0,[r2]
++      {false, {0x90,0x3e,0xa2,0xe1}, true}, // arm stlexd r3,r0,r1,[r2]
++      {false, {0x1f,0xf0,0x7f,0xf5}, true}, // arm clrex
++      {false, {0x00,0x00,0x92,0xe5}, false}, // arm ldr r0,[r2]
++      {false, {0x00,0x00,0x82,0xe5}, false}, // arm str r0,[r2]
++      {true, {0x52,0xe8,0x00,0x0f}, true}, // thumb ldrex r0,[r2]
++      {true, {0xd2,0xe8,0x4f,0x0f}, true}, // thumb ldrexb r0,[r2]
++      {true, {0xd2,0xe8,0x5f,0x0f}, true}, // thumb ldrexh r0,[r2]
++      {true, {0xd2,0xe8,0x7f,0x01}, true}, // thumb ldrexd r0,r1,[r2]
++      {true, {0xd2,0xe8,0xef,0x0f}, true}, // thumb ldaex r0,[r2]
++      {true, {0xd2,0xe8,0xcf,0x0f}, true}, // thumb ldaexb r0,[r2]
++      {true, {0xd2,0xe8,0xdf,0x0f}, true}, // thumb ldaexh r0,[r2]
++      {true, {0xd2,0xe8,0xff,0x01}, true}, // thumb ldaexd r0,r1,[r2]
++      {true, {0x42,0xe8,0x00,0x03}, true}, // thumb strex r3,r0,[r2]
++      {true, {0xc2,0xe8,0x43,0x0f}, true}, // thumb strexb r3,r0,[r2]
++      {true, {0xc2,0xe8,0x53,0x0f}, true}, // thumb strexh r3,r0,[r2]
++      {true, {0xc2,0xe8,0x73,0x01}, true}, // thumb strexd r3,r0,r1,[r2]
++      {true, {0xc2,0xe8,0xe3,0x0f}, true}, // thumb stlex r3,r0,[r2]
++      {true, {0xc2,0xe8,0xc3,0x0f}, true}, // thumb stlexb r3,r0,[r2]
++      {true, {0xc2,0xe8,0xd3,0x0f}, true}, // thumb stlexh r3,r0,[r2]
++      {true, {0xc2,0xe8,0xf3,0x01}, true}, // thumb stlexd r3,r0,r1,[r2]
++      {true, {0xbf,0xf3,0x2f,0x8f}, true}, // thumb clrex
++      {true, {0x10,0x68}, false}, // thumb ldr r0,[r2]
++      {true, {0x10,0x60}, false}, // thumb str r0,[r2]
++  };
++  for (const Case &C : Cases) {
++    SCOPED_TRACE(C.Thumb ? "Thumb" : "ARM");
++    MCInst Inst;
++    uint64_t Size = 0;
++    MCDisassembler *Decoder = C.Thumb ? ThumbDecoder.get() : ARMDecoder.get();
++    ASSERT_EQ(Decoder->getInstruction(Inst, Size, C.Bytes, 0x1000, nulls()),
++              MCDisassembler::Success);
++    EXPECT_EQ(Size, C.Bytes.size());
++    EXPECT_EQ(BC->getMIBFor(C.Thumb)->isExclusiveMemoryAccess(Inst), C.Exclusive);
++  }
++}
+ } // namespace
+ #endif
+--- /dev/null
++++ b/bolt/test/ARM/Inputs/check-arm-exclusive-instrumentation.py
+@@ -0,0 +1,29 @@
++from pathlib import Path
++import json,shutil,subprocess,sys,tempfile
++parent=Path(sys.argv[1]);parent.mkdir(parents=True,exist_ok=True)
++out=Path(tempfile.mkdtemp(prefix='exclusive-',dir=parent));runtime=Path(shutil.which('llvm-bolt')).parent.parent/'bolt-rt-baremetal-arm/libbolt_rt_baremetal.a'
++rows=[]
++for isa in ('arm','thumb'):
++    cases={'clear':'clrex\nbx lr'}
++    for width,suffix in [('byte','b'),('half','h'),('word',''),('double','d')]:
++        pair='r0,r1' if suffix=='d' else 'r0'
++        load='ldrex'+suffix+' '+pair+',[r2]';store='strex'+suffix+' r3,'+pair+',[r2]'
++        cases['load_'+width]=load+'\nbx lr';cases['store_'+width]=store+'\nbx lr'
++        cases['split_'+width]=load+'\ncmp r0,#0\nbeq .Lstore\nadd r0,r0,#1\n.Lstore:\n'+store+'\nmov r0,r3\nbx lr'
++    for kind,body in cases.items():
++        d=out/(isa+'_'+kind);d.mkdir()
++        asm='.syntax unified\n.arch armv7-a\n.text\n.arm\n.global _start\n.type _start,%function\n_start:\nbl probe\nbx lr\n.size _start,.-_start\n.balign 4\n.'+isa+'\n.global probe\n.type probe,%function\n'+('.thumb_func\n' if isa=='thumb' else '')+'probe:\n'+body+'\n.size probe,.-probe\n'
++        (d/'input.s').write_text(asm);(d/'layout.ld').write_text('ENTRY(_start)\nSECTIONS { . = 0x8000; .text : { *(.text*) } }\n')
++        def run(label,cmd):
++            p=subprocess.run([str(x) for x in cmd],capture_output=True,text=True);(d/(label+'.log')).write_text(p.stdout+p.stderr);return p
++        p=run('mc',['llvm-mc','-triple=armv7-none-eabi','-arm-add-build-attributes','-filetype=obj',d/'input.s','-o',d/'input.o']);assert not p.returncode,p.stderr
++        p=run('link',['ld.lld','--emit-relocs','-T',d/'layout.ld',d/'input.o','-o',d/'input.elf']);assert not p.returncode,p.stderr
++        for mode,options in [('normal',[]),('reverse',['--reorder-blocks=reverse']),('instrument',[]),('instrument-reverse',['--reorder-blocks=reverse']),('instrument-conservative',['--conservative-instrumentation']),('instrument-inline',['--force-inline=probe'])]:
++            instrument=mode.startswith('instrument');candidate=d/(mode+'.elf')
++            if instrument:options=options+['--instrument','--instrument-calls=false','--arm-instrumentation-contract=privileged-single-core-no-fiq','--instrumentation-sleep-time=1','--runtime-instrumentation-lib='+str(runtime)]
++            p=run(mode,['llvm-bolt',d/'input.elf','-o',candidate,'--no-huge-pages','-lite=0','--funcs=probe',*options])
++            good=p.returncode==1 and 'AArch32 instrumentation does not support exclusive-memory accesses' in p.stdout+p.stderr and not candidate.exists() if instrument else p.returncode==0 and candidate.exists()
++            rows.append(dict(isa=isa,kind=kind,mode=mode,returncode=p.returncode,output=candidate.exists(),passed=good))
++            if not good:raise RuntimeError('wrong exclusive-memory boundary: '+isa+' '+kind+' '+mode+'\n'+p.stdout+p.stderr)
++(out/'results.json').write_text(json.dumps(rows,indent=2)+'\n')
++print('Exclusive-memory boundary:',sum(r['passed'] for r in rows),'/',len(rows),'passed (104 rejections, 52 relocation admissions);',out)
+--- /dev/null
++++ b/bolt/test/ARM/arm-exclusive-instrumentation.test
+@@ -0,0 +1,3 @@
++## Counter memory traffic must not enter an ARM/Thumb exclusive reservation
++## window. Reject instrumentation while retaining ordinary relocation.
++RUN: %python %p/Inputs/check-arm-exclusive-instrumentation.py %t.dir

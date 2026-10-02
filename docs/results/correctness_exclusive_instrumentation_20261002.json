@@ -1,0 +1,143 @@
+{
+  "schema": 1,
+  "date": "2026-10-02",
+  "items": [
+    6
+  ],
+  "status": "partial",
+  "patch": {
+    "name": "0037-bolt-arm-exclusive-instrumentation.patch",
+    "sha256": "2ead60639d5a3572b47901dbf67d6f0bb6e0e075768798b2115d05c8770ee602"
+  },
+  "fixes": [
+    "Reject instrumentation of selected simple known-CFG ARM functions containing exclusive accesses or CLREX",
+    "Recognize all byte/half/word/doubleword LDREX/STREX/LDAEX/STLEX forms in ARM and Thumb",
+    "Preserve ordinary relocation of the tested exclusive instructions"
+  ],
+  "source_change": {
+    "bolt/include/bolt/Core/MCPlusBuilder.h": {
+      "before": "945843620188c7d1195c8f17822f1f06e0bcacd74e893290ee85cd48216ef320",
+      "after": "0012052b8bfd1ee985684c3380c441415179ae0d805374d3ee53c7b26e9c68bc"
+    },
+    "bolt/lib/Target/ARM/ARMMCPlusBuilder.cpp": {
+      "before": "de03bf6c6e208ca5f8ebf1c551ec5d7eaf11e842e8aff37d412d8ad2be9001b8",
+      "after": "b1c79abf8e8bcb65290f6b4d433b326222abb0e32b72f22293b486edaf861d03"
+    },
+    "bolt/lib/Passes/Instrumentation.cpp": {
+      "before": "cb31357209f2ae3aa0926421119c1a6270c5717fccc6876f3dd692de86de08fb",
+      "after": "3822cbcee37158adf7c0fd4e7c05ffd5efe50486d0eac4ffe08579476d3d046e"
+    },
+    "bolt/unittests/Core/ARMReturns.cpp": {
+      "before": "b6040b983315e44119a21102276b316b2f9a067162e24dfc7a2d7dc62104941c",
+      "after": "7e18642039f5d96a65e66bae26d16deb6928c5d95f73f37cbc541d6011265f71"
+    }
+  },
+  "before": {
+    "evidence": "out/correctness/exclusive-instrumentation/probe-hi6v7oy4",
+    "admitted": 24,
+    "observed": "Counter spill/store memory traffic appears between exclusive load and store in every tested width/ISA/pass combination",
+    "scope": "Host emitted-instruction proof of reservation-window intrusion; no new Pi runtime corruption reproduction claimed",
+    "disassembly_sha256": {
+      "out/correctness/exclusive-instrumentation/probe-hi6v7oy4/arm_byte/normal-disasm.log": "e029d538828f8dcac99b69716adef430c5afdede9be73088ee9f2712ed998047",
+      "out/correctness/exclusive-instrumentation/probe-hi6v7oy4/arm_byte/reverse-disasm.log": "5984de70178672f51ce4bd3e65338c7cbc6a881628da80a318a85c614fcfa5e0",
+      "out/correctness/exclusive-instrumentation/probe-hi6v7oy4/arm_byte/conservative-disasm.log": "3457ad48f931769d37e7d6790438d0abd444be07b9c8ab84c67f9a90565a88bb",
+      "out/correctness/exclusive-instrumentation/probe-hi6v7oy4/arm_half/normal-disasm.log": "41094afdee29dd4375d5e4daee60c99142e5b7e5488b883c391a63ba7c49144c",
+      "out/correctness/exclusive-instrumentation/probe-hi6v7oy4/arm_half/reverse-disasm.log": "2faf283611053135ff72e986791a4995a54dbdf34d16c319f5c15c72876c62f3",
+      "out/correctness/exclusive-instrumentation/probe-hi6v7oy4/arm_half/conservative-disasm.log": "90f3853ae843a27ca0b4a810b353901ef33032082102003c25596eae5ffbaa7b",
+      "out/correctness/exclusive-instrumentation/probe-hi6v7oy4/arm_word/normal-disasm.log": "08a5cc9971aa5f23d84e2a5c55fd70a1bf41d1f3aeb0c5400d332fd01aab5cdd",
+      "out/correctness/exclusive-instrumentation/probe-hi6v7oy4/arm_word/reverse-disasm.log": "3966393b894a6082fb49e3e6cbbab32c9e6f4e5eb025432d9d3f4a039f01a7c1",
+      "out/correctness/exclusive-instrumentation/probe-hi6v7oy4/arm_word/conservative-disasm.log": "4b5539474afca6e3f55a5a32c5d1539ed91ecbbc13dfa43047e224f991f3f4f8",
+      "out/correctness/exclusive-instrumentation/probe-hi6v7oy4/arm_double/normal-disasm.log": "5edae4928409ee420e14867bca8053ba15ebd14c2381466131f61f11158e8700",
+      "out/correctness/exclusive-instrumentation/probe-hi6v7oy4/arm_double/reverse-disasm.log": "f5f40a399c2d2851962af18b04ac3569307e309863e935201db49ab596949700",
+      "out/correctness/exclusive-instrumentation/probe-hi6v7oy4/arm_double/conservative-disasm.log": "ae10c9c312516f2b3d773717eb1991ebfd8fadaf4442372bf520030accebb05c",
+      "out/correctness/exclusive-instrumentation/probe-hi6v7oy4/thumb_byte/normal-disasm.log": "7f0098bf3cf54a7407be6e72f233646aea9ed6e9e4142eda6328b70ee399ce7f",
+      "out/correctness/exclusive-instrumentation/probe-hi6v7oy4/thumb_byte/reverse-disasm.log": "e4e830ca1212a74bfa19b2fe102fe850a769cdddbeb4eee8698eefc6dc922da6",
+      "out/correctness/exclusive-instrumentation/probe-hi6v7oy4/thumb_byte/conservative-disasm.log": "544c2bae1c12d3883025646f5631ab601ed458e44ee09885437bb4891de7b69a",
+      "out/correctness/exclusive-instrumentation/probe-hi6v7oy4/thumb_half/normal-disasm.log": "33d96754ec975e88f79c2127f14f9deb01a00fb2384350d1b35e1810ef52d70f",
+      "out/correctness/exclusive-instrumentation/probe-hi6v7oy4/thumb_half/reverse-disasm.log": "280db6be6c205448fe83e73348d4fc6c147c28c34dacaea84b99f8e8267a4d02",
+      "out/correctness/exclusive-instrumentation/probe-hi6v7oy4/thumb_half/conservative-disasm.log": "d38abfe039979d7b399fc3149b5af9da5ab1b402c200d4f5cb5424512181dd49",
+      "out/correctness/exclusive-instrumentation/probe-hi6v7oy4/thumb_word/normal-disasm.log": "3be6bd3429cf2a69c21b6857b44873b95607bb03cc2b34e44bd9675642e0f4f0",
+      "out/correctness/exclusive-instrumentation/probe-hi6v7oy4/thumb_word/reverse-disasm.log": "e68ba01af7fab16b21db16d5809aa0d9272a87b781414806f7830e1ed1073699",
+      "out/correctness/exclusive-instrumentation/probe-hi6v7oy4/thumb_word/conservative-disasm.log": "cfad2e568c5f71d919e8b3ad94ed7902510740426c927dd5756659b4e9527101",
+      "out/correctness/exclusive-instrumentation/probe-hi6v7oy4/thumb_double/normal-disasm.log": "2e6326fb12b3fdfd8db96bda28d5eb545c2c102c69e26485ae6999c6cba2aba0",
+      "out/correctness/exclusive-instrumentation/probe-hi6v7oy4/thumb_double/reverse-disasm.log": "1342aba8868d3ac506b08090acb105ea41445eee81bcbd51575302307b3f9c8a",
+      "out/correctness/exclusive-instrumentation/probe-hi6v7oy4/thumb_double/conservative-disasm.log": "fd68b2c3a9012480684ec38685c481f8687764e5aef47b830fb5bc775bfd761f"
+    }
+  },
+  "host": {
+    "assertions-on": {
+      "lit_passed": 47,
+      "lit_skipped": 0,
+      "unit_passed": 58,
+      "unit_skipped": 31,
+      "instrumentation_rejections": 104,
+      "relocation_admissions": 52,
+      "decoded_exclusive_forms": 34,
+      "decoded_ordinary_memory_controls": 4,
+      "logs": {
+        "assertions-on-lit.log": "ece16a972b53bb3e172f4e2c53b08d8901eb5408e8f2035b9da3e5a2aaa5a5b7",
+        "assertions-on-units.log": "91aac8ca1bcb35a2d88fdf6d1129743cf7437f69d6ac349415850a8f914407a7"
+      }
+    },
+    "assertions-off": {
+      "lit_passed": 46,
+      "lit_skipped": 1,
+      "unit_passed": 58,
+      "unit_skipped": 31,
+      "instrumentation_rejections": 104,
+      "relocation_admissions": 52,
+      "decoded_exclusive_forms": 34,
+      "decoded_ordinary_memory_controls": 4,
+      "logs": {
+        "assertions-off-lit.log": "27931c91a84bc21fc0a2eba72c1714d8062d42cba3ff2718e724ac4be335732d",
+        "assertions-off-units.log": "59ed14fcdd692e50b970a35cb85938298dd0e0fa6cfa0821122e04b062a205d8"
+      }
+    }
+  },
+  "remaining": [
+    "Reservations held across calls into separately instrumented functions, including skipped/unselected callers",
+    "Active ISR/FIQ/SMP and live snapshots remain outside existing hardware scope",
+    "General ISA/feature admission and broader exclusive-memory execution support remain open",
+    "Separate Thumb ELF-entry lookup/assertion failure retained under #9; no fix claimed",
+    "#12 remains paused; ATFE only"
+  ],
+  "supported_pi_payloads": {
+    "parity": {
+      "assertions-on": {
+        "build": "out/correctness/exclusive-instrumentation/assertions-on-pi-positive/build-lb10bwg1",
+        "matches_executed_0036_build": "out/correctness/conditional-instrumentation/assertions-on-pi-positive/build-d5fv3u4k",
+        "payload_sha256": {
+          "baseline": "2c9f4d72d1589206834bce3bd9d0ede63c6364a31e8cab09de570d7055c272a7",
+          "normal": "b7f4922987aee91316ebd439be6c21fe962600f17b7cb6691369c9dfd11f16d5",
+          "reverse": "2457595d84b45d917a43e1935af8e0cc59c551cf2c68649589a029b07494d562",
+          "conservative": "e7b9d4eb9068031e1b696214533fc3b0363e0249324f13ebf71040378063cabe",
+          "bad-reset": "feda77d5bf9ebdddade07a8fb19c3b7f867fb0c3683133077610a7a27dc62e4b"
+        },
+        "new_tool_sha256": "efd6efb808b836e7f3c884e17e6012cfd21ca97359e78e6fb69ffbe60d0cb837",
+        "new_manifest_sha256": "97a0ed18d341495bea0ec89282a4dcd178173d39a15b0cbbdcceab8e96234c7e",
+        "executed_verification_sha256": "9989d461df578db14dfe088c5f486c17444442477f318a11f631c63b40f116a2"
+      },
+      "assertions-off": {
+        "build": "out/correctness/exclusive-instrumentation/assertions-off-pi-positive/build-asvog53k",
+        "matches_executed_0036_build": "out/correctness/conditional-instrumentation/assertions-off-pi-positive/build-zg3fm5ln",
+        "payload_sha256": {
+          "baseline": "2c9f4d72d1589206834bce3bd9d0ede63c6364a31e8cab09de570d7055c272a7",
+          "normal": "b7f4922987aee91316ebd439be6c21fe962600f17b7cb6691369c9dfd11f16d5",
+          "reverse": "2457595d84b45d917a43e1935af8e0cc59c551cf2c68649589a029b07494d562",
+          "conservative": "e7b9d4eb9068031e1b696214533fc3b0363e0249324f13ebf71040378063cabe",
+          "bad-reset": "feda77d5bf9ebdddade07a8fb19c3b7f867fb0c3683133077610a7a27dc62e4b"
+        },
+        "new_tool_sha256": "94058708c7fac8bf2e10b11017bc2587fd7efbc17181158656f403db08c87e06",
+        "new_manifest_sha256": "eb1b2514815d3e543ab316dfe5f29bb65dede4c0e2213be2e837925e7b3bf7e2",
+        "executed_verification_sha256": "e4370b2abff5ef7f2c406862611c0574a2a0370edb5c69901c420f94b7b8799d"
+      }
+    },
+    "verification": "Fresh builds of all five supported positive/reset-fault images in both modes are byte-identical to executed overlay 0036 evidence; no fresh Pi execution for 0037",
+    "previous_evidence": "docs/results/correctness_conditional_instrumentation_20261002.json"
+  },
+  "separate_thumb_entry_issue": {
+    "evidence": "out/correctness/exclusive-instrumentation/probe-yozkp1rs/thumb_word/normal.log",
+    "log_sha256": "c30554b51b67a65021263ee0eb87c193e0b7e04196a5bb7bad339b5b94b28995",
+    "status": "Deferred to entry-point work #9; pure-Thumb entry asserts while equivalent A32-start/Thumb-function probes succeed; assertions-off behavior not claimed"
+  }
+}
