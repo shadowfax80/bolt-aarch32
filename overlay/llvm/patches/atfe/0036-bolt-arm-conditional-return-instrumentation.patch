@@ -1,0 +1,61 @@
+--- a/bolt/lib/Passes/Instrumentation.cpp
++++ b/bolt/lib/Passes/Instrumentation.cpp
+@@ -664,6 +664,25 @@
+     return (!BF.isSimple() || BF.isIgnored() ||
+             (opts::InstrumentHotOnly && !BF.getKnownExecutionCount()));
+   };
++
++  // A conditional return is kept inside an ARM block to preserve its
++  // fallthrough, but its taken exit has no CFG edge. Spanning-tree profiling
++  // would miss paths that return before the leaf counters. Refuse to publish
++  // such a profile until both exit and fallthrough are modeled.
++  if (BC.isARM()) {
++    for (auto &It : BC.getBinaryFunctions()) {
++      BinaryFunction &BF = It.second;
++      if (SkipPredicate(BF) || BF.hasUnknownControlFlow())
++        continue;
++      MCPlusBuilder *MIB = BC.getMIBFor(BF.isARMThumb());
++      for (const BinaryBasicBlock &BB : BF)
++        for (const MCInst &Inst : BB)
++          if (MIB->isReturn(Inst) && !MIB->isTerminator(Inst))
++            return createFatalBOLTError(
++                "AArch32 instrumentation does not support conditional returns in " +
++                BF.getPrintName());
++    }
++  }
+ 
+   ParallelUtilities::WorkFuncWithAllocTy WorkFun =
+       [&](BinaryFunction &BF, MCPlusBuilder::AllocatorIdTy AllocatorId) {
+--- /dev/null
++++ b/bolt/test/ARM/Inputs/check-arm-conditional-instrumentation.py
+@@ -0,0 +1,24 @@
++from pathlib import Path
++import json, shutil, subprocess, sys, tempfile
++parent=Path(sys.argv[1]);parent.mkdir(parents=True,exist_ok=True)
++out=Path(tempfile.mkdtemp(prefix='conditional-',dir=parent));observe='--observe' in sys.argv
++runtime=Path(shutil.which('llvm-bolt')).parent.parent/'bolt-rt-baremetal-arm/libbolt_rt_baremetal.a'
++rows=[]
++for kind,ret,final in [('bx','bxeq lr','bx lr'),('pop','popeq {pc}','pop {pc}'),('ldm','popeq {r4,pc}','pop {r4,pc}')]:
++    d=out/kind;d.mkdir()
++    asm='.syntax unified\n.arch armv7-a\n.arm\n.text\n.global _start\n.type _start,%function\n_start:\nbl probe\nbx lr\n.size _start,.-_start\n.balign 4\n.global probe\n.type probe,%function\nprobe:\ncmp r0,#0\n'+ret+'\ncmp r0,#1\nbeq .Lone\nmov r0,#7\n'+final+'\n.Lone:\nmov r0,#9\n'+final+'\n.size probe,.-probe\n'
++    (d/'input.s').write_text(asm);(d/'layout.ld').write_text('ENTRY(_start)\nSECTIONS { . = 0x8000; .text : { *(.text*) } }\n')
++    def run(label,cmd):
++        p=subprocess.run([str(x) for x in cmd],capture_output=True,text=True);(d/(label+'.log')).write_text(p.stdout+p.stderr);return p
++    p=run('mc',['llvm-mc','-triple=armv7-none-eabi','-arm-add-build-attributes','-filetype=obj',d/'input.s','-o',d/'input.o']);assert not p.returncode,p.stderr
++    p=run('link',['ld.lld','--emit-relocs','-T',d/'layout.ld',d/'input.o','-o',d/'input.elf']);assert not p.returncode,p.stderr
++    for mode,options in [('normal',[]),('reverse',['--reorder-blocks=reverse']),('instrument',[]),('instrument-reverse',['--reorder-blocks=reverse']),('instrument-conservative',['--conservative-instrumentation']),('instrument-inline',['--force-inline=probe'])]:
++        instrument=mode.startswith('instrument');candidate=d/(mode+'.elf')
++        if instrument: options=options+['--instrument','--instrument-calls=false','--arm-instrumentation-contract=privileged-single-core-no-fiq','--instrumentation-sleep-time=1','--runtime-instrumentation-lib='+str(runtime)]
++        p=run(mode,['llvm-bolt',d/'input.elf','-o',candidate,'--no-huge-pages','-lite=0','--funcs=probe','--print-cfg','--print-only=probe',*options])
++        good=p.returncode==1 and 'AArch32 instrumentation does not support conditional returns' in p.stdout+p.stderr and not candidate.exists() if instrument else p.returncode==0 and candidate.exists()
++        rows.append(dict(kind=kind,mode=mode,instrument=instrument,returncode=p.returncode,output=candidate.exists(),passed=good))
++        if candidate.exists():run(mode+'-disasm',['llvm-objdump','-d',candidate])
++        if not good and not observe:raise RuntimeError('wrong conditional return boundary: '+kind+' '+mode+'\n'+p.stdout+p.stderr)
++(out/'results.json').write_text(json.dumps(rows,indent=2)+'\n')
++print('Conditional return boundary:',sum(r['passed'] for r in rows),'/',len(rows),'passed;',out)
+--- /dev/null
++++ b/bolt/test/ARM/arm-conditional-instrumentation.test
+@@ -0,0 +1,3 @@
++## Conditional returns have no taken-exit CFG edge yet. Relocation remains
++## supported; instrumentation must reject instead of publishing incomplete counts.
++RUN: %python %p/Inputs/check-arm-conditional-instrumentation.py %t.dir

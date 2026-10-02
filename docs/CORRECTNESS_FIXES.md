@@ -1,5 +1,25 @@
 # Correctness fixes
 
+## Conditional-return instrumentation boundary (2026-10-02)
+
+Overlay 0036 rejects instrumentation of simple known-CFG ARM functions with
+unmodeled conditional returns. The previous profile graph has no taken-exit
+edge; an emitted BXEQ LR path returns before either spanning-tree leaf counter.
+Twelve normal/reverse/conservative/forced-inline instrumentation probes were
+admitted and emitted incomplete profiling coverage. This is host CFG/byte proof;
+no hardware reproduction of that early-exit profile gap is claimed.
+
+Both builds pass twelve instrumentation rejections and six ordinary relocation
+admissions for conditional BX, single-PC POP and multi-register POP. The focused
+suites pass 46/45 tests (one debug-only skip off); both pass 57 CoreTests/31 skips.
+Fresh Pi nested/IT firmware passes 372 cases in baseline/normal/reverse/
+conservative configurations in each build: 2,976 positive cases. Exact counter
+slots, state/operating contract and real runtime clears pass. Both bad-reset
+images fail as required; all ten firmware runs watchdog-return to loader, and
+all five payloads match across build modes. Conditional-return CFG modeling
+and other pass boundaries remain open. See
+[evidence](results/correctness_conditional_instrumentation_20261002.json).
+
 ## Exception-return admission boundary (2026-10-02)
 
 Overlay 0035 rejects decoded ARM/Thumb RFE, ERET and Thumb exception SUBS PC,LR

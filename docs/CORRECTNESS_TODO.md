@@ -106,6 +106,12 @@ safe; unsupported cases cannot return a successful partially corrupted output.
   at the expected nonzero CBZ case. Wider flags/pass combinations remain open.
 - [ ] Model conditional returns with taken exits and fallthrough, or exclude
   transformations requiring that model.
+- [x] Exclude unmodeled conditional returns from instrumentation. Overlay 0036
+  rejects them before publishing an incomplete profile. Twelve rejection cases
+  cover normal/reverse/conservative/forced-inline instrumentation; six ordinary
+  relocation cases remain supported. Both host builds pass. Fresh supported
+  nested/IT Pi images pass 2,976 cases, all exact counter/reset checks and two
+  reset faults. The general exit-edge model and other pass boundaries remain open.
 - [ ] Audit non-updating LDM, LDR-to-PC, MOV-to-PC, BX, predicated variants,
   interworking and tail calls; distinguish returns from other computed branches.
   Overlay 0033 rejects unsupported PC writes before transformation, including

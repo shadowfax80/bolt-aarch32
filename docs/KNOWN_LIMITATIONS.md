@@ -19,6 +19,11 @@ Undecodable instructions can still remain kept/ignored under the existing
 policy; general ISA/feature admission is open. See the
 [exception-return evidence](results/correctness_exception_returns_20261002.json).
 
+Overlay 0036 rejects instrumentation of unmodeled conditional returns, whose
+taken exits are absent from the profile graph. Supported ordinary relocation
+remains covered; general conditional-exit CFG modeling is still open. See the
+[conditional-return evidence](results/correctness_conditional_instrumentation_20261002.json).
+
 **Verification status is marked per item**, because it matters for how much to
 trust each entry:
 

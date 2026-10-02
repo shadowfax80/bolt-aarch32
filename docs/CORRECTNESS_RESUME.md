@@ -1,6 +1,36 @@
 # ATFE correctness checkpoint - 2026-10-02
 
-## Latest: #4 exception-return admission verified
+## Latest: #4 conditional-return instrumentation verified
+
+0035 is pushed as 3e0e57c. Overlay 0036 rejects instrumentation of simple known-CFG
+ARM functions with unmodeled conditional returns. Host proof:
+conditional-instrumentation/before-probes/conditional-slrd322l; the BXEQ LR path
+returns before either leaf counter and has no taken-exit CFG edge. Twelve old
+instrumentation candidates were admitted. The new gate passes twelve rejections
+and six normal/reverse relocation admissions in both modes. Focused suites pass
+46/45 tests (one debug-only skip off) and 57 CoreTests/31 skips per mode.
+
+Fresh nested/IT Pi builds: conditional-instrumentation/assertions-on-pi-positive/
+build-d5fv3u4k and assertions-off-pi-positive/build-zg3fm5ln. Hardware evidence:
+pi-verify-mg8qz6fj and pi-verify-mexmiqxb respectively. Baseline/normal/reverse/
+conservative each pass 372 cases per build, totaling 2,976. Exact counts, real
+runtime clears and operating contract pass; two bad-reset images fail as
+required. All ten runs watchdog-return to the serial loader. All five payloads
+match across modes. Evidence: results/correctness_conditional_instrumentation_20261002.json.
+
+Preimages/afterimages/source hashes, host logs and probes are saved under
+out/correctness/conditional-instrumentation. The one-time
+apply-conditional-instrumentation-boundary.py is already applied; do not rerun it.
+Source/test overlay 0036 reverse-apply checks against live source. Preserve dirty
+WSL ATFE/LK and unrelated Windows Microsoft/. General conditional-exit CFG
+modeling, other special/trap transfers and broader/profile-driven pass coverage
+remain. Three original items complete (#2/#8/#10); #12 remains explicitly paused.
+ATFE only. No upstream work. The planned usage-related pause was cancelled
+after the five-hour window reset to 99% remaining; WSL stays running for continued
+work. No compiler, test or serial job remains active at this verified checkpoint;
+the Pi returned to the loader. Continue the audit; #12 remains paused.
+
+## Earlier: #4 exception-return admission verified
 
 0034 is pushed as a14fc05. Overlay 0035 rejects decoded ARM/Thumb RFE, ERET and
 Thumb exception SUBS PC,LR before the ordinary-return/PC-definition exemptions.
