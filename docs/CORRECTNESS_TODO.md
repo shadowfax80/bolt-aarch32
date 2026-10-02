@@ -5,9 +5,9 @@ Re-evaluated 2026-10-01 at GitHub `bbae817`, with ATFE overlays through 0024. **
 See [review evidence](CORRECTNESS_REVIEW_BBAE817.md), [status](CORRECTNESS_STATUS.md), and
 [previous fixes](CORRECTNESS_FIXES.md).
 
-Work resumed by user on 2026-10-02. #5 remains first in the order below; its
-terminal-IT fix passes the wider Pi matrix and focused host regressions.
-Nested execution and broader count/snapshot coverage follow. WSL is running;
+Work resumed by user on 2026-10-02. The #5 IT/nested/reset matrix and #6 operating
+admission boundary now pass Pi and focused host checks. Next is #3's CFG/assertion
+audit in the order below; broader #5/#6 coverage remains open. WSL is running;
 #12 remains paused. See CORRECTNESS_RESUME.md.
 
 Active development is **ATFE only**. Set `BASE=atfe` explicitly: generic scripts
@@ -19,8 +19,9 @@ host tests check encodings/diagnostics and QEMU is supplemental.
 User revised the order on 2026-10-02: pause #12 and return to it after the next
 correctness items. Its remaining validation gaps still limit completion claims.
 
-1. **#5 active:** counter carry/registers/flags/IT; then #6 enforced instrumentation scope.
-2. #3 assertions-on/off CFG invariants and #4 conditional returns/PC writes/pass safety.
+1. #5 counter carry/registers/flags/IT and #6 admission boundary verified;
+   broader ISR/mixed-ISA/snapshot/exclusive-memory coverage remains open.
+2. **#3 next:** assertions-on/off CFG invariants and #4 conditional returns/PC writes/pass safety.
 3. #1 relocation boundaries, then #9 aliases, secondary entries and pointer targets.
 4. #7 ISA/ABI admission and #11 inline-table/pass/unsupported-input coverage.
 5. **#12 paused by user:** resume counter binding, core ownership, other gates,
@@ -137,16 +138,27 @@ live flags, return values, LR/SP and fallthrough.
 **Done:** original/instrumented/optimized/no-reorder Pi outputs agree independently,
 and measured counts match the expected model, including carry tests.
 
-## 6. Instrumentation operating scope — open, P0
+## 6. Instrumentation operating scope - partial, P0
 
-- [ ] Enforce a privileged, single-core bare-metal mode. ELF metadata cannot prove
+- [x] Require a privileged, single-core bare-metal contract. ELF metadata cannot prove
   privilege/concurrency: require an explicit operating contract plus harness checks.
-- [ ] Reject unsupported `--instrument-calls`/indirect-call profiling. The current
-  ARM hook returns the original call; runtime handlers immediately return.
-- [ ] Define IRQ/FIQ/reentrancy behavior. The current sequence masks IRQ only and
-  is not a multicore atomic increment.
-- [ ] Reject excluded combinations before producing a usable output, including
+- [x] Reject unsupported `--instrument-calls`/indirect-call profiling, including
+  the default true setting. Placeholder ARM handlers remain inaccessible to
+  accepted profiling invocations.
+- [x] Define IRQ/FIQ/reentrancy boundary: updates mask IRQ only; FIQ must stay
+  disabled and only one core may participate. Quiet nested calls pass; reset
+  and snapshot callers must establish quiescence.
+- [x] Reject excluded contract/call/process/shared combinations before output, including
   direct llvm-bolt invocations that bypass wrappers.
+- [ ] Audit exclusive-memory sequences and reservations across insertion sites.
+- [ ] Extend active ISR/mixed-ISA reentrancy coverage; compile-time contract
+  acknowledgement cannot prove runtime concurrency. MPIDR checks the executing
+  core, while the fixture's loader parks secondary cores.
+
+Overlay 0028: eight rejection combinations, 40 focused host tests and nine
+hardware-result gate tests pass. Pi baseline/normal/reverse/conservative each
+pass 372 IT/nested/reset cases with mode/core/stack checks; bad-reset fails as
+expected. See PI_INSTRUMENTATION_SCOPE.md and recorded evidence.
 
 **Done:** accepted modes have execution evidence; excluded modes have diagnostics
 and negative tests. General userspace/SMP instrumentation remains deferred.

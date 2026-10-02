@@ -1,0 +1,126 @@
+--- a/bolt/lib/RuntimeLibs/InstrumentationRuntimeLibrary.cpp
++++ b/bolt/lib/RuntimeLibs/InstrumentationRuntimeLibrary.cpp
+@@ -29,6 +29,14 @@
+     cl::desc("specify path of the runtime instrumentation library"),
+     cl::init("libbolt_rt_instr.a"), cl::cat(BoltOptCategory));
+ 
++cl::opt<std::string> ARMInstrumentationContract(
++    "arm-instrumentation-contract",
++    cl::desc("AArch32 runtime contract: privileged-single-core-no-fiq "
++             "acknowledges privileged execution, one participating core, "
++             "FIQ masked and quiescent reset/snapshot boundaries"),
++    cl::init(""), cl::cat(BoltOptCategory));
++
++extern cl::opt<bool> InstrumentCalls;
+ extern cl::opt<bool> InstrumentationFileAppendPID;
+ extern cl::opt<bool> ConservativeInstrumentation;
+ extern cl::opt<std::string> InstrumentationFilename;
+@@ -43,6 +51,35 @@
+ 
+ void InstrumentationRuntimeLibrary::adjustCommandLineOptions(
+     const BinaryContext &BC) const {
++  // ELF metadata cannot establish privilege or concurrency. AArch32 uses
++  // CPSID/MSR and a non-atomic 64-bit update: require an explicit caller
++  // contract, then reject unsupported profiling paths before transformations.
++  if (BC.isARM()) {
++    if (opts::ARMInstrumentationContract != "privileged-single-core-no-fiq") {
++      errs() << "BOLT-ERROR: AArch32 instrumentation requires "
++                "--arm-instrumentation-contract=privileged-single-core-no-fiq; "
++                "reset and snapshots must be quiescent\n";
++      exit(1);
++    }
++    if (!BC.IsStaticExecutable) {
++      errs() << "BOLT-ERROR: AArch32 instrumentation supports static "
++                "bare-metal executables only\n";
++      exit(1);
++    }
++    if (opts::InstrumentCalls) {
++      errs() << "BOLT-ERROR: AArch32 call/indirect-call profiling is unsupported; "
++                "use --instrument-calls=false\n";
++      exit(1);
++    }
++    if (opts::InstrumentationWaitForks || opts::InstrumentationFileAppendPID ||
++        !opts::InstrumentationBinpath.empty()) {
++      errs() << "BOLT-ERROR: AArch32 bare-metal instrumentation does not "
++                "support process/fork options\n";
++      exit(1);
++    }
++    outs() << "BOLT-INFO: AArch32 instrumentation caller acknowledges "
++              "privileged-single-core-no-fiq; reset/snapshot require quiescence\n";
++  }
+   if (!BC.HasRelocations) {
+     errs() << "BOLT-ERROR: instrumentation runtime libraries require "
+               "relocations\n";
+--- a/bolt/test/ARM/arm-counter-carry.test
++++ b/bolt/test/ARM/arm-counter-carry.test
+@@ -3,7 +3,7 @@
+ RUN: ld.lld --emit-relocs -T %p/Inputs/arm32.ld %t.o -o %t.exe
+ RUN: llvm-mc -triple=armv7-none-eabi -filetype=obj %p/Inputs/arm-counter-runtime.s -o %t.rt.o
+ RUN: llvm-ar rcs %t.rt.a %t.rt.o
+-RUN: llvm-bolt %t.exe -o %t.bolt --no-huge-pages -lite=0 --instrument --instrument-calls=false \
++RUN: llvm-bolt %t.exe -o %t.bolt --no-huge-pages -lite=0 --instrument --instrument-calls=false --arm-instrumentation-contract=privileged-single-core-no-fiq \
+ RUN:   --instrumentation-sleep-time=1 --runtime-instrumentation-lib=%t.rt.a \
+ RUN:   --funcs=counter_arm,counter_thumb --emit-function-map=%t.map
+ RUN: %python %p/Inputs/check-arm-counter-bytes.py %t.bolt %t.map %t.check
+--- a/bolt/test/ARM/Inputs/check-arm-it-boundaries.py
++++ b/bolt/test/ARM/Inputs/check-arm-it-boundaries.py
+@@ -59,7 +59,7 @@
+ for mode, extra in [('normal',[]),('reverse',['--reorder-blocks=reverse']),('conservative',['--conservative-instrumentation'])]:
+     candidate = out/(mode+'.elf')
+     mapping = out/(mode+'.map')
+-    run(mode,['llvm-bolt',elf,'-o',candidate,'--no-huge-pages','-lite=0','--instrument','--instrument-calls=false',
++    run(mode,['llvm-bolt',elf,'-o',candidate,'--no-huge-pages','-lite=0','--instrument','--instrument-calls=false','--arm-instrumentation-contract=privileged-single-core-no-fiq',
+               '--instrumentation-sleep-time=1','--runtime-instrumentation-lib='+str(runtime),
+               '--funcs='+','.join(names),'--emit-function-map='+str(mapping),*extra])
+     rows = {line.split()[0] for line in mapping.read_text().splitlines() if line.split()}
+--- /dev/null
++++ b/bolt/test/ARM/Inputs/check-arm-instrumentation-scope.py
+@@ -0,0 +1,43 @@
++from pathlib import Path
++import subprocess
++import sys
++import tempfile
++
++parent=Path(sys.argv[1]);parent.mkdir(parents=True,exist_ok=True)
++out=Path(tempfile.mkdtemp(prefix='scope-',dir=parent))
++inputs=Path(sys.argv[2])
++def run(label,command,ok=True,diagnostic=None):
++    p=subprocess.run([str(x) for x in command],capture_output=True,text=True)
++    text=p.stdout+p.stderr
++    (out/(label+'.log')).write_text(text,encoding='utf-8')
++    if (p.returncode==0)!=ok or diagnostic and diagnostic not in text:
++        raise RuntimeError(label+': unexpected result\n'+text)
++    return text
++run('mc',['llvm-mc','-triple=armv7-none-eabi','-arm-add-build-attributes','-filetype=obj',inputs/'arm-counter-probes.s','-o',out/'input.o'])
++run('link',['ld.lld','--emit-relocs','-T',inputs/'arm32.ld',out/'input.o','-o',out/'input.elf'])
++run('shared',['ld.lld','-shared','--emit-relocs','-T',inputs/'arm32.ld',out/'input.o','-o',out/'shared.elf'])
++run('rt-mc',['llvm-mc','-triple=armv7-none-eabi','-filetype=obj',inputs/'arm-counter-runtime.s','-o',out/'rt.o'])
++run('rt-ar',['llvm-ar','rcs',out/'rt.a',out/'rt.o'])
++contract='--arm-instrumentation-contract=privileged-single-core-no-fiq'
++base=['--no-huge-pages','-lite=0','--instrument','--instrumentation-sleep-time=1',
++      '--runtime-instrumentation-lib='+str(out/'rt.a'),'--funcs=counter_arm,counter_thumb']
++cases=[
++    ('missing',['--instrument-calls=false'],'requires --arm-instrumentation-contract'),
++    ('userspace',['--instrument-calls=false','--arm-instrumentation-contract=userspace'],'requires --arm-instrumentation-contract'),
++    ('default-calls',[contract],'call/indirect-call profiling is unsupported'),
++    ('explicit-calls',[contract,'--instrument-calls=true'],'call/indirect-call profiling is unsupported'),
++    ('fork',[contract,'--instrument-calls=false','--instrumentation-wait-forks'],'does not support process/fork options'),
++    ('pid',[contract,'--instrument-calls=false','--instrumentation-file-append-pid'],'does not support process/fork options'),
++    ('binpath',[contract,'--instrument-calls=false','--instrumentation-binpath=/input'],'does not support process/fork options'),
++    ('shared',[contract,'--instrument-calls=false'],'supports static bare-metal executables only'),
++]
++for label,options,message in cases:
++    candidate=out/(label+'-output.elf')
++    source=out/('shared.elf' if label=='shared' else 'input.elf')
++    run(label,['llvm-bolt',source,'-o',candidate,*base,*options],False,message)
++    if candidate.exists():raise RuntimeError(label+': rejection left an output')
++candidate=out/'accepted.elf'
++run('accepted',['llvm-bolt',out/'input.elf','-o',candidate,*base,contract,'--instrument-calls=false'],True,
++    'caller acknowledges privileged-single-core-no-fiq')
++if not candidate.exists():raise RuntimeError('accepted contract produced no image')
++print('PASS: eight excluded operating combinations and accepted contract')
+--- /dev/null
++++ b/bolt/test/ARM/arm-instrumentation-scope.test
+@@ -0,0 +1,2 @@
++## Direct llvm-bolt admission must enforce ARM32's operating boundary.
++RUN: %python %p/Inputs/check-arm-instrumentation-scope.py %t %p/Inputs

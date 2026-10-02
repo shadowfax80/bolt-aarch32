@@ -20,6 +20,7 @@ case "$ARCH" in
     HOOK_SECTIONS=1
     ;;
   arm|arm32|aarch32)
+    ARCH=arm32
     ELF="${ELF:-$LK_DIR/build-qemu-virt-arm32-test/lk.elf}"
     LIB="${BOLT_RT_LIB:-$ROOT/build-${BASE:-upstream}/bolt-rt-baremetal-arm/libbolt_rt_baremetal.a}"
     SKIP_FUNCS="${SKIP_FUNCS:-_start,arm_reset,arm_undefined,arm_swi,arm_prefetch_abort,arm_data_abort,arm_reserved,arm_irq,arm_fiq,platform_early_init,arch_early_init}"
@@ -106,8 +107,18 @@ BOLT_ARGS=(
 # the profile needs no inference.
 [[ "${BOLT_INSTR_EDGES:-0}" == 1 ]] && BOLT_ARGS+=(--conservative-instrumentation)
 
+# ARM32 counters require privileged execution on one participating core with
+# FIQ masked; resets and external reads must occur at quiescent boundaries.
+if [[ "$ARCH" == arm32 ]]; then
+  if [[ "${ARM_INSTRUMENTATION_CONTRACT:-}" != privileged-single-core-no-fiq ]]; then
+    echo "error: set ARM_INSTRUMENTATION_CONTRACT=privileged-single-core-no-fiq after establishing the ARM32 operating contract" >&2
+    exit 1
+  fi
+  BOLT_ARGS+=(--arm-instrumentation-contract="$ARM_INSTRUMENTATION_CONTRACT")
+fi
+
 # --no-lse-atomics is AArch64's option (QEMU cortex-a53 has no LSE). The ARM
-# target never reads it -- its counter path is ldrex/strex unconditionally.
+# target never reads it -- its counter path masks IRQ around a 64-bit update.
 [[ "$ARCH" != arm32 ]] && BOLT_ARGS+=(--no-lse-atomics)
 
 "$TOOLCHAIN/llvm-bolt" "$ELF" "${BOLT_ARGS[@]}" "$@"

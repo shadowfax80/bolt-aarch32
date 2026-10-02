@@ -1,5 +1,20 @@
 # Correctness fixes
 
+## AArch32 instrumentation operating contract (2026-10-02)
+
+Overlay 0028 requires an explicit privileged/single-core/no-FIQ caller contract
+and rejects default or explicit call profiling, shared/dynamic inputs and
+process/fork options before transformation. Reset and snapshots require
+quiescence. The LK wrapper requires explicit contract configuration; isolated
+Pi builders acknowledge the environment established by their firmware/loader.
+Eight rejected combinations and an accepted direct invocation pass within the
+40-test focused suite. The Pi again passes all 372 cases in four modes plus
+reset-fault detection, with runtime checks for privileged mode, masked IRQ/FIQ,
+core zero and aligned stack. Nine result-gate tests pass. This does not certify
+active ISR/SMP operation or exclusive-memory insertion. #6 remains partial.
+See [contract](PI_INSTRUMENTATION_SCOPE.md) and
+[evidence](results/correctness_instrumentation_scope_20261002.json).
+
 ## Real runtime clear at quiescent boundaries (2026-10-02)
 
 The 50-function Pi fixture calls the actual linked

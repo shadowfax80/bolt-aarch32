@@ -55,9 +55,26 @@ static void fail(unsigned id, unsigned seed, unsigned field, uint32_t expected, 
     puts_uart("\r\n"); finish();
 }
 
+static void contract(unsigned id, unsigned report) {
+    uint32_t cpsr, mpidr, stack;
+    __asm__ volatile("mrs %0,cpsr" : "=r"(cpsr));
+    __asm__ volatile("mrc p15,0,%0,c0,c0,5" : "=r"(mpidr));
+    __asm__ volatile("mov %0,sp" : "=r"(stack));
+    if (report) {
+        puts_uart("BOLT_IT_COUNTS CONTRACT cpsr="); hex(cpsr);
+        puts_uart(" mpidr="); hex(mpidr); puts_uart(" sp="); hex(stack); puts_uart("\r\n");
+    }
+    uint32_t mode=cpsr&31;
+    if ((mode!=0x13 && mode!=0x1a && mode!=0x1f) || (cpsr&0xc0)!=0xc0)
+        fail(id,0,3000,0xc0,cpsr);
+    if (mpidr&0x00ffffffu) fail(id,0,3001,0,mpidr);
+    if (stack&7) fail(id,0,3002,0,stack&7);
+}
+
 void state_main(void) {
     __asm__ volatile("cpsid if" ::: "memory");
     watchdog(10);
+    contract(0,1);
     puts_uart("BOLT_IT_COUNTS BEGIN instrumented="); hex(instrumented);
     puts_uart(" counters="); hex(counter_count); puts_uart("\r\n");
     puts_uart("BOLT_IT_COUNTS RESET runtime="); hex(instrumented); puts_uart("\r\n");
@@ -66,6 +83,7 @@ void state_main(void) {
     const uint32_t seed_high[3]={0,7,0xffffffffu};
     for (unsigned id=0; id<NUM_CASES; ++id) {
         for (unsigned seed=0; seed<3; ++seed) {
+            contract(id,0);
             // Call the linked runtime with all words nonzero before reseeding.
             // No measured function is running during this quiescent reset.
             for (unsigned index=0; index<counter_count; ++index) {
@@ -80,6 +98,7 @@ void state_main(void) {
                 counter_base[2*index+1]=seed_high[seed];
             }
             uint32_t result=cases[id].function(cases[id].argument);
+            contract(id,0);
             if (result!=cases[id].result) fail(id,seed,1000,cases[id].result,result);
             for (unsigned index=0; index<counter_count; ++index) {
                 uint32_t delta=instrumented ? expected_counts[id][index] : 0;

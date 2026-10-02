@@ -107,7 +107,16 @@ def check_artifacts(out, build):
         check_groups((out/(selected+'-disassembly.log')).read_text(encoding='utf-8'),build['functions'])
 
 
-def check_result(text, instrumented, counters, cases=300, runtime_clear=False):
+def check_contract(text):
+    rows=re.findall(r'^BOLT_IT_COUNTS CONTRACT cpsr=([0-9a-f]{8}) mpidr=([0-9a-f]{8}) sp=([0-9a-f]{8})\r?$',text,re.M)
+    require(len(rows)==1,'missing/duplicate operating contract report')
+    cpsr,mpidr,stack=(int(x,16) for x in rows[0])
+    require(cpsr&31 in (0x13,0x1a,0x1f) and cpsr&0xc0==0xc0,'fixture requires privileged quiet IRQ/FIQ state')
+    require(mpidr&0x00ffffff==0 and stack&7==0,'fixture requires core zero and aligned stack')
+    return dict(cpsr=cpsr,mpidr=mpidr,stack=stack)
+
+
+def check_result(text, instrumented, counters, cases=300, runtime_clear=False, contract_required=False):
     begins=re.findall(r'^BOLT_IT_COUNTS BEGIN instrumented=([0-9a-f]{8}) counters=([0-9a-f]{8})\r?$',text,re.M)
     require(len(begins)==1 and tuple(int(x,16) for x in begins[0])==(instrumented,counters),'wrong/missing IT begin')
     require('BOLT_IT_COUNTS FAIL' not in text,'Pi reported a result/counter mismatch')
@@ -116,7 +125,9 @@ def check_result(text, instrumented, counters, cases=300, runtime_clear=False):
         require(len(resets)==1 and int(resets[0],16)==instrumented,'missing/wrong runtime reset marker')
     passes=re.findall(r'^BOLT_IT_COUNTS PASS cases=(\d+)\r?$',text,re.M)
     require(passes==[str(cases)] and text.count('BOLT_IT_COUNTS PASS')==1,'missing/malformed/duplicate IT pass')
-    return dict(passed=True,cases=cases,counters=counters,instrumented=bool(instrumented),runtime_clear_checked=runtime_clear)
+    result=dict(passed=True,cases=cases,counters=counters,instrumented=bool(instrumented),runtime_clear_checked=runtime_clear)
+    if contract_required:result['operating_contract']=check_contract(text)
+    return result
 
 
 def check_reset_fault(text, counters):
@@ -160,8 +171,9 @@ def main():
                 require(result>=0 and text.rfind('SBOOT?')>result,'payload did not report and return to loader')
                 if name in build.get('faults',{}):
                     results[name]=check_reset_fault(text,build['faults'][name]['counters'])
+                    if build.get('contract_checked'):results[name]['operating_contract']=check_contract(text)
                 else:
-                    results[name]=check_result(text,0 if name=='baseline' else 1,1 if name=='baseline' else build['variants'][name]['counters'],build['cases'],build.get('runtime_clear_checked',False))
+                    results[name]=check_result(text,0 if name=='baseline' else 1,1 if name=='baseline' else build['variants'][name]['counters'],build['cases'],build.get('runtime_clear_checked',False),build.get('contract_checked',False))
         finally:
             if console.log:console.log.close()
     check_artifacts(out,build)

@@ -1,0 +1,226 @@
+{
+  "schema": 1,
+  "date": "2026-10-02",
+  "item": 6,
+  "status": "partial",
+  "hardware": {
+    "schema": 1,
+    "verified": true,
+    "scope": "15 IT masks; narrow/wide terminal IT branches and loops; nested calls and recursion; single-core privileged quiet firmware; no active IRQ/FIQ/SMP",
+    "port": "COM5",
+    "results": {
+      "baseline": {
+        "passed": true,
+        "cases": 372,
+        "counters": 1,
+        "instrumented": false,
+        "runtime_clear_checked": true,
+        "operating_contract": {
+          "cpsr": 1610613210,
+          "mpidr": 2147483648,
+          "stack": 8388552
+        }
+      },
+      "normal": {
+        "passed": true,
+        "cases": 372,
+        "counters": 85,
+        "instrumented": true,
+        "runtime_clear_checked": true,
+        "operating_contract": {
+          "cpsr": 1610613210,
+          "mpidr": 2147483648,
+          "stack": 8388552
+        }
+      },
+      "reverse": {
+        "passed": true,
+        "cases": 372,
+        "counters": 85,
+        "instrumented": true,
+        "runtime_clear_checked": true,
+        "operating_contract": {
+          "cpsr": 1610613210,
+          "mpidr": 2147483648,
+          "stack": 8388552
+        }
+      },
+      "conservative": {
+        "passed": true,
+        "cases": 372,
+        "counters": 73,
+        "instrumented": true,
+        "runtime_clear_checked": true,
+        "operating_contract": {
+          "cpsr": 1610613210,
+          "mpidr": 2147483648,
+          "stack": 8388552
+        }
+      },
+      "bad-reset": {
+        "fault_detected": true,
+        "case": 0,
+        "seed": 0,
+        "field": 2000,
+        "actual": 305419896,
+        "operating_contract": {
+          "cpsr": 1610613210,
+          "mpidr": 2147483648,
+          "stack": 8388552
+        }
+      }
+    },
+    "build_manifest_sha256": "1691ffb42d9a502c2636cc601949da951281fe521078b54c3309c334a1cf1c6c",
+    "verifier_sha256": "5a3ef90d3749a5ef0d2e69ada398dc7b2fc60147d9d5d8f1035211066e55b374",
+    "loader_sha256": "20d8a44f44c62ce001c3cd49007a0b73b9a6890d92bdb37f9d5a573246453ab0",
+    "log_sha256": {
+      "baseline": "5fa9fa4b6921990928b84c7c375ee6a90ad379faa8e84fc2d8c38ac95793d819",
+      "normal": "4b0fa4f15e24bf8db511f3bbc801651d7e8035a5a2b1d45e84c0053a2bcba75d",
+      "reverse": "4b0fa4f15e24bf8db511f3bbc801651d7e8035a5a2b1d45e84c0053a2bcba75d",
+      "conservative": "5c3c52a5e4dafba118db30240a7b96d40639b7d2f3efd16b130788624b14b1cb",
+      "bad-reset": "a7bb9ca7211750ccbe89e6d5edcc0be3c57620640e60c16e79d1afb9710b9180"
+    }
+  },
+  "build": {
+    "schema": 1,
+    "kind": "pi-it-nested-counts",
+    "cases": 372,
+    "functions": [
+      "it_t",
+      "it_branch_t_n",
+      "it_branch_t_w",
+      "it_tt",
+      "it_branch_tt_n",
+      "it_branch_tt_w",
+      "it_te",
+      "it_branch_te_n",
+      "it_branch_te_w",
+      "it_ttt",
+      "it_branch_ttt_n",
+      "it_branch_ttt_w",
+      "it_tte",
+      "it_branch_tte_n",
+      "it_branch_tte_w",
+      "it_tet",
+      "it_branch_tet_n",
+      "it_branch_tet_w",
+      "it_tee",
+      "it_branch_tee_n",
+      "it_branch_tee_w",
+      "it_tttt",
+      "it_branch_tttt_n",
+      "it_branch_tttt_w",
+      "it_ttte",
+      "it_branch_ttte_n",
+      "it_branch_ttte_w",
+      "it_ttet",
+      "it_branch_ttet_n",
+      "it_branch_ttet_w",
+      "it_ttee",
+      "it_branch_ttee_n",
+      "it_branch_ttee_w",
+      "it_tett",
+      "it_branch_tett_n",
+      "it_branch_tett_w",
+      "it_tete",
+      "it_branch_tete_n",
+      "it_branch_tete_w",
+      "it_teet",
+      "it_branch_teet_n",
+      "it_branch_teet_w",
+      "it_teee",
+      "it_branch_teee_n",
+      "it_branch_teee_w",
+      "it_loop_n",
+      "it_loop_w",
+      "nested_inner",
+      "nested_outer",
+      "nested_recursive"
+    ],
+    "variants": {
+      "normal": {
+        "counters": 85,
+        "runtime_clear_address": 139292
+      },
+      "reverse": {
+        "counters": 85,
+        "runtime_clear_address": 139292
+      },
+      "conservative": {
+        "counters": 73,
+        "runtime_clear_address": 135196
+      }
+    },
+    "files": {
+      "bad-reset.bin": "feda77d5bf9ebdddade07a8fb19c3b7f867fb0c3683133077610a7a27dc62e4b",
+      "bad-reset.elf": "c69f261f47c2928a742677e123d9f342d3991fd25e574565e5d2dea7821a2b75",
+      "baseline.bin": "2c9f4d72d1589206834bce3bd9d0ede63c6364a31e8cab09de570d7055c272a7",
+      "baseline.elf": "47194eff698d8de9de3bfe15dc9e98c80217a2a8689787e73866cbec890db2c6",
+      "conservative-disassembly.log": "efaef0cb920b2eec409ec1217c736f3b727225f7d65b887d163de0f767cd6ba6",
+      "conservative-instrument.log": "b615ff59577947a89c9282311a5a47e6a4eef213b28cf3e49eecd874905dc9b5",
+      "conservative-redirects.json": "b921fee497fc4b9f6c9d00625225ea49a7dc9bbcd64c79f5af8ec0910c3af3f5",
+      "conservative-reference.bin": "ad97dde77961c34e9d06469f31eb8e92389e5afc7a4bbaecf0b8353d0f6ed223",
+      "conservative.bin": "e7b9d4eb9068031e1b696214533fc3b0363e0249324f13ebf71040378063cabe",
+      "conservative.elf": "5ac12f8e416bcbb99bf8e78885d91c0a97649dc10ad0d6cc5e317be62d5b9fb8",
+      "conservative.funcmap": "cd3a2cc132c38cf04f2058b67cb5e18a809abebf1eddb1309998827915c060e7",
+      "fixture.s": "2fa4bf8475b4c63ade4f224311a0b6e2d045a855ccd9ba151ffa3b7840990081",
+      "models.json": "22fb80399b4f49723389991d6c6b75c5477767ca1b3ac5d669796da500c6ce88",
+      "narrow-branches.json": "f4c406c4c3dee51ba6b0a042cc80cfb51a8db8e6221d738f30ec6764715e61a3",
+      "normal-disassembly.log": "9686586ffea607dab2799a4bb8f6b3df2e15c8176b48f80511878ecbbd3ee93b",
+      "normal-instrument.log": "2f23f5b61388b61b4283d538ac1514a353fa3e94a80f9891782139fbb5497c4e",
+      "normal-redirects.json": "b171b058d6a5b7b68baf3c55194841d099f2bf184414ac0289be3eb99b23f791",
+      "normal-reference.bin": "7c9814e78dd3c46eba78bad3ccb76c60a1c737096935388fef9b45eb11864f31",
+      "normal.bin": "b7f4922987aee91316ebd439be6c21fe962600f17b7cb6691369c9dfd11f16d5",
+      "normal.elf": "c2f51c18e00557808c21b28457ea3a1a05781969990bc6f159b0f5322f7a2f37",
+      "normal.funcmap": "6030cd267138d9a8f3a08ec026ab35486eb2a0c82654ede58c4c85715e9d9f15",
+      "reverse-disassembly.log": "2a053491af96ca1e72643bc5bba4b787b8891c05ba589a3a33d2c2beeb636e2a",
+      "reverse-instrument.log": "e6d9151f0922ab3f6d6bd861cc875e31304b737651f6a61f2b058e206d63216c",
+      "reverse-redirects.json": "b1c7b222579e25afae43cf62674e82d64c22355b1d9c32fbfd319a3e6d97854d",
+      "reverse-reference.bin": "7c9814e78dd3c46eba78bad3ccb76c60a1c737096935388fef9b45eb11864f31",
+      "reverse.bin": "2457595d84b45d917a43e1935af8e0cc59c551cf2c68649589a029b07494d562",
+      "reverse.elf": "ffc8519543f5e5e76ac8825b9f7c9f0acb881da2c747ceebe3e58dd5c9b37f1f",
+      "reverse.funcmap": "ecb6b15e699f5eabc180244f99b9750c6b7089fab483ef0e3bffeff0df56afaa"
+    },
+    "tools": {
+      "llvm-bolt": "b939e9ba81493a08386c1ccd49a0d990eaa3b48628d486ad9f69c97fc172ea8c",
+      "llvm-mc": "0419ed87fde9fa95b827a58cc1e6d2817c0970304c9fb0bd7779e7188122dbed",
+      "clang": "296dd268c36e9431e2fcc4e2f89ee3fa1cf66e47f5487df73fca85ea8999ecc6",
+      "ld.lld": "21f3d1e800b8de414efc347ed4630126d22996cddf663d92004af5e089b51be9",
+      "llvm-objcopy": "f80e39c3121994c8b5baf3b9c2e586d4ffcd8da332e6c2c51b9f86fb482207de"
+    },
+    "main_sha256": "9094b8b79b97e947ae61c1f04e072441e53feea8652810bce1f535e44b2c945f",
+    "builder_sha256": "319364d771254108c373e967ed180932371ff0346ac88333c22242a897d12067",
+    "runtime_sha256": "eceba9ea9fcfbda21c13e97c78f9b1795a5051223d4bad07666ee2aea431b24d",
+    "scope": "15 IT masks; narrow/wide terminal IT branches and loops; nested calls and recursion; single-core privileged quiet firmware; no active IRQ/FIQ/SMP",
+    "runtime_clear_checked": true,
+    "faults": {
+      "bad-reset": {
+        "base_variant": "normal",
+        "counters": 85,
+        "runtime_clear_address": 139292,
+        "expected_field": 2000,
+        "expected_actual": 305419896
+      }
+    },
+    "contract_checked": true
+  },
+  "evidence": "out/correctness/it-counts-pi/build-zfrqcy51/pi-verify-vptkzc7r",
+  "host": {
+    "focused_lit_passed": 40,
+    "total": 40,
+    "excluded_combinations": 8,
+    "parser_tests": 9,
+    "lit_log_sha256": "17dcfe5ea4fa77e3bca764c597b1be1e7883cff71c995bf0ca064e142a0ac109"
+  },
+  "patch": {
+    "name": "0028-bolt-arm-instrumentation-contract.patch",
+    "sha256": "b203cacc72fcae4d3b83df4fc2d4c9c704a44f7b599ad0efc921b24bf5143703"
+  },
+  "limits": [
+    "contract is explicit caller acknowledgement, not inferred ELF proof",
+    "loader parks secondary cores; MPIDR proves executing core only",
+    "active ISR/FIQ/SMP not certified",
+    "exclusive-memory instrumentation still needs audit",
+    "no clean-build provenance claim"
+  ]
+}

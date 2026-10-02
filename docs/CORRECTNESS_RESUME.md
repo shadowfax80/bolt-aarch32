@@ -1,6 +1,24 @@
 # ATFE correctness checkpoint - 2026-10-02
 
-## Latest: resumed by user; #5 active
+## Latest: resumed by user; #3 next after verified #5/#6 boundaries
+
+Overlay 0028 enforces --arm-instrumentation-contract=privileged-single-core-no-fiq,
+rejects default/explicit call profiling, dynamic/shared executables and process/
+fork options. All 40 focused tests pass, including eight direct invocation
+rejections. The Pi passes 372 cases each in four modes with CPSR privilege/IRQ/
+FIQ, MPIDR core-zero and stack-alignment checks before/after measured calls.
+Bad-reset fails exactly as expected; all five images return to the loader.
+Nine host gate tests pass. Evidence: it-counts-pi/build-zfrqcy51/pi-verify-vptkzc7r
+and correctness_instrumentation_scope_20261002.json. The LK wrapper requires
+explicit ARM_INSTRUMENTATION_CONTRACT rather than acknowledging it by default.
+
+#6 is partial: exclusive-memory insertion and active ISR boundaries remain.
+#5 is partial: mixed-ISA nested state, active interrupts, additional predicate/
+pass combinations and live snapshots remain. Three original items are complete.
+Next inspect #3's debug-only pseudo recovery and assertion parity; source
+preimages are to be saved in out/correctness/cfg-invariants. Then continue #4,
+#1, #9, #7 and #11; #12 remains explicitly paused. WSL is running. ATFE only.
+The older priority and pause checkpoints below are historical.
 
 Actual linked runtime reset now passes the 372-case matrix in all four modes.
 The bad-reset image fails at case 0/seed 0/field 2000, actual 0x12345678, proving

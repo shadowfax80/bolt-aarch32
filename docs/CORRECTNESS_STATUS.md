@@ -2,11 +2,11 @@
 
 Last updated: 2026-10-02. Verification details: [CORRECTNESS_FIXES.md](CORRECTNESS_FIXES.md).
 
-Work resumed by user on 2026-10-02; WSL is running and #5 is active. The terminal
-IT-branch fix passes 39 focused host tests and 300 Pi cases each in baseline,
-normal, reverse-layout and conservative modes. Overlay 0027 is pushed as
-`be09efb`. Nested Thumb calls/recursion pass 372 Pi cases per mode. #12 remains
-separately paused. See CORRECTNESS_RESUME.md.
+Work resumed by user on 2026-10-02; WSL is running. Overlay 0027 is pushed as
+`be09efb`, nested verification as `b732798`, and runtime reset as `edfa3d7`.
+The #6 admission boundary now passes 40 focused host tests and 372 Pi cases
+per mode, plus reset-fault detection. Next is #3 CFG/assertion parity; broader
+#5/#6 coverage stays open. #12 remains separately paused. See CORRECTNESS_RESUME.md.
 
 Fresh source review at `bbae817`: [CORRECTNESS_REVIEW_BBAE817.md](CORRECTNESS_REVIEW_BBAE817.md).
 Actionable subitems and closure criteria: [CORRECTNESS_TODO.md](CORRECTNESS_TODO.md).
@@ -21,7 +21,7 @@ from completion criteria. Three items are complete within this scope (2, 8, 10).
 | 3 | Pseudo/CFG invariants | Partial | ARM B pseudo root cause fixed; debug-only recovery remains and assertions-on/off parity is unverified |
 | 4 | Control flow and return semantics | Partial | CBZ flags, ARM Bcc and tail calls improved; conditional returns, wider PC writes, live flags, IT and inlining boundaries remain |
 | 5 | Instrumentation correctness | Partial; operating scope next | Carry, CPU-state, IT, nested Thumb/recursion and real runtime clear pass on Pi; mixed-ISA nested state, active interrupts and live snapshots remain |
-| 6 | Instrumentation scope | Open | Enforce privilege/single-core/IRQ-FIQ contract and reject placeholder indirect-call profiling |
+| 6 | Instrumentation scope | Partial | Explicit privileged/single-core/no-FIQ contract and call/process/dynamic rejection pass; audit exclusive-memory and active ISR boundaries |
 | 7 | ISA/profile/endianness | Pending | Enforce the supported target feature boundary |
 | 8 | FK_Data_8 / ABS32 mismatch | Complete | ATFE host and Pi checks passed; symbolic 64-bit relocations rejected; resolved values and map width corrected |
 | 9 | Entry points and symbols | Partial | Entry, split symbols, mapping and mixed-ISA marking improved; aliases, skipped functions, secondary entries, pointer targets and redirects remain |

@@ -3,7 +3,7 @@ import sys
 import unittest
 
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]/'pi4'))
-from verify_it_counts import check_groups,check_result,check_reset_fault
+from verify_it_counts import check_groups,check_result,check_reset_fault,check_contract
 
 BEGIN='BOLT_IT_COUNTS BEGIN instrumented=00000001 counters=00000051\n'
 PASS='BOLT_IT_COUNTS PASS cases=300\n'
@@ -15,6 +15,13 @@ GROUP='''00010000 <it_tt>:
 '''
 
 class ITCountsTest(unittest.TestCase):
+    def test_operating_contract(self):
+        line='BOLT_IT_COUNTS CONTRACT cpsr=000001da mpidr=80000000 sp=007fff80\n'
+        self.assertEqual(check_contract(line)['cpsr']&31,0x1a)
+        for bad in (line.replace('000001da','000001d0'),line.replace('000001da','0000011a'),
+                    line.replace('80000000','80000001'),line.replace('007fff80','007fff84'),line+line,''):
+            with self.assertRaises(ValueError):check_contract(bad)
+
     def test_reset_fault_expected_failure(self):
         text='BOLT_IT_COUNTS BEGIN instrumented=00000001 counters=00000055\nBOLT_IT_COUNTS FAIL case=00000000 seed=00000000 field=000007d0 expected=00000000 actual=12345678\n'
         self.assertTrue(check_reset_fault(text,85)['fault_detected'])

@@ -215,7 +215,7 @@ for variant, extra in [('normal', []), ('reverse', ['--reorder-blocks=reverse'])
     print('Building', variant, flush=True)
     candidate = out / (variant + '.elf')
     mapping = out / (variant + '.funcmap')
-    log = run(variant + '-instrument', [tc / 'llvm-bolt', original, '-o', candidate, '--no-huge-pages', '-lite=0', '--instrument', '--instrument-calls=false', '--instrumentation-sleep-time=1', '--runtime-instrumentation-lib=' + str(tc.parent / 'bolt-rt-baremetal-arm/libbolt_rt_baremetal.a'), '--funcs=' + ','.join(names), '--emit-function-map=' + str(mapping), *extra])
+    log = run(variant + '-instrument', [tc / 'llvm-bolt', original, '-o', candidate, '--no-huge-pages', '-lite=0', '--instrument', '--instrument-calls=false', '--arm-instrumentation-contract=privileged-single-core-no-fiq', '--instrumentation-sleep-time=1', '--runtime-instrumentation-lib=' + str(tc.parent / 'bolt-rt-baremetal-arm/libbolt_rt_baremetal.a'), '--funcs=' + ','.join(names), '--emit-function-map=' + str(mapping), *extra])
     counts = re.findall('Total number of counters: (\\d+)', log)
     if not len(counts) == 1:
         raise ValueError('fixture invariant failed')
@@ -370,5 +370,6 @@ files = [p.name for p in out.iterdir() if p.suffix in ('.elf', '.bin', '.funcmap
 manifest = dict(schema=1, kind='pi-it-nested-counts' if args.nested else 'pi-it-counts', cases=len(cases)*3, functions=names, variants=report, files={name: sha256(out / name) for name in sorted(files)}, tools={name: sha256(tc / name) for name in ('llvm-bolt', 'llvm-mc', 'clang', 'ld.lld', 'llvm-objcopy')}, main_sha256=sha256(win / 'scripts/pi4/fixtures/it-counts/main.c'), builder_sha256=sha256(Path(__file__)), runtime_sha256=sha256(tc.parent / 'bolt-rt-baremetal-arm/libbolt_rt_baremetal.a'), scope='15 IT masks; narrow/wide terminal IT branches and loops; '+('nested calls and recursion; ' if args.nested else '')+'single-core privileged quiet firmware; no active IRQ/FIQ/SMP')
 manifest['runtime_clear_checked']=True
 manifest['faults']=faults
+manifest['contract_checked']=True
 (out / 'build.json').write_text(json.dumps(manifest, indent=2) + '\n', encoding='utf-8')
 print(out / 'build.json')

@@ -51,6 +51,7 @@ def main():
     selected = 'counter_arm,counter_thumb'
     mapping = out/'instrumented.funcmap'
     options = ['--no-huge-pages', '-lite=0', '--instrument', '--instrument-calls=false',
+               '--arm-instrumentation-contract=privileged-single-core-no-fiq',
                '--instrumentation-sleep-time=1', '--runtime-instrumentation-lib='+str(runtime),
                '--funcs='+selected, '--emit-function-map='+str(mapping)]
     log = run('instrument', [tc/'llvm-bolt', original, '-o', candidate, *options])
