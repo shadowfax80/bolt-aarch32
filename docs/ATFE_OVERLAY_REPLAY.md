@@ -34,6 +34,22 @@ preserved the dirty WSL checkout. It failed source equality in four files:
 Live code includes ARM build-attribute feature propagation and kept-function/
 branch handling for `-use-old-text` that is absent from the GitHub overlay series.
 The diff is preserved in `out/correctness/atfe-clean-replay-20261002/unexported-source.diff`.
-It requires review, focused regressions and export; it has not been overwritten or
-published as a verified backend fix. The source-replay/content-stamp task remains
-open. See [compact evidence](results/correctness_atfe_replay_20261002.json).
+That initial failed audit is retained in
+[compact evidence](results/correctness_atfe_replay_20261002.json).
+
+Overlay 0025 exports the reviewed additions and hardens the kept A32 path. The
+new linked-ELF regression checks exact emitted UDIV/ERET bytes, ARM/Thumb calls,
+predicated BL/B, input BLX H=1 and a late kept caller. Malformed or unaligned A32
+relocations, wrong target ISA, hot-at-end, insufficient text and an unmappable
+interior reference fail with diagnostics; failed outputs are not published.
+The twelve probes and all 37 focused lit tests pass. ERET is host emission
+coverage only, and kept-code hardware execution is not claimed.
+
+The final 2026-10-02 replay applies all 25 patches and reports no mismatched or
+uncovered source files. Its evidence is preserved in
+`out/correctness/atfe-clean-replay-0025-final-20261002/replay.json`, source identity
+`c390d7d0acdd17910df67833227e55ed40898cf2cb229611a2c7326ce12660ed`.
+Content-stamp migration and clean full-build provenance remain open under #12.
+The replay-verified tool's regular full-image candidate passes the scoped Pi
+workload/execution gate. [Compact evidence](results/correctness_atfe_0025_20261002.json)
+records source/patch/tool identities, probes, artifact hashes and complete log hashes.

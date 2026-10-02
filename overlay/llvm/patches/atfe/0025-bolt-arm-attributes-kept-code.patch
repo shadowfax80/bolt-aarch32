@@ -1,0 +1,638 @@
+--- a/bolt/include/bolt/Rewrite/RewriteInstance.h
++++ b/bolt/include/bolt/Rewrite/RewriteInstance.h
+@@ -236,6 +236,14 @@
+   /// function. If we couldn't understand the function for some reason in
+   /// disassembleFunctions(), also preserve the original version.
+   void rewriteFile();
++
++  /// AArch32 -use-old-text: code BOLT ignored keeps its original bytes in the
++  /// old .text, but the functions it branches to were moved. Re-encode its
++  /// ARM B/BL/BLX (R_ARM_JUMP24/CALL/PC24/PLT32) to their new addresses.
++  void patchKeptARMCodeReferences(raw_fd_ostream &OS);
++
++  /// Validate kept A32 branch relocations before scanExternalRefs encodes them.
++  Error validateKeptARMCodeReferences();
+ 
+   /// Rewrite functions in place by overwriting their original locations.
+   /// Used by non-relocation mode and for patched functions.
+--- a/bolt/lib/Core/BinaryContext.cpp
++++ b/bolt/lib/Core/BinaryContext.cpp
+@@ -225,11 +225,9 @@
+     break;
+   }
+   case llvm::Triple::arm:
+-    if (Features)
+-      return createFatalBOLTError(
+-          "ARM target does not use SubtargetFeatures");
++    // Features from the input's build attributes (see RewriteInstance).
+     ArchName = "arm";
+-    FeaturesStr = "";
++    FeaturesStr = Features ? Features->getString() : "";
+     break;
+   default:
+     return createStringError(std::errc::not_supported,
+@@ -347,7 +345,8 @@
+ 
+   if (TheTriple.getArch() == llvm::Triple::arm) {
+     BC->ThumbSTI.reset(BC->TheTarget->createMCSubtargetInfo(
+-        TheTriple, "", "+thumb-mode"));
++        TheTriple, "",
++        FeaturesStr.empty() ? "+thumb-mode" : "+thumb-mode," + FeaturesStr));
+     if (BC->ThumbSTI) {
+       BC->ThumbDisAsm = std::unique_ptr<MCDisassembler>(
+           BC->TheTarget->createMCDisassembler(*BC->ThumbSTI, *BC->Ctx));
+--- a/bolt/lib/Core/BinaryFunction.cpp
++++ b/bolt/lib/Core/BinaryFunction.cpp
+@@ -3416,7 +3416,11 @@
+ void BinaryFunction::setIgnored() {
+   IsIgnored = true;
+ 
+-  if (opts::processAllFunctions()) {
++  // AArch32: an ignored function keeps its original bytes even with
++  // -use-old-text; the new code is placed after the ignored functions at the
++  // start of the old .text (see RewriteInstance::mapCodeSections). This is
++  // what bare-metal startup code at the load address needs.
++  if (opts::processAllFunctions() && !BC.isARM()) {
+     // We can accept ignored functions before they've been disassembled.
+     // In that case, they would still get disassembled and emitted, but not
+     // optimized.
+--- a/bolt/lib/Rewrite/RewriteInstance.cpp
++++ b/bolt/lib/Rewrite/RewriteInstance.cpp
+@@ -49,6 +49,8 @@
+ #include "llvm/MC/MCSymbol.h"
+ #include "llvm/MC/TargetRegistry.h"
+ #include "llvm/Object/ObjectFile.h"
++#include "llvm/Support/ARMAttributeParser.h"
++#include "llvm/Support/ARMBuildAttributes.h"
+ #include "llvm/Support/Alignment.h"
+ #include "llvm/Support/Casting.h"
+ #include "llvm/Support/CommandLine.h"
+@@ -466,6 +468,51 @@
+     } else {
+       Features.reset(new SubtargetFeatures(*FeaturesOrErr));
+     }
++  } else if (TheTriple.getArch() == Triple::arm) {
++    // AArch32: decode what the input was built for (.ARM.attributes), not a
++    // generic armv7. getARMFeatures() covers the profile, Thumb-2 and the
++    // integer divide (UDIV/SDIV); add the MP, TrustZone and Virtualization
++    // extensions it leaves out (e.g. ERET, MSR ELR_hyp in kernel entry code).
++    Expected<SubtargetFeatures> FeaturesOrErr = File->getFeatures();
++    if (auto E = FeaturesOrErr.takeError()) {
++      Err = std::move(E);
++      return;
++    }
++    Features.reset(new SubtargetFeatures(*FeaturesOrErr));
++    ARMAttributeParser Attributes;
++    bool HaveAttributes = false;
++    for (const SectionRef &Sec : File->sections()) {
++      Expected<StringRef> Name = Sec.getName();
++      if (!Name || *Name != ".ARM.attributes") {
++        if (!Name)
++          consumeError(Name.takeError());
++        continue;
++      }
++      Expected<StringRef> Contents = Sec.getContents();
++      if (!Contents) {
++        consumeError(Contents.takeError());
++        break;
++      }
++      if (Error E = Attributes.parse(arrayRefFromStringRef(*Contents),
++                                     llvm::endianness::little))
++        consumeError(std::move(E));
++      else
++        HaveAttributes = true;
++      break;
++    }
++    if (HaveAttributes) {
++      if (std::optional<unsigned> V =
++              Attributes.getAttributeValue(ARMBuildAttrs::Virtualization_use)) {
++        if (*V & 1)
++          Features->AddFeature("trustzone");
++        if (*V & 2)
++          Features->AddFeature("virtualization");
++      }
++      if (std::optional<unsigned> MP =
++              Attributes.getAttributeValue(ARMBuildAttrs::MPextension_use);
++          MP && *MP)
++        Features->AddFeature("mp");
++    }
+   }
+ 
+   Relocation::Arch = TheTriple.getArch();
+@@ -545,7 +592,11 @@
+   if (BF.isPseudo())
+     return false;
+ 
+-  if (opts::processAllFunctions())
++  // AArch32: a function ignored up front (e.g. --skip-funcs=_start for a
++  // vector table at the load address) keeps its bytes even in
++  // process-all-functions mode (-use-old-text): scan it for references
++  // instead of disassembling it for rewriting.
++  if (opts::processAllFunctions() && !(BC.isARM() && BF.isIgnored()))
+     return true;
+ 
+   return !BF.isIgnored();
+@@ -856,6 +907,10 @@
+   preprocessProfileData();
+ 
+   selectFunctionsToProcess();
++
++  if (BC->isARM() && opts::UseOldText)
++    if (Error E = validateKeptARMCodeReferences())
++      return E;
+ 
+   readDebugInfo();
+ 
+@@ -2755,6 +2810,14 @@
+     opts::HotTextMoveSections.addValue(".never_hugify");
+   }
+ 
++  // Kept-function placement has only been verified from the start of .text.
++  // Placing new code at its end can overlap ignored functions there.
++  if (BC->isARM() && opts::UseOldText && opts::HotFunctionsAtEnd) {
++    BC->errs() << "BOLT-ERROR: AArch32 --use-old-text does not support "
++                  "--hot-functions-at-end\n";
++    exit(1);
++  }
++
+   if (opts::UseOldText && !BC->OldTextSectionAddress) {
+     BC->errs()
+         << "BOLT-WARNING: cannot use old .text as the section was not found"
+@@ -4770,10 +4833,29 @@
+       StartAddress = allocateBefore(EndAddress);
+     } else {
+       StartAddress = BC->OldTextSectionAddress;
+-      EndAddress = allocateAt(BC->OldTextSectionAddress);
+-    }
+-
+-    const uint64_t CodeSize = EndAddress - StartAddress;
++      // AArch32: functions BOLT ignored (e.g. bare-metal startup code, which
++      // must stay at the load address) keep their original bytes. Start the
++      // new code after the last of them that lies in the old .text.
++      if (BC->isARM()) {
++        for (const auto &BFI : BC->getBinaryFunctions()) {
++          const BinaryFunction &BF = BFI.second;
++          if (!BF.isIgnored() || BF.getAddress() < BC->OldTextSectionAddress ||
++              BF.getAddress() >= BC->OldTextSectionAddress +
++                                     BC->OldTextSectionSize)
++            continue;
++          StartAddress =
++              std::max(StartAddress, BF.getAddress() + BF.getMaxSize());
++        }
++        if (StartAddress != BC->OldTextSectionAddress)
++          BC->outs() << "BOLT-INFO: keeping 0x"
++                     << Twine::utohexstr(StartAddress -
++                                         BC->OldTextSectionAddress)
++                     << " bytes of ignored functions at the start of .text\n";
++      }
++      EndAddress = allocateAt(StartAddress);
++    }
++
++    const uint64_t CodeSize = EndAddress - BC->OldTextSectionAddress;
+     if (CodeSize <= BC->OldTextSectionSize) {
+       BC->outs() << "BOLT-INFO: using original .text for new code with 0x"
+                  << Twine::utohexstr(BC->AlignText) << " alignment";
+@@ -4788,6 +4870,11 @@
+                  << CodeSize << " bytes needed, have " << BC->OldTextSectionSize
+                  << " bytes available. Rebuilding without --use-old-text may "
+                     "produce a smaller binary\n";
++      if (BC->isARM()) {
++        BC->errs() << "BOLT-ERROR: AArch32 --use-old-text requires sufficient "
++                      "space for kept functions and new code\n";
++        exit(1);
++      }
+       opts::UseOldText = false;
+     }
+   }
+@@ -6956,6 +7043,131 @@
+   OS.seek(SavedPos);
+ }
+ 
++Error RewriteInstance::validateKeptARMCodeReferences() {
++  for (const SectionRef &RelSec : InputFile->sections()) {
++    Expected<section_iterator> Target = RelSec.getRelocatedSection();
++    if (!Target)
++      return Target.takeError();
++    if (*Target == InputFile->section_end() ||
++        (*Target)->getAddress() != BC->OldTextSectionAddress)
++      continue;
++    for (const RelocationRef &Rel : RelSec.relocations()) {
++      const uint32_t Type = Rel.getType();
++      if (Type != ELF::R_ARM_CALL && Type != ELF::R_ARM_JUMP24 &&
++          Type != ELF::R_ARM_PC24 && Type != ELF::R_ARM_PLT32)
++        continue;
++      const uint64_t P = Rel.getOffset();
++      const BinaryFunction *Src = BC->getBinaryFunctionContainingAddress(
++          P, /*CheckPastEnd=*/false, /*UseMaxSize=*/true);
++      if (!Src || !Src->isIgnored())
++        continue;
++      ErrorOr<uint64_t> Word = BC->getUnsignedValueAtAddress(P, 4);
++      const bool IsBLX = Word && (*Word & 0xfe000000u) == 0xfa000000u;
++      const bool IsBranch = Word && (*Word & 0x0e000000u) == 0x0a000000u &&
++                            (*Word >> 28) != 0xf;
++      if (Src->isARMThumb() || P % 4 ||
++          P < BC->OldTextSectionAddress ||
++          P + 4 > BC->OldTextSectionAddress + BC->OldTextSectionSize ||
++          (!IsBLX && !IsBranch) ||
++          (IsBLX && Type != ELF::R_ARM_CALL) ||
++          (Type == ELF::R_ARM_CALL && !IsBLX && !(*Word & 0x01000000u)))
++        return createFatalBOLTError(
++            "invalid kept A32 branch relocation at 0x" + Twine::utohexstr(P));
++      uint64_t Dest = P + 8 + SignExtend64<26>((*Word & 0x00ffffff) << 2);
++      if (IsBLX)
++        Dest += ((*Word >> 24) & 1) << 1;
++      const BinaryFunction *Dst = BC->getBinaryFunctionContainingAddress(Dest);
++      if (Dst && IsBLX != Dst->isARMThumb())
++        return createFatalBOLTError(
++            "kept A32 branch has incompatible target ISA at 0x" +
++            Twine::utohexstr(P));
++    }
++  }
++  return Error::success();
++}
++
++void RewriteInstance::patchKeptARMCodeReferences(raw_fd_ostream &OS) {
++  // pwrite validates against the stream position, not the existing file size.
++  // Pending relocation writes may have left that position below kept code.
++  const uint64_t SavedPos = OS.tell();
++  OS.seek(std::max(SavedPos, FirstNonAllocatableOffset));
++  uint64_t NumPatched = 0;
++  for (const SectionRef &RelSec : InputFile->sections()) {
++    Expected<section_iterator> Target = RelSec.getRelocatedSection();
++    if (!Target) {
++      consumeError(Target.takeError());
++      continue;
++    }
++    if (*Target == InputFile->section_end())
++      continue;
++    const uint64_t SecAddr = (*Target)->getAddress();
++    if (BC->OldTextSectionAddress < SecAddr ||
++        BC->OldTextSectionAddress >= SecAddr + (*Target)->getSize())
++      continue;
++    for (const RelocationRef &Rel : RelSec.relocations()) {
++      const uint32_t Type = Rel.getType();
++      if (Type != ELF::R_ARM_CALL && Type != ELF::R_ARM_JUMP24 &&
++          Type != ELF::R_ARM_PC24 && Type != ELF::R_ARM_PLT32)
++        continue;
++      const uint64_t P = Rel.getOffset();
++      const BinaryFunction *Src = BC->getBinaryFunctionContainingAddress(
++          P, /*CheckPastEnd=*/false, /*UseMaxSize=*/true);
++      if (!Src || !Src->isIgnored())
++        continue;
++      ErrorOr<uint64_t> Word = BC->getUnsignedValueAtAddress(P, 4);
++      if (!Word)
++        continue;
++      const bool IsBLX = (*Word & 0xfe000000u) == 0xfa000000u;
++      uint64_t Dest = P + 8 + SignExtend64<26>((*Word & 0x00ffffff) << 2);
++      if (IsBLX)
++        Dest += ((*Word >> 24) & 1) << 1;
++      const BinaryFunction *Dst = BC->getBinaryFunctionContainingAddress(Dest);
++      if (!Dst || Dst->isIgnored() || !Dst->getOutputAddress())
++        continue;
++      uint64_t NewDest = Dest == Dst->getAddress()
++                             ? Dst->getOutputAddress()
++                             : Dst->translateInputToOutputAddress(Dest);
++      if (!NewDest) {
++        BC->errs() << "BOLT-ERROR: cannot redirect the reference at 0x"
++                   << Twine::utohexstr(P) << " in kept function " << *Src
++                   << " into " << *Dst << "\n";
++        Out.reset();
++        exit(1);
++      }
++      const int64_t Offset = int64_t(NewDest) - int64_t(P + 8);
++      if (NewDest > UINT32_MAX || !isInt<26>(Offset) ||
++          (Offset & (IsBLX ? 1 : 3)) || IsBLX != Dst->isARMThumb()) {
++        BC->errs() << "BOLT-ERROR: kept branch at 0x" << Twine::utohexstr(P)
++                   << " cannot reach " << *Dst << " at its new address\n";
++        Out.reset();
++        exit(1);
++      }
++      uint32_t NewWord;
++      if (IsBLX)
++        NewWord = 0xfa000000u | ((uint32_t(Offset >> 1) & 1u) << 24) |
++                  (uint32_t(Offset >> 2) & 0x00ffffffu);
++      else
++        NewWord = (uint32_t(*Word) & 0xff000000u) |
++                  (uint32_t(Offset >> 2) & 0x00ffffffu);
++      const uint64_t FileOffset =
++          BC->OldTextSectionOffset + P - BC->OldTextSectionAddress;
++      if (FileOffset + 4 > FirstNonAllocatableOffset) {
++        BC->errs() << "BOLT-ERROR: kept branch write is outside input text\n";
++        Out.reset();
++        exit(1);
++      }
++      char Bytes[4];
++      support::endian::write32le(Bytes, NewWord);
++      OS.pwrite(Bytes, sizeof(Bytes), FileOffset);
++      ++NumPatched;
++    }
++  }
++  OS.seek(SavedPos);
++  if (NumPatched)
++    BC->outs() << "BOLT-INFO: redirected " << NumPatched
++               << " branch(es) in kept (ignored) code to moved functions\n";
++}
++
+ void RewriteInstance::rewriteFile() {
+   std::error_code EC;
+   Out = std::make_unique<ToolOutputFile>(opts::OutputFilename, EC,
+@@ -7017,6 +7229,9 @@
+     Section.flushPendingRelocations(OS, [this](const MCSymbol *S) {
+       return getNewValueForSymbol(S->getName());
+     });
++
++  if (BC->isARM() && opts::UseOldText)
++    patchKeptARMCodeReferences(OS);
+ 
+   // If .eh_frame is present create .eh_frame_hdr.
+   if (EHFrameSection)
+--- /dev/null
++++ b/bolt/test/ARM/arm-kept-code.test
+@@ -0,0 +1,3 @@
++## Attributes are decoding/emission coverage, not ISA/ABI admission or privileged
++## ERET execution evidence. Kept-code tests check mapped targets and final bytes.
++RUN: %python %p/Inputs/check-arm-kept-code.py %t.dir
+--- /dev/null
++++ b/bolt/test/ARM/Inputs/check-arm-kept-code.py
+@@ -0,0 +1,281 @@
++from pathlib import Path
++import json
++import subprocess
++import struct
++import shutil
++import sys
++import tempfile
++
++# Real linked ELF fixtures; decode final bytes independently of BOLT's logger.
++tc=Path(shutil.which('llvm-bolt')).resolve().parent
++evidence=Path(sys.argv[1])
++evidence.mkdir(parents=True,exist_ok=True)
++out=Path(tempfile.mkdtemp(prefix='run-',dir=evidence))
++print('Evidence:',out)
++
++def run(name,cmd):
++    p=subprocess.run([str(x) for x in cmd],cwd=out,capture_output=True,text=True)
++    (out/(name+'.log')).write_text(p.stdout+p.stderr)
++    return dict(exit=p.returncode,tail=(p.stdout+p.stderr)[-1400:])
++
++fixtures={
++ 'kept-arm':''' .syntax unified
++ .text
++ .arm
++ .global _start
++ .type _start,%function
++_start:
++ bl moved
++ b _start
++ .size _start,.-_start
++ .global moved
++ .type moved,%function
++moved:
++ add r0,r0,#1
++ bx lr
++ .size moved,.-moved
++''',
++ 'features':''' .syntax unified
++ .arch armv7-a
++ .arch_extension idiv
++ .arch_extension virt
++ .text
++ .arm
++ .eabi_attribute 68, 3
++ .eabi_attribute 44, 2
++ .eabi_attribute 42, 1
++ .global _start
++ .type _start,%function
++_start:
++ bl arm_feature
++ bl thumb_feature
++ bl privileged_feature
++ bx lr
++ .size _start,.-_start
++ .global arm_feature
++ .type arm_feature,%function
++arm_feature:
++ udiv r0,r1,r2
++ bx lr
++ .size arm_feature,.-arm_feature
++ .global privileged_feature
++ .type privileged_feature,%function
++privileged_feature:
++ eret
++ bx lr
++ .size privileged_feature,.-privileged_feature
++ .thumb
++ .global thumb_feature
++ .type thumb_feature,%function
++ .thumb_func
++thumb_feature:
++ udiv r0,r1,r2
++ bx lr
++ .size thumb_feature,.-thumb_feature
++'''
++}
++fixtures['kept-mixed']=''' .syntax unified
++ .text
++ .arm
++ .global _start
++ .type _start,%function
++_start:
++ bl thumb_target
++ blne moved
++ b moved
++ .size _start,.-_start
++ .global moved
++ .type moved,%function
++moved:
++ add r0,r0,#1
++ bx lr
++ .size moved,.-moved
++ .thumb
++ .global thumb_target
++ .type thumb_target,%function
++ .thumb_func
++thumb_target:
++ adds r0,#2
++ bx lr
++ .size thumb_target,.-thumb_target
++'''
++fixtures['kept-thumb']=''' .syntax unified
++ .text
++ .thumb
++ .global _start
++ .type _start,%function
++ .thumb_func
++_start:
++ bl moved
++ b _start
++ .size _start,.-_start
++ .global moved
++ .type moved,%function
++ .thumb_func
++moved:
++ adds r0,#1
++ bx lr
++ .size moved,.-moved
++'''
++fixtures['kept-malformed']=fixtures['kept-arm']
++fixtures['kept-tail']=fixtures['kept-arm']+''' .org 0x7ff0
++ .global kept_tail
++ .type kept_tail,%function
++kept_tail:
++ bl moved
++ bx lr
++ .size kept_tail,.-kept_tail
++'''
++fixtures['kept-late']=fixtures['kept-arm']+''' .org 0x2000
++ .global kept_late
++ .type kept_late,%function
++kept_late:
++ bl moved
++ bx lr
++ .size kept_late,.-kept_late
++ .org 0x2100
++ .global moved_after
++ .type moved_after,%function
++moved_after:
++ add r0,r0,#3
++ bx lr
++ .size moved_after,.-moved_after
++'''
++fixtures['kept-short']=fixtures['kept-arm']
++fixtures['kept-h1']=fixtures['kept-mixed'].replace(' .thumb\n .global thumb_target',
++    ' .thumb\n .global thumb_pad\n .type thumb_pad,%function\n .thumb_func\nthumb_pad:\n bx lr\n .size thumb_pad,.-thumb_pad\n .global thumb_target')
++fixtures['kept-unaligned']=fixtures['kept-arm']
++fixtures['kept-mode']=fixtures['kept-mixed']
++fixtures['kept-h1-interior']=fixtures['kept-h1'].replace('bl thumb_target','blx thumb_target+2')
++
++def sections(blob):
++    off=struct.unpack_from('<I',blob,32)[0]
++    size,count,names=struct.unpack_from('<HHH',blob,46)
++    headers=[struct.unpack_from('<10I',blob,off+i*size) for i in range(count)]
++    strings=blob[headers[names][4]:headers[names][4]+headers[names][5]]
++    return {strings[h[0]:strings.index(b'\0',h[0])].decode():h for h in headers}
++
++def at(blob,address,size):
++    matching=[h for h in sections(blob).values() if h[1]!=8 and h[2]&2 and h[3]<=address and address+size<=h[3]+h[5]]
++    assert len(matching)==1,(hex(address),size,len(matching))
++    h=matching[0];pos=h[4]+address-h[3]
++    return blob[pos:pos+size]
++
++def a32_target(blob,address):
++    word=struct.unpack('<I',at(blob,address,4))[0]
++    displacement=(word&0xffffff)<<2
++    if displacement&(1<<25):displacement-=1<<26
++    if word>>28==15:displacement+=((word>>24)&1)<<1
++    return address+8+displacement,word
++
++def mappings(path):
++    result={}
++    for line in path.read_text().splitlines():
++        p=line.split()
++        if len(p)==4 and not p[0].startswith('#'):
++            try:result[p[0]]=tuple(int(x,16) for x in p[1:])
++            except ValueError:pass
++    return result
++
++def inspect(name):
++    original=(out/(name+'.elf')).read_bytes()
++    output=(out/(name+'.bolt.elf')).read_bytes()
++    moved=mappings(out/(name+'.funcmap'))
++    checks={}
++    if name in ('kept-arm','kept-mixed','kept-h1','kept-late'):
++        refs=[(0,'moved')] if name in ('kept-arm','kept-late') else [(0,'thumb_target'),(4,'moved'),(8,'moved')]
++        if name=='kept-late':refs+=[(0x2000,'moved')]
++        for offset,dst in refs:
++            p=0x10000+offset
++            target,word=a32_target(output,p)
++            _,old=a32_target(original,p)
++            assert target==moved[dst][1],(name,dst,hex(target),moved)
++            if old>>28!=15:assert word&0xff000000==old&0xff000000
++            else:assert word&0xfe000000==0xfa000000
++            checks[dst+'@'+hex(p)]={'target':target,'opcode_predicate_preserved':True}
++        if name=='kept-arm':assert at(original,0x10004,4)==at(output,0x10004,4)
++        if name=='kept-late':assert at(original,0x12004,4)==at(output,0x12004,4)
++        if name=='kept-h1':
++            _,word=a32_target(original,0x10000)
++            assert word&(1<<24),'fixture did not exercise input BLX H=1'
++    elif name=='features':
++        for function,expected in [('arm_feature','11f230e71eff2fe1'),('privileged_feature','6e0060e1'),('thumb_feature','b1fbf2f07047')]:
++            start,end,size=moved[function]
++            assert start!=end,(function,moved[function])
++            actual=at(output,end,len(bytes.fromhex(expected))).hex()
++            assert actual==expected,(function,actual,expected)
++            checks[function]={'moved':True,'address':end,'bytes':actual}
++    elif name=='kept-thumb':
++        hi,lo=struct.unpack('<HH',at(output,0x10000,4))
++        s=(hi>>10)&1;j1=(lo>>13)&1;j2=(lo>>11)&1
++        displacement=(s<<24)|((1^(j1^s))<<23)|((1^(j2^s))<<22)|((hi&1023)<<12)|((lo&2047)<<1)
++        if s:displacement-=1<<25
++        assert 0x10004+displacement==moved['moved'][1]
++        assert moved['moved'][0]!=moved['moved'][1]
++        assert at(original,0x10004,4)==at(output,0x10004,4)
++        checks['thumb_call_retargeted']=True
++    return checks
++(out/'layout.ld').write_text('ENTRY(_start)\nSECTIONS { . = 0x10000; .text : { *(.text*) . = ALIGN(0x8000); } .data : { *(.data*) } }\n')
++(out/'short.ld').write_text('ENTRY(_start)\nSECTIONS { . = 0x10000; .text : { *(.text*) } .data : { *(.data*) } }\n')
++results={}
++for name,text in fixtures.items():
++    asm=out/(name+'.s');asm.write_text(text)
++    results[name]={}
++    results[name]['assemble']=run(name+'-mc',[tc/'llvm-mc','-triple=armv7-linux-gnueabi','-arm-add-build-attributes','-filetype=obj',asm,'-o',out/(name+'.o')])
++    assert results[name]['assemble']['exit']==0,results[name]
++    results[name]['link']=run(name+'-link',[tc/'ld.lld','--emit-relocs','-T',out/('short.ld' if name=='kept-short' else 'layout.ld'),out/(name+'.o'),'-o',out/(name+'.elf')])
++    assert results[name]['link']['exit']==0,results[name]
++    if name=='kept-malformed':
++        path=out/(name+'.elf');blob=bytearray(path.read_bytes())
++        h=sections(blob)['.text']
++        old=struct.unpack_from('<I',blob,h[4])[0]
++        struct.pack_into('<I',blob,h[4],(old&0x00ffffff)|0xe3000000)
++        path.write_bytes(blob)
++    if name=='kept-unaligned':
++        path=out/(name+'.elf');blob=bytearray(path.read_bytes())
++        h=sections(blob)['.rel.text']
++        struct.pack_into('<I',blob,h[4],0x10002)
++        path.write_bytes(blob)
++    if name=='kept-mode':
++        path=out/(name+'.elf');blob=bytearray(path.read_bytes())
++        h=sections(blob)['.text']
++        old=struct.unpack_from('<I',blob,h[4])[0]
++        struct.pack_into('<I',blob,h[4],(old&0x00ffffff)|0xeb000000)
++        path.write_bytes(blob)
++    if name=='kept-h1-interior':
++        # Seed the linked instruction's REL addend explicitly. The assembler /
++        # linker pair normalizes this symbolic +2 to the function's start.
++        path=out/(name+'.elf');blob=bytearray(path.read_bytes())
++        h=sections(blob)['.text']
++        destination,word=a32_target(blob,0x10000)
++        displacement=destination+2-0x10008
++        word=0xfa000000|(((displacement>>1)&1)<<24)|((displacement>>2)&0xffffff)
++        struct.pack_into('<I',blob,h[4],word)
++        path.write_bytes(blob)
++    options=['--no-huge-pages','-lite=0']
++    if name.startswith('kept-'):options+=['--use-old-text','--skip-funcs=_start'+(',kept_tail' if name=='kept-tail' else ',kept_late' if name=='kept-late' else '')]
++    if name=='kept-tail':options+=['--hot-functions-at-end']
++    if name in ('kept-h1','kept-h1-interior'):options+=['--align-functions=2','--align-text=2']
++    results[name]['bolt']=run(name+'-bolt',[tc/'llvm-bolt',out/(name+'.elf'),'-o',out/(name+'.bolt.elf'),*options,'--emit-function-map='+str(out/(name+'.funcmap'))])
++    results[name]['input_disassembly']=run(name+'-input-disassembly',[tc/'llvm-objdump','-d','--start-address=0x10000','--stop-address=0x10040','--mattr=+hwdiv,+hwdiv-arm,+virtualization',out/(name+'.elf')])
++    expected={'kept-malformed':'invalid kept A32 branch relocation',
++              'kept-unaligned':'invalid kept A32 branch relocation',
++              'kept-tail':'does not support --hot-functions-at-end',
++              'kept-short':'requires sufficient space',
++              'kept-mode':'incompatible target ISA',
++              'kept-h1-interior':'cannot redirect the reference'}
++    if name in expected:
++        assert results[name]['bolt']['exit']==1,results[name]['bolt']
++        assert expected[name] in (out/(name+'-bolt.log')).read_text(),results[name]['bolt']
++        assert not (out/(name+'.bolt.elf')).exists(),'failed run published an output'
++        results[name]['checks']={'rejected':True,'diagnostic':expected[name]}
++    else:
++        assert results[name]['bolt']['exit']==0,results[name]['bolt']
++        results[name]['output_disassembly']=run(name+'-output-disassembly',[tc/'llvm-objdump','-d','--start-address=0x29000' if name=='features' else '--start-address=0x10000','--stop-address=0x29030' if name=='features' else '--stop-address=0x10020','--mattr=+hwdiv,+hwdiv-arm,+virtualization',out/(name+'.bolt.elf')])
++        results[name]['function_map']=(out/(name+'.funcmap')).read_text()
++        results[name]['checks']=inspect(name)
++    results[name]['attributes']=run(name+'-attributes',[tc/'llvm-readelf','-A',out/(name+'.elf')])
++(out/'results.json').write_text(json.dumps(results,indent=2)+'\n')
++summary={name:{key:value for key,value in row.items() if key in ('checks','function_map')} for name,row in results.items()}
++print(json.dumps(summary,indent=2))
++print('PASS: ARM attributes and kept-code positive/negative byte checks')

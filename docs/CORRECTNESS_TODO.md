@@ -238,9 +238,15 @@ rewriting need not be implemented to close an explicitly bounded scope.
   Filename-only patch stamps do not detect changed patch contents. Preserve dirty
   WSL source; do not reset it to make a check pass.
   The new isolated verifier applies all 24 patches and compares live contents.
-  It detects four files with unexported ARM attribute/kept-code changes; the diff
-  is preserved. Review/export those changes with scoped tests, achieve source
-  equality, then migrate content stamps. See ATFE_OVERLAY_REPLAY.md.
+  The first audit detected four unexported ARM attribute/kept-code files and
+  preserved their diff. Overlay 0025 now exports the reviewed changes, hardens
+  kept-branch writes/rejection and adds twelve linked-ELF probes. All 25 overlays
+  reproduce live source exactly; 37 focused lit tests pass. Source equality is
+  verified; content stamps and clean build provenance remain open. See ATFE_OVERLAY_REPLAY.md.
+- [x] Export the four unrecorded ATFE source changes with byte/negative regressions
+  and achieve isolated source-content equality without resetting the live tree.
+- [ ] Replace ATFE filename-only stamps with base/patch/source content identity;
+  prove clean build provenance separately from successful source replay.
 - [x] Protect `.git/` and `out/` during WSL build/sync (fixed in current GitHub scripts).
 - [x] Reject empty/partial PC sample words; failed perf2bolt conversion leaves an
   existing profile intact. Real ATFE perf2bolt smoke test passes.

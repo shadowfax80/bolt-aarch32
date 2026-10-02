@@ -171,7 +171,8 @@ class ExecutionGateTests(unittest.TestCase):
         self.assertEqual(candidate.read_bytes(), data)
 
     def test_full_builder_rejects_selection_and_profile_overrides(self):
-        for flags in (['--funcs-file=functions'], ['-emit-function-map=other'], ['--instrument-calls'], ['-data', 'stale']):
+        for flags in (['--funcs-file=functions'], ['-emit-function-map=other'], ['--instrument-calls'], ['-data', 'stale'],
+                      ['--use-old-text'], ['--use-old-text=false'], ['--hot-functions-at-end']):
             with self.subTest(flags=flags), patch.object(sys, 'argv', ['builder', str(self.out), '--redirect-functions', 'first', '--', *flags]), \
                  contextlib.redirect_stderr(io.StringIO()), self.assertRaises(SystemExit):
                 builder.main()

@@ -1,5 +1,34 @@
 # Correctness fixes
 
+## ATFE attributes and kept-code export (2026-10-02)
+
+Overlay 0025 exports the four unrecorded live source changes. Input build features
+reach both ARM and Thumb subtargets; the emitted ARM/Thumb UDIV and ERET bytes are
+checked. This propagates features and does not enforce the ISA/ABI admission
+contract. Malformed/missing attribute handling still belongs to #7.
+
+For `--use-old-text`, ignored functions retain their original bytes and reserve
+their text range. Kept A32 branches receive early opcode, alignment and target-ISA
+checks, bounded little-endian writes and stream-position preservation. The prior
+malformed-relocation and hot-at-end assertion probes now fail with diagnostics.
+Insufficient text, unsupported hot-at-end and unmappable interior references are
+rejected; late failures remove partial output. The scoped full-image builder
+rejects text-placement overrides because its restoration path is separate.
+
+Validation: twelve real linked-ELF probes, 37/37 focused ARM/JITLink lit tests,
+25/25 profile/replay tests and 14/14 execution-gate tests. All 25 ATFE patches now
+replay to the exact live source, with no uncovered changes. Original source
+preimages and the initial failed replay remain preserved. Privileged ERET and
+kept-code Pi execution are not certified by these host results. Content stamps,
+clean build provenance and the remaining #12 validation tasks stay open.
+
+The fresh candidate built with this ATFE tool emits 411/417 functions and redirects
+four benchmark entries. After physical power cycling, Pi verification on COM5
+passes all 18 outputs across ten repetitions, with 33,850 kept/taken samples.
+Rewritten IT/interworking/memcpy have 2,507/30/14 sampled PCs; far-call remains
+unobserved. This gate uses the regular full-image restoration/redirect path, not
+`--use-old-text`. See [durable evidence](results/correctness_atfe_0025_20261002.json).
+
 ## ATFE source replay guard (2026-10-02)
 
 The isolated verifier exports patch-touched files from the pinned ATFE base,

@@ -2,6 +2,25 @@
 
 ## Active implementation after review
 
+Latest work: overlay 0025 exports the four unrecorded ARM attribute/kept-code
+changes and fixes the kept A32 write/rejection boundary. Source preimages are
+preserved in out/correctness/kept-arm-fix/before*, and the original audit diff
+remains untouched. All 25 patches reproduce live source exactly in
+out/correctness/atfe-clean-replay-0025-final-20261002 (source identity c390d7d0...).
+37/37 focused lit, twelve linked-ELF probes, 25/25 profile/replay and 14/14 execution
+gate tests pass. The final fresh candidate is out/correctness/full-gate-0025-final;
+its Pi check passes on COM5 after a physical power cycle: all 18 workload outputs,
+ten repetitions, 33,850 kept/taken PCs and rewritten IT/interwork/memcpy samples
+(2,507/30/14). The COM6-missing and COM5 reboot-timeout attempts are retained.
+Evidence: docs/results/correctness_atfe_0025_20261002.json and
+full-gate-0025-final/pi-verify-58wpzrs6. Do not claim Pi execution of
+--use-old-text or privileged ERET from the regular full-image gate. The builder
+now rejects text-placement overrides. #12 remains active; next finish content
+stamps/clean provenance, counter identity, core ownership and the other gates
+before advancing to #5. WSL remains running and the dirty parent is preserved.
+
+The paragraphs below retain earlier checkpoints and evidence.
+
 Sampling identity fixes and bound-profile Pi evidence are pushed as bf69f15.
 The next #12 replay audit applies all 24 ATFE patches in an isolated file tree,
 but finds source-content differences in RewriteInstance.h, BinaryContext.cpp,

@@ -1,6 +1,6 @@
 # Twelve-item correctness work
 
-Last updated: 2026-10-01. Verification details: [CORRECTNESS_FIXES.md](CORRECTNESS_FIXES.md).
+Last updated: 2026-10-02. Verification details: [CORRECTNESS_FIXES.md](CORRECTNESS_FIXES.md).
 
 Fresh source review at `bbae817`: [CORRECTNESS_REVIEW_BBAE817.md](CORRECTNESS_REVIEW_BBAE817.md).
 Actionable subitems and closure criteria: [CORRECTNESS_TODO.md](CORRECTNESS_TODO.md).
@@ -21,12 +21,25 @@ from completion criteria. Three items are complete within this scope (2, 8, 10).
 | 9 | Entry points and symbols | Partial | Entry, split symbols, mapping and mixed-ISA marking improved; aliases, skipped functions, secondary entries, pointer targets and redirects remain |
 | 10 | Deterministic stubs | Complete | Stable visitation and layout, mixed-stub alignment fixed; repeated links and Pi checks passed |
 | 11 | Rewrite coverage | Partial | TBB/TBH and generic passes implemented; full-image emitted coverage is not execution proof; table/pass boundaries and excluded ELF constructs remain |
-| 12 | Verification and artifact integrity | Partial | Bound sampling/execution pass on Pi; isolated replay exposes four unexported source changes; counter binding, core ownership, other gates, broader inputs and content stamps remain |
+| 12 | Verification and artifact integrity | Partial, active | Bound sampling/execution pass on Pi; overlay 0025 achieves exact source replay; counter binding, core ownership, other gates, broader inputs, content stamps and clean build provenance remain |
 
 Hardware takes priority for execution verification; QEMU is a supplemental
 debugging tool. Pi checks use serial reboot where possible. A halted shell may
 still require a physical power cycle. Host tests and hardware tests are recorded
 separately; passing a single workload does not close the entire correctness audit.
+
+Overlay 0025 exports the previously unrecorded ARM attribute/kept-code changes,
+checks kept A32 opcode/alignment/ISA, writes bounded little-endian bytes and
+preserves the stream position. Unsupported hot-at-end, insufficient space and
+unmappable interior-reference cases fail. Host validation: 37/37 focused lit tests,
+twelve linked-ELF probes and 14/14 execution-gate tests. All 25 overlays replay to
+the exact live source contents. This does not certify privileged ERET execution,
+general ISA/ABI admission or `--use-old-text` execution on Pi. The scoped full-image
+builder rejects text-placement overrides.
+The fresh regular full-image candidate also passes Pi verification on COM5:
+all 18 results, ten repetitions, and sampled execution in the required rewritten
+IT/interworking/memcpy bodies. Far-call remains unobserved. See
+[overlay 0025 evidence](results/correctness_atfe_0025_20261002.json).
 
 Review validation at bbae817: 36/36 focused ARM tests passed. Isolated emission
 confirmed full-image postprocessing restores original code/entry; a partial-result

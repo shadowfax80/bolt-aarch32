@@ -1,0 +1,282 @@
+{
+  "schema": 1,
+  "date": "2026-10-02",
+  "parent_revision": "a47ba38",
+  "overlay": "0025-bolt-arm-attributes-kept-code.patch",
+  "source_replay": {
+    "base_commit": "bcc08884995ff3cbee70749524621803b9bd258a",
+    "success": true,
+    "live_source_preserved": true,
+    "source_identity_sha256": "c390d7d0acdd17910df67833227e55ed40898cf2cb229611a2c7326ce12660ed",
+    "scope": "pinned base plus complete patch series; source contents only, not clean full build/binary provenance"
+  },
+  "patch_sha256": {
+    "0001-emit-bolt-instr-tables-on-elf.patch": "49269895b37e21ee39d410a2717417b08bddb42974b5e99fba87636e227de16f",
+    "0002-tolerate-secondary-entrypoint-outside-code-section.patch": "2460f45fbe39ad520a591d37edf5925e74d7acc2e107e399ad87607e4dfab41d",
+    "0003-bolt-arm-elf32-and-target.patch": "cb2ed805a49b73c6122d4c6c0481c9703009689fa8873c4c3a06632af354d2f5",
+    "0004-bolt-arm-mcplusbuilder.patch": "d2025105313fefb9c7e304a6dda4df227e483cd4be93ab55902451949932bbb0",
+    "0005-bolt-arm-relocations.patch": "27b15ca9aaf28792ba9b98aaaf2edacc3f46a1e4730deee882e40a4698fe2800",
+    "0006-bolt-arm-rewrite-dispatch.patch": "825de9a51c22543e9c7d9a0cee01a526b4c5fb7e0d1b6b6be9171cea1287dba3",
+    "0007-bolt-arm-lit-tests.patch": "ae0e05384a0d24f6475f425f5cfb90fca98ca94c53d8d0487a151045b70c3d5a",
+    "0008-jitlink-arm-generic-archkind.patch": "7a30ef8fec31cda68bb63e128edecd75eb3bc0aad4141d0a2267e9e5abe3d8ff",
+    "0009-bolt-arm-longjmp-veneers.patch": "2950d0d2dddf856a83d84f45029f8c769b9832cdf10f99f486d50e7f12e7e379",
+    "0010-bolt-arm-instrumentation.patch": "1acf956dab22a687c2d53e1f0e6c49a439309957986644e8325234acb1b067a4",
+    "0011-bolt-arm-reverse-cbz.patch": "ddad8f56439d393eeb5ede2a158e3967540480be99f15425b6a64473caf7db15",
+    "0012-jitlink-arm-thumb-stub-alignment.patch": "15494da3e1e735474b84b39664b3acbadd9cdcc49b34f0a324372852fe6f267d",
+    "0013-bolt-emit-function-map.patch": "99d3c782f692bff0cfb4580d94c549e20ce664aa68eef6762cb5a2ca9282f397",
+    "0014-bolt-arm-literal-loads.patch": "8861406e0bfbd6bb6747adec762b22a85c5dfe87726c5dd4623a0d21acad1da8",
+    "0015-bolt-arm-unwind-rejection.patch": "ade687b385030923f6870345bfb287df44ff8e551749e6366b564383eee8ce54",
+    "0016-bolt-arm-data-fixup-width.patch": "2751b9ac14c11453f4f0cfe90477c157aba202280bac6b18103a6affda4dc568",
+    "0017-jitlink-arm-blx-stub-link.patch": "e50459022d2bf599c619c57ebca46035989cae1c1c5a912e617ca19a0c6b358a",
+    "0018-bolt-arm-pop-terminators.patch": "01722cd389cd657c60045bea3b7ded528e57343444aa58cc75602aee378cf6de",
+    "0019-deterministic-arm-stubs-and-alignment.patch": "179e2642d141217d73ab34a2170a59cdc868de47fb54f7d73afa4de77af530ec",
+    "0020-preserve-flags-in-cbz-long-branches.patch": "9b0923d9d680d3e8453fb755166809db921262ca32fdca577d26dc456b19c315",
+    "0021-preserve-thumb-entry-and-symbol-state.patch": "faaac1ec8a3b0a46fd1808a311b800500b60003175dcbe8d7c9950669f116ae2",
+    "0022-bolt-arm-thumb-jump19-split-functions.patch": "8d51bf51f92eaadb5b23e701c77179a65b17b68ca4705d3c898f96cc252958cd",
+    "0023-bolt-arm-generic-passes.patch": "cc93b6883bab0531ff041d43473128b16b4bb6ca70654c29496a3f0b48801806",
+    "0024-bolt-arm-inline-switch-tables.patch": "b1856915369978bf779613bab9ba40753cc39e52edf2258c55ef0cdf3d61d3a1",
+    "0025-bolt-arm-attributes-kept-code.patch": "72aaaa063316350a7a368b0bff5323febfc8ee161b5ccaba1974d246e36d60f5"
+  },
+  "tool_sha256": {
+    "llvm-bolt": "614127939e6b9d937fdcc32b9ca63871799e1b9b79b6a90e6180540c0e36efe7",
+    "llvm-objcopy": "f80e39c3121994c8b5baf3b9c2e586d4ffcd8da332e6c2c51b9f86fb482207de",
+    "llvm-readelf": "34ffb11d9ed81366c93817f462483e1d76b341c90d35f85895d5b768b0b974ac"
+  },
+  "host_tests": {
+    "focused_lit": 37,
+    "profile_replay": 25,
+    "execution_gate": 14,
+    "linked_elf_probes": 12
+  },
+  "probe_checks": {
+    "kept-arm": {
+      "moved@0x10000": {
+        "target": 69632,
+        "opcode_predicate_preserved": true
+      }
+    },
+    "features": {
+      "arm_feature": {
+        "moved": true,
+        "address": 167952,
+        "bytes": "11f230e71eff2fe1"
+      },
+      "privileged_feature": {
+        "moved": true,
+        "address": 167960,
+        "bytes": "6e0060e1"
+      },
+      "thumb_feature": {
+        "moved": true,
+        "address": 167964,
+        "bytes": "b1fbf2f07047"
+      }
+    },
+    "kept-mixed": {
+      "thumb_target@0x10000": {
+        "target": 69640,
+        "opcode_predicate_preserved": true
+      },
+      "moved@0x10004": {
+        "target": 69632,
+        "opcode_predicate_preserved": true
+      },
+      "moved@0x10008": {
+        "target": 69632,
+        "opcode_predicate_preserved": true
+      }
+    },
+    "kept-thumb": {
+      "thumb_call_retargeted": true
+    },
+    "kept-malformed": {
+      "rejected": true,
+      "diagnostic": "invalid kept A32 branch relocation"
+    },
+    "kept-tail": {
+      "rejected": true,
+      "diagnostic": "does not support --hot-functions-at-end"
+    },
+    "kept-late": {
+      "moved@0x10000": {
+        "target": 77824,
+        "opcode_predicate_preserved": true
+      },
+      "moved@0x12000": {
+        "target": 77824,
+        "opcode_predicate_preserved": true
+      }
+    },
+    "kept-short": {
+      "rejected": true,
+      "diagnostic": "requires sufficient space"
+    },
+    "kept-h1": {
+      "thumb_target@0x10000": {
+        "target": 65560,
+        "opcode_predicate_preserved": true
+      },
+      "moved@0x10004": {
+        "target": 65548,
+        "opcode_predicate_preserved": true
+      },
+      "moved@0x10008": {
+        "target": 65548,
+        "opcode_predicate_preserved": true
+      }
+    },
+    "kept-unaligned": {
+      "rejected": true,
+      "diagnostic": "invalid kept A32 branch relocation"
+    },
+    "kept-mode": {
+      "rejected": true,
+      "diagnostic": "incompatible target ISA"
+    },
+    "kept-h1-interior": {
+      "rejected": true,
+      "diagnostic": "cannot redirect the reference"
+    }
+  },
+  "lit_log_sha256": "ba9bea169bbe7018dc0fd7985717379df2720c1073fa13c8bdb183c291548910",
+  "artifact_hashes": {
+    "input_sha256": "424606a869c34b5be5f3c97f66a9cec8ea16844ac788c14c77839edcfef2459b",
+    "baseline_binary_sha256": "ee9982ba422fa5e40854f0c21c298b20c4be02eb349413eefe7fdcf53bedd612",
+    "elf_sha256": "1e7228b43f5b70e3670f0330d947f8a71793e02c8f12a344985c72e30c79145e",
+    "binary_sha256": "b1b58627fe804ce1183ab0721978bdb51b5b4f6ed7c92f1549677bfa1f9fdf71",
+    "map_sha256": "4f19364eebf3afb410bfec0eccfce8dd2a480568f206ace516a8b7fe46fd34e5"
+  },
+  "input_function_count": 417,
+  "emitted_count": 411,
+  "redirected": [
+    {
+      "name": "bolt_bench_far_call",
+      "input": 2147526598,
+      "output": 2148371264,
+      "output_size": 40,
+      "thumb": true,
+      "branch_hex": "cef0bbb9"
+    },
+    {
+      "name": "bolt_bench_it_cond",
+      "input": 2147526638,
+      "output": 2148360192,
+      "output_size": 90,
+      "thumb": true,
+      "branch_hex": "cbf007bc"
+    },
+    {
+      "name": "bolt_bench_interwork",
+      "input": 2147526744,
+      "output": 2148371328,
+      "output_size": 128,
+      "thumb": false,
+      "branch_hex": "c83803ea"
+    },
+    {
+      "name": "bolt_bench_memcpy",
+      "input": 2147527220,
+      "output": 2148360284,
+      "output_size": 220,
+      "thumb": true,
+      "branch_hex": "cbf012bb"
+    }
+  ],
+  "bolt_options": [
+    "--no-huge-pages",
+    "-lite=0",
+    "-reorder-blocks=ext-tsp",
+    "-reorder-functions=hfsort+",
+    "-icf=all",
+    "-data=/mnt/c/Users/User/CURSOR/CodexProjects/BOLT_AARCH32/out/correctness/full-gate-0025-final/profile.fdata"
+  ],
+  "restored_sections": [
+    ".bolt.org.text",
+    ".data",
+    ".rodata",
+    "lk_init",
+    "commands",
+    "apps",
+    ".ctors"
+  ],
+  "profile": {
+    "profile_sha256": "2b5eeabdb724da649c7334c2ac8553af0a0b0f473000c2db15079d7bf4668911",
+    "manifest_sha256": "0bb1c9ed0d711706d416ae67785a395a551fb93124dbfa07daecd3c6373fbf55"
+  },
+  "remaining_scope": "Kept-code and privileged ERET Pi execution, general ISA/ABI admission, clean full build provenance, content stamps, counter binding, core ownership and other #12 gates remain open.",
+  "verification": {
+    "schema": 1,
+    "execution_verified": true,
+    "verified_at": "2026-10-02T02:59:41.224717+00:00",
+    "scope": "required redirected functions only; emitted functions are not execution coverage",
+    "manifest_sha256": "8b8986ce8bf199e6f0ff607f1af8bc62fefbb1d0dbf6f158412ced15ef1ade9b",
+    "baseline_log_sha256": "8c931ea3e1d18d308e7669cbcaa045269fa9d1dfb5806bcf34f0d0210376ebad",
+    "candidate_log_sha256": "2b28ffdda6d0dd1189a1e77ab0fcdd86693dfdaaecd07e8ec13060c4199836ad",
+    "workload_results": {
+      "hot_loop": "0x6a4ae6e0",
+      "hot_cold": "0x00000000",
+      "branch_chain": "0x007a5100",
+      "memcpy": "0x5acd3dc5",
+      "far_call": "0xb7082fa9",
+      "it_cond": "0x021e8480",
+      "interwork": "0x2fb21555",
+      "switch": "0xa953bbf0",
+      "spill_ret": "0x504980a0",
+      "litpool": "0x16b596e0",
+      "indirect_call": "0x0e6aac80",
+      "interwork_tail": "0xda3416f0",
+      "regpressure": "0xc5da3550",
+      "hotcold_split": "0xd4751003",
+      "icf": "0xdc7c3be0",
+      "shrinkwrap": "0x6a1b87d4",
+      "composite": "0x939f4ea0",
+      "stair": "0x9fef2a18"
+    },
+    "sampling_period": 20000,
+    "workload_repetitions": 10,
+    "kept_samples": 33850,
+    "taken_samples": 33850,
+    "redirected_coverage": [
+      {
+        "name": "bolt_bench_far_call",
+        "pc_samples": 0,
+        "execution_observed": false,
+        "required": false
+      },
+      {
+        "name": "bolt_bench_it_cond",
+        "pc_samples": 2507,
+        "execution_observed": true,
+        "required": true
+      },
+      {
+        "name": "bolt_bench_interwork",
+        "pc_samples": 30,
+        "execution_observed": true,
+        "required": true
+      },
+      {
+        "name": "bolt_bench_memcpy",
+        "pc_samples": 14,
+        "execution_observed": true,
+        "required": true
+      }
+    ],
+    "required_executed": [
+      "bolt_bench_it_cond",
+      "bolt_bench_interwork",
+      "bolt_bench_memcpy"
+    ],
+    "sampled_pc_sha256": "b64a8f12b2e220d4b58095e9fbe24ac46da923564b136f8b61e8cc129d6eeb66"
+  },
+  "prior_failed_attempts": [
+    {
+      "log_sha256": "b388c3aed50e401fb7b84b1cb7ea8717df1f6937916bd78319ecb981329a26e8",
+      "diagnostic": "error: can't open COM6 (could not open port 'COM6': FileNotFoundError(2, 'The system cannot find the file specified.', None, 2)). Is PuTTY still holding it?"
+    },
+    {
+      "log_sha256": "8e02ebfa0edb79ec680b58409ce22c116fad0af2ae9ec6e36dcf8edd7ccb7b91",
+      "diagnostic": "no chainloader prompt; sending `reboot` to LK at 3000000 baud\n\n\nreboot\nno chainloader prompt; sending `reboot` to LK at 6000000 baud\n\n\nreboot\nwaiting for the chainloader on COM5 (power-cycle the Pi if it's running an earlier payload)...\n\n\n\nerror: timed out waiting for SBOOT?"
+    }
+  ]
+}

@@ -59,8 +59,9 @@ def main():
     args = parser.parse_args(raw[:split])
     extra = raw[split + 1:]
     keys = [a.lstrip('-').split('=')[0] for a in extra]
-    if any(k.startswith('funcs') or k in ('data', 'o', 'emit-function-map', 'instrument', 'instrument-calls') for k in keys):
-        parser.error('selection/profile/output/instrumentation overrides are not supported by this builder')
+    if any(k.startswith('funcs') or k in ('data', 'o', 'emit-function-map', 'instrument', 'instrument-calls',
+                                        'use-old-text', 'hot-functions-at-end') for k in keys):
+        parser.error('selection/profile/output/instrumentation/text-placement overrides are not supported by this builder')
     if os.environ.get('FDATA') or os.environ.get('BOLT_FDATA'):
         parser.error('use --profile with an identity sidecar; implicit environment profiles are rejected')
     if args.profile:
