@@ -5,6 +5,11 @@ Re-evaluated 2026-10-01 at GitHub `bbae817`, with ATFE overlays through 0024. **
 See [review evidence](CORRECTNESS_REVIEW_BBAE817.md), [status](CORRECTNESS_STATUS.md), and
 [previous fixes](CORRECTNESS_FIXES.md).
 
+Work resumed by user on 2026-10-02. #5 remains first in the order below; its
+terminal-IT fix passes the wider Pi matrix and focused host regressions.
+Nested execution and broader count/snapshot coverage follow. WSL is running;
+#12 remains paused. See CORRECTNESS_RESUME.md.
+
 Active development is **ATFE only**. Set `BASE=atfe` explicitly: generic scripts
 still default to upstream. Raspberry Pi 4 has priority for execution verification;
 host tests check encodings/diagnostics and QEMU is supplemental.
@@ -108,10 +113,16 @@ live flags, return values, LR/SP and fallthrough.
   sixteen-byte frame are checked. See PI_COUNTER_STATE.md and recorded evidence.
 - [ ] Verify nested execution, active interrupt behavior and other insertion sites;
   the leaf state fixture keeps FIQ disabled and does not invoke an ISR.
-- [ ] Preserve IT header/body groups through insertion, edge splitting, reversal
-  and reordering; test masks and terminal conditional branches.
+- [x] Preserve supported IT header/body groups through insertion and reverse
+  layout: all fifteen data masks, narrow/wide terminal branches and loops pass
+  300 Pi cases in each of baseline/normal/reverse/conservative modes. Seven
+  unsupported/malformed IT admission tests reject before creating output.
+- [ ] Extend IT/pass coverage to other predicates and pass combinations; calls,
+  returns and branches into IT bodies currently have an explicit rejection boundary.
 - [ ] Compare exact counts against known CFGs: zero edges, loops, multiple entries,
   reset and snapshot behavior.
+  Leaf/IT/terminal-branch/loop paths and per-case reset pass; multiple entries and
+  live snapshots remain. See PI_IT_COUNTS.md.
 - [ ] Enforce conservative edge counting when required call counts are disabled;
   prevent entry-hook counts from being treated as measured edge profiles.
 

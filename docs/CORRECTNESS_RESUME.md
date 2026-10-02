@@ -1,5 +1,78 @@
 # ATFE correctness checkpoint - 2026-10-02
 
+## Latest: resumed by user; #5 active
+
+WSL is running. Overlay 0027 normalizes terminal direct IT branches before CFG
+construction and rejects unsupported IT control transfers/interior entries.
+All 39 focused ARM/JITLink tests pass; the new lit test covers seven rejection
+boundaries. The Pi passes 300 cases each for baseline/normal/reverse/conservative
+images (1,200 total), all fifteen IT data masks, narrow/wide terminal branches,
+loops, per-case reset, low carry and uint64 wrap. Counts are checked against
+independent path models, with 81/81/71 measured slots. All four images returned
+automatically to the loader on COM5. Evidence: it-counts-pi/build-9q43m0w3/
+pi-verify-0b960t99 and results/correctness_it_counts_20261002.json.
+Reusable build/verify scripts are scripts/pi4/build_it_counts.py and
+verify_it_counts.py. The tracked builder's fresh build-gqwkbnr0 also passes
+host modeling. Exact preimages/postimages remain in it-branch-fix.
+
+Three original items are complete (#2/#8/#10); #5 stays partial. Next: nested
+execution, remaining reset/snapshot/CFG cases and operating contract #6.
+#12 stays explicitly paused. Order remains #5, #6, #3, #4, #1, #9, #7, #11, #12.
+The host-only test also reproduced the existing odd Thumb entry instrumentation
+assertion (Instrumentation::createAuxiliaryFunctions Start lookup); retain that
+negative evidence in it-branch-fix/patch-before-test-revision.patch and earlier
+logs for #9. Do not infer it is fixed by the IT patch.
+ATFE only; preserve dirty WSL source and unrelated Microsoft/. Older stop and
+priority instructions below are historical and superseded by this checkpoint.
+
+## Previous: overall work stopped by user
+
+User requested stopping and resuming in a new session. Do not resume until asked.
+WSL inspection reports no running distributions; do not restart it merely to
+make the pause checkpoint. No build, test or serial process is currently known
+to be running. Pi last returned to the serial loader after the state tests.
+
+Latest verified GitHub implementation/tests: `c2b9b5c` (counter-state tests).
+Three original items are complete: #2, #8 and #10. #5 is partial and paused with
+the overall work; #12 remains separately paused by user. Resume order is
+#5, #6, #3, #4, #1, #9, #7, #11, then #12. ATFE only; no upstream work.
+
+Unfinished #5 work found a confirmed terminal-IT branch defect. Before the fix,
+IT-predicated `t2B` was treated as unconditional, reachable loop code was removed
+and a counter was emitted inside IT. Original evidence is
+`out/correctness/it-probe-1ha37uvl`. A local fix normalizes terminal direct IT
+branches to explicit conditional branches, shortens/replaces their IT header,
+and rejects unsupported IT control transfers and branches into IT bodies.
+The assertions-enabled ATFE build passed; the small normal/reverse/conservative
+host probe now retains the loop. Evidence: `out/correctness/it-probe-s6enm8m7`.
+This fix is **not fully verified, exported, committed or pushed**. No Pi run or
+full lit run has been performed for it. Preserve the dirty live ATFE source.
+
+The three changed files are `bolt/include/bolt/Core/MCPlusBuilder.h`,
+`bolt/lib/Target/ARM/ARMMCPlusBuilder.cpp` and `bolt/lib/Core/BinaryFunction.cpp`.
+Exact preimages/prepared postimages, hashes and successful build log are saved
+under `out/correctness/it-branch-fix/{before,after}`, `source-change.json` and
+`build.log`. `out/correctness/apply-it-branch-fix.py` already applied the edits;
+do not rerun it against modified live files. Audit and probe scripts are retained.
+
+The unfinished wider fixture has 47 functions: all fifteen data IT masks,
+fifteen terminal-branch masks in both widths, and narrow/wide loops. Its driver
+is `out/correctness/build-it-counts-pi.py`; new untracked firmware source is
+`scripts/pi4/fixtures/it-counts/main.c`. Fresh failed attempts are preserved in
+`out/correctness/it-counts-pi`. The driver currently stops while constructing
+the narrow-loop expected-count model (`target not modeled`, offset 26). Its
+post-link narrow branch plus NOP creates a separate fallthrough block before
+the original loop exit; model that block explicitly rather than changing the
+backend to fit the test. Earlier global trace labels accidentally became
+secondary entries; they were replaced with temporary object-only labels.
+
+Next on explicit resumption: repair the fixture path model, validate every
+selected emitted function/IT group and exact counter assignment, add negative
+IT tests, run focused lit and Pi checks, then export/review/push the verified
+fix. Nested execution and wider reset/snapshot/CFG cases still remain under #5.
+The Windows unrelated untracked `Microsoft/` directory is untouched. All scratch
+evidence and WIP scripts are local and ignored by Git; retain this workspace.
+
 ## Active implementation after review
 
 User explicitly paused item #12 on 2026-10-02 and requested moving to the next

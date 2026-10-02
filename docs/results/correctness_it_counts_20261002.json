@@ -1,0 +1,175 @@
+{
+  "schema": 1,
+  "date": "2026-10-02",
+  "item": 5,
+  "status": "partial",
+  "patch": "0027-bolt-arm-terminal-it-branches.patch",
+  "patch_sha256": "e9fb10d80d9ab3720bfb43b8a73f3dccfbbe4ff235efe52b14d61330150eaa30",
+  "hardware": {
+    "schema": 1,
+    "verified": true,
+    "scope": "15 IT masks; narrow/wide terminal IT branches and loops; single-core privileged quiet firmware; no active IRQ/FIQ/SMP",
+    "port": "COM5",
+    "results": {
+      "baseline": {
+        "passed": true,
+        "cases": 300,
+        "counters": 1,
+        "instrumented": false
+      },
+      "normal": {
+        "passed": true,
+        "cases": 300,
+        "counters": 81,
+        "instrumented": true
+      },
+      "reverse": {
+        "passed": true,
+        "cases": 300,
+        "counters": 81,
+        "instrumented": true
+      },
+      "conservative": {
+        "passed": true,
+        "cases": 300,
+        "counters": 71,
+        "instrumented": true
+      }
+    },
+    "build_manifest_sha256": "3974e5b7ff302caf3c202f28959f98f7fd31b8ed3251c8b96efaf8d130b1eecc",
+    "verifier_sha256": "29abb5b735c6eb91dd292d1f11822cf2560ab1e94c32d776af5f7dcc300429a5",
+    "loader_sha256": "20d8a44f44c62ce001c3cd49007a0b73b9a6890d92bdb37f9d5a573246453ab0",
+    "log_sha256": {
+      "baseline": "0d29e01c5c2ae5370247822d48f7710ddac762f3193271d2ef4a4a3bd61221e9",
+      "normal": "383f6a64adaae874508cdfa7b8ca592dfa5ffbf355ba01bec0b74c0923cc752b",
+      "reverse": "383f6a64adaae874508cdfa7b8ca592dfa5ffbf355ba01bec0b74c0923cc752b",
+      "conservative": "73b6c19596eb3b89a573f659f05e30b9c2e7dbc4bafddcdc53ff2a87fdeb6aab"
+    }
+  },
+  "build": {
+    "schema": 1,
+    "kind": "pi-it-counts",
+    "cases": 300,
+    "functions": [
+      "it_t",
+      "it_branch_t_n",
+      "it_branch_t_w",
+      "it_tt",
+      "it_branch_tt_n",
+      "it_branch_tt_w",
+      "it_te",
+      "it_branch_te_n",
+      "it_branch_te_w",
+      "it_ttt",
+      "it_branch_ttt_n",
+      "it_branch_ttt_w",
+      "it_tte",
+      "it_branch_tte_n",
+      "it_branch_tte_w",
+      "it_tet",
+      "it_branch_tet_n",
+      "it_branch_tet_w",
+      "it_tee",
+      "it_branch_tee_n",
+      "it_branch_tee_w",
+      "it_tttt",
+      "it_branch_tttt_n",
+      "it_branch_tttt_w",
+      "it_ttte",
+      "it_branch_ttte_n",
+      "it_branch_ttte_w",
+      "it_ttet",
+      "it_branch_ttet_n",
+      "it_branch_ttet_w",
+      "it_ttee",
+      "it_branch_ttee_n",
+      "it_branch_ttee_w",
+      "it_tett",
+      "it_branch_tett_n",
+      "it_branch_tett_w",
+      "it_tete",
+      "it_branch_tete_n",
+      "it_branch_tete_w",
+      "it_teet",
+      "it_branch_teet_n",
+      "it_branch_teet_w",
+      "it_teee",
+      "it_branch_teee_n",
+      "it_branch_teee_w",
+      "it_loop_n",
+      "it_loop_w"
+    ],
+    "variants": {
+      "normal": {
+        "counters": 81
+      },
+      "reverse": {
+        "counters": 81
+      },
+      "conservative": {
+        "counters": 71
+      }
+    },
+    "files": {
+      "baseline.bin": "249e0f3968a8729353a9ac2241f8cdf2be78b310efce03cda0c5e926e5ce92b7",
+      "baseline.elf": "0e907070de23822be5dfb462874b4bae490c1d17247aa1ec7248a6938ee84201",
+      "conservative-redirects.json": "aac4b0f8495c7fef225fc6cafe7040529eaabf389305f38ab7fbd57effeb6a98",
+      "conservative-reference.bin": "86b1982ee5da6af48f5d2d44679526dbee4b66e94de2bd9103c213a51121a597",
+      "conservative.bin": "f93762ce83dd042f971fb66b3fb30e6107451e910ebecedea2f2e53d3aaa407f",
+      "conservative.elf": "2ca0b13a926acc4d601c12b26f14dba68c99522ecb0437a9ae8bd7da9f56913a",
+      "conservative.funcmap": "add552effc14dab490f1b88305bb6178b179527a990a409dd382c5adb9f4b806",
+      "fixture.s": "14da99d2440b363501a925cec4f0c5323c7e7e86d73a721b56a3f1dfd27f3794",
+      "models.json": "bb5fae83019ac11c8223bd23227db6aed351f9df110b4bd06972ff8c21e74d0d",
+      "normal-redirects.json": "2babc5abe0ee7f2fc479e3f966a050af058037e0eeac06f816fc9163470cfb69",
+      "normal-reference.bin": "78fde1dbf6b340d29879983f2a6744cd326e5b0470665e5b4dd8dfebc4ec0f3b",
+      "normal.bin": "6f3f526a6f67eaf7e6b462ba69cbf155048ecda84d2200bf73b71a9158152a7d",
+      "normal.elf": "868f0d9d0c250131042a0eb3b2cad72c9e54a8a9a97d53dc4d30c7b10e0c3389",
+      "normal.funcmap": "1455189bee5f85fcc3a762794da3ca89d7a3de5c7921653ffd6ecd7dc3c1663e",
+      "reverse-redirects.json": "08e166cf6c2843282d4f9a2c9342c7da17b4a308173be4749c4936bc05755ee5",
+      "reverse-reference.bin": "78fde1dbf6b340d29879983f2a6744cd326e5b0470665e5b4dd8dfebc4ec0f3b",
+      "reverse.bin": "32f7786e434ce1b9b1b1f495e1fa929a2119647888a12c04976a96f54cabbcfd",
+      "reverse.elf": "12e28357bcc6a80d61c8f17efe591d5cd845398fa38499225c7c859ed50db148",
+      "reverse.funcmap": "79c98a6b6d14516207e81a337243a6f9e91b8afb010d272f6bdadc55bb176f00"
+    },
+    "tools": {
+      "llvm-bolt": "74b11a3c9ff577f33e57cfd6bff3d26398d34f79b1efc367aca3c18948625d19",
+      "llvm-mc": "0419ed87fde9fa95b827a58cc1e6d2817c0970304c9fb0bd7779e7188122dbed",
+      "clang": "296dd268c36e9431e2fcc4e2f89ee3fa1cf66e47f5487df73fca85ea8999ecc6",
+      "ld.lld": "21f3d1e800b8de414efc347ed4630126d22996cddf663d92004af5e089b51be9",
+      "llvm-objcopy": "f80e39c3121994c8b5baf3b9c2e586d4ffcd8da332e6c2c51b9f86fb482207de"
+    },
+    "main_sha256": "1ed1e1334a83a52b8b2cdf568e07a3e5da4a93044622e2aa6ca531601000615a",
+    "builder_sha256": "5d4871b7a4e72bcfea64a591944fe26fd04ff7fb4775166aba4bbefca2b1da52",
+    "runtime_sha256": "eceba9ea9fcfbda21c13e97c78f9b1795a5051223d4bad07666ee2aea431b24d",
+    "scope": "15 IT masks; narrow/wide terminal IT branches and loops; single-core privileged quiet firmware; no active IRQ/FIQ/SMP"
+  },
+  "evidence": "out/correctness/it-counts-pi/build-9q43m0w3/pi-verify-0b960t99",
+  "tracked_builder": {
+    "sha256": "465af800c0a251c8eb9fb8eba79482312c733d93401409af1ca4fb7bd33bda4c",
+    "fresh_manifest_sha256": "ca2fc8dd49a9fe0fba6395c5da9ad79819a6cc5f8f21e22433c8371e2f4fb8bc",
+    "payload_equals_hardware_tested": {
+      "baseline": true,
+      "normal": true,
+      "reverse": true,
+      "conservative": true
+    }
+  },
+  "host": {
+    "focused_lit_passed": 39,
+    "total": 39,
+    "parser_tests": 5,
+    "rejection_boundaries": 7,
+    "lit_log_sha256": "75564691c12bb743d6ef1ee9e97502bfb7fde482dc057c8cecebcd3d049b499f"
+  },
+  "limits": [
+    "quiet single-core privileged firmware",
+    "IRQ/FIQ disabled during workload",
+    "no nested/active interrupt/SMP claim",
+    "no clean-build provenance claim"
+  ],
+  "followup": [
+    "nested execution",
+    "reset/snapshot boundaries",
+    "instrumentation privilege and core contract"
+  ]
+}

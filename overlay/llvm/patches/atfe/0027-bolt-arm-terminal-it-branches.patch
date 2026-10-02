@@ -1,0 +1,229 @@
+--- a/bolt/include/bolt/Core/MCPlusBuilder.h
++++ b/bolt/include/bolt/Core/MCPlusBuilder.h
+@@ -810,6 +810,19 @@
+   }
+ 
+   virtual bool isPrefix(const MCInst &Inst) const { return false; }
++
++  /// Number of following instructions governed by a predication prefix.
++  /// Zero means invalid/unsupported; only called for targets with such groups.
++  virtual unsigned getPredicationPrefixSize(const MCInst &Inst) const {
++    return 0;
++  }
++
++  /// Move a terminal direct branch out of its predication group, shortening
++  /// Prefix (or replacing it with a no-op) and giving Branch an explicit
++  /// condition. Return false when the control transfer cannot be normalized.
++  virtual bool normalizePredicatedBranch(MCInst &Prefix, MCInst &Branch) const {
++    return false;
++  }
+ 
+   virtual bool isRep(const MCInst &Inst) const { return false; }
+ 
+--- a/bolt/lib/Core/BinaryFunction.cpp
++++ b/bolt/lib/Core/BinaryFunction.cpp
+@@ -1388,6 +1388,11 @@
+   // basic block.
+   Labels[0] = Ctx->createNamedTempSymbol("BB0");
+ 
++  // Normalize Thumb terminal IT branches before any CFG/pass sees them.
++  // Other control transfers in IT and entries into an IT body are excluded.
++  unsigned PrefixRemaining = 0;
++  uint64_t PrefixOffset = 0;
++  DenseSet<uint64_t> PrefixBodyOffsets;
+   uint64_t Size = 0; // instruction size
+   for (uint64_t Offset = 0; Offset < getSize(); Offset += Size) {
+     MCInst Instruction;
+@@ -1395,6 +1400,8 @@
+ 
+     // Check for data inside code and ignore it
+     if (const size_t DataInCodeSize = getSizeOfDataInCodeAt(Offset)) {
++      if (PrefixRemaining)
++        return createFatalBOLTError("data inside Thumb IT group in " + getPrintName());
+       Size = DataInCodeSize;
+       continue;
+     }
+@@ -1421,6 +1428,29 @@
+       }
+ 
+       break;
++    }
++
++    if (BC.isARM() && isARMThumb()) {
++      if (MIB->isPrefix(Instruction)) {
++        if (PrefixRemaining)
++          return createFatalBOLTError("nested Thumb IT group in " + getPrintName());
++        PrefixRemaining = MIB->getPredicationPrefixSize(Instruction);
++        if (!PrefixRemaining)
++          return createFatalBOLTError("invalid Thumb IT group in " + getPrintName());
++        PrefixOffset = Offset;
++      } else if (PrefixRemaining) {
++        PrefixBodyOffsets.insert(Offset);
++        --PrefixRemaining;
++        if (MIB->isBranch(Instruction) || MIB->isCall(Instruction) ||
++            MIB->isReturn(Instruction) || MIB->isTerminator(Instruction)) {
++          MCInst &Prefix = Instructions.at(PrefixOffset);
++          if (PrefixRemaining ||
++              !MIB->normalizePredicatedBranch(Prefix, Instruction))
++            return createFatalBOLTError(
++                "unsupported control transfer in Thumb IT group in " + getPrintName());
++          MIB->setOffset(Prefix, static_cast<uint32_t>(PrefixOffset));
++        }
++      }
+     }
+ 
+     // Check integrity of LLVM assembler/disassembler.
+@@ -1636,6 +1666,12 @@
+ 
+     addInstruction(Offset, std::move(Instruction));
+   }
++
++  if (PrefixRemaining)
++    return createFatalBOLTError("truncated Thumb IT group in " + getPrintName());
++  for (const auto &Entry : Labels)
++    if (PrefixBodyOffsets.contains(Entry.first))
++      return createFatalBOLTError("branch into Thumb IT body in " + getPrintName());
+ 
+   // Scope-boundary markers are only consulted while assigning offsets above.
+   DebugScopeBoundaryOffsets.clear();
+--- a/bolt/lib/Target/ARM/ARMMCPlusBuilder.cpp
++++ b/bolt/lib/Target/ARM/ARMMCPlusBuilder.cpp
+@@ -98,6 +98,40 @@
+     unsigned NumTZ = llvm::countr_zero(Mask);
+     assert(NumTZ <= 3 && "invalid IT mask");
+     return 4u - NumTZ;
++  }
++
++  unsigned getPredicationPrefixSize(const MCInst &Inst) const override {
++    if (!isITOpcode(Inst.getOpcode()) || Inst.getNumOperands() < 2 ||
++        !Inst.getOperand(0).isImm() || !Inst.getOperand(1).isImm())
++      return 0;
++    const int64_t CC = Inst.getOperand(0).getImm();
++    const int64_t Mask = Inst.getOperand(1).getImm();
++    if (CC < 0 || CC >= ARMCC::AL || Mask <= 0 || Mask > 15)
++      return 0;
++    return getITBlockSize(Inst);
++  }
++
++  bool normalizePredicatedBranch(MCInst &Prefix,
++                                 MCInst &Branch) const override {
++    const unsigned Size = getPredicationPrefixSize(Prefix);
++    if (!Size || (Branch.getOpcode() != ARM::tB &&
++                  Branch.getOpcode() != ARM::t2B) ||
++        Branch.getNumOperands() < 3 || !Branch.getOperand(1).isImm() ||
++        Branch.getOperand(1).getImm() < 0 ||
++        Branch.getOperand(1).getImm() >= ARMCC::AL)
++      return false;
++    // IT-predicated tB/t2B have an unconditional opcode descriptor. Leaving
++    // them in the CFG drops the fallthrough and permits probes inside IT.
++    // Emit an explicit conditional branch after the shortened IT instead.
++    Branch.setOpcode(ARM::t2Bcc);
++    if (Size == 1) {
++      createNoop(Prefix);
++    } else {
++      const unsigned EndBit = 1u << (5u - Size);
++      const unsigned Mask = Prefix.getOperand(1).getImm();
++      Prefix.getOperand(1).setImm((Mask & ~(EndBit - 1u)) | EndBit);
++    }
++    return true;
+   }
+ 
+   bool isITInstruction(const MCInst &Inst) const {
+--- /dev/null
++++ b/bolt/test/ARM/Inputs/check-arm-it-boundaries.py
+@@ -0,0 +1,90 @@
++import itertools
++from pathlib import Path
++import re
++import subprocess
++import sys
++
++out = Path(sys.argv[1])
++out.mkdir(parents=True, exist_ok=True)
++inputs = Path(sys.argv[2])
++
++def run(label, args, expected=0):
++    p = subprocess.run([str(x) for x in args], capture_output=True, text=True)
++    text = p.stdout + p.stderr
++    (out/(label+'.log')).write_text(text, encoding='utf-8')
++    if (p.returncode == 0) != (expected == 0):
++        raise RuntimeError(label+': unexpected exit '+str(p.returncode)+'\n'+text)
++    return text
++
++header = '.syntax unified\n.arch armv7-a\n.text\n.thumb\n'
++def function(name, body):
++    return f'.balign 4\n.global {name}\n.type {name},%function\n.thumb_func\n{name}:\n{body}\n.size {name},.-{name}\n'
++
++def link(label, source):
++    asm = out/(label+'.s')
++    asm.write_text(header+source, encoding='utf-8')
++    obj, elf = out/(label+'.o'), out/(label+'.elf')
++    run(label+'-mc', ['llvm-mc','-triple=armv7-none-eabi','-arm-add-build-attributes','-filetype=obj',asm,'-o',obj])
++    run(label+'-link', ['ld.lld','--emit-relocs','-T',inputs/'arm32.ld',obj,'-o',elf])
++    return elf
++
++runtime = out/'runtime.a'
++run('runtime-mc', ['llvm-mc','-triple=armv7-none-eabi','-filetype=obj',inputs/'arm-counter-runtime.s','-o',out/'runtime.o'])
++run('runtime-ar', ['llvm-ar','rcs',runtime,out/'runtime.o'])
++start = '.arm\n.global _start\n.type _start,%function\n_start:\nbl helper\nbx lr\n.size _start,.-_start\n.thumb\n'
++source = start+function('helper','bx lr')
++names = []
++for size in range(1,5):
++    for tail in itertools.product('TE',repeat=size-1):
++        mask = 'T'+''.join(tail)
++        name = 'data_'+mask.lower()
++        body = 'movw r1,#0\ncmp r0,#0\nit'+mask[1:].lower()+' eq\n'
++        body += '\n'.join('add'+('eq' if sense=='T' else 'ne')+'.w r1,r1,#'+str(1<<i) for i,sense in enumerate(mask))
++        source += function(name,body+'\nmov r0,r1\nbx lr')
++        names.append(name)
++source += function('loop', '''movw r1,#0
++.Lhead:
++cmp r0,#0
++it eq
++beq.w .Ldone
++add.w r1,r1,#3
++subs.w r0,r0,#1
++it ne
++bne.w .Lhead
++.Ldone:
++mov r0,r1
++bx lr''')
++names.append('loop')
++elf = link('valid',source)
++for mode, extra in [('normal',[]),('reverse',['--reorder-blocks=reverse']),('conservative',['--conservative-instrumentation'])]:
++    candidate = out/(mode+'.elf')
++    mapping = out/(mode+'.map')
++    run(mode,['llvm-bolt',elf,'-o',candidate,'--no-huge-pages','-lite=0','--instrument','--instrument-calls=false',
++              '--instrumentation-sleep-time=1','--runtime-instrumentation-lib='+str(runtime),
++              '--funcs='+','.join(names),'--emit-function-map='+str(mapping),*extra])
++    rows = {line.split()[0] for line in mapping.read_text().splitlines() if line.split()}
++    if rows != set(names): raise RuntimeError('missing emitted IT function')
++    disasm = run(mode+'-disasm',['llvm-objdump','-d',candidate])
++    match = re.search(r'<loop>:\n(.*?)(?=\n[0-9a-f]+ <|\Z)',disasm,re.S)
++    if not match or not re.search(r'add\.w\s+r1, r1, #(?:0x)?3',match[1]):
++        raise RuntimeError('reachable loop body removed')
++    if re.search(r'\s+it\s',match[1]): raise RuntimeError('terminal IT was not normalized')
++
++# Raw IT headers bypass assembler legality checks so malformed and excluded
++# control transfers reach BOLT's admission boundary.
++negatives = {
++    'return': ('.inst.n 0xbf08\nbx lr', 'unsupported control transfer'),
++    'call': ('.inst.n 0xbf08\nbl helper\nbx lr', 'unsupported control transfer'),
++    'early-branch': ('.inst.n 0xbf04\nb end\nmov r0,r0\nend: bx lr', 'unsupported control transfer'),
++    'nested': ('.inst.n 0xbf08\n.inst.n 0xbf08\nmov r0,r0\nbx lr', 'nested Thumb IT group'),
++    'truncated': ('.inst.n 0xbf04\nmov r0,r0', 'truncated Thumb IT group'),
++    'data': ('.inst.n 0xbf08\n.word 0\nbx lr', 'data inside Thumb IT group'),
++    'interior': ('b inside\n.inst.n 0xbf08\ninside: mov r0,r0\nbx lr', 'branch into Thumb IT body'),
++}
++for label, (body,diagnostic) in negatives.items():
++    elf = link(label,start+function('bad',body)+function('helper','bx lr'))
++    candidate = out/(label+'-out.elf')
++    text = run(label+'-bolt',['llvm-bolt',elf,'-o',candidate,'--no-huge-pages','-lite=0','--funcs=bad'],expected=1)
++    if diagnostic not in text: raise RuntimeError(label+': missing diagnostic\n'+text)
++    if candidate.exists(): raise RuntimeError(label+': rejection left an output')
++print('PASS: IT loop fallthrough/layout and seven rejection boundaries')
+--- /dev/null
++++ b/bolt/test/ARM/arm-it-boundaries.test
+@@ -0,0 +1,2 @@
++## Preserve IT data groups and conditional fallthrough; reject unsupported groups.
++RUN: %python %p/Inputs/check-arm-it-boundaries.py %t %p/Inputs

@@ -1,5 +1,25 @@
 # Correctness fixes
 
+## Terminal IT branches and exact IT counts (2026-10-02)
+
+Overlay 0027 fixes a confirmed silent corruption: LLVM decodes an IT-predicated
+direct branch as tB/t2B, whose descriptor is unconditional. CFG construction
+removed reachable loop code, then instrumentation split the IT group. The fix
+converts supported terminal direct branches to explicit t2Bcc before analysis
+and shortens/replaces their IT header. Unsupported control transfers, nested or
+truncated groups, mapped data and branches into IT bodies fail explicitly.
+
+All 39 focused ARM/JITLink tests pass, including seven rejection boundaries.
+The Pi passes 300 cases each in baseline, normal, reverse-layout and conservative
+modes. Forty-seven selected functions cover all fifteen IT data masks,
+narrow/wide terminal branches and loops. Return values and every 81/81/71
+counter slot match independent expected paths under zero/carry/wrap seeds;
+each case resets counters. All four images watchdog-return to the loader.
+Five host parser/group checks pass. Nested execution, active interrupts, other
+conditions/pass combinations and snapshot boundaries remain open.
+See [workflow](PI_IT_COUNTS.md) and
+[evidence](results/correctness_it_counts_20261002.json).
+
 ## Dedicated ARM/Thumb counter-state checks (2026-10-02)
 
 The Pi fixture executes actual generated leaf bodies through two explicit
