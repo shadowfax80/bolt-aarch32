@@ -1,0 +1,150 @@
+--- a/bolt/lib/Core/BinaryBasicBlock.cpp
++++ b/bolt/lib/Core/BinaryBasicBlock.cpp
+@@ -16,6 +16,7 @@
+ #include "llvm/ADT/SmallPtrSet.h"
+ #include "llvm/MC/MCInst.h"
+ #include "llvm/Support/Errc.h"
++#include "llvm/Support/ErrorHandling.h"
+ 
+ #define DEBUG_TYPE "bolt"
+ 
+@@ -490,8 +491,13 @@
+ }
+ 
+ uint32_t BinaryBasicBlock::getNumPseudos() const {
+-#ifndef NDEBUG
+-  BinaryContext &BC = Function->getBinaryContext();
++  BinaryContext &BC = Function->getBinaryContext();
++#ifdef NDEBUG
++  if (!BC.isARM())
++    return NumPseudos;
++#endif
++  // ARM must reject stale counts in release builds too. Repairing a count and
++  // marking an already transformed function ignored is not a safe fallback.
+   uint32_t N = 0;
+   for (const MCInst &Instr : Instructions)
+     if (BC.MIB->isPseudo(Instr))
+@@ -501,14 +507,10 @@
+     BC.errs() << "BOLT-ERROR: instructions for basic block " << getName()
+               << " in function " << *Function << ": calculated pseudos " << N
+               << ", set pseudos " << NumPseudos << ", size " << size() << '\n';
+-    if (BC.isARM()) {
+-      const_cast<BinaryBasicBlock *>(this)->NumPseudos = N;
+-      Function->setIgnored();
+-      return N;
+-    }
++    if (BC.isARM())
++      report_fatal_error("AArch32 basic block pseudo count mismatch", false);
+     llvm_unreachable("pseudos mismatch");
+   }
+-#endif
+   return NumPseudos;
+ }
+ 
+--- a/bolt/unittests/Core/CMakeLists.txt
++++ b/bolt/unittests/Core/CMakeLists.txt
+@@ -8,6 +8,7 @@
+ 
+ add_bolt_unittest(CoreTests
+   BinaryContext.cpp
++  ARMPseudoCounts.cpp
+   ClusteredRows.cpp
+   MCPlusBuilder.cpp
+   MemoryMaps.cpp
+--- /dev/null
++++ b/bolt/unittests/Core/ARMPseudoCounts.cpp
+@@ -0,0 +1,94 @@
++//===- ARMPseudoCounts.cpp - ARM basic-block mutation invariants ------------===//
++// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
++
++#ifdef ARM_AVAILABLE
++#include "MCTargetDesc/ARMMCTargetDesc.h"
++#include "bolt/Core/BinaryBasicBlock.h"
++#include "bolt/Core/BinaryContext.h"
++#include "bolt/Core/BinaryFunction.h"
++#include "bolt/Rewrite/RewriteInstance.h"
++#include "llvm/BinaryFormat/ELF.h"
++#include "llvm/DebugInfo/DWARF/DWARFContext.h"
++#include "llvm/MC/MCInstBuilder.h"
++#include "llvm/MC/MCExpr.h"
++#include "llvm/Support/TargetSelect.h"
++#include "gtest/gtest.h"
++
++using namespace llvm;
++using namespace llvm::object;
++using namespace llvm::bolt;
++
++namespace {
++class ARMPseudoCounts : public testing::Test {
++protected:
++  ELF32LE::Ehdr Header{};
++  std::unique_ptr<ObjectFile> Object;
++  std::unique_ptr<BinaryContext> BC;
++  BinaryFunction *Function{nullptr};
++
++  void SetUp() override {
++    LLVMInitializeARMTargetInfo();
++    LLVMInitializeARMTargetMC();
++    LLVMInitializeARMAsmParser();
++    LLVMInitializeARMDisassembler();
++    LLVMInitializeARMTarget();
++    LLVMInitializeARMAsmPrinter();
++    memcpy(Header.e_ident, "\177ELF", 4);
++    Header.e_ident[ELF::EI_CLASS] = ELF::ELFCLASS32;
++    Header.e_ident[ELF::EI_DATA] = ELF::ELFDATA2LSB;
++    Header.e_machine = ELF::EM_ARM;
++    MemoryBufferRef Input(
++        StringRef(reinterpret_cast<const char *>(&Header), sizeof(Header)),
++        "ARM pseudo fixture");
++    Object = cantFail(ObjectFile::createObjectFile(Input));
++    const Triple TT("armv7-none-eabi");
++    Relocation::Arch = TT.getArch();
++    BC = cantFail(BinaryContext::createBinaryContext(
++        TT, std::make_shared<orc::SymbolStringPool>(), Object->getFileName(),
++        nullptr, true, DWARFContext::create(*Object), {outs(), errs()}));
++    BC->initializeTarget(std::unique_ptr<MCPlusBuilder>(createMCPlusBuilder(
++        TT.getArch(), BC->MIA.get(), BC->MII.get(), BC->MRI.get(), BC->STI.get())));
++    BinarySection &Text = BC->registerOrUpdateSection(
++        ".text", ELF::SHT_PROGBITS, ELF::SHF_ALLOC | ELF::SHF_EXECINSTR);
++    Function = BC->createBinaryFunction("pseudo_probe", Text, 0x1000, 4);
++    // Instruction accessors require an instruction-bearing parent state.
++    Function->setFinalized();
++  }
++
++  MCInst pseudo() {
++    return MCInstBuilder(ARM::B).addExpr(
++        MCSymbolRefExpr::create(BC->Ctx->createTempSymbol(), *BC->Ctx));
++  }
++
++  MCInst real() {
++    MCInst Inst;
++    BC->MIB->createNoop(Inst);
++    return Inst;
++  }
++};
++
++TEST_F(ARMPseudoCounts, AccountedReplacement) {
++  auto Block = Function->createBasicBlock();
++  auto II = Block->addInstruction(pseudo());
++  ASSERT_EQ(Block->getNumPseudos(), 1u);
++  InstructionListType Replacement{real()};
++  Block->replaceInstruction(II, Replacement);
++  EXPECT_EQ(Block->getNumPseudos(), 0u);
++  EXPECT_EQ(Block->getNumNonPseudos(), 1u);
++}
++
++TEST_F(ARMPseudoCounts, RejectUnaccountedPseudoRemoval) {
++  auto Block = Function->createBasicBlock();
++  auto II = Block->addInstruction(pseudo());
++  *II = real(); // Deliberate mutation bypasses bookkeeping.
++  EXPECT_DEATH(Block->getNumPseudos(), "AArch32 basic block pseudo count mismatch");
++}
++
++TEST_F(ARMPseudoCounts, RejectUnaccountedPseudoInsertion) {
++  auto Block = Function->createBasicBlock();
++  auto II = Block->addInstruction(real());
++  *II = pseudo();
++  EXPECT_DEATH(Block->getNumNonPseudos(), "AArch32 basic block pseudo count mismatch");
++}
++} // namespace
++#endif

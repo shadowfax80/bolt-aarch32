@@ -426,3 +426,18 @@ Five LK links also produce identical text hashes. BOLT ARM passed 16/16,
 JITLink AArch32 passed 14/14, and full LK emission passed. Whole ELF files can
 still differ in informational notes containing output paths; this check covers
 generated code/stubs rather than those invocation-specific notes.
+# 2026-10-02: ARM pseudo-count invariants in both build modes
+
+Overlay 0029 removes the debug-only ARM count repair/ignored-function fallback.
+Stale pseudo bookkeeping now produces a fatal diagnostic with assertions on or
+off. Accounted replacement passes; two deliberately unaccounted mutations are
+rejected. Both full CoreTests runs pass 52 with 31 expected skips. Focused lit
+passes 40 assertions-on and 39 assertions-off, with one debug-only alignment
+skip whose ARM/Thumb semantic checks pass separately. Independent assertion-off
+BOLT/JITLink builds share host compiler/assembler/linker/test helpers.
+
+Both Pi builds pass 372 cases per baseline/normal/reverse/conservative image and
+detect the reset fault. All five payloads are byte-identical between build modes
+and return to the serial loader. Evidence: [CFG pseudo counts](results/correctness_cfg_pseudos_20261002.json).
+#3 remains partial: function-fallthrough, synthesized Thumb returns and other
+CFG recovery paths remain under review. #12 remains paused.

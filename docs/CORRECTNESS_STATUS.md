@@ -4,8 +4,11 @@ Last updated: 2026-10-02. Verification details: [CORRECTNESS_FIXES.md](CORRECTNE
 
 Work resumed by user on 2026-10-02; WSL is running. Overlay 0027 is pushed as
 `be09efb`, nested verification as `b732798`, and runtime reset as `edfa3d7`.
-The #6 admission boundary now passes 40 focused host tests and 372 Pi cases
-per mode, plus reset-fault detection. Next is #3 CFG/assertion parity; broader
+The #6 admission boundary is pushed as `e9cd3b3` and passes 40 focused host tests
+and 372 Pi cases per mode, plus reset-fault detection. #3 CFG/assertion parity is
+active: overlay 0029 pseudo-count rejection passes units, focused tests and Pi
+with assertions on and off. The next confirmed defect is unmodeled function
+fallthrough and an ARM return synthesized into Thumb code. Broader
 #5/#6 coverage stays open. #12 remains separately paused. See CORRECTNESS_RESUME.md.
 
 Fresh source review at `bbae817`: [CORRECTNESS_REVIEW_BBAE817.md](CORRECTNESS_REVIEW_BBAE817.md).
@@ -18,7 +21,7 @@ from completion criteria. Three items are complete within this scope (2, 8, 10).
 |---|---|---|---|
 | 1 | Relocation matrix and literal loads | Partial | THM_JUMP19 and splitting now supported; complete signed range, alignment, BLX H-bit, addend and unsupported-path coverage |
 | 2 | EHABI exidx/extab | Complete via rejection | Unsupported unwind information is rejected; full unwind rewriting remains unsupported |
-| 3 | Pseudo/CFG invariants | Partial | ARM B pseudo root cause fixed; debug-only recovery remains and assertions-on/off parity is unverified |
+| 3 | Pseudo/CFG invariants | Partial; active | Pseudo-count rejection verified in both build modes and Pi; function-fallthrough/Thumb synthetic-return defect next; wider CFG audit open |
 | 4 | Control flow and return semantics | Partial | CBZ flags, ARM Bcc and tail calls improved; conditional returns, wider PC writes, live flags, IT and inlining boundaries remain |
 | 5 | Instrumentation correctness | Partial; operating scope next | Carry, CPU-state, IT, nested Thumb/recursion and real runtime clear pass on Pi; mixed-ISA nested state, active interrupts and live snapshots remain |
 | 6 | Instrumentation scope | Partial | Explicit privileged/single-core/no-FIQ contract and call/process/dynamic rejection pass; audit exclusive-memory and active ISR boundaries |

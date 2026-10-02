@@ -1,6 +1,33 @@
 # ATFE correctness checkpoint - 2026-10-02
 
-## Latest: resumed by user; #3 next after verified #5/#6 boundaries
+## Latest: resumed by user; #3 active after verified #5/#6 boundaries
+
+Overlay 0028 is pushed as e9cd3b3. Local overlay 0029 removes ARM pseudo-count
+repair/ignore and makes mismatches fatal with or without assertions. Three new
+unit tests demonstrate that bypassed bookkeeping fails safely; the pre-fix
+negative tests fail to die. Assertions-on CoreTests pass 52 with 31 expected
+skips, 40 focused lit tests pass, and the Pi matrix passes 372 cases per mode
+plus the reset fault (build-y4njbgkd/pi-verify-i5ztmgnx).
+The separate Release/assertions-off build is complete under
+/home/user/bolt-aarch32/out/correctness/build-atfe-noasserts-20261002; logs and
+preimages are in out/correctness/cfg-invariants. Both modes pass 52 unit tests
+with 31 expected skips. Release lit passes 39 with one assertion/debug-only
+skip; that alignment fixture's ARM/Thumb semantic checks pass separately.
+Release Pi evidence is it-counts-pi-noasserts/build-_sc6r4kw/pi-verify-l278wktj:
+372 cases in all four modes, reset fault detected, all loader returns. All five
+payloads match the assertions-on build byte for byte. Tracked summary:
+results/correctness_cfg_pseudos_20261002.json. Overlay 0029 is ready for push.
+Live source and dirty WSL/LK state are preserved.
+
+The next linked Thumb probe confirms postProcessBranches synthesizes A32 BX LR
+inside Thumb output at 0xa008. Evidence: cfg-invariants/postprocess-nn9ugli2.
+A fix selecting the function builder, rejecting unmodeled ARM fallthrough and
+failing invalid postprocessed CFG is prepared in cfg-postprocess/{before,after}.
+It has not been applied to live source. The broader fallthrough-44jxz10f probe
+confirms ARM/Thumb entry, final-call and conditional-boundary cases also emit
+unsafe output. Prepared v2 rejects residual fallthrough during buildCFG before
+branch postprocessing, covering those paths; v1 is preserved separately.
+ATFE only; #12 remains explicitly paused. WSL is running.
 
 Overlay 0028 enforces --arm-instrumentation-contract=privileged-single-core-no-fiq,
 rejects default/explicit call profiling, dynamic/shared executables and process/

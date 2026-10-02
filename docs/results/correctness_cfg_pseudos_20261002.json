@@ -1,0 +1,285 @@
+{
+  "schema": 1,
+  "date": "2026-10-02",
+  "item": 3,
+  "status": "partial",
+  "fix": "Reject stale AArch32 pseudo counts without repair or ignored-function fallback, independently of NDEBUG",
+  "patch": {
+    "name": "0029-bolt-arm-pseudo-count-invariants.patch",
+    "sha256": "941bf3095f1d2080606c1b1c17a584e774d1c52e48b8aef08116ddd71eb85ba2"
+  },
+  "source_change": {
+    "bolt/lib/Core/BinaryBasicBlock.cpp": {
+      "before": "fc5c0f3a3e542e5a21af0aa823e71c8c73c610b8ef2b98d00227a60a9401119a",
+      "after": "c278e24f8e6e0ca446138dd89abc8e0ce3403d785dcb76cd52a55f78833049da"
+    }
+  },
+  "host": {
+    "assertions_on": {
+      "unit_passed": 52,
+      "unit_skipped": 31,
+      "focused_lit_passed": 40
+    },
+    "assertions_off": {
+      "unit_passed": 52,
+      "unit_skipped": 31,
+      "focused_lit_passed": 39,
+      "focused_lit_skipped": 1,
+      "skip": "ELF_data_alignment requires assertions for debug log checks; ARM/Thumb embedded semantic checks passed separately"
+    },
+    "pre_fix": "Both deliberate unaccounted mutations failed to die before the fix; accounted replacement passed",
+    "release_tools": {
+      "llvm-bolt": "a1c4ff2a0b180254f55b9a362126b472f4fe7e53c10078a82b678127695d4f5a",
+      "llvm-jitlink": "734531557c82664513f8e6be94857fb354e65647120ff745105ac1a788642b5a",
+      "llvm-config": "444096ef522a588f79841d7114f0be2a6fb72df79e66887bd6b6ac1daf0e7dd6"
+    },
+    "shared_helpers": [
+      "FileCheck",
+      "clang",
+      "clang++",
+      "clang-24",
+      "clang-cl",
+      "clang-cpp",
+      "clang-dxc",
+      "clang-tblgen",
+      "count",
+      "ld.lld",
+      "ld64.lld",
+      "llc",
+      "lld",
+      "lld-link",
+      "llvm-ar",
+      "llvm-bat-dump",
+      "llvm-bolt-binary-analysis",
+      "llvm-bolt-heatmap",
+      "llvm-cxxfilt",
+      "llvm-dwarfdump",
+      "llvm-dwp",
+      "llvm-mc",
+      "llvm-nm",
+      "llvm-objcopy",
+      "llvm-objdump",
+      "llvm-profdata",
+      "llvm-readelf",
+      "llvm-readobj",
+      "llvm-strings",
+      "llvm-strip",
+      "llvm-symbolizer",
+      "merge-fdata",
+      "not",
+      "split-file",
+      "wasm-ld",
+      "yaml2obj"
+    ],
+    "log_sha256": {
+      "unit-before-fix.log": "6b6ddba8b3172e3eafb021efa0dd747dc46dec96df47e96ec82cea4c04ec8aa9",
+      "unit-after-fix.log": "7141b459d86feb9c97e84a3c7247d728855a473877708b7b52e5297e32bad6a5",
+      "lit-after-fix.log": "05e1a030c841d8b495d6ace1289d641e5bc24d664dabd7ce97e784be4ce7e8ac",
+      "noassert-units.log": "4b1faf7bc87cd60f0001f1c4db7804043de45ffd1c25e9f11be62a6db3019a00",
+      "noassert-lit.log": "69731249d21351aecdeb9a61fe011c272b973d9bb25d4c448c44231be9732d62",
+      "release-alignment.json": "c2b5d80d0ebeadeb8e71596633170f8fc470613b2815b7e21b9c9ba513bdfbba"
+    }
+  },
+  "runs": {
+    "assertions_on": {
+      "evidence": "out/correctness/it-counts-pi/build-y4njbgkd/pi-verify-i5ztmgnx",
+      "hardware": {
+        "schema": 1,
+        "verified": true,
+        "scope": "15 IT masks; narrow/wide terminal IT branches and loops; nested calls and recursion; single-core privileged quiet firmware; no active IRQ/FIQ/SMP",
+        "port": "COM5",
+        "results": {
+          "baseline": {
+            "passed": true,
+            "cases": 372,
+            "counters": 1,
+            "instrumented": false,
+            "runtime_clear_checked": true,
+            "operating_contract": {
+              "cpsr": 1610613210,
+              "mpidr": 2147483648,
+              "stack": 8388552
+            }
+          },
+          "normal": {
+            "passed": true,
+            "cases": 372,
+            "counters": 85,
+            "instrumented": true,
+            "runtime_clear_checked": true,
+            "operating_contract": {
+              "cpsr": 1610613210,
+              "mpidr": 2147483648,
+              "stack": 8388552
+            }
+          },
+          "reverse": {
+            "passed": true,
+            "cases": 372,
+            "counters": 85,
+            "instrumented": true,
+            "runtime_clear_checked": true,
+            "operating_contract": {
+              "cpsr": 1610613210,
+              "mpidr": 2147483648,
+              "stack": 8388552
+            }
+          },
+          "conservative": {
+            "passed": true,
+            "cases": 372,
+            "counters": 73,
+            "instrumented": true,
+            "runtime_clear_checked": true,
+            "operating_contract": {
+              "cpsr": 1610613210,
+              "mpidr": 2147483648,
+              "stack": 8388552
+            }
+          },
+          "bad-reset": {
+            "fault_detected": true,
+            "case": 0,
+            "seed": 0,
+            "field": 2000,
+            "actual": 305419896,
+            "operating_contract": {
+              "cpsr": 1610613210,
+              "mpidr": 2147483648,
+              "stack": 8388552
+            }
+          }
+        },
+        "build_manifest_sha256": "ed6b8f10bfd1b8f01b4cf0be2eff5843ad4ff2f68be5e14f672e91c02cf7348b",
+        "verifier_sha256": "5a3ef90d3749a5ef0d2e69ada398dc7b2fc60147d9d5d8f1035211066e55b374",
+        "loader_sha256": "20d8a44f44c62ce001c3cd49007a0b73b9a6890d92bdb37f9d5a573246453ab0",
+        "log_sha256": {
+          "baseline": "5fa9fa4b6921990928b84c7c375ee6a90ad379faa8e84fc2d8c38ac95793d819",
+          "normal": "4b0fa4f15e24bf8db511f3bbc801651d7e8035a5a2b1d45e84c0053a2bcba75d",
+          "reverse": "4b0fa4f15e24bf8db511f3bbc801651d7e8035a5a2b1d45e84c0053a2bcba75d",
+          "conservative": "5c3c52a5e4dafba118db30240a7b96d40639b7d2f3efd16b130788624b14b1cb",
+          "bad-reset": "fc8c557448cb8ec5e334f05490c859923ca1f1bb92e053e80745b73de73f2b8e"
+        }
+      },
+      "tool_sha256": {
+        "llvm-bolt": "f2947d500a643a825795b40325afb2f302247c4612ad5d5313e8a66b09286b69",
+        "llvm-mc": "0419ed87fde9fa95b827a58cc1e6d2817c0970304c9fb0bd7779e7188122dbed",
+        "clang": "296dd268c36e9431e2fcc4e2f89ee3fa1cf66e47f5487df73fca85ea8999ecc6",
+        "ld.lld": "21f3d1e800b8de414efc347ed4630126d22996cddf663d92004af5e089b51be9",
+        "llvm-objcopy": "f80e39c3121994c8b5baf3b9c2e586d4ffcd8da332e6c2c51b9f86fb482207de"
+      },
+      "runtime_sha256": "eceba9ea9fcfbda21c13e97c78f9b1795a5051223d4bad07666ee2aea431b24d",
+      "payload_sha256": {
+        "baseline": "2c9f4d72d1589206834bce3bd9d0ede63c6364a31e8cab09de570d7055c272a7",
+        "normal": "b7f4922987aee91316ebd439be6c21fe962600f17b7cb6691369c9dfd11f16d5",
+        "reverse": "2457595d84b45d917a43e1935af8e0cc59c551cf2c68649589a029b07494d562",
+        "conservative": "e7b9d4eb9068031e1b696214533fc3b0363e0249324f13ebf71040378063cabe",
+        "bad-reset": "feda77d5bf9ebdddade07a8fb19c3b7f867fb0c3683133077610a7a27dc62e4b"
+      }
+    },
+    "assertions_off": {
+      "evidence": "out/correctness/it-counts-pi-noasserts/build-_sc6r4kw/pi-verify-l278wktj",
+      "hardware": {
+        "schema": 1,
+        "verified": true,
+        "scope": "15 IT masks; narrow/wide terminal IT branches and loops; nested calls and recursion; single-core privileged quiet firmware; no active IRQ/FIQ/SMP",
+        "port": "COM5",
+        "results": {
+          "baseline": {
+            "passed": true,
+            "cases": 372,
+            "counters": 1,
+            "instrumented": false,
+            "runtime_clear_checked": true,
+            "operating_contract": {
+              "cpsr": 1610613210,
+              "mpidr": 2147483648,
+              "stack": 8388552
+            }
+          },
+          "normal": {
+            "passed": true,
+            "cases": 372,
+            "counters": 85,
+            "instrumented": true,
+            "runtime_clear_checked": true,
+            "operating_contract": {
+              "cpsr": 1610613210,
+              "mpidr": 2147483648,
+              "stack": 8388552
+            }
+          },
+          "reverse": {
+            "passed": true,
+            "cases": 372,
+            "counters": 85,
+            "instrumented": true,
+            "runtime_clear_checked": true,
+            "operating_contract": {
+              "cpsr": 1610613210,
+              "mpidr": 2147483648,
+              "stack": 8388552
+            }
+          },
+          "conservative": {
+            "passed": true,
+            "cases": 372,
+            "counters": 73,
+            "instrumented": true,
+            "runtime_clear_checked": true,
+            "operating_contract": {
+              "cpsr": 1610613210,
+              "mpidr": 2147483648,
+              "stack": 8388552
+            }
+          },
+          "bad-reset": {
+            "fault_detected": true,
+            "case": 0,
+            "seed": 0,
+            "field": 2000,
+            "actual": 305419896,
+            "operating_contract": {
+              "cpsr": 1610613210,
+              "mpidr": 2147483648,
+              "stack": 8388552
+            }
+          }
+        },
+        "build_manifest_sha256": "7b7edd5f1880ac29823a1cb1311b4d2f73e5f66858fa25ca733854da1724a544",
+        "verifier_sha256": "5a3ef90d3749a5ef0d2e69ada398dc7b2fc60147d9d5d8f1035211066e55b374",
+        "loader_sha256": "20d8a44f44c62ce001c3cd49007a0b73b9a6890d92bdb37f9d5a573246453ab0",
+        "log_sha256": {
+          "baseline": "5fa9fa4b6921990928b84c7c375ee6a90ad379faa8e84fc2d8c38ac95793d819",
+          "normal": "4b0fa4f15e24bf8db511f3bbc801651d7e8035a5a2b1d45e84c0053a2bcba75d",
+          "reverse": "4b0fa4f15e24bf8db511f3bbc801651d7e8035a5a2b1d45e84c0053a2bcba75d",
+          "conservative": "268f86eec108bd0919bfe677d1bae27b81bb60392f0227fa98dcf19384400108",
+          "bad-reset": "fc8c557448cb8ec5e334f05490c859923ca1f1bb92e053e80745b73de73f2b8e"
+        }
+      },
+      "tool_sha256": {
+        "llvm-bolt": "a1c4ff2a0b180254f55b9a362126b472f4fe7e53c10078a82b678127695d4f5a",
+        "llvm-mc": "0419ed87fde9fa95b827a58cc1e6d2817c0970304c9fb0bd7779e7188122dbed",
+        "clang": "296dd268c36e9431e2fcc4e2f89ee3fa1cf66e47f5487df73fca85ea8999ecc6",
+        "ld.lld": "21f3d1e800b8de414efc347ed4630126d22996cddf663d92004af5e089b51be9",
+        "llvm-objcopy": "f80e39c3121994c8b5baf3b9c2e586d4ffcd8da332e6c2c51b9f86fb482207de"
+      },
+      "runtime_sha256": "eceba9ea9fcfbda21c13e97c78f9b1795a5051223d4bad07666ee2aea431b24d",
+      "payload_sha256": {
+        "baseline": "2c9f4d72d1589206834bce3bd9d0ede63c6364a31e8cab09de570d7055c272a7",
+        "normal": "b7f4922987aee91316ebd439be6c21fe962600f17b7cb6691369c9dfd11f16d5",
+        "reverse": "2457595d84b45d917a43e1935af8e0cc59c551cf2c68649589a029b07494d562",
+        "conservative": "e7b9d4eb9068031e1b696214533fc3b0363e0249324f13ebf71040378063cabe",
+        "bad-reset": "feda77d5bf9ebdddade07a8fb19c3b7f867fb0c3683133077610a7a27dc62e4b"
+      }
+    }
+  },
+  "payloads_identical": true,
+  "limits": [
+    "Remaining CFG recovery paths not closed",
+    "Confirmed function-fallthrough and Thumb synthesized-return defects queued",
+    "Release BOLT and JITLink compiled independently with assertions OFF; compiler/assembler/linker/FileCheck helpers shared",
+    "Quiet privileged single-core Pi scope only",
+    "No clean-source provenance claim; item 12 remains paused"
+  ]
+}

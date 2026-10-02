@@ -21,7 +21,7 @@ correctness items. Its remaining validation gaps still limit completion claims.
 
 1. #5 counter carry/registers/flags/IT and #6 admission boundary verified;
    broader ISR/mixed-ISA/snapshot/exclusive-memory coverage remains open.
-2. **#3 next:** assertions-on/off CFG invariants and #4 conditional returns/PC writes/pass safety.
+2. **#3 active:** assertions-on/off CFG invariants and #4 conditional returns/PC writes/pass safety.
 3. #1 relocation boundaries, then #9 aliases, secondary entries and pointer targets.
 4. #7 ISA/ABI admission and #11 inline-table/pass/unsupported-input coverage.
 5. **#12 paused by user:** resume counter binding, core ownership, other gates,
@@ -65,12 +65,20 @@ deferred. Endianness admission is #7; arbitrary unwind consumers are not certifi
   instead (overlay 0023). Current pass regressions pass.
 - [ ] Reduce any remaining invalid CFGs to tests.
 - [ ] Repair bookkeeping at the mutation that causes the mismatch.
-  `getNumPseudos()` currently repairs/ignores ARM only inside `#ifndef NDEBUG`.
+  Overlay 0029 removes debug-only repair/ignore and rejects stale ARM counts in
+  both modes. Units, focused tests and the 372-case Pi matrix pass with assertions
+  on and off. Other invariant recovery paths remain under review.
 - [ ] Audit per-function ARM/Thumb builder selection in CFG repair and synthesized
   instructions, including `postProcessBranches()`.
+  A linked Thumb fallthrough probe confirms an A32 BX LR is synthesized into
+  Thumb output. The next fix is prepared separately, with live source unchanged.
 - [ ] Reject unsupported functions before partial transformations, or prove fallback
   preserves original code/references. Remove silent invariant recovery.
-- [ ] Run the same fixtures in a separate assertions-disabled ATFE build.
+- [x] Run current focused fixtures in a separate assertions-disabled ATFE build:
+  52 unit passes/31 expected skips in both modes; 40 focused lit passes with
+  assertions on, 39 with one debug-only skip off. The skipped alignment case's
+  ARM/Thumb semantic checks pass separately. The Pi matrix and reset-fault
+  detection pass in both modes with byte-identical payloads.
 
 **Done:** no swallowed invariant failures; assertions-on/off behavior is consistently
 safe; unsupported cases cannot return a successful partially corrupted output.
