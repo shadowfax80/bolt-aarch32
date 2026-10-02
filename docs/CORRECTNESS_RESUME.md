@@ -1,6 +1,31 @@
 # ATFE correctness checkpoint - 2026-10-02
 
-## Latest: resumed by user; #3 active after verified #5/#6 boundaries
+## Latest: #4 mandatory inlining safety and both-path Pi verification complete
+
+0031 is pushed as 4070942. Local overlay 0032 makes the ARM callee safety
+filter mandatory under --force-inline, including function-owned metadata/CFI.
+The old override emits unsafe stack/LR/SP/PC/literal/CFI callees and crashes
+on nested calls and multiple entries. Before: inlining-safety/inline-t5zplwtd.
+The first stricter filter also rejected a safe ARM leaf: BX LR decodes as
+BX_RET with implicit LR. A target query now recognizes only unconditional
+side-effect-free BX LR forms; seven actual decoder cases guard it.
+Both builds pass 43/42 focused tests (off has one debug-only skip), and
+55 CoreTests with 31 expected skips. Forty force-inline emission cases pass.
+Final Pi builders: inline-safety-pi/build-ja5rnarx and
+inline-safety-pi-noasserts/build-zgvlajl5. The verifier passes
+55 cases each in baseline/normal/reverse, plus bad-result and bad-cbz-flags.
+It checks SP balance, LR dependence, ARM conditional-return paths, safe
+multi-block inlining, and CBZ/CBNZ expansions with flags consumed on both paths.
+Evidence: pi-verify-tr7mzdeb / pi-verify-j2rhqj7c under the respective builds.
+All five payloads are byte-identical between modes. Both faults fail exactly
+where expected; all ten firmware runs return to loader. Exported overlay 0032
+passes reverse-apply check. Tracked evidence:
+results/correctness_inline_safety_20261002.json. Portable workflow:
+PI_INLINE_SAFETY.md. Logs/preimages/scripts in out/correctness/inlining-safety.
+#12 remains paused; ATFE only, WSL running, Pi waiting in loader.
+Next: wider PC writes, predicated exits and transformation admission boundaries.
+
+## Earlier checkpoint: overlays 0030/0031
 
 Overlay 0030 is pushed as 39bd782. #4 self-move audit confirms that the old
 no-op classifier deletes flag-writing MOVS before a flag-consuming branch.

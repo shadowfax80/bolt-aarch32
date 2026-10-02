@@ -1,0 +1,354 @@
+{
+  "schema": 1,
+  "date": "2026-10-02",
+  "items": [
+    4
+  ],
+  "status": "partial",
+  "patch": {
+    "name": "0032-bolt-arm-inline-safety.patch",
+    "sha256": "4be51041d90091485bbd1110371d01de2ccaa9e8320f2eef7c879d938247bb70"
+  },
+  "fixes": [
+    "Mandatory AArch32 callee inlining safety even with --force-inline, including CFI and function-owned metadata",
+    "Recognize implicit-LR ARM BX_RET and explicit-LR Thumb tBX as side-effect-free unconditional returns"
+  ],
+  "source_change": {
+    "bolt/lib/Passes/Inliner.cpp": {
+      "before": "19b992a88436213112bb491983e4e5719dfa961f5075acc8a860ad1d89557713",
+      "after": "6555b118049aaeb50b57fe1aa99aba8d92c77307572b80e9468a07a55ce51ad4"
+    },
+    "bolt/include/bolt/Core/MCPlusBuilder.h": {
+      "before": "616da0ec01b4fcb8ddc0f5f41bdfa5ddf7fe29e7cb876e85be54815cf53f8e22",
+      "after": "eb9ed5f226505b4a28a96690df702a26718e27cadeeb6ded065e35cad6d0ce67"
+    },
+    "bolt/lib/Target/ARM/ARMMCPlusBuilder.cpp": {
+      "before": "e9664b4d492cdb0c05a533012e2feeb177bf7d2b01591e4a83f684250d5b58b6",
+      "after": "74edaae110161ac88b1d59c0c75d2df9c49756a8c8ccdccc9ac33fdba705704b"
+    },
+    "bolt/unittests/Core/ARMReturns.cpp": {
+      "before": "278357d33099e3308d9b45dd2a3901ac9a82155ce6c58654ced710ca0bded102",
+      "after": "0ff25d7f1b999e13382554527fd6987e62b0dd7c7eda2806b3479b95c5d42f3f"
+    }
+  },
+  "before_evidence": "out/correctness/inlining-safety/inline-t5zplwtd: 36 of 40 forced-inlining cases unsafe; nested-call and multi-entry cases crash",
+  "host": {
+    "assertions-on": {
+      "lit_passed": 43,
+      "lit_skipped": 0,
+      "unit_passed": 55,
+      "unit_skipped": 31
+    },
+    "assertions-off": {
+      "lit_passed": 42,
+      "lit_skipped": 1,
+      "unit_passed": 55,
+      "unit_skipped": 31
+    },
+    "forced_inline_emission_cases": 40,
+    "decoded_return_cases": 7,
+    "parser_tests": 5,
+    "log_sha256": {
+      "assertions-off-lit.log": "6927d9fec95758b46ff9dd14cba7e5dceb1868816804e3851e0f1fb18fbe80fd",
+      "assertions-on-lit.log": "5d73ba3aad5bd4011d0dc7b9b66e7b4f795a32772e27f5355a0d68b6f5a5de57",
+      "assertions-off-units.log": "359b844739d413d3693f7a3a491f6972730af1259e1adff452fdb70c6b8d7ff0",
+      "assertions-on-units.log": "b535f8b59bb4ca3b0bf53d5c64dd6e1a0d82c653ac0bee35c52d1f78f726013d"
+    }
+  },
+  "runs": {
+    "assertions-on": {
+      "evidence": "out/correctness/inline-safety-pi/build-ja5rnarx/pi-verify-tr7mzdeb",
+      "build": {
+        "schema": 1,
+        "kind": "pi-inline-safety",
+        "cases": 55,
+        "variants": {
+          "normal": {
+            "inlined": [
+              "caller_arm_safe",
+              "caller_arm_branch",
+              "caller_thumb_safe",
+              "caller_thumb_branch",
+              "caller_thumb_cbz",
+              "caller_thumb_cbnz"
+            ],
+            "retained": [
+              "caller_arm_stack",
+              "caller_arm_lr",
+              "caller_arm_conditional",
+              "caller_thumb_stack",
+              "caller_thumb_lr"
+            ]
+          },
+          "reverse": {
+            "inlined": [
+              "caller_arm_safe",
+              "caller_arm_branch",
+              "caller_thumb_safe",
+              "caller_thumb_branch",
+              "caller_thumb_cbz",
+              "caller_thumb_cbnz"
+            ],
+            "retained": [
+              "caller_arm_stack",
+              "caller_arm_lr",
+              "caller_arm_conditional",
+              "caller_thumb_stack",
+              "caller_thumb_lr"
+            ]
+          }
+        },
+        "faults": {
+          "bad-result": {
+            "case_id": 0,
+            "field": 0
+          },
+          "bad-cbz-flags": {
+            "case_id": 46,
+            "field": 0
+          }
+        },
+        "toolchain": "/home/user/bolt-aarch32/build-atfe/bin",
+        "scope": "HYP core 0, masked interrupts; ARM/Thumb leaf, stack, LR, conditional return and both branch paths; Thumb CBZ/CBNZ expansions preserve flags consumed on both paths",
+        "files": {
+          "bad-cbz-flags-raw.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bad-cbz-flags.bin": "b2a5a5d015788d5f74f1cc675d6ab0ed5a3fc7fc40c52c4cb794407321d7590b",
+          "bad-cbz-flags.elf": "a5e813af23c3b4e7882df5f0902cfaf52a210c21d6938647dd049c6d4c50ae28",
+          "bad-result-raw.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bad-result.bin": "c5c6135a69a0bbf71b69df4ea6baa196d1a6e869ce034ee0e9d2e6614c9d885b",
+          "bad-result.elf": "4cc5cdeab88a531a29d22585b616a3703bf0ee87eb8c4f1047bc7bbe4bab19c5",
+          "baseline-raw.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "baseline.bin": "1ff12b942d369d2202cfb05fd41dede8381ca7eceed28a899997977d8b61df8c",
+          "baseline.elf": "fe4fa74093702fc88725454cf64e9eb775c4105b9d0948ed06eca55f33dccf38",
+          "cases.json": "2c9e8e879b31f4295832045deb1782a3cb932b5680600c3ef668ebd63a488220",
+          "compile.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "link.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "main.c": "ec01eed4c0550ca7a1fc94cca329d5ed6c7db23cc4010d7bb24f6fa617294de7",
+          "main.o": "6441bb1c8e620e8e0bad500da93f54c0db3d8d615180e1d0483a069952328cae",
+          "mc.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "normal-disasm.log": "e10c0ef9a4b2c404379fc01cf217cf969e47bb994947aec4439a1ae3d369b136",
+          "normal-raw.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "normal.bin": "3a408ff81ed565612e7a6828f4a2aa0a63606b1eced5978e213a31e6b26624b5",
+          "normal.elf": "a3fcc4fe7444a1c891f56030f1763f5fdccbd752ee44ed2d0aa99106bf384fca",
+          "normal.log": "62c6cbcc4018d3cd8edabf6a0d1d1f5e09335668f7b2ff1a8736c3215753127c",
+          "normal.map": "051ade99ab33e1c6f72c6201469117703b60b3b12c01277af2bc72baa34ede86",
+          "redirects.json": "2658a8b6c250c44e1b0f86edceaf4945bd58509467b0a387bf4b9eaa12c442af",
+          "reverse-disasm.log": "0f2d148bf7f01a656b4b2b9dc663547697ba5244a2340a5a4222404ccc9a7d97",
+          "reverse-raw.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "reverse.bin": "6692f884550a9438f77d192322122b8c27dafb61ee60d923949dd726bf15561b",
+          "reverse.elf": "e423c87a650e6fb31c59feade15142f0064c78089d1f992f31fc383c83d9a37e",
+          "reverse.log": "05493aeea72e96bf7ce95beb14a28b6ada58f64cc0908efe129618580bcde457",
+          "reverse.map": "07a8569c23db4652790c4af786594159ed74778b222108ffaac28cbf6e78a96e",
+          "start.o": "aa0cb4e8ccad082493497b25ee0727cba6646feaa7c17587c0dd09124d39a020",
+          "start.s": "29c791c634f684dba5c0179b30baedf9874da6385dc647411480cac496b9ea1b"
+        },
+        "tools": {
+          "llvm-bolt": "65bd9178c708a92269cdd3f68db36af0193863bbef0557917c84de6241a93e1f",
+          "llvm-mc": "0419ed87fde9fa95b827a58cc1e6d2817c0970304c9fb0bd7779e7188122dbed",
+          "ld.lld": "21f3d1e800b8de414efc347ed4630126d22996cddf663d92004af5e089b51be9",
+          "clang": "296dd268c36e9431e2fcc4e2f89ee3fa1cf66e47f5487df73fca85ea8999ecc6",
+          "llvm-objcopy": "f80e39c3121994c8b5baf3b9c2e586d4ffcd8da332e6c2c51b9f86fb482207de"
+        },
+        "builder_sha256": "9bd494f6091a191fa8984ee95c167671bd4c1e86995bdc52fa411bdb295652e8"
+      },
+      "verification": {
+        "schema": 1,
+        "verified": true,
+        "port": "COM5",
+        "scope": "HYP core 0, masked interrupts; ARM/Thumb leaf, stack, LR, conditional return and both branch paths; Thumb CBZ/CBNZ expansions preserve flags consumed on both paths",
+        "results": {
+          "baseline": {
+            "passed": true,
+            "cases": 55
+          },
+          "normal": {
+            "passed": true,
+            "cases": 55
+          },
+          "reverse": {
+            "passed": true,
+            "cases": 55
+          },
+          "bad-result": {
+            "expected_failure": true,
+            "case_id": 0,
+            "field": 0,
+            "expected": 18,
+            "actual": 19
+          },
+          "bad-cbz-flags": {
+            "expected_failure": true,
+            "case_id": 46,
+            "field": 0,
+            "expected": 8,
+            "actual": 0
+          }
+        },
+        "build_manifest_sha256": "f46f00f322ae102f83ad0d18777c517bbfd2bd7f652cb5bb764dc2786e74e40c",
+        "verifier_sha256": "c9968530a4e94a60fcddf16c298b713adfca53f6ef0ecbd3c48500ff589a19ed",
+        "loader_sha256": "20d8a44f44c62ce001c3cd49007a0b73b9a6890d92bdb37f9d5a573246453ab0",
+        "logs": {
+          "bad-cbz-flags.log": "2c65407aa59ca3208a1314d11533598ae65af9c95628c6c1477c655ff153a0a9",
+          "bad-result.log": "1e0792a2364dc9c8d06e30c9d877c7dd7ef034a5e3da367b4631199ff87ffd6c",
+          "baseline.log": "fefa30de08cf3c0160a3f13315c1937ac0a35260cb85a985d96f9a3870964d12",
+          "normal.log": "fefa30de08cf3c0160a3f13315c1937ac0a35260cb85a985d96f9a3870964d12",
+          "reverse.log": "fefa30de08cf3c0160a3f13315c1937ac0a35260cb85a985d96f9a3870964d12"
+        }
+      }
+    },
+    "assertions-off": {
+      "evidence": "out/correctness/inline-safety-pi-noasserts/build-zgvlajl5/pi-verify-j2rhqj7c",
+      "build": {
+        "schema": 1,
+        "kind": "pi-inline-safety",
+        "cases": 55,
+        "variants": {
+          "normal": {
+            "inlined": [
+              "caller_arm_safe",
+              "caller_arm_branch",
+              "caller_thumb_safe",
+              "caller_thumb_branch",
+              "caller_thumb_cbz",
+              "caller_thumb_cbnz"
+            ],
+            "retained": [
+              "caller_arm_stack",
+              "caller_arm_lr",
+              "caller_arm_conditional",
+              "caller_thumb_stack",
+              "caller_thumb_lr"
+            ]
+          },
+          "reverse": {
+            "inlined": [
+              "caller_arm_safe",
+              "caller_arm_branch",
+              "caller_thumb_safe",
+              "caller_thumb_branch",
+              "caller_thumb_cbz",
+              "caller_thumb_cbnz"
+            ],
+            "retained": [
+              "caller_arm_stack",
+              "caller_arm_lr",
+              "caller_arm_conditional",
+              "caller_thumb_stack",
+              "caller_thumb_lr"
+            ]
+          }
+        },
+        "faults": {
+          "bad-result": {
+            "case_id": 0,
+            "field": 0
+          },
+          "bad-cbz-flags": {
+            "case_id": 46,
+            "field": 0
+          }
+        },
+        "toolchain": "/home/user/bolt-aarch32/out/correctness/build-atfe-noasserts-20261002/bin",
+        "scope": "HYP core 0, masked interrupts; ARM/Thumb leaf, stack, LR, conditional return and both branch paths; Thumb CBZ/CBNZ expansions preserve flags consumed on both paths",
+        "files": {
+          "bad-cbz-flags-raw.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bad-cbz-flags.bin": "b2a5a5d015788d5f74f1cc675d6ab0ed5a3fc7fc40c52c4cb794407321d7590b",
+          "bad-cbz-flags.elf": "9263a5d8c9a553b2a9fe682c0ffe1d7cf6e9d0ff0ec321bef1376e5370354dc9",
+          "bad-result-raw.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bad-result.bin": "c5c6135a69a0bbf71b69df4ea6baa196d1a6e869ce034ee0e9d2e6614c9d885b",
+          "bad-result.elf": "7f4def806703cbb290a285526d8b903bf1019ad0bb0a902b57e1ae03e18ed57e",
+          "baseline-raw.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "baseline.bin": "1ff12b942d369d2202cfb05fd41dede8381ca7eceed28a899997977d8b61df8c",
+          "baseline.elf": "fe4fa74093702fc88725454cf64e9eb775c4105b9d0948ed06eca55f33dccf38",
+          "cases.json": "2c9e8e879b31f4295832045deb1782a3cb932b5680600c3ef668ebd63a488220",
+          "compile.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "link.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "main.c": "ec01eed4c0550ca7a1fc94cca329d5ed6c7db23cc4010d7bb24f6fa617294de7",
+          "main.o": "6441bb1c8e620e8e0bad500da93f54c0db3d8d615180e1d0483a069952328cae",
+          "mc.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "normal-disasm.log": "e34ae183e4c3677f46e50da92a650192e5e31ea3d8a8b66e94ea6913abe3051b",
+          "normal-raw.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "normal.bin": "3a408ff81ed565612e7a6828f4a2aa0a63606b1eced5978e213a31e6b26624b5",
+          "normal.elf": "bea84f31235b92df62c8533bf0eac8297b3faeee37d053ed94479f876b4a0ae4",
+          "normal.log": "62c6cbcc4018d3cd8edabf6a0d1d1f5e09335668f7b2ff1a8736c3215753127c",
+          "normal.map": "051ade99ab33e1c6f72c6201469117703b60b3b12c01277af2bc72baa34ede86",
+          "redirects.json": "2658a8b6c250c44e1b0f86edceaf4945bd58509467b0a387bf4b9eaa12c442af",
+          "reverse-disasm.log": "97e89855ad32fc5450850b69ffb23488a35053340fb94820835060a64f453de9",
+          "reverse-raw.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "reverse.bin": "6692f884550a9438f77d192322122b8c27dafb61ee60d923949dd726bf15561b",
+          "reverse.elf": "3127c1cee89c048725f81075224bb9ac6ab829988085e75876b0f8ba11c222f0",
+          "reverse.log": "05493aeea72e96bf7ce95beb14a28b6ada58f64cc0908efe129618580bcde457",
+          "reverse.map": "07a8569c23db4652790c4af786594159ed74778b222108ffaac28cbf6e78a96e",
+          "start.o": "aa0cb4e8ccad082493497b25ee0727cba6646feaa7c17587c0dd09124d39a020",
+          "start.s": "29c791c634f684dba5c0179b30baedf9874da6385dc647411480cac496b9ea1b"
+        },
+        "tools": {
+          "llvm-bolt": "6ec43835f8c1adc5ac7bf54c42c867b62a243d5ab4179fa0330ad5891fee67a8",
+          "llvm-mc": "0419ed87fde9fa95b827a58cc1e6d2817c0970304c9fb0bd7779e7188122dbed",
+          "ld.lld": "21f3d1e800b8de414efc347ed4630126d22996cddf663d92004af5e089b51be9",
+          "clang": "296dd268c36e9431e2fcc4e2f89ee3fa1cf66e47f5487df73fca85ea8999ecc6",
+          "llvm-objcopy": "f80e39c3121994c8b5baf3b9c2e586d4ffcd8da332e6c2c51b9f86fb482207de"
+        },
+        "builder_sha256": "9bd494f6091a191fa8984ee95c167671bd4c1e86995bdc52fa411bdb295652e8"
+      },
+      "verification": {
+        "schema": 1,
+        "verified": true,
+        "port": "COM5",
+        "scope": "HYP core 0, masked interrupts; ARM/Thumb leaf, stack, LR, conditional return and both branch paths; Thumb CBZ/CBNZ expansions preserve flags consumed on both paths",
+        "results": {
+          "baseline": {
+            "passed": true,
+            "cases": 55
+          },
+          "normal": {
+            "passed": true,
+            "cases": 55
+          },
+          "reverse": {
+            "passed": true,
+            "cases": 55
+          },
+          "bad-result": {
+            "expected_failure": true,
+            "case_id": 0,
+            "field": 0,
+            "expected": 18,
+            "actual": 19
+          },
+          "bad-cbz-flags": {
+            "expected_failure": true,
+            "case_id": 46,
+            "field": 0,
+            "expected": 8,
+            "actual": 0
+          }
+        },
+        "build_manifest_sha256": "e4a1589cc07c900f1199dae0665e75a733ef9333a2b151a5df09eb09a85dc3c8",
+        "verifier_sha256": "c9968530a4e94a60fcddf16c298b713adfca53f6ef0ecbd3c48500ff589a19ed",
+        "loader_sha256": "20d8a44f44c62ce001c3cd49007a0b73b9a6890d92bdb37f9d5a573246453ab0",
+        "logs": {
+          "bad-cbz-flags.log": "2c65407aa59ca3208a1314d11533598ae65af9c95628c6c1477c655ff153a0a9",
+          "bad-result.log": "1e0792a2364dc9c8d06e30c9d877c7dd7ef034a5e3da367b4631199ff87ffd6c",
+          "baseline.log": "fefa30de08cf3c0160a3f13315c1937ac0a35260cb85a985d96f9a3870964d12",
+          "normal.log": "fefa30de08cf3c0160a3f13315c1937ac0a35260cb85a985d96f9a3870964d12",
+          "reverse.log": "fefa30de08cf3c0160a3f13315c1937ac0a35260cb85a985d96f9a3870964d12"
+        }
+      }
+    }
+  },
+  "remaining": [
+    "Wider predicated exits and PC-writing instruction classification",
+    "IT call-site and pass combination matrix",
+    "No active interrupt or full-image certification; #12 remains paused"
+  ],
+  "pi_total_positive_cases": 330,
+  "pi_expected_faults": 4,
+  "byte_identical_payloads_across_modes": {
+    "baseline": "1ff12b942d369d2202cfb05fd41dede8381ca7eceed28a899997977d8b61df8c",
+    "normal": "3a408ff81ed565612e7a6828f4a2aa0a63606b1eced5978e213a31e6b26624b5",
+    "reverse": "6692f884550a9438f77d192322122b8c27dafb61ee60d923949dd726bf15561b",
+    "bad-result": "c5c6135a69a0bbf71b69df4ea6baa196d1a6e869ce034ee0e9d2e6614c9d885b",
+    "bad-cbz-flags": "b2a5a5d015788d5f74f1cc675d6ab0ed5a3fc7fc40c52c4cb794407321d7590b"
+  }
+}

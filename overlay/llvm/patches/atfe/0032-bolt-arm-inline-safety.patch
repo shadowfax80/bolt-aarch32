@@ -1,0 +1,184 @@
+--- a/bolt/lib/Passes/Inliner.cpp
++++ b/bolt/lib/Passes/Inliner.cpp
+@@ -161,7 +161,10 @@
+ /// branches) and has no constant islands.
+ static bool isSafeToInlineARM(const BinaryFunction &BF) {
+   const BinaryContext &BC = BF.getBinaryContext();
+-  if (BF.hasConstantIsland())
++  // Force-inline controls profitability, never the architectural safety
++  // boundary. CFI and function-owned metadata cannot be copied by this pass.
++  if (BF.hasConstantIsland() || BF.hasInlineTables() || BF.hasJumpTables() ||
++      BF.isMultiEntry() || BF.hasEHRanges() || BF.hasSDTMarker() || BF.hasCFI())
+     return false;
+   const MCPhysReg SP = BC.MIB->getStackPointer();
+   const MCPhysReg LR = BC.MRI->getRARegister();
+@@ -179,8 +182,7 @@
+         // Only an unconditional BX LR that ends its block.
+         if (!BC.MIB->isTerminator(Inst) || &Inst != Last)
+           return false;
+-        if (!Inst.getNumOperands() || !Inst.getOperand(0).isReg() ||
+-            Inst.getOperand(0).getReg() != LR)
++        if (!BC.MIB->isUnconditionalLinkRegisterReturn(Inst))
+           return false;
+         continue;
+       }
+@@ -197,7 +199,7 @@
+ 
+ InliningInfo getInliningInfo(const BinaryFunction &BF) {
+   const BinaryContext &BC = BF.getBinaryContext();
+-  if (BC.isARM() && !opts::mustConsider(BF) && !isSafeToInlineARM(BF))
++  if (BC.isARM() && !isSafeToInlineARM(BF))
+     return INL_NONE;
+   bool DirectSP = false;
+   bool HasCFI = false;
+--- a/bolt/include/bolt/Core/MCPlusBuilder.h
++++ b/bolt/include/bolt/Core/MCPlusBuilder.h
+@@ -612,6 +612,12 @@
+ 
+   virtual bool isReturn(const MCInst &Inst) const {
+     return Analysis->isReturn(Inst);
++  }
++
++  /// True only for an unconditional, side-effect-free branch to the link
++  /// register. Removing it during inlining must not affect stack or flags.
++  virtual bool isUnconditionalLinkRegisterReturn(const MCInst &Inst) const {
++    return false;
+   }
+ 
+   /// Returns the registers that are trusted at function entry.
+--- a/bolt/lib/Target/ARM/ARMMCPlusBuilder.cpp
++++ b/bolt/lib/Target/ARM/ARMMCPlusBuilder.cpp
+@@ -298,6 +298,23 @@
+       return true;
+     }
+     return MCPlusBuilder::isTerminator(Inst);
++  }
++
++  bool isUnconditionalLinkRegisterReturn(const MCInst &Inst) const override {
++    if (!isReturn(Inst) || !isTerminator(Inst))
++      return false;
++    // The ARM decoder uses BX_RET with an implicit LR operand; Thumb tBX
++    // and the ordinary BX form use an explicit first register operand.
++    switch (Inst.getOpcode()) {
++    case ARM::BX_RET:
++      return true;
++    case ARM::BX:
++    case ARM::tBX:
++      return Inst.getNumOperands() && Inst.getOperand(0).isReg() &&
++             Inst.getOperand(0).getReg() == ARM::LR;
++    default:
++      return false;
++    }
+   }
+ 
+   unsigned getInlineTableEntrySize(const MCInst &Inst) const override {
+--- a/bolt/unittests/Core/ARMReturns.cpp
++++ b/bolt/unittests/Core/ARMReturns.cpp
+@@ -98,5 +98,33 @@
+     EXPECT_EQ(MIB->isTerminator(Inst), C.Terminator);
+   }
+ }
++TEST_F(ARMReturns, DecodedLinkRegisterReturns) {
++  struct Case {
++    bool Thumb;
++    std::vector<uint8_t> Bytes;
++    bool SimpleReturn;
++  };
++  const Case Cases[] = {
++      {false, {0x1e,0xff,0x2f,0xe1}, true},  // bx lr -> BX_RET
++      {false, {0x1e,0xff,0x2f,0x01}, false}, // bxeq lr
++      {false, {0x13,0xff,0x2f,0xe1}, false}, // bx r3
++      {false, {0x04,0xf0,0x9d,0xe4}, false}, // pop {pc}
++      {true, {0x70,0x47}, true},            // bx lr -> tBX
++      {true, {0x18,0x47}, false},           // bx r3
++      {true, {0x00,0xbd}, false},           // pop {pc}
++  };
++  for (const Case &C : Cases) {
++    SCOPED_TRACE(C.Thumb ? "Thumb" : "ARM");
++    MCInst Inst;
++    uint64_t Size = 0;
++    MCDisassembler *Decoder = C.Thumb ? BC->ThumbDisAsm.get() : BC->DisAsm.get();
++    ASSERT_NE(Decoder, nullptr);
++    ASSERT_EQ(Decoder->getInstruction(Inst, Size, C.Bytes, 0x1000, nulls()),
++              MCDisassembler::Success);
++    EXPECT_EQ(Size, C.Bytes.size());
++    EXPECT_EQ(BC->getMIBFor(C.Thumb)->isUnconditionalLinkRegisterReturn(Inst),
++              C.SimpleReturn);
++  }
++}
+ } // namespace
+ #endif
+--- /dev/null
++++ b/bolt/test/ARM/Inputs/check-arm-inline-safety.py
+@@ -0,0 +1,65 @@
++from pathlib import Path
++import argparse,json,re,subprocess,tempfile
++p=argparse.ArgumentParser()
++p.add_argument('parent',type=Path)
++p.add_argument('--observe',action='store_true')
++a=p.parse_args();a.parent.mkdir(parents=True,exist_ok=True)
++out=Path(tempfile.mkdtemp(prefix='inline-',dir=a.parent))
++cases={};asm='.syntax unified\n.arch armv7-a\n.text\n.arm\n.global _start\n.type _start,%function\n_start:\nbx lr\n.size _start,.-_start\n'
++for isa in ['arm','thumb']:
++    for kind,body in [('safe','add r0,r0,#7\nbx lr'),('stack','push {lr}\nadd r0,r0,#7\npop {pc}'),
++                      ('lr','mov r0,lr\nbx lr'),('sp','mov r0,sp\nbx lr'),
++                      ('adjust_sp','sub sp,sp,#8\nadd sp,sp,#8\nbx lr'),('pc','mov r0,pc\nbx lr'),
++                      ('nested','push {r4,lr}\nbl helper\npop {r4,pc}'),
++                      ('literal','ldr r0,.Ldata_NAME\nbx lr\n.balign 4\n.Ldata_NAME:\n.word 0x12345678'),
++                      ('cfi','.cfi_startproc\nadd r0,r0,#7\nbx lr\n.cfi_endproc')]:
++        name=isa+'_'+kind;caller='caller_'+name;cases[caller]={'callee':name,'safe':kind=='safe'}
++        pre=f'.{isa}\n.balign 4\n'
++        def fn(label,code):
++            return pre+f'.global {label}\n.type {label},%function\n'+('.thumb_func\n' if isa=='thumb' else '')+label+':\n'+code+'\n.size '+label+',.-'+label+'\n'
++        asm+=fn(caller,'push {r4,lr}\nbl '+name+'\nadd r0,r0,#11\npop {r4,pc}')
++        asm+=fn(name,body.replace('NAME',name))
++for isa in ['arm','thumb']:
++    name=isa+'_multi';caller='caller_'+name;cases[caller]={'callee':name,'safe':False}
++    pre=f'.{isa}\n.balign 4\n'
++    def fn(label,code):
++        return pre+f'.global {label}\n.type {label},%function\n'+('.thumb_func\n' if isa=='thumb' else '')+label+':\n'+code+'\n.size '+label+',.-'+label+'\n'
++    asm+=fn(caller,'push {r4,lr}\nbl '+name+'\nadd r0,r0,#11\npop {r4,pc}')
++    asm+=fn(name,'add r0,r0,#7\n.global '+name+'_secondary\n'+name+'_secondary:\nadd r0,r0,#1\nbx lr')
++    asm+=fn(isa+'_entry_user','push {r4,lr}\nbl '+name+'_secondary\npop {r4,pc}')
++asm+='.arm\n.balign 4\n.global helper\n.type helper,%function\nhelper:\nadd r0,r0,#1\nbx lr\n.size helper,.-helper\n'
++(out/'input.s').write_text(asm)
++(out/'layout.ld').write_text('ENTRY(_start)\nSECTIONS { . = 0x8000; .text : { *(.text*) } .eh_frame : { *(.eh_frame) } }\n')
++def run(label,cmd):
++    r=subprocess.run([str(x) for x in cmd],capture_output=True,text=True)
++    (out/(label+'.log')).write_text(r.stdout+r.stderr)
++    if r.returncode:raise RuntimeError(label+': '+(r.stdout+r.stderr)[-3000:])
++    return r.stdout
++run('mc',['llvm-mc','-triple=armv7-none-eabi','-arm-add-build-attributes','-filetype=obj',out/'input.s','-o',out/'input.o'])
++run('link',['ld.lld','--emit-relocs','-T',out/'layout.ld',out/'input.o','-o',out/'input.elf'])
++results=[]
++for mode,extra in [('normal',[]),('reverse',['--reorder-blocks=reverse'])]:
++    for name,expected in cases.items():
++        label=mode+'-'+expected['callee'];candidate=out/(label+'.elf');mapping=out/(label+'.map')
++        try:
++            run(label,['llvm-bolt',out/'input.elf','-o',candidate,'--no-huge-pages','-lite=0',
++                  '--force-inline='+expected['callee'],'--emit-function-map='+str(mapping),*extra])
++        except RuntimeError:
++            if not a.observe:raise
++            results.append({'mode':mode,'caller':name,'safe':expected['safe'],'calls':None,'passed':False,'crashed':True})
++            continue
++        rows={parts[0]:[int(x,16) for x in parts[1:]] for line in mapping.read_text().splitlines() if (parts:=line.split())}
++        text=run(label+'-disasm',['llvm-objdump','-d',candidate])
++        if name not in rows:raise RuntimeError('caller not emitted '+name)
++        _,address,size=rows[name];body=[]
++        for line in text.splitlines():
++            m=re.match(r'\s*([0-9a-f]+):\s+(?:[0-9a-f]{2,8}\s+)+(\S+)\s*(.*)',line)
++            if m and address<=int(m[1],16)<address+size:body.append((m[2],m[3]))
++        calls=[x for x in body if x[0] in ['bl','blx']]
++        good=len(calls)==(0 if expected['safe'] else 1)
++        results.append({'mode':mode,'caller':name,'safe':expected['safe'],'calls':len(calls),'passed':good,'body':body})
++(out/'result.json').write_text(json.dumps(results,indent=2)+'\n')
++bad=[r for r in results if not r['passed']]
++print('Inlining safety:',len(results)-len(bad),'/',len(results),'passed;',out)
++for r in bad:print(r['mode'],r['caller'],'calls',r['calls'])
++if bad and not a.observe:raise RuntimeError('unsafe forced inlining or safe leaf not inlined')
+--- /dev/null
++++ b/bolt/test/ARM/arm-inline-safety.test
+@@ -0,0 +1,3 @@
++## Force-inline must not bypass AArch32 architectural or metadata checks.
++## Safe same-ISA leaf calls still inline in ARM and Thumb.
++RUN: %python %p/Inputs/check-arm-inline-safety.py %t.dir

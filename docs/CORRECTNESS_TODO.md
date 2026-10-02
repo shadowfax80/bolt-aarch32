@@ -6,8 +6,9 @@ See [review evidence](CORRECTNESS_REVIEW_BBAE817.md), [status](CORRECTNESS_STATU
 [previous fixes](CORRECTNESS_FIXES.md).
 
 Work resumed by user on 2026-10-02. The #5 IT/nested/reset matrix and #6 operating
-admission boundary now pass Pi and focused host checks. Next is #3's CFG/assertion
-audit in the order below; broader #5/#6 coverage remains open. WSL is running;
+admission boundary now pass Pi and focused host checks. #3's CFG/assertion
+boundaries are verified; #4's inlining/return/pass audit is active in the order
+below. Broader #5/#6 coverage remains open. WSL is running;
 #12 remains paused. See CORRECTNESS_RESUME.md.
 
 Active development is **ATFE only**. Set `BASE=atfe` explicitly: generic scripts
@@ -98,9 +99,11 @@ safe; unsupported cases cannot return a successful partially corrupted output.
 - [x] **Fix CBZ/CBNZ expansion:** replace the flag-clobbering `CMP; Bcc` with an
   inverted CBZ/CBNZ over a wide branch. Test both opcodes with flags consumed on
   both successor paths; Pi dispatcher/argument-parser workloads matched baseline.
-- [ ] Add a dedicated Pi result check for both flag-consuming successor paths;
-  the current Pi workload comparison verifies real rewritten dispatch code but
-  does not force both branches of the synthetic fixture.
+- [x] Add a dedicated Pi result check for both flag-consuming successor paths.
+  Overlay 0032's fixture executes CBZ and CBNZ expansions in normal/reverse
+  layouts with zero/nonzero inputs. The caller consumes the preserved flags
+  after either path. Both assertion builds pass; ADD-to-ADDS corruption fails
+  at the expected nonzero CBZ case. Wider flags/pass combinations remain open.
 - [ ] Model conditional returns with taken exits and fallthrough, or exclude
   transformations requiring that model.
 - [ ] Audit non-updating LDM, LDR-to-PC, MOV-to-PC, BX, predicated variants,
@@ -111,9 +114,15 @@ safe; unsupported cases cannot return a successful partially corrupted output.
   Nine decoder cases and twelve mixed-mode normal/reverse emission cases pass;
   both Pi builds pass 512 baseline/512 generated state cases and four expected
   faults. Pi uses a negative R0 sentinel (N=1/Z=0); broader flags/pass coverage
-  and the dedicated both-path CBZ/CBNZ hardware matrix remain open.
-- [ ] Cover inlining safety overrides (`--force-inline` bypasses the ARM safety
-  filter), IT call sites and pass combinations with negative fixtures.
+  remain open. The dedicated both-path CBZ/CBNZ hardware matrix now passes.
+- [x] Enforce the inlining safety boundary even under `--force-inline`.
+  Overlay 0032 removes that override and rejects stack/LR/PC-dependent,
+  nested-call, literal, multi-entry and CFI callees even when forced. Forty
+  ARM/Thumb normal/reverse emission cases and seven decoded return cases pass
+  in both modes; safe same-ISA leaves still inline. Both Pi modes pass 55
+  baseline/normal/reverse cases each, including LR/stack behavior and both
+  paths of an ARM conditional return; result and flag faults are detected.
+- [ ] Cover IT call-site and broader inlining/pass combinations with negatives.
 - [x] Reject unmodeled symbol-boundary fallthrough (entry, ordinary, final-call,
   conditional and fake-thunk-name cases) before transforming it; preserve one
   exact existing A32 absolute veneer pending its removal pass.

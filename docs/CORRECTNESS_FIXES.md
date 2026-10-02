@@ -1,5 +1,28 @@
 # Correctness fixes
 
+## Mandatory AArch32 inlining safety and branch-path Pi checks (2026-10-02)
+
+Overlay 0032 prevents `--force-inline` from bypassing the ARM callee safety
+filter. Stack/LR/SP/PC-dependent, nested-call, literal, multi-entry and CFI
+callees keep their calls. The pre-fix override silently inlined unsafe code
+and crashed on nested calls and multiple entries. A target query recognizes
+the ARM decoder's implicit-LR BX_RET and Thumb's explicit-LR tBX, so supported
+same-ISA leaves still inline. Function-owned tables/unwind/SDT metadata remain
+outside the inlining boundary.
+
+Forty forced-inlining emission cases and seven actual decoder cases pass.
+Assertions-on/off suites pass 43/42 focused tests (one debug-only skip off),
+plus 55 CoreTests/31 expected skips each. Five result-gate tests pass. On Pi,
+both modes pass 55 cases each in baseline/normal/reverse: 330 positive cases.
+The fixture checks stack balance, LR dependence, conditional ARM return paths
+and safe multi-block inlining. CBZ and CBNZ expansions preserve flags consumed
+on both successor paths. Result and ADD-to-ADDS faults fail at their specified
+cases in both builds. All five payloads match across modes and every run
+watchdog-returns to the loader. Wider predicated exits, PC writes, IT call-site
+and pass combinations remain open; #4 stays partial and #12 remains paused.
+See [workflow](PI_INLINE_SAFETY.md) and
+[evidence](results/correctness_inline_safety_20261002.json).
+
 ## AArch32 instrumentation operating contract (2026-10-02)
 
 Overlay 0028 requires an explicit privileged/single-core/no-FIQ caller contract
