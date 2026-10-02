@@ -5,13 +5,18 @@ has **3 scoped completions and 9 open items**; the earlier statement that all
 other work was done was incorrect.
 
 - [Correctness TODO and acceptance criteria](CORRECTNESS_TODO.md)
-- [Fresh source review and reproduced defects at bbae817](CORRECTNESS_REVIEW_BBAE817.md)
+- [Current source review and reproduced defects through 0038](CORRECTNESS_REVIEW_0038.md)
+- [Consolidated correctness work items in priority order](CORRECTNESS_PRIORITY_TODO.md)
 - [Twelve-item status tracker](CORRECTNESS_STATUS.md)
 - [Completed fixes and verification evidence](CORRECTNESS_FIXES.md)
 
-Next is execution/result/profile validation (#12), then instrumentation (#5/#6),
-CFG/control-flow safety (#3/#4), relocations (#1), symbols (#9), and supported
-input/pass boundaries (#7/#11). THM_JUMP19, splitting, pass hooks and inline
+The current 14-task queue starts with skipped interior-entry reservation bypass,
+Thumb instrumentation startup, ISA/ABI admission and fixed-load/PIE policy.
+Exact profile/artifact binding and execution-gate integrity follow as P0 tasks.
+All remaining #12 work is active by the user's latest instruction, including
+PMU ownership, durable evidence and clean build provenance. Broader relocation,
+CFG/state/symbol/table/pass tasks follow in the published queue. THM_JUMP19,
+splitting, pass hooks and inline
 TBB/TBH now have implementations and passing regressions. Pi execution takes
 priority over QEMU.
 

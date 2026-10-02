@@ -1,5 +1,40 @@
 # Correctness fixes
 
+## Cross-function exclusive reservation boundary (2026-10-02)
+
+Follow-up review: the scoped 133-case gate still passes, but F1 in the
+[0038 re-evaluation](CORRECTNESS_REVIEW_0038.md) reproduces a bypass through
+unnamed interior entries in skipped code. Eight loaded-byte routes reach counter
+stores with a live reservation after supported entry redirection. This narrows
+the claim below to discovered/tested entry roots; #6 remains open. Overlay 0038
+is published unchanged with the review, not presented as a complete fix.
+
+Local overlay 0038 prevents instrumented callees from receiving calls made with
+an outstanding exclusive reservation in decoded original functions, including
+skipped/unselected callers. Before the fix, all 96 host candidates were admitted;
+loaded-byte route checks found 24 direct routes to instrumented callees and 72
+routes completed by the existing entry redirects. No runtime reservation-failure
+reproduction is claimed.
+
+The gate runs after secondary-entry discovery and before profiling passes. It
+tracks both reservation states at joins, ARM predicates and Thumb IT. Selected
+exclusive functions reject; ignored exclusive functions must contain their
+reservations locally. Live calls/exits, unmatched stores, incomplete streams,
+unmodeled transfers and known multiple entries reject conservatively. Closed
+local pairs/retry loops and calls outside live windows remain admitted. Monitor
+operations use explicit load/store/clear kinds rather than generic descriptor
+memory flags.
+
+Both assertion modes pass 133 new cases (98 rejections, 35 admissions), 156
+existing local-exclusive cases and 38 actual decoder cases. Focused suites pass
+48/47 tests (one expected debug-only skip off); both CoreTests runs pass 58 tests
+with 31 expected skips. Fresh supported nested/IT Pi builds match all five
+executed 0036 payloads in each mode; no new hardware execution is claimed.
+The overlay is exported and reverse-apply checked, not committed/pushed. Work
+stopped at this milestone as requested. Active ISR scope and general ISA/entry
+admission remain open; #6 remains partial. See
+[evidence](results/correctness_cross_function_exclusive_20261002.json).
+
 ## Exclusive-memory function instrumentation boundary (2026-10-02)
 
 Overlay 0037 rejects instrumentation of simple known-CFG ARM functions containing

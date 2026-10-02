@@ -1,5 +1,12 @@
 # Isolated ATFE source replay
 
+The fresh 0038 review replay applies all 38 overlays with no uncovered or
+mismatched source files and preserves the live dirty tree. Source identity:
+`d2e9272859daa806082419c5c9e8522bdc8233693659c81453538e42c31f2b56`.
+See [review evidence](results/correctness_0038_review_20261002.json). This updates
+source equality only; #12 has been reactivated and clean full-build/binary
+provenance is not established. Earlier replay checkpoints below are retained as history.
+
 Use `verify-atfe-overlays.py` to compare the complete ATFE patch series against
 live source without changing the checkout. Use a fresh output directory:
 

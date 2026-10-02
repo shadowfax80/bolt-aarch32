@@ -1,14 +1,28 @@
 # ATFE correctness TODO
 
-Re-evaluated 2026-10-01 at GitHub `bbae817`, with ATFE overlays through 0024. **3 of the original
+Re-evaluated 2026-10-02 at `5049da5` plus ATFE overlay 0038. **3 of the original
 12 items are complete within their stated scope; 9 remain open.** IDs are stable.
-See [review evidence](CORRECTNESS_REVIEW_BBAE817.md), [status](CORRECTNESS_STATUS.md), and
+See [current review](CORRECTNESS_REVIEW_0038.md),
+[fresh priority queue](CORRECTNESS_PRIORITY_TODO.md), [status](CORRECTNESS_STATUS.md), and
 [previous fixes](CORRECTNESS_FIXES.md).
 
-Work resumed by user on 2026-10-02. The #5 IT/nested/reset matrix and #6 operating
+The user requested a new review and publication of prioritized work items. The
+fresh queue supersedes the earlier order below: skipped interior-entry reservation
+bypass, Thumb startup crash, ISA/ABI admission and fixed-load/PIE policy come first.
+No implementation fixes began during the review. The user reactivated #12;
+all its remaining work is included in the consolidated active queue. Earlier
+pause/order notes below are historical and superseded.
+
+Earlier milestone: work stopped at the next verified milestone on 2026-10-02. Local
+overlay 0038 verifies #6's decoded cross-function reservation boundary in both
+build modes and preserves supported Pi payload bytes; it is not committed or
+pushed. Active ISR coverage remains open. Resume only when requested; #12 stays
+paused. See CORRECTNESS_RESUME.md.
+
+Earlier checkpoints: the #5 IT/nested/reset matrix and #6 operating
 admission boundary now pass Pi and focused host checks. #3's CFG/assertion
-boundaries are verified; #4's inlining/return/pass audit is active in the order
-below. Broader #5/#6 coverage remains open. WSL is running;
+boundaries are verified; #4's inlining/return/pass audit has verified boundaries
+with wider coverage still open. Broader #5/#6 coverage remains open;
 #12 remains paused. See CORRECTNESS_RESUME.md.
 
 Active development is **ATFE only**. Set `BASE=atfe` explicitly: generic scripts
@@ -17,13 +31,17 @@ host tests check encodings/diagnostics and QEMU is supplemental.
 
 ## Recommended order
 
+Use [CORRECTNESS_PRIORITY_TODO.md](CORRECTNESS_PRIORITY_TODO.md) for the current
+ordered queue and closure checks. The list below records the earlier order.
+
 User revised the order on 2026-10-02: pause #12 and return to it after the next
 correctness items. Its remaining validation gaps still limit completion claims.
 
 1. #5 counter carry/registers/flags/IT and #6 admission boundary verified;
    broader ISR/mixed-ISA/snapshot/exclusive-memory coverage remains open.
 2. #3 pseudo/CFG boundaries now verified in both build modes;
-   **#4 active:** conditional returns/PC writes/pass safety. Wider #3 audit stays open.
+   #4 conditional-return/PC-write/inlining boundaries verified; broader pass safety
+   and wider #3 audit stay open. Next #6 scope: active ISR boundaries.
 3. #1 relocation boundaries, then #9 aliases, secondary entries and pointer targets.
 4. #7 ISA/ABI admission and #11 inline-table/pass/unsupported-input coverage.
 5. **#12 paused by user:** resume counter binding, core ownership, other gates,
@@ -215,8 +233,21 @@ and measured counts match the expected model, including carry tests.
   or CLREX. Overlay 0037 covers all ARM/Thumb LDREX/STREX/LDAEX/STLEX widths.
   Both builds pass 104 rejections, 52 ordinary relocation admissions and 38
   actual decoder cases. Fresh supported Pi payloads match the five executed
-  0036 images in both modes. Reservations spanning calls into independently
-  instrumented functions, including skipped callers, remain open above.
+  0036 images in both modes.
+- [ ] Complete cross-function exclusive reservation rejection for every entry
+  root. Overlay 0038's scoped gate covers skipped/unselected callers, but the
+  fresh F1 review admits unnamed interior entries through both direct addends
+  and MOVW/MOVT/BLX pointers: eight verified redirected routes in both builds.
+  First-entry traversal and known-multiple-entry rejection are insufficient.
+  See [priority item 1](CORRECTNESS_PRIORITY_TODO.md).
+  The existing gate rejects live calls,
+  exits, unmatched stores, incomplete streams, unmodeled transfers and known
+  secondary entries. ARM/Thumb direct/indirect and predicated/IT cases pass in
+  both builds: 98 rejections, 35 admissions. Closed local pairs/retry loops and
+  calls before acquiring/after clearing remain supported. Supported Pi payloads
+  match executed bytes; no new reservation runtime outcome is claimed. General
+  ISA/entry/symbol admission remains under #7/#9. See
+  [evidence](results/correctness_cross_function_exclusive_20261002.json).
 - [ ] Extend active ISR/mixed-ISA reentrancy coverage; compile-time contract
   acknowledgement cannot prove runtime concurrency. MPIDR checks the executing
   core, while the fixture's loader parks secondary cores.
@@ -229,7 +260,12 @@ expected. See PI_INSTRUMENTATION_SCOPE.md and recorded evidence.
 **Done:** accepted modes have execution evidence; excluded modes have diagnostics
 and negative tests. General userspace/SMP instrumentation remains deferred.
 
-## 7. ISA, ABI, profile and endianness — open, P1
+## 7. ISA, ABI, profile and endianness — open, P0
+
+Fresh review F3/F4/F5: both builds admit ARMv6 input while emitting MOVW/MOVT,
+static PIE while emitting absolute pointers without output relocations, and
+missing-attribute/BE8-flag inputs without explicit supported-contract exclusion.
+See priority items 3/4; these are now concrete admission gaps.
 
 - [ ] Define the initial static little-endian ARMv7-A/Thumb-2 input contract and
   tested AArch32 Pi subset. Distinguish optimization from privileged instrumentation.
@@ -256,10 +292,11 @@ relocations (#1).
 ## 9. Entry points, mapping symbols and preserved functions — partial, P0
 
 - [ ] Normalize the Thumb ELF-entry bit before instrumentation startup lookup.
-  The pure-Thumb entry probe asserts `Entry point function not found` in
-  createAuxiliaryFunctions; equivalent A32-start/Thumb-function probes succeed.
-  Evidence: out/correctness/exclusive-instrumentation/probe-yozkp1rs. No fix or
-  assertions-off result is claimed yet; retain this for #9's priority turn.
+  The fresh pure-Thumb probe aborts at `Entry point function not found` with
+  assertions on and segfaults in createAuxiliaryFunctions with assertions off.
+  Ordinary optimization passes in both modes. No fix applied. Fresh F2 evidence:
+  out/correctness/review-0038-20261002; see priority item 2. Preserve the earlier
+  exclusive-instrumentation/probe-yozkp1rs evidence too.
 
 - [x] **Fix odd Thumb `e_entry`:** normalize the ARM function lookup and preserve
   the Thumb state bit in the moved entry. The previously asserting fixture passes.
@@ -308,7 +345,10 @@ whole ELF files with different invocation notes or every branch case under #1.
 unsupported inputs cannot masquerade as successful optimization. General kernel
 rewriting need not be implemented to close an explicitly bounded scope.
 
-## 12. Validation, profile integrity and reproducibility — partial, P0
+## 12. Validation, profile integrity and reproducibility — active, partial, P0
+
+The user reactivated this item on 2026-10-02. Its remaining work is consolidated
+into priority queue items 5, 6, 10 and 14; nothing in #12 remains paused.
 
 - [x] Propagate failed child gates and missing/mismatched Pi checksums.
 - [x] Re-run all 30 focused ARM tests and failure-path tests after WSL restoration.

@@ -1,0 +1,688 @@
+{
+  "schema": 1,
+  "date": "2026-10-02",
+  "kind": "atfe-correctness-re-evaluation-through-0038",
+  "reviewed_windows_base": "5049da5775670f20c1d3a29a38d02aca4f67ef55",
+  "overlay_count": 38,
+  "atfe_base": "bcc08884995ff3cbee70749524621803b9bd258a",
+  "assessment": "Experimental backend with substantial scoped verification; general AArch32 ELF/firmware correctness is not established. Fresh reproducers expose skipped interior-entry reservation admission, Thumb instrumentation startup crashes, ARMv6 feature violations and static-PIE relocation gaps.",
+  "backend_source_modified_by_review": false,
+  "hardware_execution_during_review": false,
+  "clean_full_build_during_review": false,
+  "source_preserved": true,
+  "live_source_sha256": {
+    "bolt/lib/Target/ARM/ARMMCPlusBuilder.cpp": "37239bd80cc7aa61b25dc8da463bb5b183b93e202df47defb7cb6055929ee185",
+    "bolt/lib/Target/ARM/ARMMCSymbolizer.cpp": "fd0f8e517a116439fa03d63f373ab0fa56f76d87541dafee9dca332d87884114",
+    "bolt/lib/Rewrite/RewriteInstance.cpp": "318f5e9d741fbfda851e0a2b62f7cb90fb2897e3c034e5be014643fd1ec4eed1",
+    "bolt/lib/Rewrite/JITLinkLinker.cpp": "d9848bda72bab3f14b6381d3a98d2d9b402493768186463d931ad93aab520543",
+    "bolt/lib/Rewrite/BinaryPassManager.cpp": "21a9f16653562f9dc768394d35516da9d2997a9252d54782ad65f1614b889010",
+    "bolt/lib/Core/BinaryContext.cpp": "da549a210770c46b14609ead98b35dff53561389445d403adaa7639e5edcad16",
+    "bolt/lib/Core/BinaryFunction.cpp": "f9e815912180352a03d7375db98dc9337ecdcd202155c0cf1af3d305e94864e1",
+    "bolt/lib/Core/BinaryEmitter.cpp": "7538c6748a99b8a7966ea1d49fea1a697fc4214458d4fa0c6483ce2dedf0a407",
+    "bolt/lib/Core/Relocation.cpp": "b544b189ec9d8891cd40413036790ccf0f86495de00d8a3b5629ba0171588be4",
+    "bolt/lib/Passes/Instrumentation.cpp": "3822cbcee37158adf7c0fd4e7c05ffd5efe50486d0eac4ffe08579476d3d046e",
+    "bolt/lib/Passes/Inliner.cpp": "6555b118049aaeb50b57fe1aa99aba8d92c77307572b80e9468a07a55ce51ad4",
+    "bolt/include/bolt/Core/MCPlusBuilder.h": "7f83ec0c41be077b7a0fad567208fb6c9454c6de1437d6a05545b68db759311a",
+    "bolt/include/bolt/Core/Relocation.h": "a98b4d2bc6b06eaae5b8f1d9acf12ee0204c773173dee6977f5bed3a451617d5",
+    "bolt/include/bolt/Core/BinaryContext.h": "bbfcf7b31b0020731992afd21f8f1945e573f2bad07ac0b2d0833c1428dcb1fd",
+    "llvm/lib/ExecutionEngine/JITLink/ELF_aarch32.cpp": "a32e93655256eb1b6fbdb65f43fba42c80004261419392ef9e5564414f0e84ec",
+    "llvm/lib/ExecutionEngine/JITLink/aarch32.cpp": "e0743a7a8e3f59581ee7aca71a893a6faa264560fb25542199d279f5572cf4ef",
+    "llvm/include/llvm/ExecutionEngine/JITLink/aarch32.h": "3c4108effa69dcbdda297419ffda0c349d65493ad48c426c4cbf7930450ab8e1",
+    "bolt/lib/RuntimeLibs/InstrumentationRuntimeLibrary.cpp": "2da9c02dcf139891dba0e39959a91d254f1cd990076adfcbbe3341ee5008c50a",
+    "bolt/lib/Core/BinarySection.cpp": "69c7157c6f42cef29c821b40efd8f87753d0eeb9f780f9bc5c5bb3e7b4f4a0ea"
+  },
+  "repository_source_sha256": {
+    "scripts/review_aarch32_boundaries.py": "745ebaa1292eeeedcb454457a52591d0e6c6ecc693bffd91c8080211858fda07",
+    "scripts/redirect-bolt-entries.py": "553b902ef0690ddbc8a81a46754000344c935249658bfdb5297411cf3ebfb79e",
+    "scripts/fix-kernel-elf-sections.py": "1c2ceac86777335bb9d3d071671b3ee6dd3982eb0c08a7e3396ef525ca814355",
+    "scripts/ram-dump-to-fdata.py": "ebb026f3c8d0b2eb425a73e03a1f01facca1a5fb98dcf861caabfed8d998b9b9",
+    "scripts/apply-overlays.sh": "8f7af0ff521eecc8d630ec0d09fa7a308a1ec7cdeb9552998a07b43ba7c55238",
+    "scripts/pi4/full_image_build.py": "6e4241cbf81d8e6af49228af312a2e6bf2e8edc16767332d17e486a5828b60d3",
+    "scripts/pi4/full_image_verify.py": "5b307a49b27704c12c8351b354a5613d0cef6e3e50a4efcd4499fad93ad0d1e7",
+    "scripts/profile_identity.py": "197732fb2e798fa37de8af6950847438ec9be31c239a4e38cc316273222b750f",
+    "scripts/samples_to_fdata.py": "63827fd3252c4bbf230bb18075bfda4d816c03ca4c2657a981ec4c48af56a7f6"
+  },
+  "replay": {
+    "success": true,
+    "patch_count": 38,
+    "uncovered_source_changes": [],
+    "mismatched_source_files": [],
+    "source_identity_sha256": "d2e9272859daa806082419c5c9e8522bdc8233693659c81453538e42c31f2b56",
+    "patch_sha256": {
+      "0001-emit-bolt-instr-tables-on-elf.patch": "49269895b37e21ee39d410a2717417b08bddb42974b5e99fba87636e227de16f",
+      "0002-tolerate-secondary-entrypoint-outside-code-section.patch": "2460f45fbe39ad520a591d37edf5925e74d7acc2e107e399ad87607e4dfab41d",
+      "0003-bolt-arm-elf32-and-target.patch": "cb2ed805a49b73c6122d4c6c0481c9703009689fa8873c4c3a06632af354d2f5",
+      "0004-bolt-arm-mcplusbuilder.patch": "d2025105313fefb9c7e304a6dda4df227e483cd4be93ab55902451949932bbb0",
+      "0005-bolt-arm-relocations.patch": "27b15ca9aaf28792ba9b98aaaf2edacc3f46a1e4730deee882e40a4698fe2800",
+      "0006-bolt-arm-rewrite-dispatch.patch": "825de9a51c22543e9c7d9a0cee01a526b4c5fb7e0d1b6b6be9171cea1287dba3",
+      "0007-bolt-arm-lit-tests.patch": "ae0e05384a0d24f6475f425f5cfb90fca98ca94c53d8d0487a151045b70c3d5a",
+      "0008-jitlink-arm-generic-archkind.patch": "7a30ef8fec31cda68bb63e128edecd75eb3bc0aad4141d0a2267e9e5abe3d8ff",
+      "0009-bolt-arm-longjmp-veneers.patch": "2950d0d2dddf856a83d84f45029f8c769b9832cdf10f99f486d50e7f12e7e379",
+      "0010-bolt-arm-instrumentation.patch": "1acf956dab22a687c2d53e1f0e6c49a439309957986644e8325234acb1b067a4",
+      "0011-bolt-arm-reverse-cbz.patch": "ddad8f56439d393eeb5ede2a158e3967540480be99f15425b6a64473caf7db15",
+      "0012-jitlink-arm-thumb-stub-alignment.patch": "15494da3e1e735474b84b39664b3acbadd9cdcc49b34f0a324372852fe6f267d",
+      "0013-bolt-emit-function-map.patch": "99d3c782f692bff0cfb4580d94c549e20ce664aa68eef6762cb5a2ca9282f397",
+      "0014-bolt-arm-literal-loads.patch": "8861406e0bfbd6bb6747adec762b22a85c5dfe87726c5dd4623a0d21acad1da8",
+      "0015-bolt-arm-unwind-rejection.patch": "ade687b385030923f6870345bfb287df44ff8e551749e6366b564383eee8ce54",
+      "0016-bolt-arm-data-fixup-width.patch": "2751b9ac14c11453f4f0cfe90477c157aba202280bac6b18103a6affda4dc568",
+      "0017-jitlink-arm-blx-stub-link.patch": "e50459022d2bf599c619c57ebca46035989cae1c1c5a912e617ca19a0c6b358a",
+      "0018-bolt-arm-pop-terminators.patch": "01722cd389cd657c60045bea3b7ded528e57343444aa58cc75602aee378cf6de",
+      "0019-deterministic-arm-stubs-and-alignment.patch": "179e2642d141217d73ab34a2170a59cdc868de47fb54f7d73afa4de77af530ec",
+      "0020-preserve-flags-in-cbz-long-branches.patch": "9b0923d9d680d3e8453fb755166809db921262ca32fdca577d26dc456b19c315",
+      "0021-preserve-thumb-entry-and-symbol-state.patch": "faaac1ec8a3b0a46fd1808a311b800500b60003175dcbe8d7c9950669f116ae2",
+      "0022-bolt-arm-thumb-jump19-split-functions.patch": "8d51bf51f92eaadb5b23e701c77179a65b17b68ca4705d3c898f96cc252958cd",
+      "0023-bolt-arm-generic-passes.patch": "cc93b6883bab0531ff041d43473128b16b4bb6ca70654c29496a3f0b48801806",
+      "0024-bolt-arm-inline-switch-tables.patch": "b1856915369978bf779613bab9ba40753cc39e52edf2258c55ef0cdf3d61d3a1",
+      "0025-bolt-arm-attributes-kept-code.patch": "72aaaa063316350a7a368b0bff5323febfc8ee161b5ccaba1974d246e36d60f5",
+      "0026-bolt-arm-full-width-counters.patch": "52743dc6e4a099df4b6a107537ae18807e3f9ca1ff068c1b715eebe6519c468e",
+      "0027-bolt-arm-terminal-it-branches.patch": "e9fb10d80d9ab3720bfb43b8a73f3dccfbbe4ff235efe52b14d61330150eaa30",
+      "0028-bolt-arm-instrumentation-contract.patch": "b203cacc72fcae4d3b83df4fc2d4c9c704a44f7b599ad0efc921b24bf5143703",
+      "0029-bolt-arm-pseudo-count-invariants.patch": "941bf3095f1d2080606c1b1c17a584e774d1c52e48b8aef08116ddd71eb85ba2",
+      "0030-bolt-arm-function-fallthrough.patch": "7b99d65e9c9abd569b7e55cb0af4461ea34355fb830575db9ad02a290bad43a9",
+      "0031-bolt-arm-self-move-flags.patch": "5388caa9e8d318682d001a9a52f88e010f2012fd99ee130bff10fc696d605ee0",
+      "0032-bolt-arm-inline-safety.patch": "4be51041d90091485bbd1110371d01de2ccaa9e8320f2eef7c879d938247bb70",
+      "0033-bolt-arm-pc-write-admission.patch": "717127d4b5298022246d70fd7647d7dc4d5600301cb73b485e303526e2b1dd96",
+      "0034-bolt-arm-inline-pass-tests.patch": "e9001fa210bb1656060cce70d661d5286e71c035e1b712f92756e6594ab1116c",
+      "0035-bolt-arm-exception-return-admission.patch": "a5fb2a2af1d8c1a79a88dbf67c70a6f11cec5d3a149af2ee448b629189e98609",
+      "0036-bolt-arm-conditional-return-instrumentation.patch": "0855669ab274d51c2d47e7910adbbb32fca38d3ae634a514252480fb2ba13de9",
+      "0037-bolt-arm-exclusive-instrumentation.patch": "2ead60639d5a3572b47901dbf67d6f0bb6e0e075768798b2115d05c8770ee602",
+      "0038-bolt-arm-cross-function-exclusive-reservations.patch": "21fe8aa4cceb0392131bef1a7e54ac27221b6eda369e1767665f5d2a6c72eba6"
+    }
+  },
+  "fresh_host": {
+    "assertions_on": {
+      "focused_lit": 48,
+      "expected_skips": 0,
+      "core_tests": 58,
+      "core_expected_skips": 31
+    },
+    "assertions_off": {
+      "focused_lit": 47,
+      "expected_skips": 1,
+      "core_tests": 58,
+      "core_expected_skips": 31
+    },
+    "script_tests": 60,
+    "script_test_observations_mocked": true,
+    "boundary_observations": 34
+  },
+  "boundary_results": {
+    "assertions-on": {
+      "schema": 1,
+      "toolchain": "/home/user/bolt-aarch32/build-atfe/bin",
+      "tool_sha256": "95ca0a1cb98912d465ef0d5df92e810629d16901daea28c9c848065628d54262",
+      "runtime_execution_verified": false,
+      "audit_ran": true,
+      "rows": [
+        {
+          "case": "armv7-control",
+          "mode": "optimize",
+          "selection": "all",
+          "returncode": 0,
+          "output": true,
+          "input_sha256": "3fe32e728142a7c56561e66b3db89940562a7815a253c15c06a57b6063d6e2d3",
+          "output_sha256": "cc11e05b2a6b02ce39533cf02dc0df26382cc75fdc98893715dfe24571e89f44"
+        },
+        {
+          "case": "armv7-control",
+          "mode": "instrument",
+          "selection": "all",
+          "returncode": 0,
+          "output": true,
+          "input_sha256": "3fe32e728142a7c56561e66b3db89940562a7815a253c15c06a57b6063d6e2d3",
+          "output_sha256": "f3cc02155ab06d3c7566a11ae801b60143a28989316b4d6c2fae2b7a4cdee607"
+        },
+        {
+          "case": "thumb-entry",
+          "mode": "optimize",
+          "selection": "all",
+          "returncode": 0,
+          "output": true,
+          "input_sha256": "4b24c6e183919064fb08fc06c48cf608d167f8205dcd2273a5d7175a31f44b30",
+          "output_sha256": "8b53d4d591f2727b405b0cc726187b012b41ebcac01a2b160c9368f785cb72e4"
+        },
+        {
+          "case": "thumb-entry",
+          "mode": "instrument",
+          "selection": "all",
+          "returncode": -6,
+          "output": false,
+          "input_sha256": "4b24c6e183919064fb08fc06c48cf608d167f8205dcd2273a5d7175a31f44b30"
+        },
+        {
+          "case": "armv6",
+          "mode": "optimize",
+          "selection": "all",
+          "returncode": 0,
+          "output": true,
+          "input_sha256": "80e325e8e6ad7373e7657b6d0f7797642e4a17e950df1bb781f3c52b1ef6349a",
+          "output_sha256": "92cf268542c22d568f8b784ef44bebe122e2812c651ec43dedda8a5a33eba739"
+        },
+        {
+          "case": "armv6",
+          "mode": "instrument",
+          "selection": "all",
+          "returncode": 0,
+          "output": true,
+          "input_sha256": "80e325e8e6ad7373e7657b6d0f7797642e4a17e950df1bb781f3c52b1ef6349a",
+          "output_sha256": "8a4987bc6173c8aff70cfcd7738d1ffdf2886eeb3bcc92df43ad7529781a4d0f"
+        },
+        {
+          "case": "missing-attributes",
+          "mode": "optimize",
+          "selection": "all",
+          "returncode": 0,
+          "output": true,
+          "input_sha256": "20a5a7b3f0a9322b5ec260c4580eb7440351b0165be877167953cca702615c67",
+          "output_sha256": "0b13c85fc6dd5014336649d127a943813c1f0102eeef15f03bbc1f82ad2c2dbe"
+        },
+        {
+          "case": "missing-attributes",
+          "mode": "instrument",
+          "selection": "all",
+          "returncode": 0,
+          "output": true,
+          "input_sha256": "20a5a7b3f0a9322b5ec260c4580eb7440351b0165be877167953cca702615c67",
+          "output_sha256": "53a4fb11b99da26e3c4921012497de5eb50da52dd6f574b992d4392998a6367b"
+        },
+        {
+          "case": "be8-flag",
+          "mode": "optimize",
+          "selection": "all",
+          "returncode": 0,
+          "output": true,
+          "input_sha256": "1a499db7d0b1bdc05ba1b0396f4f35be8525adb3c67209b64bbc9ddd30eda3ac",
+          "output_sha256": "9c2d952b949a9ab1c9ebaeed9f90ad52878d6939d7b4e65c1462ed365bb1abe8"
+        },
+        {
+          "case": "be8-flag",
+          "mode": "instrument",
+          "selection": "all",
+          "returncode": 0,
+          "output": true,
+          "input_sha256": "1a499db7d0b1bdc05ba1b0396f4f35be8525adb3c67209b64bbc9ddd30eda3ac",
+          "output_sha256": "052e70eb5ce35622408dbcc990e6bbf027b28917daf1bef328043cfaf186b057"
+        },
+        {
+          "case": "static-pie",
+          "mode": "optimize",
+          "selection": "all",
+          "returncode": 0,
+          "output": true,
+          "input_sha256": "067136dd25a3f7da026f541eab3eb794498ba8243fd7fab4a5fa2746a4bff0ca",
+          "output_sha256": "b53e98027bec2cf32e98a20486ea77200cf30dc3090d035ab1a188ff3e989391"
+        },
+        {
+          "case": "static-pie",
+          "mode": "instrument",
+          "selection": "all",
+          "returncode": 0,
+          "output": true,
+          "input_sha256": "067136dd25a3f7da026f541eab3eb794498ba8243fd7fab4a5fa2746a4bff0ca",
+          "output_sha256": "f3378787e1cb9f45a1cf47ca97476127a302029be69ac0dc8ec62eed8154e0b6"
+        },
+        {
+          "case": "interior-direct",
+          "mode": "instrument",
+          "selection": "unselected",
+          "returncode": 0,
+          "output": true,
+          "input_sha256": "07aebc973bbc66bb7c0473e79a317a2cafe6202be01896f48e9771bc3eb0c168",
+          "interior_entry": 32792,
+          "live_call": 32800,
+          "original_callee": 32812,
+          "instrumented_callee": 40960,
+          "route_verified": true,
+          "counter_store_addresses": [
+            41020,
+            41024,
+            41112,
+            41116
+          ],
+          "output_sha256": "f2c18057cb390ab71f1d8a7a46abb6c277b6b705d486452da02070f956d866f5"
+        },
+        {
+          "case": "interior-direct",
+          "mode": "instrument",
+          "selection": "explicit-skip",
+          "returncode": 0,
+          "output": true,
+          "input_sha256": "07aebc973bbc66bb7c0473e79a317a2cafe6202be01896f48e9771bc3eb0c168",
+          "interior_entry": 32792,
+          "live_call": 32800,
+          "original_callee": 32812,
+          "instrumented_callee": 40960,
+          "route_verified": true,
+          "counter_store_addresses": [
+            41020,
+            41024,
+            41112,
+            41116
+          ],
+          "output_sha256": "7a2f2688efd2e29891599fbb518f4561319613d7fad74c974d1ab5814e10b566"
+        },
+        {
+          "case": "interior-pointer",
+          "mode": "instrument",
+          "selection": "unselected",
+          "returncode": 0,
+          "output": true,
+          "input_sha256": "76fc7d290aedefa42aa21bed9c4de1dd112c4dad065bf88658b3f1192c9c098e",
+          "interior_entry": 32800,
+          "live_call": 32808,
+          "original_callee": 32820,
+          "instrumented_callee": 40960,
+          "route_verified": true,
+          "counter_store_addresses": [
+            41020,
+            41024,
+            41112,
+            41116
+          ],
+          "output_sha256": "a7c4cbe57ac775639cfa9c08c6af45d5fa6efd599ead3226281256eeaf9999e6"
+        },
+        {
+          "case": "interior-pointer",
+          "mode": "instrument",
+          "selection": "explicit-skip",
+          "returncode": 0,
+          "output": true,
+          "input_sha256": "76fc7d290aedefa42aa21bed9c4de1dd112c4dad065bf88658b3f1192c9c098e",
+          "interior_entry": 32800,
+          "live_call": 32808,
+          "original_callee": 32820,
+          "instrumented_callee": 40960,
+          "route_verified": true,
+          "counter_store_addresses": [
+            41020,
+            41024,
+            41112,
+            41116
+          ],
+          "output_sha256": "9e2249d1041b37b07e90b4213ebba5e26cff666f107d975e1c30ff382649a99e"
+        },
+        {
+          "case": "svc-exclusive",
+          "mode": "instrument",
+          "selection": "unselected",
+          "returncode": 1,
+          "output": false,
+          "input_sha256": "b8cafaa28149ac05dd080a4906152c8aac91d647e396484717352796ac828a71"
+        }
+      ]
+    },
+    "assertions-off": {
+      "schema": 1,
+      "toolchain": "/home/user/bolt-aarch32/out/correctness/build-atfe-noasserts-20261002/bin",
+      "tool_sha256": "488ae0bf44c4902dc35987c3340999558c2e95c9216e5908fd1e1d10083838ac",
+      "runtime_execution_verified": false,
+      "audit_ran": true,
+      "rows": [
+        {
+          "case": "armv7-control",
+          "mode": "optimize",
+          "selection": "all",
+          "returncode": 0,
+          "output": true,
+          "input_sha256": "3fe32e728142a7c56561e66b3db89940562a7815a253c15c06a57b6063d6e2d3",
+          "output_sha256": "ce660dbd89f3a5b96a7c02367d06395d97c14d66fae7643b7e858134a9039fb4"
+        },
+        {
+          "case": "armv7-control",
+          "mode": "instrument",
+          "selection": "all",
+          "returncode": 0,
+          "output": true,
+          "input_sha256": "3fe32e728142a7c56561e66b3db89940562a7815a253c15c06a57b6063d6e2d3",
+          "output_sha256": "0ceb58804b184982b5de4d5e963d8cc0eafbb0a71e3806b3c2d77ce913530e0d"
+        },
+        {
+          "case": "thumb-entry",
+          "mode": "optimize",
+          "selection": "all",
+          "returncode": 0,
+          "output": true,
+          "input_sha256": "4b24c6e183919064fb08fc06c48cf608d167f8205dcd2273a5d7175a31f44b30",
+          "output_sha256": "da25675691a3f13172663c6ccfc5fd62380473166bd68ab80e8ba5aa51b9e51d"
+        },
+        {
+          "case": "thumb-entry",
+          "mode": "instrument",
+          "selection": "all",
+          "returncode": -11,
+          "output": false,
+          "input_sha256": "4b24c6e183919064fb08fc06c48cf608d167f8205dcd2273a5d7175a31f44b30"
+        },
+        {
+          "case": "armv6",
+          "mode": "optimize",
+          "selection": "all",
+          "returncode": 0,
+          "output": true,
+          "input_sha256": "80e325e8e6ad7373e7657b6d0f7797642e4a17e950df1bb781f3c52b1ef6349a",
+          "output_sha256": "8bd2aaa533ee8baecc4c1d4b89b0050aee629abb5f658ad3165d7e74c74ed651"
+        },
+        {
+          "case": "armv6",
+          "mode": "instrument",
+          "selection": "all",
+          "returncode": 0,
+          "output": true,
+          "input_sha256": "80e325e8e6ad7373e7657b6d0f7797642e4a17e950df1bb781f3c52b1ef6349a",
+          "output_sha256": "8ebc442591b1c890660da08fa59a88a2db45716e366d636c629a172776881128"
+        },
+        {
+          "case": "missing-attributes",
+          "mode": "optimize",
+          "selection": "all",
+          "returncode": 0,
+          "output": true,
+          "input_sha256": "20a5a7b3f0a9322b5ec260c4580eb7440351b0165be877167953cca702615c67",
+          "output_sha256": "ce48bb4a41c95d925bf8eb898ae779373a580a1deba948ec356dcd1dcb94bcd7"
+        },
+        {
+          "case": "missing-attributes",
+          "mode": "instrument",
+          "selection": "all",
+          "returncode": 0,
+          "output": true,
+          "input_sha256": "20a5a7b3f0a9322b5ec260c4580eb7440351b0165be877167953cca702615c67",
+          "output_sha256": "343f03fc343a44109cbceef77597ef3bb9ff1c91f3a96fa3ee1a9b169537f863"
+        },
+        {
+          "case": "be8-flag",
+          "mode": "optimize",
+          "selection": "all",
+          "returncode": 0,
+          "output": true,
+          "input_sha256": "1a499db7d0b1bdc05ba1b0396f4f35be8525adb3c67209b64bbc9ddd30eda3ac",
+          "output_sha256": "d2f59c535a1025b62628bf6e4ed7677b3476529ad82b391589e71d94506ebdf4"
+        },
+        {
+          "case": "be8-flag",
+          "mode": "instrument",
+          "selection": "all",
+          "returncode": 0,
+          "output": true,
+          "input_sha256": "1a499db7d0b1bdc05ba1b0396f4f35be8525adb3c67209b64bbc9ddd30eda3ac",
+          "output_sha256": "a1189ff8971f15c2f9f39713061b7e3cd2864cd0f7c400f5d18399e9686c0b65"
+        },
+        {
+          "case": "static-pie",
+          "mode": "optimize",
+          "selection": "all",
+          "returncode": 0,
+          "output": true,
+          "input_sha256": "067136dd25a3f7da026f541eab3eb794498ba8243fd7fab4a5fa2746a4bff0ca",
+          "output_sha256": "944174349194b1d919102d8fb90ee841a131db4e8c0528b59159ab5e1d5e3250"
+        },
+        {
+          "case": "static-pie",
+          "mode": "instrument",
+          "selection": "all",
+          "returncode": 0,
+          "output": true,
+          "input_sha256": "067136dd25a3f7da026f541eab3eb794498ba8243fd7fab4a5fa2746a4bff0ca",
+          "output_sha256": "226d7547b3d1ea203b446b309edc185d8a822ec383a434ce89e03767629985d8"
+        },
+        {
+          "case": "interior-direct",
+          "mode": "instrument",
+          "selection": "unselected",
+          "returncode": 0,
+          "output": true,
+          "input_sha256": "07aebc973bbc66bb7c0473e79a317a2cafe6202be01896f48e9771bc3eb0c168",
+          "interior_entry": 32792,
+          "live_call": 32800,
+          "original_callee": 32812,
+          "instrumented_callee": 40960,
+          "route_verified": true,
+          "counter_store_addresses": [
+            41020,
+            41024,
+            41112,
+            41116
+          ],
+          "output_sha256": "1d77d3dab600e9d95e9c2e86d36083f1de7528694c8addcf164f6f50d13118df"
+        },
+        {
+          "case": "interior-direct",
+          "mode": "instrument",
+          "selection": "explicit-skip",
+          "returncode": 0,
+          "output": true,
+          "input_sha256": "07aebc973bbc66bb7c0473e79a317a2cafe6202be01896f48e9771bc3eb0c168",
+          "interior_entry": 32792,
+          "live_call": 32800,
+          "original_callee": 32812,
+          "instrumented_callee": 40960,
+          "route_verified": true,
+          "counter_store_addresses": [
+            41020,
+            41024,
+            41112,
+            41116
+          ],
+          "output_sha256": "6d04d021d8870dec3e087ed66aca6c8c24a7077db40b67b0806eaa6b9415371a"
+        },
+        {
+          "case": "interior-pointer",
+          "mode": "instrument",
+          "selection": "unselected",
+          "returncode": 0,
+          "output": true,
+          "input_sha256": "76fc7d290aedefa42aa21bed9c4de1dd112c4dad065bf88658b3f1192c9c098e",
+          "interior_entry": 32800,
+          "live_call": 32808,
+          "original_callee": 32820,
+          "instrumented_callee": 40960,
+          "route_verified": true,
+          "counter_store_addresses": [
+            41020,
+            41024,
+            41112,
+            41116
+          ],
+          "output_sha256": "fcb1827bc39eae33eab125445b22987018446b09cacaeee086f028fc08ce8e12"
+        },
+        {
+          "case": "interior-pointer",
+          "mode": "instrument",
+          "selection": "explicit-skip",
+          "returncode": 0,
+          "output": true,
+          "input_sha256": "76fc7d290aedefa42aa21bed9c4de1dd112c4dad065bf88658b3f1192c9c098e",
+          "interior_entry": 32800,
+          "live_call": 32808,
+          "original_callee": 32820,
+          "instrumented_callee": 40960,
+          "route_verified": true,
+          "counter_store_addresses": [
+            41020,
+            41024,
+            41112,
+            41116
+          ],
+          "output_sha256": "dade5a18f438dc355a3b75c09710b7ffb947222af512ddac17effbda7536cfa7"
+        },
+        {
+          "case": "svc-exclusive",
+          "mode": "instrument",
+          "selection": "unselected",
+          "returncode": 1,
+          "output": false,
+          "input_sha256": "b8cafaa28149ac05dd080a4906152c8aac91d647e396484717352796ac828a71"
+        }
+      ]
+    }
+  },
+  "findings": [
+    {
+      "id": "F1",
+      "priority": "P0",
+      "items": [
+        6,
+        9
+      ],
+      "evidence": "fresh host admission and loaded-byte routes",
+      "title": "Skipped unnamed interior entries bypass reservation validation",
+      "routes": 8,
+      "runtime_reservation_failure_reproduced": false
+    },
+    {
+      "id": "F2",
+      "priority": "P0",
+      "items": [
+        9,
+        3
+      ],
+      "evidence": "fresh crashes in both modes",
+      "title": "Thumb instrumentation entry lookup aborts/segfaults",
+      "assertions_on_signal": 6,
+      "assertions_off_signal": 11
+    },
+    {
+      "id": "F3",
+      "priority": "P0",
+      "items": [
+        7,
+        6
+      ],
+      "evidence": "fresh accepted ARMv6 input, emitted MOVW/MOVT, assembler feature rejection",
+      "title": "Synthesized code exceeds declared ARMv6 ISA"
+    },
+    {
+      "id": "F4",
+      "priority": "P0",
+      "items": [
+        7,
+        11,
+        6
+      ],
+      "evidence": "fresh static PIE admission; absolute counter pointers and no output relocations",
+      "title": "Static PIE instrumentation lacks a validated rebasing boundary",
+      "nonzero_load_bias_failure": "deduction from bytes; not hardware execution"
+    },
+    {
+      "id": "F5",
+      "priority": "P1",
+      "items": [
+        7
+      ],
+      "evidence": "fresh admission only",
+      "title": "Missing attributes and BE8 flag have no explicit supported-input exclusion",
+      "runtime_failure_reproduced": false
+    }
+  ],
+  "relocation_declarations": {
+    "core_supported": [
+      "R_ARM_ABS32",
+      "R_ARM_ALU_PC_G0",
+      "R_ARM_CALL",
+      "R_ARM_JUMP24",
+      "R_ARM_MOVT_ABS",
+      "R_ARM_MOVW_ABS_NC",
+      "R_ARM_NONE",
+      "R_ARM_PC24",
+      "R_ARM_PLT32",
+      "R_ARM_PREL31",
+      "R_ARM_REL32",
+      "R_ARM_TARGET1",
+      "R_ARM_TARGET2",
+      "R_ARM_THM_CALL",
+      "R_ARM_THM_JUMP19",
+      "R_ARM_THM_JUMP24",
+      "R_ARM_THM_MOVT_ABS",
+      "R_ARM_THM_MOVW_ABS_NC",
+      "R_ARM_V4BX"
+    ],
+    "jitlink_supported": [
+      "R_ARM_ABS32",
+      "R_ARM_CALL",
+      "R_ARM_GOT_PREL",
+      "R_ARM_JUMP24",
+      "R_ARM_LDR_PC_G0",
+      "R_ARM_MOVT_ABS",
+      "R_ARM_MOVW_ABS_NC",
+      "R_ARM_NONE",
+      "R_ARM_PREL31",
+      "R_ARM_REL32",
+      "R_ARM_TARGET1",
+      "R_ARM_THM_CALL",
+      "R_ARM_THM_JUMP19",
+      "R_ARM_THM_JUMP24",
+      "R_ARM_THM_MOVT_ABS",
+      "R_ARM_THM_MOVT_PREL",
+      "R_ARM_THM_MOVW_ABS_NC",
+      "R_ARM_THM_MOVW_PREL_NC",
+      "R_ARM_THM_PC12"
+    ],
+    "core_only": [
+      "R_ARM_ALU_PC_G0",
+      "R_ARM_PC24",
+      "R_ARM_PLT32",
+      "R_ARM_TARGET2",
+      "R_ARM_V4BX"
+    ],
+    "jitlink_only": [
+      "R_ARM_GOT_PREL",
+      "R_ARM_LDR_PC_G0",
+      "R_ARM_THM_MOVT_PREL",
+      "R_ARM_THM_MOVW_PREL_NC",
+      "R_ARM_THM_PC12"
+    ],
+    "note": "Declarations are not end-to-end support; no full relocation range matrix was executed."
+  },
+  "completed_original_items": [
+    2,
+    8,
+    10
+  ],
+  "open_original_items": [
+    1,
+    3,
+    4,
+    5,
+    6,
+    7,
+    9,
+    11,
+    12
+  ],
+  "paused_items": [],
+  "remaining_caveats": [
+    "Active ISR/FIQ/SMP and mixed-ISA nested state",
+    "Concurrent reset/live snapshot",
+    "General predicated-exit CFG and profile-driven pass combinations",
+    "Relocation ranges/alignment/addends and kept code",
+    "Aliases/secondary entries/pointer and data-to-code references",
+    "Malformed/ambiguous tables and inline data",
+    "Unsupported ISA/ABI/ELF features and dynamic/GOT/TLS constructs",
+    "Counter-source identity and PMU core ownership",
+    "Clean build provenance and content-based stamps",
+    "Full-image emitted versus executed coverage and debug/DWARF"
+  ],
+  "hardware_evidence_reused": [
+    "docs/results/correctness_conditional_instrumentation_20261002.json",
+    "docs/results/correctness_counter_state_20261002.json",
+    "docs/results/correctness_inline_passes_20261002.json",
+    "docs/results/correctness_cross_function_exclusive_20261002.json"
+  ],
+  "raw_evidence": "out/correctness/review-0038-20261002",
+  "log_sha256": {
+    "out/correctness/review-0038-20261002/assertions-off-lit.log": "18b6a70983798d2c97b4141cd364a4583706844e07cfda20aa9d89e5fde1960b",
+    "out/correctness/review-0038-20261002/assertions-off-units.log": "1a8bc89fed4af4e3aa0f5b0546f80460fd5b4794c4232eb30b4e8473f7109ccc",
+    "out/correctness/review-0038-20261002/assertions-on-lit.log": "fcc55e7f5efa8ad00577a3b5809e3b64dd2069f8bff96d3e06ad3fa677c4edb4",
+    "out/correctness/review-0038-20261002/assertions-on-units.log": "84ea29f99037f275a5f4fabd20862348d8509d75db682f3591d6f1d90b5e33dd",
+    "out/correctness/review-0038-20261002/atfe-revision.log": "a9c007fd3f3599657fe3f63098a71dc5e363a6d4e6687e0494520892aab74525",
+    "out/correctness/review-0038-20261002/atfe-status.log": "660b6c4f95d972449df1db025e1e630226cad9e87ca195182ad6bfe547230cb4",
+    "out/correctness/review-0038-20261002/lk-revision.log": "2c454c607dd16491739205f8773db5750e147c3fb8836a9dbc555eba89033a5d",
+    "out/correctness/review-0038-20261002/lk-status.log": "a8ca3454eb261ad8bede0d733bbf0423c1957d48166ac0b2183763134d4b76e3",
+    "out/correctness/review-0038-20261002/script-tests.log": "8e7ffe21eeacc3cab478cfc3cc87fdb268c931fe98332d886ddc010218262b59"
+  },
+  "reproducer_results_sha256": {
+    "assertions-on": "0b35ea8ebd72b248624408f1e9152c305b256ec99a3ec0fdbddde5c88f5cb8cd",
+    "assertions-off": "6accf2ffd9fd25d48badd07b68df36264a6150eafe741af52319b5a00a238f3e"
+  },
+  "user_priority_revision": "User reactivated all remaining item #12 work; consolidated queue items 5, 6, 10 and 14 are active."
+}

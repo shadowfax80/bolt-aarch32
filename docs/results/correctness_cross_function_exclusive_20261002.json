@@ -1,0 +1,191 @@
+{
+  "schema": 1,
+  "date": "2026-10-02",
+  "kind": "cross-function-exclusive-reservation-boundary",
+  "base": "atfe",
+  "last_pushed_checkpoint": "5049da5",
+  "local_overlay": {
+    "patch": "overlay/llvm/patches/atfe/0038-bolt-arm-cross-function-exclusive-reservations.patch",
+    "sha256": "21fe8aa4cceb0392131bef1a7e54ac27221b6eda369e1767665f5d2a6c72eba6",
+    "reverse_apply_check": true,
+    "saved_after_matches_live": true,
+    "unrelated_audited_sources_unchanged": true,
+    "lk_dirty_status_unchanged": true,
+    "files": {
+      "bolt/lib/Rewrite/RewriteInstance.cpp": {
+        "before": "07339068fc4800c839157307931a023b89a773f618112ec92bc9b7e524cd95ca",
+        "after": "318f5e9d741fbfda851e0a2b62f7cb90fb2897e3c034e5be014643fd1ec4eed1"
+      },
+      "bolt/include/bolt/Core/MCPlusBuilder.h": {
+        "before": "0012052b8bfd1ee985684c3380c441415179ae0d805374d3ee53c7b26e9c68bc",
+        "after": "7f83ec0c41be077b7a0fad567208fb6c9454c6de1437d6a05545b68db759311a"
+      },
+      "bolt/lib/Target/ARM/ARMMCPlusBuilder.cpp": {
+        "before": "b1c79abf8e8bcb65290f6b4d433b326222abb0e32b72f22293b486edaf861d03",
+        "after": "37239bd80cc7aa61b25dc8da463bb5b183b93e202df47defb7cb6055929ee185"
+      },
+      "bolt/unittests/Core/ARMReturns.cpp": {
+        "before": "7e18642039f5d96a65e66bae26d16deb6928c5d95f73f37cbc541d6011265f71",
+        "after": "9a270144695a8f7234a42b3eeace05932636edba9690c89be822c37a9ea21f65"
+      },
+      "bolt/test/ARM/Inputs/check-arm-cross-function-exclusive.py": {
+        "before": null,
+        "after": "86ee35ffa98694cdb8b6057a76d4ef84b9be87fd1668925465ea0c9ded159cd9"
+      },
+      "bolt/test/ARM/arm-cross-function-exclusive.test": {
+        "before": null,
+        "after": "9cb25a518ad53d18606ccdc086fd96e4f45be66116155f3d2f8c5471720824cd"
+      }
+    }
+  },
+  "committed": false,
+  "pushed": false,
+  "evidence": "out/correctness/cross-function-exclusive",
+  "before_audit": "docs/results/correctness_cross_function_exclusive_audit_20261002.json",
+  "before": {
+    "admitted": 96,
+    "routes_checked": 96,
+    "direct_routes": 24,
+    "redirected_routes": 72
+  },
+  "scope": "Original decoded function bytes, including ignored/skipped callers, validated after secondary-entry discovery and before instrumentation passes. Selected exclusive functions reject. Skipped exclusive functions require locally contained reservations; calls, exits and unmodeled transfers with live reservations reject. Multiple entries and incomplete exclusive instruction streams reject conservatively.",
+  "host": {
+    "assertions-on": {
+      "build_passed": true,
+      "focused_lit_passed": 48,
+      "focused_lit_expected_skips": 0,
+      "core_tests_passed": 58,
+      "core_tests_expected_skips": 31,
+      "exclusive_decoder_cases": 38,
+      "cross_function": {
+        "passed": 133,
+        "rejections": 98,
+        "admissions": 35,
+        "coverage": [
+          "All four ARM/Thumb caller/callee pairs",
+          "Direct and indirect calls",
+          "Unselected and explicitly skipped callers",
+          "Normal/reverse/conservative/forced-inline",
+          "Predication and Thumb IT",
+          "Live/cleared join states and retry loops",
+          "Secondary entries",
+          "Mapped data and incomplete instruction streams",
+          "All v7 exclusive widths"
+        ]
+      },
+      "local_exclusive_regression": {
+        "passed": 156,
+        "rejections": 104,
+        "relocation_admissions": 52
+      },
+      "logs": {
+        "build": {
+          "path": "out/correctness/cross-function-exclusive/assertions-on-final-build.log",
+          "sha256": "581a805a2e936b3743af270187ccafd7368368e25dfd5e06f17396c87b632571"
+        },
+        "lit": {
+          "path": "out/correctness/cross-function-exclusive/assertions-on-final-lit.log",
+          "sha256": "abb9fb89660ad7d141137e3712705dc26e9856706570ab76913b26cb4f66da7d"
+        },
+        "units": {
+          "path": "out/correctness/cross-function-exclusive/assertions-on-final-units.log",
+          "sha256": "56ece0d400a3a4d09eb6fa09ae0103d576e88010e3dc7a5d595cd3ef29f4a272"
+        }
+      }
+    },
+    "assertions-off": {
+      "build_passed": true,
+      "focused_lit_passed": 47,
+      "focused_lit_expected_skips": 1,
+      "core_tests_passed": 58,
+      "core_tests_expected_skips": 31,
+      "exclusive_decoder_cases": 38,
+      "cross_function": {
+        "passed": 133,
+        "rejections": 98,
+        "admissions": 35,
+        "coverage": [
+          "All four ARM/Thumb caller/callee pairs",
+          "Direct and indirect calls",
+          "Unselected and explicitly skipped callers",
+          "Normal/reverse/conservative/forced-inline",
+          "Predication and Thumb IT",
+          "Live/cleared join states and retry loops",
+          "Secondary entries",
+          "Mapped data and incomplete instruction streams",
+          "All v7 exclusive widths"
+        ]
+      },
+      "local_exclusive_regression": {
+        "passed": 156,
+        "rejections": 104,
+        "relocation_admissions": 52
+      },
+      "logs": {
+        "build": {
+          "path": "out/correctness/cross-function-exclusive/assertions-off-final-build.log",
+          "sha256": "5d4279a8596ba7a6fb4dd6c92195ca7fa761c744ab6e10335f9dc2446e1053a6"
+        },
+        "lit": {
+          "path": "out/correctness/cross-function-exclusive/assertions-off-final-lit.log",
+          "sha256": "54403a5e653baffd92e59e060c13422dc93fb7a78fd6bc4b6325770fb63e8687"
+        },
+        "units": {
+          "path": "out/correctness/cross-function-exclusive/assertions-off-final-units.log",
+          "sha256": "5f11ba406d8ad122d5a698616410418044468dc3311a86e34053ac5176332fcf"
+        }
+      }
+    }
+  },
+  "positive_byte_parity": {
+    "assertions-on": {
+      "build": "out/correctness/cross-function-exclusive/assertions-on-pi-positive/build-zkdad_tu",
+      "matches_0037_build": "out/correctness/exclusive-instrumentation/assertions-on-pi-positive/build-lb10bwg1",
+      "matches_executed_0036_build": "out/correctness/conditional-instrumentation/assertions-on-pi-positive/build-d5fv3u4k",
+      "payload_sha256": {
+        "baseline": "2c9f4d72d1589206834bce3bd9d0ede63c6364a31e8cab09de570d7055c272a7",
+        "normal": "b7f4922987aee91316ebd439be6c21fe962600f17b7cb6691369c9dfd11f16d5",
+        "reverse": "2457595d84b45d917a43e1935af8e0cc59c551cf2c68649589a029b07494d562",
+        "conservative": "e7b9d4eb9068031e1b696214533fc3b0363e0249324f13ebf71040378063cabe",
+        "bad-reset": "feda77d5bf9ebdddade07a8fb19c3b7f867fb0c3683133077610a7a27dc62e4b"
+      }
+    },
+    "assertions-off": {
+      "build": "out/correctness/cross-function-exclusive/assertions-off-pi-positive/build-0zkucepr",
+      "matches_0037_build": "out/correctness/exclusive-instrumentation/assertions-off-pi-positive/build-asvog53k",
+      "matches_executed_0036_build": "out/correctness/conditional-instrumentation/assertions-off-pi-positive/build-zg3fm5ln",
+      "payload_sha256": {
+        "baseline": "2c9f4d72d1589206834bce3bd9d0ede63c6364a31e8cab09de570d7055c272a7",
+        "normal": "b7f4922987aee91316ebd439be6c21fe962600f17b7cb6691369c9dfd11f16d5",
+        "reverse": "2457595d84b45d917a43e1935af8e0cc59c551cf2c68649589a029b07494d562",
+        "conservative": "e7b9d4eb9068031e1b696214533fc3b0363e0249324f13ebf71040378063cabe",
+        "bad-reset": "feda77d5bf9ebdddade07a8fb19c3b7f867fb0c3683133077610a7a27dc62e4b"
+      }
+    }
+  },
+  "fresh_pi_execution": false,
+  "runtime_reservation_failure_reproduced": false,
+  "hardware_evidence": "Supported nested/IT fixture bytes match all five previously executed 0036 payloads in each build mode. No new hardware execution is claimed.",
+  "remaining": [
+    "Active ISR boundaries",
+    "Mixed-ISA nested state",
+    "Live snapshots and concurrent reset",
+    "General ISA/feature admission and entry/symbol coverage"
+  ],
+  "completed_original_items": [
+    2,
+    8,
+    10
+  ],
+  "paused_items": [
+    12
+  ],
+  "work_stopped_at_user_requested_milestone": true,
+  "stop_check": {
+    "time_utc": "2026-10-02T15:59:24.912062+00:00",
+    "task_compiler_test_processes_running": false,
+    "wsl_responsive": true,
+    "evidence": "out/correctness/cross-function-exclusive/stopped-processes.log",
+    "no_serial_job_started_this_stage": true
+  }
+}

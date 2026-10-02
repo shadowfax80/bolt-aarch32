@@ -1,5 +1,14 @@
 # Known limitations and improvement items
 
+> **Current ATFE caveats (2026-10-02, through 0038):** fresh probes reproduce
+> skipped unnamed interior-entry reservation bypass, Thumb instrumentation
+> startup abort/segfault, ARMv6 inputs receiving unsupported MOVW/MOVT and static
+> PIE with absolute counter pointers/no output relocations. Missing attributes
+> and BE8 flags lack an explicit certified exclusion. Active ISR, broader
+> relocation/pass/reference coverage and #12's provenance remain open. See the
+> [current review](CORRECTNESS_REVIEW_0038.md) and
+> [prioritized work items](CORRECTNESS_PRIORITY_TODO.md).
+
 > **Current status (2026-10-01):** this page retains historical upstream-era
 > findings and measurements. Use [CORRECTNESS_REVIEW.md](CORRECTNESS_REVIEW.md),
 > [CORRECTNESS_TODO.md](CORRECTNESS_TODO.md) and
@@ -25,10 +34,16 @@ remains covered; general conditional-exit CFG modeling is still open. See the
 [conditional-return evidence](results/correctness_conditional_instrumentation_20261002.json).
 
 Overlay 0037 rejects instrumentation of functions containing exclusive accesses
-or CLREX; ordinary relocation remains supported. Reservations held across calls
-into other instrumented functions are not certified by this function-local gate.
+or CLREX; ordinary relocation remains supported. Local overlay 0038 additionally
+rejects cross-function reservations in decoded original functions, including
+skipped callers, after secondary-entry discovery. Ignored exclusive functions
+must contain their reservations locally; incomplete streams, unmodeled transfers
+and known multiple entries reject conservatively. Active ISR boundaries and
+general ISA/entry/symbol admission remain open. The fresh review additionally
+reproduces unnamed interior-entry routes that bypass this gate; its safety claim
+is limited to discovered/tested roots, not all skipped functions.
 A separate pure-Thumb ELF-entry instrumentation assertion is recorded under #9.
-See [exclusive-memory evidence](results/correctness_exclusive_instrumentation_20261002.json).
+See [cross-function evidence](results/correctness_cross_function_exclusive_20261002.json).
 
 **Verification status is marked per item**, because it matters for how much to
 trust each entry:

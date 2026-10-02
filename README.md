@@ -10,7 +10,8 @@ Upstream [llvm-project](https://github.com/llvm/llvm-project) and [lk](https://g
 |-----|------|
 | [docs/TODO.md](docs/TODO.md) | Active ATFE correctness work and owner-deferred scope |
 | [docs/CORRECTNESS_TODO.md](docs/CORRECTNESS_TODO.md) | Twelve correctness workstreams, priorities and completion criteria |
-| [docs/CORRECTNESS_REVIEW.md](docs/CORRECTNESS_REVIEW.md) | Fresh source review, reproduced defects and verification limits |
+| [docs/CORRECTNESS_REVIEW_0038.md](docs/CORRECTNESS_REVIEW_0038.md) | Current review through overlay 0038: fresh defects, passing evidence and correctness limits |
+| [docs/CORRECTNESS_PRIORITY_TODO.md](docs/CORRECTNESS_PRIORITY_TODO.md) | Fresh ordered work queue from the current correctness review |
 | [docs/WSL_BUILD.md](docs/WSL_BUILD.md) | **Start here** — build the toolchain locally in WSL2 and measure on the Pi |
 | [docs/RPI4_HARDWARE_VERIFICATION.md](docs/RPI4_HARDWARE_VERIFICATION.md) | Real Pi 4B results: staged PGO / ThinLTO / BOLT, multi-function BOLT, PGO lab, bugs found |
 | [docs/VOLUME_RECREATION.md](docs/VOLUME_RECREATION.md) | Historical — recreating the RunPod volume (both volumes are now deleted) |

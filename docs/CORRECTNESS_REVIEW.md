@@ -1,8 +1,9 @@
 # ATFE correctness review - 2026-10-01
 
 > Historical review before overlays 0022-0024. The current re-evaluation is
-> [CORRECTNESS_REVIEW_BBAE817.md](CORRECTNESS_REVIEW_BBAE817.md); it credits the new
-> fixes and records remaining and newly reproduced validation gaps.
+> [CORRECTNESS_REVIEW_0038.md](CORRECTNESS_REVIEW_0038.md), with a fresh
+> [priority queue](CORRECTNESS_PRIORITY_TODO.md). It credits subsequent fixes
+> and records new admission gaps and verification limits.
 
 ## Assessment
 

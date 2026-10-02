@@ -17,8 +17,11 @@ bare-metal runtime. The sleep-time option remains a linker requirement for
 static input, and does not start a bare-metal periodic writer.
 
 The compiler requires caller acknowledgement; ELF metadata cannot prove these
-runtime properties. Shared/dynamic inputs, call/indirect-call profiling and
-process/fork options are rejected before output. For the LK wrapper, set:
+runtime properties. Genuine shared-object inputs, call/indirect-call profiling
+and process/fork options have rejection tests. Static PIE is a freshly reproduced
+exception: it is admitted while generated absolute pointers lack rebasing
+relocations. Treat it as unsupported until the fixed-load/PIE boundary is fixed.
+For the LK wrapper, set:
 
 ```sh
 BASE=atfe ARCH=arm32 ARM_INSTRUMENTATION_CONTRACT=privileged-single-core-no-fiq scripts/instrument-lk-bolt.sh
@@ -31,7 +34,20 @@ identity; it does not independently prove that other cores are parked.
 
 The current hardware matrix runs quiet, with IRQ/FIQ disabled. Quiet nested
 Thumb calls and recursion are verified; active ISR and mixed-ISA nested state,
-exclusive-memory insertion, concurrent resets and live snapshots remain open.
+concurrent resets and live snapshots remain open. Overlay 0037 rejects selected
+exclusive functions; local overlay 0038 requires reservations in decoded skipped
+callers to stay within their function, rejecting live calls/exits and unmodeled
+boundaries before instrumentation. Known multiple entries reject conservatively.
+The fresh review reproduces an unnamed interior-entry bypass in skipped exclusive
+code, despite those known-entry checks. General ISA/entry/symbol admission remains
+open. Thumb-entry instrumentation also crashes; ARMv6 input receives unsupported
+generated instructions. Both host modes pass the scoped
+boundary tests; supported Pi fixture bytes match previous execution evidence.
+No new hardware reservation-failure reproduction is claimed. See
+[cross-function evidence](results/correctness_cross_function_exclusive_20261002.json).
+
+See [current caveats](CORRECTNESS_REVIEW_0038.md) and
+[ordered closure tasks](CORRECTNESS_PRIORITY_TODO.md) before broader use.
 No supported SMP/FIQ/userspace claim follows from supplying the contract flag.
 
 See [evidence](results/correctness_instrumentation_scope_20261002.json).

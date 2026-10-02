@@ -1,6 +1,115 @@
 # ATFE correctness checkpoint - 2026-10-02
 
-## Latest: #6 exclusive-memory function exclusion verified
+## Latest: review through 0038 and prioritized work items published
+
+The user requested a fresh correctness re-evaluation and publication of an
+ordered work-item list. See [current review](CORRECTNESS_REVIEW_0038.md),
+[priority queue](CORRECTNESS_PRIORITY_TODO.md) and
+[fresh evidence](results/correctness_0038_review_20261002.json). Overlay 0038 is
+included unchanged with this publication to preserve the assessed source.
+No backend implementation changed during this review; no new Pi execution.
+
+Fresh focused suites pass 48/47 tests (one expected skip off), both CoreTests
+runs pass 58/31 skips, and 60 existing host script tests pass. All 38 overlays
+replay to exact live source bytes without changing the dirty ATFE/LK trees.
+Thirty-four boundary observations reproduce: unnamed interior-entry reservation
+admission in skipped code (eight checked redirected routes), Thumb startup
+SIGABRT/SIGSEGV, ARMv6 input receiving MOVW/MOVT, and static PIE with absolute
+counter pointers/no output relocations. Missing attributes and BE8 flags are
+also admitted without a certified contract. The previous 133-case gate remains
+green, but its complete-entry-root assumption is insufficient.
+
+Next implementation order, when requested: close the skipped interior-entry
+reservation bypass; fix Thumb startup safely in both builds; enforce ISA/ABI
+admission; enforce fixed-load/PIE policy. Then follow the published queue.
+The earlier active-ISR-first order is superseded. Three original items remain
+complete (#2/#8/#10). The user reactivated #12; all remaining profile identity,
+execution-gate, PMU ownership and build-provenance tasks are included in the
+consolidated active queue. Earlier pause instructions below are superseded. Review/publication is the
+current milestone; no further fixes have begun. Preserve source, evidence,
+unrelated Microsoft/ and the historical failed probes.
+
+## Earlier: #6 cross-function reservation boundary verified; work stopped
+
+Stopped at the next verified milestone as requested by the user. Overlay 0038,
+`overlay/llvm/patches/atfe/0038-bolt-arm-cross-function-exclusive-reservations.patch`,
+is exported locally and reverse-apply checked against the live ATFE source.
+It is not committed or pushed; last pushed production checkpoint is 5049da5/0037.
+
+The instrumentation gate now inspects original decoded function bytes, including
+skipped/unselected callers, after secondary-entry discovery and before profiling
+passes. Selected exclusive functions still reject. Skipped exclusive functions
+must contain their reservations locally: live calls/returns/external branches,
+unmatched stores, incomplete streams and unmodeled transfers reject. Known
+multiple entries reject conservatively. Closed local pairs/retry loops and calls
+before acquiring or after clearing a reservation remain admitted. Both states
+are retained at CFG joins; ARM predication and Thumb IT are accounted for.
+
+Both assertion modes pass 133 new cases (98 rejections, 35 admissions), all
+156 existing exclusive cases (104 rejections, 52 relocation admissions), and
+38 real decoder cases. Focused suites pass 48/47 tests, with one expected
+debug-only skip off. Both CoreTests runs pass 58 tests with 31 expected skips.
+Fresh supported nested/IT Pi builds match all five previously executed 0036
+payloads in each mode. This reuses byte-identical hardware evidence; no new Pi
+execution or runtime reservation-failure reproduction is claimed. Compact report:
+[cross-function evidence](results/correctness_cross_function_exclusive_20261002.json).
+
+Source preimages/afterimages/hashes, final build/lit/unit logs, export checks and
+byte-parity evidence are saved under out/correctness/cross-function-exclusive.
+The final supported builds are assertions-on-pi-positive/build-zkdad_tu and
+assertions-off-pi-positive/build-0zkucepr. One-time mutation scripts already ran:
+apply-cross-function-fix.py, classify-cross-function-exclusives.py,
+refine-cross-function-fix.py, verify-cross-function-fix.py and
+finish-cross-function-entry-boundary.py. Do not rerun them blindly. Preserve
+failed intermediate logs as well as final evidence; generic mayLoad/mayStore
+flags were insufficient and the final implementation uses explicit monitor kinds.
+
+Resume only when requested. Next #6 scope is active ISR boundaries; #5 mixed-ISA
+nested state/snapshots and #7/#9 general ISA/entry/symbol admission remain open.
+No entire TODO item closed: three original items remain complete (#2/#8/#10);
+#12 stays explicitly paused. ATFE only; upstream work remains stopped. Preserve
+dirty WSL ATFE/LK source, this local overlay/docs, and unrelated Microsoft/.
+All task builds/tests have finished; no task compiler/test/serial job remains.
+WSL is responsive and may stop automatically while idle.
+
+## Earlier: #6 cross-function reservation audit resumed
+
+User selected this resume document; Ubuntu/WSL2 was restarted and responds to
+uname. ATFE/LK initial dirty status and audited production-source hashes remain
+unchanged. Latest verified production fix remains 5049da5/overlay 0037.
+
+Cross-function host probes admit 96/96 instrumentation candidates in assertions-on
+and assertions-off builds: all four ARM/Thumb caller/callee pairs, direct/indirect
+calls, unselected/explicitly skipped callers, normal/reverse/conservative modes.
+Each caller has LDREX, a call, then STREX; the instrumented callee contains counter
+stores. Loaded ELF bytes and call routes were checked: 24 raw outputs already
+reach the instrumented callee; 72 reach it after the existing entry-redirection
+workflow. Independent branch decoding verifies redirects in both instruction
+sets. No Pi runtime reservation failure is claimed; no production fix applied.
+
+Evidence: out/correctness/cross-function-exclusive/probe-y8ygxq13, including
+results.json, routes-checked.json, emitted maps, redirect reports and disassembly.
+Compact report: results/correctness_cross_function_exclusive_audit_20261002.json.
+The initial one-block callee probe emitted no counters; probe-es1klis7 records
+counter emission only, before final call-route checking. Preserve these probes.
+
+Next #6: design and implement the cross-function admission boundary covering
+skipped/unselected callers, indirect reachability and ISR entry, then verify both
+build modes and supported Pi fixtures. Active ISR/mixed-ISA coverage remains open.
+#12 stays paused; ATFE only. No compiler/test/serial job remains active at this
+checkpoint. WSL was responsive at the health check; it may stop automatically idle.
+
+## Earlier: conversation closed at user request
+
+Correctness work is stopped. Latest verified fix is pushed as 5049da5.
+Windows confirmed no running WSL distributions at closure. Preserve all dirty
+WSL ATFE/LK source, saved evidence and unrelated Microsoft/ directory.
+No compiler, test or serial job was active at the last verified checkpoint.
+Resume only when requested: next is #6 cross-function exclusive reservations,
+then the remaining priority order in CORRECTNESS_TODO.md. #12 remains paused.
+The earlier paragraphs describing WSL as running are historical checkpoints.
+
+## Earlier: #6 exclusive-memory function exclusion verified
 
 0036 is pushed as 127ba9d; its compact evidence/next audit checkpoint is c3a91e5.
 Overlay 0037 rejects instrumentation of simple known-CFG ARM functions containing

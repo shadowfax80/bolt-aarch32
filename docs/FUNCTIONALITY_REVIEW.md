@@ -1,5 +1,11 @@
 # BOLT AArch32 (ATFE) functionality review — 2026-10-01
 
+> This is a historical functionality/pass survey with follow-up progress below.
+> Current correctness claims and exclusions are in the
+> [0038 review](CORRECTNESS_REVIEW_0038.md); the
+> [priority queue](CORRECTNESS_PRIORITY_TODO.md) takes precedence over its old
+> suggested order. In particular, static PIE admission is not verified support.
+
 Scope: what BOLT can actually *do* on AArch32 with the ATFE toolchain, as a complement to
 the correctness audit in [CORRECTNESS_TODO.md](CORRECTNESS_TODO.md). ATFE only; upstream work
 is deferred.

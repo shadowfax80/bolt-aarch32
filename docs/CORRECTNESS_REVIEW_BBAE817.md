@@ -1,5 +1,9 @@
 # ATFE correctness re-evaluation at bbae817
 
+> Historical review through overlay 0024. See the current
+> [0038 review](CORRECTNESS_REVIEW_0038.md) and
+> [ordered work items](CORRECTNESS_PRIORITY_TODO.md).
+
 Reviewed 2026-10-01 after fetching and fast-forwarding the Windows checkout from
 `ff7d544` to GitHub `origin/main` at `bbae817`. Scope is ATFE, through overlay 0024.
 This review changes the work list; it does not implement backend fixes.

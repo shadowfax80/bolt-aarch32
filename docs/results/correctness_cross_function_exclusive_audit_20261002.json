@@ -1,0 +1,49 @@
+{
+  "schema": 1,
+  "date": "2026-10-02",
+  "kind": "cross-function-exclusive-admission-audit",
+  "base": "atfe",
+  "checkpoint": "5049da5",
+  "evidence": "out\\correctness\\cross-function-exclusive\\probe-y8ygxq13",
+  "candidates": 96,
+  "admitted_with_counter_stores": 96,
+  "routes_checked": 96,
+  "raw_outputs_reach_instrumented_callee_directly": 24,
+  "routes_requiring_existing_entry_redirect": 72,
+  "builds": [
+    "assertions-on",
+    "assertions-off"
+  ],
+  "isa_pairs": [
+    "ARM->ARM",
+    "ARM->Thumb",
+    "Thumb->ARM",
+    "Thumb->Thumb"
+  ],
+  "calls": [
+    "direct",
+    "indirect"
+  ],
+  "selection": [
+    "unselected caller",
+    "explicitly skipped caller"
+  ],
+  "modes": [
+    "normal",
+    "reverse",
+    "conservative"
+  ],
+  "scope": "Host admission and loaded ELF call routes only. 24 raw outputs already reach the instrumented callee directly; 72 reach it after the existing supported entry-redirection workflow. No runtime reservation outcome was tested.",
+  "runtime_execution_verified": false,
+  "production_fix_applied": false,
+  "next": "Design a cross-function admission boundary that covers skipped callers, indirect reachability and ISR entry; verify both build modes and supported Pi fixtures.",
+  "paused_items": [
+    12
+  ],
+  "source_hashes": {
+    "bolt/lib/Passes/Instrumentation.cpp": "3822cbcee37158adf7c0fd4e7c05ffd5efe50486d0eac4ffe08579476d3d046e",
+    "bolt/lib/Rewrite/RewriteInstance.cpp": "07339068fc4800c839157307931a023b89a773f618112ec92bc9b7e524cd95ca",
+    "bolt/lib/Core/BinaryFunction.cpp": "f9e815912180352a03d7375db98dc9337ecdcd202155c0cf1af3d305e94864e1",
+    "bolt/include/bolt/Core/BinaryFunction.h": "959a7e72e86d6a4ab7cc7cb9002b434626dc1daf33e57e74801af1f21665cfd2"
+  }
+}

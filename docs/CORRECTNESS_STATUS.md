@@ -2,7 +2,32 @@
 
 Last updated: 2026-10-02. Verification details: [CORRECTNESS_FIXES.md](CORRECTNESS_FIXES.md).
 
-Work resumed by user on 2026-10-02; WSL is running. Overlay 0027 is pushed as
+Current assessment: [review through 0038](CORRECTNESS_REVIEW_0038.md) and
+[fresh priority queue](CORRECTNESS_PRIORITY_TODO.md). Both focused suites still
+pass (48/47), both CoreTests runs pass 58/31 skips, and the complete 38-overlay
+source replay matches. The review nevertheless reproduces skipped unnamed
+interior-entry reservation admission, Thumb instrumentation SIGABRT/SIGSEGV,
+ARMv6 inputs receiving unsupported synthesized instructions and static PIE with
+unrelocated absolute counter pointers. General backend correctness is not
+established. Overlay 0038 and its scoped evidence are published with this review;
+no backend fix or new Pi execution was performed during the review. The user
+reactivated #12; its remaining validation/provenance work is in the consolidated
+queue. Three original items remain complete; nine remain open.
+
+Earlier milestone:
+
+Work stopped at the user-requested next milestone on 2026-10-02. Local overlay
+0038 rejects cross-function exclusive reservations in decoded original code,
+including skipped/unselected callers and known secondary entries. Both build
+modes pass 133 new cases (98 rejections, 35 admissions), 48/47 focused tests
+(one expected debug-only skip off), and 58 CoreTests/31 skips. Fresh supported
+Pi payloads match executed 0036 bytes; no new Pi execution is claimed. Overlay
+0038 is exported and reverse-apply checked, not committed/pushed. Last pushed
+production fix is 5049da5/0037. Active ISR scope remains open; #12 stays paused.
+See [evidence](results/correctness_cross_function_exclusive_20261002.json) and
+[resume checkpoint](CORRECTNESS_RESUME.md).
+
+Earlier checkpoints: overlay 0027 is pushed as
 `be09efb`, nested verification as `b732798`, and runtime reset as `edfa3d7`.
 The #6 admission boundary is pushed as `e9cd3b3` and passes 40 focused host tests
 and 372 Pi cases per mode, plus reset-fault detection. #3 CFG/assertion parity has
@@ -38,8 +63,9 @@ host builds pass twelve rejections/six admissions; fresh nested/IT Pi checks
 pass 2,976 positive cases, two reset faults and ten watchdog returns.
 #6's exclusive-memory boundary has a verified function-local exclusion in 0037:
 104 rejection cases, 52 relocation admissions and 38 actual decoder cases pass
-in each build. Fresh supported Pi payloads match executed 0036 images. Reservations
-spanning calls into instrumented code and active ISR coverage remain open. A
+in each build. Fresh supported Pi payloads match executed 0036 images. Overlay
+0038 adds the decoded cross-function boundary described above; active ISR
+coverage remains open. A
 separate Thumb ELF-entry assertion is recorded for #9. #12 remains separately paused.
 See CORRECTNESS_RESUME.md.
 
@@ -56,13 +82,13 @@ from completion criteria. Three items are complete within this scope (2, 8, 10).
 | 3 | Pseudo/CFG invariants | Partial | Pseudo-count and fallthrough rejection verified in both build modes; worker fatal errors exit after join; wider CFG audit open |
 | 4 | Control flow and return semantics | Partial; checkpoint verified | POP-to-PC, flags, CBZ/CBNZ and inlining verified; unsupported PC writes/exception returns/IT calls reject; conditional-return instrumentation rejects; general exit model and broader pass combinations remain |
 | 5 | Instrumentation correctness | Partial; operating scope next | Carry, CPU-state, IT, nested Thumb/recursion and real runtime clear pass on Pi; mixed-ISA nested state, active interrupts and live snapshots remain |
-| 6 | Instrumentation scope | Partial; cross-function reservation audit next | Explicit operating contract passes; functions containing exclusive accesses/CLREX reject instrumentation; cross-function reservations and active ISR boundaries remain |
-| 7 | ISA/profile/endianness | Pending | Enforce the supported target feature boundary |
+| 6 | Instrumentation scope | Partial; new P0 bypass reproduced | Scoped operating/exclusive gates pass; skipped unnamed interior entries bypass reservation validation; active ISR and wider state/entry coverage remain |
+| 7 | ISA/profile/endianness | Open; P0 admission violations reproduced | Enforce generated-feature/ISA and fixed-load boundaries; ARMv6, static PIE, missing attributes and BE8 probes admitted |
 | 8 | FK_Data_8 / ABS32 mismatch | Complete | ATFE host and Pi checks passed; symbolic 64-bit relocations rejected; resolved values and map width corrected |
-| 9 | Entry points and symbols | Partial | Pure-Thumb instrumentation startup assertion recorded; aliases, skipped functions, secondary entries, pointer targets and redirects remain |
+| 9 | Entry points and symbols | Partial; P0 crashes/routes reproduced | Thumb instrumentation aborts with assertions and segfaults without; skipped unnamed interior routes evade discovery; aliases/pointers/redirect coverage remains |
 | 10 | Deterministic stubs | Complete | Stable visitation and layout, mixed-stub alignment fixed; repeated links and Pi checks passed |
 | 11 | Rewrite coverage | Partial | TBB/TBH and generic passes implemented; full-image emitted coverage is not execution proof; table/pass boundaries and excluded ELF constructs remain |
-| 12 | Verification and artifact integrity | Paused by user, partial | Verified fixes pushed as 43c9e16; resume counter binding, core ownership, other gates, broader inputs, content stamps and clean provenance after the next items |
+| 12 | Verification and artifact integrity | Active, partial | Exact counter/artifact identity and execution gates now P0 queue items; PMU ownership, broader inputs/manifests and clean build/content provenance also active |
 
 Hardware takes priority for execution verification; QEMU is a supplemental
 debugging tool. Pi checks use serial reboot where possible. A halted shell may

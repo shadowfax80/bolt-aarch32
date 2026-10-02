@@ -1,0 +1,472 @@
+--- a/bolt/lib/Rewrite/RewriteInstance.cpp
++++ b/bolt/lib/Rewrite/RewriteInstance.cpp
+@@ -66,8 +66,11 @@
+ #include <algorithm>
+ #include <atomic>
+ #include <fstream>
++#include <map>
+ #include <memory>
+ #include <optional>
++#include <set>
++#include <vector>
+ #include <system_error>
+ 
+ #undef  DEBUG_TYPE
+@@ -880,6 +883,172 @@
+   return Error::success();
+ }
+ 
++// Inspect original bytes even in skipped callers, after interprocedural entry
++// discovery and before any pass inserts profiling memory traffic. A reservation may not
++// leave its function, even through a call to a currently unselected callee:
++// indirect/transitive reachability and later entry redirects are not a proof
++// that the callee stays free of probes. This intentionally rejects split
++// load/store primitives as well as calls made with a reservation outstanding.
++static Error validateARMExclusiveReservations(BinaryContext &BC) {
++  for (auto &It : BC.getBinaryFunctions()) {
++    BinaryFunction &BF = It.second;
++    if (BF.isPseudo() || !BF.getSize())
++      continue;
++    ErrorOr<ArrayRef<uint8_t>> Data = BF.getData();
++    if (!Data || BF.getSize() > Data->size())
++      return createFatalBOLTError(
++          "AArch32 instrumentation cannot inspect original code in " +
++          BF.getPrintName());
++    const bool Thumb = BF.isARMThumb();
++    MCDisassembler *Decoder = Thumb ? BC.ThumbDisAsm.get() : BC.DisAsm.get();
++    MCPlusBuilder *MIB = BC.getMIBFor(Thumb);
++    struct Decoded {
++      MCInst Inst;
++      uint64_t Size;
++      bool Predicated;
++    };
++    std::map<uint64_t, Decoded> Instructions;
++    bool HasExclusive = false;
++    bool Complete = true;
++    unsigned ITRemaining = 0;
++    for (uint64_t Offset = 0; Offset < BF.getSize();) {
++      if (const size_t N = BF.getSizeOfDataInCodeAt(Offset)) {
++        Complete &= !ITRemaining;
++        Offset += N;
++        continue;
++      }
++      MCInst Inst;
++      uint64_t Size = 0;
++      auto Status = Decoder->getInstruction(
++          Inst, Size, Data->slice(Offset, BF.getSize() - Offset),
++          BF.getAddress() + Offset, nulls());
++      if (Status != MCDisassembler::Success || !Size ||
++          Size > BF.getSize() - Offset) {
++        if (BF.isZeroPaddingAt(Offset))
++          break;
++        Complete = false;
++        // Continue looking for later exclusive instructions after a decode
++        // failure. Never certify such a stream if one is found. General
++        // undecodable-input admission remains a separate target boundary.
++        Offset += Thumb ? 2 : 4;
++        continue;
++      }
++      bool Predicated = ITRemaining != 0;
++      if (ITRemaining)
++        --ITRemaining;
++      if (MIB->isPrefix(Inst)) {
++        Complete &= !Predicated;
++        ITRemaining = MIB->getPredicationPrefixSize(Inst);
++        Complete &= ITRemaining != 0;
++      }
++      const MCInstrDesc &Desc = BC.MII->get(Inst.getOpcode());
++      const int Pred = Desc.findFirstPredOperandIdx();
++      if (Pred >= 0) {
++        if (static_cast<unsigned>(Pred) >= Inst.getNumOperands() ||
++            !Inst.getOperand(Pred).isImm())
++          Complete = false;
++        else
++          Predicated |= Inst.getOperand(Pred).getImm() != 14; // ARM AL
++      }
++      HasExclusive |= MIB->isExclusiveMemoryAccess(Inst);
++      Instructions.emplace(Offset, Decoded{std::move(Inst), Size, Predicated});
++      Offset += Size;
++    }
++    if (!HasExclusive)
++      continue;
++    if (!BF.isIgnored())
++      return createFatalBOLTError(
++          "AArch32 instrumentation does not support exclusive-memory accesses in " +
++          BF.getPrintName());
++    auto fail = [&](uint64_t Offset, StringRef Why) {
++      return createFatalBOLTError(
++          "AArch32 instrumentation cannot preserve cross-function exclusive "
++          "reservations in " + BF.getPrintName() + " at 0x" +
++          Twine::utohexstr(BF.getAddress() + Offset) + ": " + Why);
++    };
++    if (!Complete || ITRemaining)
++      return fail(0, "incomplete original instruction stream");
++    if (BF.isMultiEntry())
++      return fail(0, "multiple function entries");
++
++    // Track both reservation states at joins. A single visited bit for an
++    // instruction would lose a live path arriving after a cleared path.
++    std::vector<std::pair<uint64_t, bool>> Worklist{
++        {Instructions.begin()->first, false}};
++    std::set<std::pair<uint64_t, bool>> Visited;
++    while (!Worklist.empty()) {
++      const auto [Offset, Live] = Worklist.back();
++      Worklist.pop_back();
++      if (!Visited.insert({Offset, Live}).second)
++        continue;
++      auto II = Instructions.find(Offset);
++      if (II == Instructions.end()) {
++        if (Live || Offset < BF.getSize())
++          return fail(Offset, "unmodeled fallthrough or branch destination");
++        continue;
++      }
++      const Decoded &D = II->second;
++      const MCInst &Inst = D.Inst;
++      const MCInstrDesc &Desc = BC.MII->get(Inst.getOpcode());
++      if (MIB->isUnsupportedPCWrite(Inst))
++        return fail(Offset, "unmodeled PC-writing transfer");
++      if (MIB->isCall(Inst)) {
++        if (Live)
++          return fail(Offset, "call with a live reservation");
++        Worklist.emplace_back(Offset + D.Size, false);
++        continue;
++      }
++      if (MIB->isReturn(Inst)) {
++        if (Live)
++          return fail(Offset, "return with a live reservation");
++        if (D.Predicated)
++          Worklist.emplace_back(Offset + D.Size, false);
++        continue;
++      }
++      if (MIB->isIndirectBranch(Inst))
++        return fail(Offset, "unmodeled indirect branch");
++      if (MIB->isBranch(Inst)) {
++        uint64_t Target = 0;
++        if (!MIB->evaluateBranch(Inst, BF.getAddress() + Offset, D.Size, Target))
++          return fail(Offset, "unresolved direct branch");
++        Target &= ~1ULL;
++        if (Target >= BF.getAddress() &&
++            Target < BF.getAddress() + BF.getSize()) {
++          Worklist.emplace_back(Target - BF.getAddress(), Live);
++        } else if (Live) {
++          return fail(Offset, "branch out of function with a live reservation");
++        }
++        if (!MIB->isUnconditionalBranch(Inst) || D.Predicated)
++          Worklist.emplace_back(Offset + D.Size, Live);
++        continue;
++      }
++      if (MIB->isTerminator(Inst)) {
++        if (Live)
++          return fail(Offset, "terminator with a live reservation");
++        continue;
++      }
++      bool After = Live;
++      if (MIB->isExclusiveMemoryAccess(Inst)) {
++        const auto Kind = MIB->getExclusiveMemoryAccessKind(Inst);
++        // LLVM's generic mayLoad/mayStore flags do not distinguish the
++        // exclusive monitor operations. Use the target's explicit kind.
++        if (Kind == MCPlusBuilder::ExclusiveMemoryAccessKind::Store) {
++          if (!Live)
++            return fail(Offset, "exclusive store without a local reservation");
++          After = false;
++        } else if (Kind == MCPlusBuilder::ExclusiveMemoryAccessKind::Load) {
++          After = true;
++        } else {
++          After = false; // CLREX
++        }
++        if (D.Predicated)
++          Worklist.emplace_back(Offset + D.Size, Live);
++      }
++      Worklist.emplace_back(Offset + D.Size, After);
++    }
++  }
++  return Error::success();
++}
+ Error RewriteInstance::run() {
+   assert(BC && "failed to create a binary context");
+ 
+@@ -916,6 +1085,10 @@
+   readDebugInfo();
+ 
+   disassembleFunctions();
++
++  if (BC->isARM() && opts::Instrument)
++    if (Error E = validateARMExclusiveReservations(*BC))
++      return E;
+ 
+   processMetadataPreCFG();
+ 
+--- a/bolt/include/bolt/Core/MCPlusBuilder.h
++++ b/bolt/include/bolt/Core/MCPlusBuilder.h
+@@ -925,8 +925,15 @@
+ 
+   /// True for target exclusive accesses/monitor operations that cannot have
+   /// profiling memory traffic inserted into their reservation window.
++  enum class ExclusiveMemoryAccessKind { None, Load, Store, Clear };
++
++  virtual ExclusiveMemoryAccessKind
++  getExclusiveMemoryAccessKind(const MCInst &Inst) const {
++    return ExclusiveMemoryAccessKind::None;
++  }
++
+   virtual bool isExclusiveMemoryAccess(const MCInst &Inst) const {
+-    return false;
++    return getExclusiveMemoryAccessKind(Inst) != ExclusiveMemoryAccessKind::None;
+   }
+ 
+   virtual bool isAArch64ExclusiveLoad(const MCInst &Inst) const {
+--- a/bolt/lib/Target/ARM/ARMMCPlusBuilder.cpp
++++ b/bolt/lib/Target/ARM/ARMMCPlusBuilder.cpp
+@@ -325,45 +325,48 @@
+     return MCPlusBuilder::hasDefOfPhysReg(Inst, Reg);
+   }
+ 
+-  bool isExclusiveMemoryAccess(const MCInst &Inst) const override {
++  ExclusiveMemoryAccessKind
++  getExclusiveMemoryAccessKind(const MCInst &Inst) const override {
+     switch (Inst.getOpcode()) {
+     case ARM::LDREX:
+     case ARM::LDREXB:
+     case ARM::LDREXH:
+     case ARM::LDREXD:
++    case ARM::LDAEX:
++    case ARM::LDAEXB:
++    case ARM::LDAEXH:
++    case ARM::LDAEXD:
++    case ARM::t2LDREX:
++    case ARM::t2LDREXB:
++    case ARM::t2LDREXH:
++    case ARM::t2LDREXD:
++    case ARM::t2LDAEX:
++    case ARM::t2LDAEXB:
++    case ARM::t2LDAEXH:
++    case ARM::t2LDAEXD:
++      return ExclusiveMemoryAccessKind::Load;
+     case ARM::STREX:
+     case ARM::STREXB:
+     case ARM::STREXH:
+     case ARM::STREXD:
+-    case ARM::LDAEX:
+-    case ARM::LDAEXB:
+-    case ARM::LDAEXH:
+-    case ARM::LDAEXD:
+     case ARM::STLEX:
+     case ARM::STLEXB:
+     case ARM::STLEXH:
+     case ARM::STLEXD:
+-    case ARM::t2LDREX:
+-    case ARM::t2LDREXB:
+-    case ARM::t2LDREXH:
+-    case ARM::t2LDREXD:
+     case ARM::t2STREX:
+     case ARM::t2STREXB:
+     case ARM::t2STREXH:
+     case ARM::t2STREXD:
+-    case ARM::t2LDAEX:
+-    case ARM::t2LDAEXB:
+-    case ARM::t2LDAEXH:
+-    case ARM::t2LDAEXD:
+     case ARM::t2STLEX:
+     case ARM::t2STLEXB:
+     case ARM::t2STLEXH:
+     case ARM::t2STLEXD:
++      return ExclusiveMemoryAccessKind::Store;
+     case ARM::CLREX:
+     case ARM::t2CLREX:
+-      return true;
+-    default:
+-      return false;
++      return ExclusiveMemoryAccessKind::Clear;
++    default:
++      return ExclusiveMemoryAccessKind::None;
+     }
+   }
+ 
+--- a/bolt/unittests/Core/ARMReturns.cpp
++++ b/bolt/unittests/Core/ARMReturns.cpp
+@@ -209,46 +209,47 @@
+       BC->TheTarget->createMCDisassembler(ThumbSTI, *BC->Ctx));
+   ASSERT_NE(ARMDecoder, nullptr);
+   ASSERT_NE(ThumbDecoder, nullptr);
+-  struct Case { bool Thumb; std::vector<uint8_t> Bytes; bool Exclusive; };
+-  const Case Cases[] = {
+-      {false, {0x9f,0x0f,0x92,0xe1}, true}, // arm ldrex r0,[r2]
+-      {false, {0x9f,0x0f,0xd2,0xe1}, true}, // arm ldrexb r0,[r2]
+-      {false, {0x9f,0x0f,0xf2,0xe1}, true}, // arm ldrexh r0,[r2]
+-      {false, {0x9f,0x0f,0xb2,0xe1}, true}, // arm ldrexd r0,r1,[r2]
+-      {false, {0x9f,0x0e,0x92,0xe1}, true}, // arm ldaex r0,[r2]
+-      {false, {0x9f,0x0e,0xd2,0xe1}, true}, // arm ldaexb r0,[r2]
+-      {false, {0x9f,0x0e,0xf2,0xe1}, true}, // arm ldaexh r0,[r2]
+-      {false, {0x9f,0x0e,0xb2,0xe1}, true}, // arm ldaexd r0,r1,[r2]
+-      {false, {0x90,0x3f,0x82,0xe1}, true}, // arm strex r3,r0,[r2]
+-      {false, {0x90,0x3f,0xc2,0xe1}, true}, // arm strexb r3,r0,[r2]
+-      {false, {0x90,0x3f,0xe2,0xe1}, true}, // arm strexh r3,r0,[r2]
+-      {false, {0x90,0x3f,0xa2,0xe1}, true}, // arm strexd r3,r0,r1,[r2]
+-      {false, {0x90,0x3e,0x82,0xe1}, true}, // arm stlex r3,r0,[r2]
+-      {false, {0x90,0x3e,0xc2,0xe1}, true}, // arm stlexb r3,r0,[r2]
+-      {false, {0x90,0x3e,0xe2,0xe1}, true}, // arm stlexh r3,r0,[r2]
+-      {false, {0x90,0x3e,0xa2,0xe1}, true}, // arm stlexd r3,r0,r1,[r2]
+-      {false, {0x1f,0xf0,0x7f,0xf5}, true}, // arm clrex
+-      {false, {0x00,0x00,0x92,0xe5}, false}, // arm ldr r0,[r2]
+-      {false, {0x00,0x00,0x82,0xe5}, false}, // arm str r0,[r2]
+-      {true, {0x52,0xe8,0x00,0x0f}, true}, // thumb ldrex r0,[r2]
+-      {true, {0xd2,0xe8,0x4f,0x0f}, true}, // thumb ldrexb r0,[r2]
+-      {true, {0xd2,0xe8,0x5f,0x0f}, true}, // thumb ldrexh r0,[r2]
+-      {true, {0xd2,0xe8,0x7f,0x01}, true}, // thumb ldrexd r0,r1,[r2]
+-      {true, {0xd2,0xe8,0xef,0x0f}, true}, // thumb ldaex r0,[r2]
+-      {true, {0xd2,0xe8,0xcf,0x0f}, true}, // thumb ldaexb r0,[r2]
+-      {true, {0xd2,0xe8,0xdf,0x0f}, true}, // thumb ldaexh r0,[r2]
+-      {true, {0xd2,0xe8,0xff,0x01}, true}, // thumb ldaexd r0,r1,[r2]
+-      {true, {0x42,0xe8,0x00,0x03}, true}, // thumb strex r3,r0,[r2]
+-      {true, {0xc2,0xe8,0x43,0x0f}, true}, // thumb strexb r3,r0,[r2]
+-      {true, {0xc2,0xe8,0x53,0x0f}, true}, // thumb strexh r3,r0,[r2]
+-      {true, {0xc2,0xe8,0x73,0x01}, true}, // thumb strexd r3,r0,r1,[r2]
+-      {true, {0xc2,0xe8,0xe3,0x0f}, true}, // thumb stlex r3,r0,[r2]
+-      {true, {0xc2,0xe8,0xc3,0x0f}, true}, // thumb stlexb r3,r0,[r2]
+-      {true, {0xc2,0xe8,0xd3,0x0f}, true}, // thumb stlexh r3,r0,[r2]
+-      {true, {0xc2,0xe8,0xf3,0x01}, true}, // thumb stlexd r3,r0,r1,[r2]
+-      {true, {0xbf,0xf3,0x2f,0x8f}, true}, // thumb clrex
+-      {true, {0x10,0x68}, false}, // thumb ldr r0,[r2]
+-      {true, {0x10,0x60}, false}, // thumb str r0,[r2]
++  using Kind = MCPlusBuilder::ExclusiveMemoryAccessKind;
++  struct Case { bool Thumb; std::vector<uint8_t> Bytes; bool Exclusive; Kind Access; };
++  const Case Cases[] = {
++      {false, {0x9f,0x0f,0x92,0xe1}, true, Kind::Load}, // arm ldrex r0,[r2]
++      {false, {0x9f,0x0f,0xd2,0xe1}, true, Kind::Load}, // arm ldrexb r0,[r2]
++      {false, {0x9f,0x0f,0xf2,0xe1}, true, Kind::Load}, // arm ldrexh r0,[r2]
++      {false, {0x9f,0x0f,0xb2,0xe1}, true, Kind::Load}, // arm ldrexd r0,r1,[r2]
++      {false, {0x9f,0x0e,0x92,0xe1}, true, Kind::Load}, // arm ldaex r0,[r2]
++      {false, {0x9f,0x0e,0xd2,0xe1}, true, Kind::Load}, // arm ldaexb r0,[r2]
++      {false, {0x9f,0x0e,0xf2,0xe1}, true, Kind::Load}, // arm ldaexh r0,[r2]
++      {false, {0x9f,0x0e,0xb2,0xe1}, true, Kind::Load}, // arm ldaexd r0,r1,[r2]
++      {false, {0x90,0x3f,0x82,0xe1}, true, Kind::Store}, // arm strex r3,r0,[r2]
++      {false, {0x90,0x3f,0xc2,0xe1}, true, Kind::Store}, // arm strexb r3,r0,[r2]
++      {false, {0x90,0x3f,0xe2,0xe1}, true, Kind::Store}, // arm strexh r3,r0,[r2]
++      {false, {0x90,0x3f,0xa2,0xe1}, true, Kind::Store}, // arm strexd r3,r0,r1,[r2]
++      {false, {0x90,0x3e,0x82,0xe1}, true, Kind::Store}, // arm stlex r3,r0,[r2]
++      {false, {0x90,0x3e,0xc2,0xe1}, true, Kind::Store}, // arm stlexb r3,r0,[r2]
++      {false, {0x90,0x3e,0xe2,0xe1}, true, Kind::Store}, // arm stlexh r3,r0,[r2]
++      {false, {0x90,0x3e,0xa2,0xe1}, true, Kind::Store}, // arm stlexd r3,r0,r1,[r2]
++      {false, {0x1f,0xf0,0x7f,0xf5}, true, Kind::Clear}, // arm clrex
++      {false, {0x00,0x00,0x92,0xe5}, false, Kind::None}, // arm ldr r0,[r2]
++      {false, {0x00,0x00,0x82,0xe5}, false, Kind::None}, // arm str r0,[r2]
++      {true, {0x52,0xe8,0x00,0x0f}, true, Kind::Load}, // thumb ldrex r0,[r2]
++      {true, {0xd2,0xe8,0x4f,0x0f}, true, Kind::Load}, // thumb ldrexb r0,[r2]
++      {true, {0xd2,0xe8,0x5f,0x0f}, true, Kind::Load}, // thumb ldrexh r0,[r2]
++      {true, {0xd2,0xe8,0x7f,0x01}, true, Kind::Load}, // thumb ldrexd r0,r1,[r2]
++      {true, {0xd2,0xe8,0xef,0x0f}, true, Kind::Load}, // thumb ldaex r0,[r2]
++      {true, {0xd2,0xe8,0xcf,0x0f}, true, Kind::Load}, // thumb ldaexb r0,[r2]
++      {true, {0xd2,0xe8,0xdf,0x0f}, true, Kind::Load}, // thumb ldaexh r0,[r2]
++      {true, {0xd2,0xe8,0xff,0x01}, true, Kind::Load}, // thumb ldaexd r0,r1,[r2]
++      {true, {0x42,0xe8,0x00,0x03}, true, Kind::Store}, // thumb strex r3,r0,[r2]
++      {true, {0xc2,0xe8,0x43,0x0f}, true, Kind::Store}, // thumb strexb r3,r0,[r2]
++      {true, {0xc2,0xe8,0x53,0x0f}, true, Kind::Store}, // thumb strexh r3,r0,[r2]
++      {true, {0xc2,0xe8,0x73,0x01}, true, Kind::Store}, // thumb strexd r3,r0,r1,[r2]
++      {true, {0xc2,0xe8,0xe3,0x0f}, true, Kind::Store}, // thumb stlex r3,r0,[r2]
++      {true, {0xc2,0xe8,0xc3,0x0f}, true, Kind::Store}, // thumb stlexb r3,r0,[r2]
++      {true, {0xc2,0xe8,0xd3,0x0f}, true, Kind::Store}, // thumb stlexh r3,r0,[r2]
++      {true, {0xc2,0xe8,0xf3,0x01}, true, Kind::Store}, // thumb stlexd r3,r0,r1,[r2]
++      {true, {0xbf,0xf3,0x2f,0x8f}, true, Kind::Clear}, // thumb clrex
++      {true, {0x10,0x68}, false, Kind::None}, // thumb ldr r0,[r2]
++      {true, {0x10,0x60}, false, Kind::None}, // thumb str r0,[r2]
+   };
+   for (const Case &C : Cases) {
+     SCOPED_TRACE(C.Thumb ? "Thumb" : "ARM");
+@@ -259,6 +260,7 @@
+               MCDisassembler::Success);
+     EXPECT_EQ(Size, C.Bytes.size());
+     EXPECT_EQ(BC->getMIBFor(C.Thumb)->isExclusiveMemoryAccess(Inst), C.Exclusive);
++    EXPECT_EQ(BC->getMIBFor(C.Thumb)->getExclusiveMemoryAccessKind(Inst), C.Access);
+   }
+ }
+ } // namespace
+--- /dev/null
++++ b/bolt/test/ARM/Inputs/check-arm-cross-function-exclusive.py
+@@ -0,0 +1,81 @@
++from pathlib import Path
++import json, os, re, shutil, subprocess, sys, tempfile
++
++parent=Path(sys.argv[1]);parent.mkdir(parents=True,exist_ok=True)
++out=Path(tempfile.mkdtemp(prefix='cross-exclusive-',dir=parent))
++tc=Path(shutil.which('llvm-bolt')).parent
++runtime=tc.parent/'bolt-rt-baremetal-arm/libbolt_rt_baremetal.a'
++rows=[]
++def function(name,isa,body):
++ return '.balign 4\n.'+isa+'\n.global '+name+'\n.type '+name+',%function\n'+('.thumb_func\n' if isa=='thumb' else '')+name+':\n'+body+'\n.size '+name+',.-'+name+'\n'
++def run(d,name,cmd):
++ p=subprocess.run([str(x) for x in cmd],capture_output=True,text=True)
++ (d/(name+'.log')).write_text(p.stdout+p.stderr)
++ return p
++def build(d,caller,callee,body):
++ d.mkdir(parents=True)
++ asm='.syntax unified\n.arch armv7-a\n.text\n'+function('_start','arm','bl caller\nbx lr')+function('caller',caller,body)+function('callee',callee,'cmp r0,#0\nbeq .Lexit\nadd r0,r0,#1\n.Lexit:\nbx lr')
++ (d/'input.s').write_text(asm)
++ (d/'layout.ld').write_text('ENTRY(_start)\nSECTIONS { . = 0x8000; .text : { *(.text*) } }\n')
++ for name,cmd in [('mc',['llvm-mc','-triple=armv7-none-eabi','-arm-add-build-attributes','-filetype=obj',d/'input.s','-o',d/'input.o']),('link',['ld.lld','--emit-relocs','-T',d/'layout.ld',d/'input.o','-o',d/'input.elf'])]:
++  p=run(d,name,cmd);assert p.returncode==0,p.stdout+p.stderr
++def check(d,kind,mode,options,selected=False,admit=False,relocate=False):
++ name=kind+'-'+mode;candidate=d/(name+'.elf')
++ common=['llvm-bolt',d/'input.elf','-o',candidate,'--no-huge-pages','-lite=0',*options]
++ if not relocate:common+=['--instrument','--instrument-calls=false','--arm-instrumentation-contract=privileged-single-core-no-fiq','--instrumentation-sleep-time=1','--runtime-instrumentation-lib='+str(runtime)]
++ p=run(d,name,common)
++ good=p.returncode==0 and candidate.exists() if admit else p.returncode==1 and not candidate.exists() and ('AArch32 instrumentation does not support exclusive-memory accesses' if selected else 'AArch32 instrumentation cannot preserve cross-function exclusive reservations') in p.stdout+p.stderr
++ rows.append(dict(fixture=d.name,mode=mode,kind=kind,returncode=p.returncode,output=candidate.exists(),passed=good))
++ if not good:raise RuntimeError(str(rows[-1])+'\n'+p.stdout+p.stderr)
++for caller in ('arm','thumb'):
++ for callee in ('arm','thumb'):
++  for callkind in ('direct','indirect'):
++   d=out/(caller+'-'+callee+'-'+callkind)
++   setup='movw r7,:lower16:callee\nmovt r7,:upper16:callee\n' if callkind=='indirect' else ''
++   call='bl callee' if callkind=='direct' else 'blx r7'
++   build(d,caller,callee,'push {r4-r8,lr}\nmov r6,r0\n'+setup+'ldrex r4,[r6]\n'+call+'\nstrex r5,r4,[r6]\nmov r0,r5\npop {r4-r8,pc}')
++   for kind,select in [('unselected',['--funcs=callee']),('skipped',['--skip-funcs=caller,_start'])]:
++    for mode,extra in [('normal',[]),('reverse',['--reorder-blocks=reverse']),('conservative',['--conservative-instrumentation']),('inline',['--force-inline=callee'])]:
++     check(d,kind,mode,select+extra)
++   for mode,extra in [('normal',[]),('reverse',['--reorder-blocks=reverse'])]:
++    check(d,'relocate',mode,['--funcs=callee']+extra,admit=True,relocate=True)
++for isa in ('arm','thumb'):
++ for suffix in ('','b','h','d'):
++  pair='r4,r5' if suffix=='d' else 'r4'
++  load='ldrex'+suffix+' '+pair+',[r6]'
++  store='strex'+suffix+' r8,'+pair+',[r6]'
++  for live in (False,True):
++   kind='width_'+(suffix or 'word')+('_live' if live else '_closed')
++   body=load+'\n'+('bl callee\n' if live else '')+store+'\nbx lr'
++   d=out/(isa+'-'+kind);build(d,isa,isa,body)
++   check(d,kind,'instrument',['--funcs=callee'],admit=not live)
++ cases={
++  'secondary_entry':('ldrex r4,[r6]\nstrex r5,r4,[r6]\nbx lr\n.global alternate\n.type alternate,%function\n'+('.thumb_func\n' if isa=='thumb' else '')+'alternate:\nldrex r4,[r6]\nbl callee\nstrex r5,r4,[r6]\nbx lr\n.size alternate,.-alternate',False),
++  'live_return':('ldrex r4,[r6]\nbx lr',False),
++  'store_only':('strex r5,r4,[r6]\nbx lr',False),
++  'live_tail':('ldrex r4,[r6]\nb callee',False),
++  'skip_clear':('ldrex r4,[r6]\ncmp r0,#0\nbeq .Lcall\nclrex\n.Lcall:\nbl callee\nbx lr',False),
++  'branch_to_middle':('ldrex r4,[r6]\nb .Lmiddle+2\n.Lmiddle:\nadd.w r0,r0,#1\nbx lr' if isa=='thumb' else 'ldrex r4,[r6]\nb .Lmiddle\n.Lmiddle:\n.word 0\nbx lr',False),
++  'live_fallthrough':('ldrex r4,[r6]\nnop',False),
++  'live_indirect_branch':('ldrex r4,[r6]\nbx r7',False),
++  'closed_indirect_branch':('ldrex r4,[r6]\nclrex\nbx r7',False),
++  'loop_join':('b .Lclear\n.Llive:\nldrex r4,[r6]\nb .Ljoin\n.Lclear:\nclrex\n.Ljoin:\ncmp r0,#0\nbeq .Llive\nbl callee\nbx lr',False),
++  'decode_failure':(('.inst.w' if isa=='thumb' else '.inst')+' 0xffffffff\nldrex r4,[r6]\nclrex\nbx lr',False),
++  'local_pair':('ldrex r4,[r6]\nstrex r5,r4,[r6]\nbx lr',True),
++  'clear_before_call':('push {r4-r8,lr}\nldrex r4,[r6]\nclrex\nbl callee\npop {r4-r8,pc}',True),
++  'call_before_pair':('push {r4-r8,lr}\nbl callee\nldrex r4,[r6]\nstrex r5,r4,[r6]\npop {r4-r8,pc}',True),
++  'local_loop':('.Lretry:\nldrex r4,[r6]\nstrex r5,r4,[r6]\ncmp r5,#0\nbne .Lretry\nbx lr',True),
++  'data_bytes':('b .Lcode\n.word 0xe1964f9f\n.Lcode:\nbl callee\nbx lr',True),
++ }
++ if isa=='arm':
++  cases['predicated_store']=('ldrex r4,[r6]\nstrexeq r5,r4,[r6]\nbl callee\nbx lr',False)
++  cases['predicated_clear']=('ldrex r4,[r6]\nclrex\nbxeq lr\nbx lr',True)
++  cases['predicated_return']=('ldrex r4,[r6]\nbxeq lr\nclrex\nbx lr',False)
++ else:
++  cases['it_store']=('ldrex r4,[r6]\ncmp r0,#0\nit eq\nstrexeq r5,r4,[r6]\nbl callee\nbx lr',False)
++  cases['it_clear']=('ldrex r4,[r6]\ncmp r0,#0\nit eq\nclrexeq\nbl callee\nbx lr',False)
++ for kind,(body,admit) in cases.items():
++  d=out/(isa+'-'+kind);build(d,isa,isa,body)
++  check(d,kind,'instrument',['--funcs=callee'],admit=admit)
++(out/'results.json').write_text(json.dumps(rows,indent=2)+'\n')
++print('Cross-function exclusive boundary:',len(rows),'passed;',sum(not r['output'] for r in rows),'rejections;',sum(r['output'] for r in rows),'admissions;',out,flush=True)
+--- /dev/null
++++ b/bolt/test/ARM/arm-cross-function-exclusive.test
+@@ -0,0 +1,3 @@
++## Skipped ARM/Thumb callers may not carry an exclusive reservation through
++## independently instrumented callees or function exits. Local pairs remain safe.
++RUN: %python %p/Inputs/check-arm-cross-function-exclusive.py %t.dir
