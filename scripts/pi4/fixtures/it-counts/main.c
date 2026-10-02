@@ -12,6 +12,14 @@ extern struct Case cases[NUM_CASES];
 extern volatile uint32_t *counter_base;
 extern volatile uint32_t counter_count, instrumented;
 extern uint32_t expected_counts[NUM_CASES][128];
+extern void (*reset_runtime)(void);
+
+void baseline_clear_counters(void) {
+    for (unsigned index=0; index<counter_count; ++index) {
+        counter_base[2*index]=0;
+        counter_base[2*index+1]=0;
+    }
+}
 
 static void puts_uart(const char *s) {
     while (*s) {
@@ -52,11 +60,21 @@ void state_main(void) {
     watchdog(10);
     puts_uart("BOLT_IT_COUNTS BEGIN instrumented="); hex(instrumented);
     puts_uart(" counters="); hex(counter_count); puts_uart("\r\n");
+    puts_uart("BOLT_IT_COUNTS RESET runtime="); hex(instrumented); puts_uart("\r\n");
     if (!counter_count || counter_count>128) fail(0,0,999,128,counter_count);
     const uint32_t seed_low[3]={0,0xfffffff0u,0xffffffffu};
     const uint32_t seed_high[3]={0,7,0xffffffffu};
     for (unsigned id=0; id<NUM_CASES; ++id) {
         for (unsigned seed=0; seed<3; ++seed) {
+            // Call the linked runtime with all words nonzero before reseeding.
+            // No measured function is running during this quiescent reset.
+            for (unsigned index=0; index<counter_count; ++index) {
+                counter_base[2*index]=0x12345678u;
+                counter_base[2*index+1]=0x9abcdef0u;
+            }
+            reset_runtime();
+            for (unsigned index=0; index<2*counter_count; ++index)
+                if (counter_base[index]) fail(id,seed,2000+index,0,counter_base[index]);
             for (unsigned index=0; index<counter_count; ++index) {
                 counter_base[2*index]=seed_low[seed];
                 counter_base[2*index+1]=seed_high[seed];

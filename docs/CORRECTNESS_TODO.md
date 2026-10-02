@@ -127,6 +127,10 @@ live flags, return values, LR/SP and fallthrough.
   reset and snapshot behavior.
   Leaf/IT/terminal-branch/loop paths and per-case reset pass; multiple entries and
   live snapshots remain. See PI_IT_COUNTS.md.
+- [x] Execute the real linked runtime clear routine at quiescent boundaries:
+  all low/high words clear before each of 372 cases per mode. A deliberate BX-LR
+  replacement fails at the expected first uncleared word. Concurrent resets or
+  live snapshots are unverified and require quiescence in the supported contract.
 - [ ] Enforce conservative edge counting when required call counts are disabled;
   prevent entry-hook counts from being treated as measured edge profiles.
 

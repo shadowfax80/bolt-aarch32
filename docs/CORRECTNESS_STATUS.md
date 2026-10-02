@@ -20,7 +20,7 @@ from completion criteria. Three items are complete within this scope (2, 8, 10).
 | 2 | EHABI exidx/extab | Complete via rejection | Unsupported unwind information is rejected; full unwind rewriting remains unsupported |
 | 3 | Pseudo/CFG invariants | Partial | ARM B pseudo root cause fixed; debug-only recovery remains and assertions-on/off parity is unverified |
 | 4 | Control flow and return semantics | Partial | CBZ flags, ARM Bcc and tail calls improved; conditional returns, wider PC writes, live flags, IT and inlining boundaries remain |
-| 5 | Instrumentation correctness | Active, partial | Carry, CPU-state, IT and nested Thumb/recursion counts pass on Pi; mixed-ISA nested state, active interrupts and runtime reset/snapshot coverage remain |
+| 5 | Instrumentation correctness | Partial; operating scope next | Carry, CPU-state, IT, nested Thumb/recursion and real runtime clear pass on Pi; mixed-ISA nested state, active interrupts and live snapshots remain |
 | 6 | Instrumentation scope | Open | Enforce privilege/single-core/IRQ-FIQ contract and reject placeholder indirect-call profiling |
 | 7 | ISA/profile/endianness | Pending | Enforce the supported target feature boundary |
 | 8 | FK_Data_8 / ABS32 mismatch | Complete | ATFE host and Pi checks passed; symbolic 64-bit relocations rejected; resolved values and map width corrected |

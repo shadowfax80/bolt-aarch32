@@ -58,9 +58,11 @@ def check_artifacts(out, build):
             and set(build['variants'])=={'normal','reverse','conservative'}, 'wrong IT matrix')
     for name,digest in build['files'].items():
         require(sha256(out/name)==digest,'changed artifact '+name)
-    for name in ('baseline',*build['variants']):
+    faults=build.get('faults',{})
+    require(not faults or set(faults)=={'bad-reset'},'unknown fault fixture')
+    for name in ('baseline',*build['variants'],*faults):
         elf,raw=(out/(name+'.elf')).read_bytes(),(out/(name+'.bin')).read_bytes()
-        sections,_=elf_metadata(elf)
+        sections,symbols=elf_metadata(elf)
         loaded=[s for s in sections if 'physical' in s]
         base=min(s['physical'] for s in loaded)
         require(base==0x8000 and struct.unpack_from('<I',elf,24)[0]==0x8000,'wrong boot entry/base')
@@ -72,7 +74,28 @@ def check_artifacts(out, build):
             require(raw[position:position+section['size']]==elf[section['offset']:section['offset']+section['size']], 'ELF/raw mismatch')
         if name=='baseline':
             continue
-        report=json.loads((out/(name+'-redirects.json')).read_text(encoding='utf-8'))
+        selected=faults[name]['base_variant'] if name in faults else name
+        if build.get('runtime_clear_checked',False):
+            objects=[s for s in symbols if s['name']=='reset_runtime' and s['kind']==1 and s['size']==4]
+            require(len(objects)==1,'missing/ambiguous runtime reset pointer')
+            address=objects[0]['address']
+            section=next(s for s in loaded if s['address']<=address<address+4<=s['address']+s['size'])
+            position=section['offset']+address-section['address']
+            target=struct.unpack_from('<I',elf,position)[0]
+            reports=re.findall(r'^BOLT-INFO: clear procedure is 0x([0-9a-f]+)$',
+                               (out/(selected+'-instrument.log')).read_text(encoding='utf-8'),re.M)
+            require(len(reports)==1 and target==int(reports[0],16)==build['variants'][selected]['runtime_clear_address'],
+                    'runtime reset pointer/linker mismatch')
+            require(any(s['flags']&4 and s['address']<=(target&~1)<s['address']+s['size'] for s in loaded),
+                    'runtime reset points outside loaded executable code')
+            if name in faults:
+                require(target%4==0,'reset fault requires aligned ARM code')
+                section=next(s for s in loaded if s['address']<=target<target+4<=s['address']+s['size'])
+                position=section['offset']+target-section['address']
+                expected=bytearray((out/(selected+'.elf')).read_bytes())
+                expected[position:position+4]=struct.pack('<I',0xe12fff1e)
+                require(elf==expected,'fault image changes more than the reset entry')
+        report=json.loads((out/(selected+'-redirects.json')).read_text(encoding='utf-8'))
         require({r['name'] for r in report['redirected']}==set(build['functions'])
                 and len(report['redirected'])==len(build['functions']),'incomplete redirects')
         for row in report['redirected']:
@@ -81,16 +104,28 @@ def check_artifacts(out, build):
             position=section['offset']+row['input']-section['address']
             branch=elf[position:position+4]
             require(branch.hex()==row['branch_hex'] and branch_target(branch,row['input'],True)==row['output'],'wrong generated-code redirect')
-        check_groups((out/(name+'-disassembly.log')).read_text(encoding='utf-8'),build['functions'])
+        check_groups((out/(selected+'-disassembly.log')).read_text(encoding='utf-8'),build['functions'])
 
 
-def check_result(text, instrumented, counters, cases=300):
+def check_result(text, instrumented, counters, cases=300, runtime_clear=False):
     begins=re.findall(r'^BOLT_IT_COUNTS BEGIN instrumented=([0-9a-f]{8}) counters=([0-9a-f]{8})\r?$',text,re.M)
     require(len(begins)==1 and tuple(int(x,16) for x in begins[0])==(instrumented,counters),'wrong/missing IT begin')
     require('BOLT_IT_COUNTS FAIL' not in text,'Pi reported a result/counter mismatch')
+    if runtime_clear:
+        resets=re.findall(r'^BOLT_IT_COUNTS RESET runtime=([0-9a-f]{8})\r?$',text,re.M)
+        require(len(resets)==1 and int(resets[0],16)==instrumented,'missing/wrong runtime reset marker')
     passes=re.findall(r'^BOLT_IT_COUNTS PASS cases=(\d+)\r?$',text,re.M)
     require(passes==[str(cases)] and text.count('BOLT_IT_COUNTS PASS')==1,'missing/malformed/duplicate IT pass')
-    return dict(passed=True,cases=cases,counters=counters,instrumented=bool(instrumented))
+    return dict(passed=True,cases=cases,counters=counters,instrumented=bool(instrumented),runtime_clear_checked=runtime_clear)
+
+
+def check_reset_fault(text, counters):
+    begins=re.findall(r'^BOLT_IT_COUNTS BEGIN instrumented=([0-9a-f]{8}) counters=([0-9a-f]{8})\r?$',text,re.M)
+    require(len(begins)==1 and tuple(int(x,16) for x in begins[0])==(1,counters),'wrong fault begin')
+    failures=re.findall(r'^BOLT_IT_COUNTS FAIL case=([0-9a-f]{8}) seed=([0-9a-f]{8}) field=([0-9a-f]{8}) expected=([0-9a-f]{8}) actual=([0-9a-f]{8})\r?$',text,re.M)
+    require(len(failures)==1 and tuple(int(x,16) for x in failures[0])==(0,0,2000,0,0x12345678),'wrong/missing reset-fault detection')
+    require('BOLT_IT_COUNTS PASS' not in text,'fault incorrectly passed')
+    return dict(fault_detected=True,case=0,seed=0,field=2000,actual=0x12345678)
 
 
 def main():
@@ -105,7 +140,7 @@ def main():
     print('Evidence:',evidence,flush=True)
     port_name=resolve_port(args.port)
     results={}
-    for name in ('baseline',*build['variants']):
+    for name in ('baseline',*build['variants'],*build.get('faults',{})):
         console=Capture(evidence/(name+'.log'))
         try:
             with serial.Serial(port_name,115200,timeout=0.1,write_timeout=20) as port:
@@ -123,7 +158,10 @@ def main():
                 text=console.data.decode('ascii','replace')
                 result=max(text.rfind('BOLT_IT_COUNTS PASS'),text.rfind('BOLT_IT_COUNTS FAIL'))
                 require(result>=0 and text.rfind('SBOOT?')>result,'payload did not report and return to loader')
-                results[name]=check_result(text,0 if name=='baseline' else 1,1 if name=='baseline' else build['variants'][name]['counters'],build['cases'])
+                if name in build.get('faults',{}):
+                    results[name]=check_reset_fault(text,build['faults'][name]['counters'])
+                else:
+                    results[name]=check_result(text,0 if name=='baseline' else 1,1 if name=='baseline' else build['variants'][name]['counters'],build['cases'],build.get('runtime_clear_checked',False))
         finally:
             if console.log:console.log.close()
     check_artifacts(out,build)

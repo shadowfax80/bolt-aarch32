@@ -2,6 +2,16 @@
 
 ## Latest: resumed by user; #5 active
 
+Actual linked runtime reset now passes the 372-case matrix in all four modes.
+The bad-reset image fails at case 0/seed 0/field 2000, actual 0x12345678, proving
+that clear was not replaced by fixture-side zeroing. All five images return to
+the loader. Eight host gate tests pass. Evidence: it-counts-pi/build-oxagizx9/
+pi-verify-0qqt43k2 and correctness_runtime_clear_20261002.json.
+Next enforce the instrumentation operating boundary under #6; #5 remains
+partial for live snapshots, active interrupts and mixed-ISA nested state.
+Preimages for #6 are preserved in out/correctness/instrumentation-scope/before
+and before-manifest.json. No scope source edits have been made at this point.
+
 Overlay 0027 is pushed as be09efb. The expanded fixture adds nested Thumb calls
 and recursion (two caller levels; n=0,1,2,3,8,17,33,64, maximum 65 frames).
 All four Pi images pass 372 cases each, including original IT cases plus 72

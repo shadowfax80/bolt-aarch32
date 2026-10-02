@@ -3,7 +3,7 @@ import sys
 import unittest
 
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]/'pi4'))
-from verify_it_counts import check_groups,check_result
+from verify_it_counts import check_groups,check_result,check_reset_fault
 
 BEGIN='BOLT_IT_COUNTS BEGIN instrumented=00000001 counters=00000051\n'
 PASS='BOLT_IT_COUNTS PASS cases=300\n'
@@ -15,6 +15,18 @@ GROUP='''00010000 <it_tt>:
 '''
 
 class ITCountsTest(unittest.TestCase):
+    def test_reset_fault_expected_failure(self):
+        text='BOLT_IT_COUNTS BEGIN instrumented=00000001 counters=00000055\nBOLT_IT_COUNTS FAIL case=00000000 seed=00000000 field=000007d0 expected=00000000 actual=12345678\n'
+        self.assertTrue(check_reset_fault(text,85)['fault_detected'])
+        with self.assertRaises(ValueError):check_reset_fault(text.replace('12345678','00000001'),85)
+        with self.assertRaises(ValueError):check_reset_fault(text+PASS,85)
+
+    def test_runtime_reset_marker(self):
+        text='BOLT_IT_COUNTS BEGIN instrumented=00000001 counters=00000055\r\nBOLT_IT_COUNTS RESET runtime=00000001\r\nBOLT_IT_COUNTS PASS cases=372\r\n'
+        self.assertTrue(check_result(text,1,85,372,True)['runtime_clear_checked'])
+        with self.assertRaises(ValueError):check_result(text.replace('RESET runtime=00000001','RESET runtime=00000000'),1,85,372,True)
+        with self.assertRaises(ValueError):check_result(text.replace('BOLT_IT_COUNTS RESET runtime=00000001\r\n',''),1,85,372,True)
+
     def test_nested_completion_requires_full_matrix(self):
         text='BOLT_IT_COUNTS BEGIN instrumented=00000001 counters=00000055\r\nBOLT_IT_COUNTS PASS cases=372\r\n'
         self.assertEqual(check_result(text,1,85,372)['cases'],372)

@@ -1,5 +1,18 @@
 # Correctness fixes
 
+## Real runtime clear at quiescent boundaries (2026-10-02)
+
+The 50-function Pi fixture calls the actual linked
+`__bolt_instr_clear_counters` before each of 372 seeded cases per image. Both
+words of every slot must become zero before reseeding. Baseline and all three
+instrumented layouts pass; an otherwise identical image with the clear entry
+replaced by BX LR fails at the exact first uncleared word. All five images
+watchdog-return to the loader. Eight host gate tests pass. Runtime linker-local
+symbols are bound through BOLT's checked clear-address diagnostic, and the
+function pointer/image bytes are validated before upload. This checks quiet
+reset/read boundaries; concurrent reset and live snapshots remain unsupported.
+See [evidence](results/correctness_runtime_clear_20261002.json).
+
 ## Nested Thumb calls and recursion counts (2026-10-02)
 
 The optional `build_it_counts.py --nested` matrix passes 372 Pi cases each in

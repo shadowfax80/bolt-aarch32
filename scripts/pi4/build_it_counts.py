@@ -160,6 +160,7 @@ asm += object_decl('expected_counts', '.zero ' + str(len(cases) * 128 * 4))
 asm += object_decl('counter_base', '.word dummy_counters')
 asm += object_decl('counter_count', '.word 1')
 asm += object_decl('instrumented', '.word 0')
+asm += object_decl('reset_runtime', '.word baseline_clear_counters')
 asm += 'dummy_counters: .zero 8\n'
 (out / 'fixture.s').write_text(asm, encoding='utf-8')
 (out / 'models.json').write_text(json.dumps(dict(blocks=models, cases=cases), indent=2) + '\n', encoding='utf-8')
@@ -331,16 +332,43 @@ for variant, extra in [('normal', []), ('reverse', ['--reorder-blocks=reverse'])
     patch_object('counter_base', struct.pack('<I', counters['address']))
     patch_object('counter_count', struct.pack('<I', n))
     patch_object('instrumented', struct.pack('<I', 1))
+    _, candidate_symbols = elf_metadata(blob)
+    clear = [s for s in candidate_symbols if s['name']=='__bolt_instr_clear_counters' and s['kind']==2]
+    clear_reports=re.findall(r'^BOLT-INFO: clear procedure is 0x([0-9a-f]+)$',log,re.M)
+    if len(clear_reports)!=1 or int(clear_reports[0],16)==0:
+        raise ValueError('missing/zero/ambiguous runtime linker clear address')
+    clear_address=int(clear_reports[0],16)
+    if len(clear)>1 or clear and clear[0]['address']!=clear_address:
+        raise ValueError('runtime clear symbol disagrees with linker')
+    # BOLT's runtime symbols are linker-local and need not enter .symtab.
+    # Its lookupSymbolInfo diagnostic supplies the actual linked address.
+    clear_sections=[s for s in sections if s['flags']&4 and s['address']<= (clear_address&~1)<s['address']+s['size']]
+    if len(clear_sections)!=1:raise ValueError('runtime clear outside executable sections')
+    patch_object('reset_runtime', struct.pack('<I',clear_address))
     padded = [value for vector in vectors for value in vector + [0] * (128 - n)]
     patch_object('expected_counts', struct.pack('<' + str(len(padded)) + 'I', *padded))
     candidate.write_bytes(blob)
     run(variant + '-redirect', [sys.executable, win / 'scripts/redirect-bolt-entries.py', candidate, '--original', original, '--map', mapping, '--func', ','.join(names), '--instrumented', '--toolchain', tc, '--report', out / (variant + '-redirects.json')])
     disasm = run(variant + '-disassembly', [tc / 'llvm-objdump', '-d', candidate])
-    report[variant] = dict(counters=n, assignments=assignments, expected_counts=vectors)
+    report[variant] = dict(counters=n, assignments=assignments, expected_counts=vectors, runtime_clear_address=clear_address)
     print(variant, 'host exact-count model passed, counters', n, flush=True)
 for name in ('baseline', *report):
     run(name + '-objcopy', [tc / 'llvm-objcopy', '-O', 'binary', out / (name + '.elf'), out / (name + '.bin')])
-files = [p.name for p in out.iterdir() if p.suffix in ('.elf', '.bin', '.funcmap') or p.name.endswith('-redirects.json') or p.name.endswith('-disassembly.log') or (p.name in ('fixture.s', 'models.json', 'narrow-branches.json'))]
+faults={}
+address=report['normal']['runtime_clear_address']
+if address&1:raise ValueError('reset fault fixture requires ARM runtime')
+bad=bytearray((out/'normal.elf').read_bytes())
+sections,_=elf_metadata(bad)
+section=next(s for s in sections if 'physical' in s and s['address']<=address<address+4<=s['address']+s['size'])
+position=section['offset']+address-section['address']
+bad[position:position+4]=struct.pack('<I',0xe12fff1e) # BX LR: deliberately omit clear.
+(out/'bad-reset.elf').write_bytes(bad)
+run('bad-reset-objcopy',[tc/'llvm-objcopy','-O','binary',out/'bad-reset.elf',out/'bad-reset.bin'])
+faults['bad-reset']=dict(base_variant='normal',counters=report['normal']['counters'],runtime_clear_address=address,
+                         expected_field=2000,expected_actual=0x12345678)
+files = [p.name for p in out.iterdir() if p.suffix in ('.elf', '.bin', '.funcmap') or p.name.endswith('-redirects.json') or p.name.endswith(('-disassembly.log','-instrument.log')) or (p.name in ('fixture.s', 'models.json', 'narrow-branches.json'))]
 manifest = dict(schema=1, kind='pi-it-nested-counts' if args.nested else 'pi-it-counts', cases=len(cases)*3, functions=names, variants=report, files={name: sha256(out / name) for name in sorted(files)}, tools={name: sha256(tc / name) for name in ('llvm-bolt', 'llvm-mc', 'clang', 'ld.lld', 'llvm-objcopy')}, main_sha256=sha256(win / 'scripts/pi4/fixtures/it-counts/main.c'), builder_sha256=sha256(Path(__file__)), runtime_sha256=sha256(tc.parent / 'bolt-rt-baremetal-arm/libbolt_rt_baremetal.a'), scope='15 IT masks; narrow/wide terminal IT branches and loops; '+('nested calls and recursion; ' if args.nested else '')+'single-core privileged quiet firmware; no active IRQ/FIQ/SMP')
+manifest['runtime_clear_checked']=True
+manifest['faults']=faults
 (out / 'build.json').write_text(json.dumps(manifest, indent=2) + '\n', encoding='utf-8')
 print(out / 'build.json')
