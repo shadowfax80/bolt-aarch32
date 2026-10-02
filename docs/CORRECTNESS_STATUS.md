@@ -15,7 +15,11 @@ the 0030 Thumb NOP worker-annotation regression. Host and Pi state checks pass
 in both modes. #4 is active: overlay 0032 makes ARM inlining safety mandatory
 even with --force-inline and recognizes the decoder's implicit-LR BX_RET.
 Host and Pi tests pass in both build modes: 55 baseline/normal/reverse cases
-per mode, with result and CBZ-flag faults detected. Broader
+per mode, with result and CBZ-flag faults detected. Overlay 0032 is pushed as
+66f1df1. The next PC-write audit confirms MOV PC,PC corruption on Pi;
+0033 rejects unsupported PC writes and noncanonical LDM returns. Both build
+modes pass their tests and reject the exact hardware input without output;
+all five supported Pi payloads match the previously executed bytes. Broader
 #5/#6 coverage stays open. #12 remains separately paused. See CORRECTNESS_RESUME.md.
 
 Fresh source review at `bbae817`: [CORRECTNESS_REVIEW_BBAE817.md](CORRECTNESS_REVIEW_BBAE817.md).
@@ -29,7 +33,7 @@ from completion criteria. Three items are complete within this scope (2, 8, 10).
 | 1 | Relocation matrix and literal loads | Partial | THM_JUMP19 and splitting now supported; complete signed range, alignment, BLX H-bit, addend and unsupported-path coverage |
 | 2 | EHABI exidx/extab | Complete via rejection | Unsupported unwind information is rejected; full unwind rewriting remains unsupported |
 | 3 | Pseudo/CFG invariants | Partial | Pseudo-count and fallthrough rejection verified in both build modes; worker fatal errors exit after join; wider CFG audit open |
-| 4 | Control flow and return semantics | Partial; active | POP-to-PC, flag-writing self-moves, mandatory inlining boundary and both-path CBZ/CBNZ flags verified on Pi; wider PC writes, predicated exits and pass combinations remain |
+| 4 | Control flow and return semantics | Partial; active | POP-to-PC, self-move flags, inlining and both-path CBZ/CBNZ verified; unsupported PC writes/noncanonical LDM reject in both modes; wider predicated exits, special transfers and pass combinations remain |
 | 5 | Instrumentation correctness | Partial; operating scope next | Carry, CPU-state, IT, nested Thumb/recursion and real runtime clear pass on Pi; mixed-ISA nested state, active interrupts and live snapshots remain |
 | 6 | Instrumentation scope | Partial | Explicit privileged/single-core/no-FIQ contract and call/process/dynamic rejection pass; audit exclusive-memory and active ISR boundaries |
 | 7 | ISA/profile/endianness | Pending | Enforce the supported target feature boundary |

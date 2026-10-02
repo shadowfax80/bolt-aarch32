@@ -108,6 +108,13 @@ safe; unsupported cases cannot return a successful partially corrupted output.
   transformations requiring that model.
 - [ ] Audit non-updating LDM, LDR-to-PC, MOV-to-PC, BX, predicated variants,
   interworking and tail calls; distinguish returns from other computed branches.
+  Overlay 0033 rejects unsupported PC writes before transformation, including
+  MOV-to-PC, arbitrary LDR-to-PC and noncanonical LDM dispatch. Only updated-SP
+  IA pops are load-multiple returns. Thirty-six negative admissions, sixteen
+  supported admissions and eighteen decoded cases pass in both modes; exact
+  A32 veneers remain admitted. Pi confirms the pre-fix ARM MOV PC,PC corruption;
+  both new builds reject that input, and supported firmware stays byte-identical
+  to executed 0032 images. Special/privileged transfers and wider variants remain.
 - [ ] Check flag-writing self-move/no-op recognition and branch reversal under
   reordering, peepholes and splitting.
   Overlay 0031 preserves CPSR/PC-writing self-moves and removes pure self-moves.

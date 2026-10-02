@@ -1,6 +1,38 @@
 # ATFE correctness checkpoint - 2026-10-02
 
-## Latest: #4 mandatory inlining safety and both-path Pi verification complete
+## Latest: #4 unsupported PC-write boundary verified
+
+0032 is pushed as 66f1df1. The next audit confirms a PC-relative computed jump
+corruption: MOV PC,PC followed by an eliminated MOV r1,r1 changes the jump's
+destination. Host probes: pc-write-safety/probe-vt7v4pa8 (ARM and Thumb).
+Pi reproduction: pc-write-safety/pi-pre-w9q2ik23/pi-verify-45fa4t2b. Baseline
+passes all 55 cases; the pre-fix ARM rewritten body returns 0 instead of 18
+at case 0. Both payloads watchdog-return to loader.
+Local overlay 0033 rejects unsupported PC-writing transfers during disassembly
+and limits load-multiple returns to canonical updated-SP IA pops. Variable
+load register lists now report PC definitions. The exact known eight-byte
+A32 absolute veneer remains admitted; its shared recognizer is used by both
+disassembly and the previous fallthrough guard. Preimages/afterimages/source
+hashes and logs are in out/correctness/pc-write-safety. Reverse-apply checked.
+Assertions-on passes 44 focused tests and 56 CoreTests/31 expected skips,
+including 36 negative admissions, 16 safe admissions and 18 decoder cases.
+Assertions-off passes 43 focused tests (one debug-only skip) and the same
+56 CoreTests/31 skips. Both builds reject the exact hardware reproduction input
+without creating output. Fresh positive/fault payloads are byte-identical to
+all five executed 0032 images in both modes: assertions-on-pi-positive/
+build-xqw_q3gv and assertions-off-pi-positive/build-q89az817 under pc-write-safety.
+This reuses the earlier hardware proof by identical bytes; no new positive Pi
+execution is claimed for 0033. Evidence:
+results/correctness_pc_write_admission_20261002.json. Overlay 0033 is verified.
+Do not rerun apply-pc-write-safety.py: it failed while extracting a two-byte
+Thumb instruction after applying the first three files. finish-pc-write-safety.py
+completed the decoder fixture and sealed source-change.json. Both are one-time
+mutation scripts; source now contains the complete local fix.
+#12 remains paused; ATFE only, WSL running, Pi in loader. No upstream changes.
+Next #4: wider predicated-exit and pass combinations; special/privileged control
+transfers need further admission review. Three original items remain complete.
+
+## Verified checkpoint: mandatory inlining safety and both-path Pi verification
 
 0031 is pushed as 4070942. Local overlay 0032 makes the ARM callee safety
 filter mandatory under --force-inline, including function-owned metadata/CFI.

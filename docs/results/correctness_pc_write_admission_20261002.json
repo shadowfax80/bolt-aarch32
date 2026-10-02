@@ -1,0 +1,150 @@
+{
+  "schema": 1,
+  "date": "2026-10-02",
+  "items": [
+    4
+  ],
+  "status": "partial",
+  "patch": {
+    "name": "0033-bolt-arm-pc-write-admission.patch",
+    "sha256": "717127d4b5298022246d70fd7647d7dc4d5600301cb73b485e303526e2b1dd96"
+  },
+  "fixes": [
+    "Reject unsupported PC-writing moves, loads and noncanonical load-multiple dispatches before transformation",
+    "Recognize only canonical updated-SP IA load-multiple returns; preserve supported POP/BX forms",
+    "Account for PC definitions in variable load register lists",
+    "Share exact known eight-byte A32 veneer recognition between admission and fallthrough checks"
+  ],
+  "source_change": {
+    "bolt/include/bolt/Core/MCPlusBuilder.h": {
+      "before": "eb9ed5f226505b4a28a96690df702a26718e27cadeeb6ded065e35cad6d0ce67",
+      "after": "945843620188c7d1195c8f17822f1f06e0bcacd74e893290ee85cd48216ef320"
+    },
+    "bolt/lib/Target/ARM/ARMMCPlusBuilder.cpp": {
+      "before": "74edaae110161ac88b1d59c0c75d2df9c49756a8c8ccdccc9ac33fdba705704b",
+      "after": "f4142b16da61eaf7f069fb944d91f74d8c9b056959ea10788acdef8d3843730c"
+    },
+    "bolt/lib/Core/BinaryFunction.cpp": {
+      "before": "96d3598d27053535c480b4768d676d3d0915f3747551a4ad9c57d239e51a940e",
+      "after": "f9e815912180352a03d7375db98dc9337ecdcd202155c0cf1af3d305e94864e1"
+    },
+    "bolt/unittests/Core/ARMReturns.cpp": {
+      "before": "0ff25d7f1b999e13382554527fd6987e62b0dd7c7eda2806b3479b95c5d42f3f",
+      "after": "0ef636362e37dde0c23a44f533faa1b948b064c687c0a2d1a9d3e6322f73d047"
+    }
+  },
+  "before_host_evidence": "out/correctness/pc-write-safety/probe-vt7v4pa8: eliminated self-move changes MOV PC,PC destination in ARM/Thumb; non-SP LDM treated as return",
+  "host": {
+    "assertions-on": {
+      "lit_passed": 44,
+      "lit_skipped": 0,
+      "unit_passed": 56,
+      "unit_skipped": 31,
+      "hardware_repro_input_rejected_without_output": true
+    },
+    "assertions-off": {
+      "lit_passed": 43,
+      "lit_skipped": 1,
+      "unit_passed": 56,
+      "unit_skipped": 31,
+      "hardware_repro_input_rejected_without_output": true
+    },
+    "pc_write_rejections": 36,
+    "supported_admissions": 16,
+    "decoded_cases": 18,
+    "log_sha256": {
+      "assertions-off-lit.log": "1cc7bd180447de051ca0f37121b78f6073e62620ac5458312b03b4425472ee7d",
+      "assertions-on-lit.log": "62ec62179c77cf618d2d381e22315e0963cb47eebbb7b35df371a64c99263212",
+      "assertions-off-units.log": "da5032f61e3a771dbf553b6ee2ce439ff1f087c19796b82c364e86da1ccdcc3b",
+      "assertions-on-units.log": "5865f4f7b2eabebb8ebadbeeff36eff1ca4cd9629434a4ca5de040892b2171bd"
+    }
+  },
+  "remaining": [
+    "Wider predicated exits, special/privileged control transfers and pass combinations",
+    "General ISA/ABI admission (#7)",
+    "No general support for the rejected computed PC writes; #12 remains paused"
+  ],
+  "pre_fix_pi": {
+    "evidence": "out/correctness/pc-write-safety/pi-pre-w9q2ik23/pi-verify-45fa4t2b",
+    "manifest": {
+      "kind": "pre-fix-pcself",
+      "redirect": {
+        "input": 32792,
+        "output": 40960,
+        "branch_hex": "f80700ea"
+      },
+      "expected_fault": {
+        "case_id": 0,
+        "field": 0,
+        "expected": 18,
+        "actual": 0
+      },
+      "files": {
+        "baseline-raw.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "baseline.bin": "24933c76dc755d578d8304cbd65cb0a16a09c21719103aa4aaee08513f4ca367",
+        "baseline.elf": "111c451d75f01d51a5ac62c963c7c3505a34d245d350859aa238823b55571d81",
+        "corrupt-raw.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "corrupt.bin": "97f1772b0b212f2683bf69099031354616a1eba21be7a9a8030e5d8d15c612c4",
+        "corrupt.elf": "e96cf358deeaad787f1e83f2ca51cbebad9a88cf87bbb824bc90e6801466b6da",
+        "corrupt.map": "62b6af67517724f055309a6eeec0c3ec7e347f75a13a9fe418a7e91d69e6757d",
+        "disassembly.log": "663dae01e4a25938bbd11b55316218a44b4f3bc7beda8034fc3cd681fed3f072",
+        "rewrite.log": "0a34296eba1d05b32e3fa2b15f091cbc11b1d51f574e78b1199647052a0dcb50"
+      }
+    },
+    "verification": {
+      "verified": true,
+      "pre_fix_corruption_confirmed": true,
+      "results": {
+        "baseline": {
+          "passed": true,
+          "cases": 55
+        },
+        "corrupt": {
+          "expected_failure": true,
+          "case_id": 0,
+          "field": 0,
+          "expected": 18,
+          "actual": 0
+        }
+      },
+      "manifest_sha256": "253fac68bbb18509ac9547fff7e325bc2e448c9bf5478ab3d93103625a4b47bf",
+      "verifier_sha256": "ce2d58738c29cce1ef0df96aa88d52cf64eae12bd5298fe6852b13c3331351ae",
+      "logs": {
+        "baseline.log": "c32055f0ae0ffc4120e6209204d9cd8c3b785e926dd10f231d6982f2e25e95a1",
+        "corrupt.log": "5841fbb6c1e677efc3d3c164abe5ae1a682098e394aa5552f1e1933a72180e66"
+      }
+    }
+  },
+  "supported_pi_payloads": {
+    "parity": {
+      "assertions-on": {
+        "build": "out/correctness/pc-write-safety/assertions-on-pi-positive/build-xqw_q3gv",
+        "matches_executed_0032_build": "inline-safety-pi/build-ja5rnarx",
+        "payload_sha256": {
+          "baseline": "1ff12b942d369d2202cfb05fd41dede8381ca7eceed28a899997977d8b61df8c",
+          "normal": "3a408ff81ed565612e7a6828f4a2aa0a63606b1eced5978e213a31e6b26624b5",
+          "reverse": "6692f884550a9438f77d192322122b8c27dafb61ee60d923949dd726bf15561b",
+          "bad-result": "c5c6135a69a0bbf71b69df4ea6baa196d1a6e869ce034ee0e9d2e6614c9d885b",
+          "bad-cbz-flags": "b2a5a5d015788d5f74f1cc675d6ab0ed5a3fc7fc40c52c4cb794407321d7590b"
+        },
+        "hardware_repro_input_rejected_without_output": true,
+        "new_tool_sha256": "902272da5842ea1c3b7186f4ddbffcc7124a0b5765977cdbcf0b965218acb3d1"
+      },
+      "assertions-off": {
+        "build": "out/correctness/pc-write-safety/assertions-off-pi-positive/build-q89az817",
+        "matches_executed_0032_build": "inline-safety-pi-noasserts/build-zgvlajl5",
+        "payload_sha256": {
+          "baseline": "1ff12b942d369d2202cfb05fd41dede8381ca7eceed28a899997977d8b61df8c",
+          "normal": "3a408ff81ed565612e7a6828f4a2aa0a63606b1eced5978e213a31e6b26624b5",
+          "reverse": "6692f884550a9438f77d192322122b8c27dafb61ee60d923949dd726bf15561b",
+          "bad-result": "c5c6135a69a0bbf71b69df4ea6baa196d1a6e869ce034ee0e9d2e6614c9d885b",
+          "bad-cbz-flags": "b2a5a5d015788d5f74f1cc675d6ab0ed5a3fc7fc40c52c4cb794407321d7590b"
+        },
+        "hardware_repro_input_rejected_without_output": true,
+        "new_tool_sha256": "6c07806d186cf51097721f11f8ae4fc0858a8cac0c900192977c37144ad12946"
+      }
+    },
+    "verification": "Reuses executed overlay 0032 positive/fault hardware evidence through byte-identical fresh rebuilds; no new positive Pi run for 0033",
+    "previous_evidence": "docs/results/correctness_inline_safety_20261002.json"
+  }
+}

@@ -1,5 +1,25 @@
 # Correctness fixes
 
+## Unsupported PC-write admission and stack-return distinction (2026-10-02)
+
+Overlay 0033 rejects unsupported PC-writing moves, loads and noncanonical
+load-multiple transfers during disassembly. The pre-fix MOV PC,PC jump changed
+destination after an intervening MOV r1,r1 was removed. Pi confirms the ARM
+baseline returns 18 and the rewritten code returns 0. Both images return to
+the loader. The new builds reject that exact input without writing output.
+Load-multiple returns now require canonical updated-SP IA pops; arbitrary-base,
+non-updating and decrement-before PC loads remain unsupported. Variable load
+register lists correctly report PC definitions. The exact known eight-byte A32
+absolute veneer remains admitted for the existing removal pass.
+
+Both modes pass 36 rejection cases, 16 supported pop/BX/load admissions and
+18 actual decoder cases. Full focused suites pass 44/43 tests (one debug-only
+skip off), plus 56 CoreTests/31 expected skips each. Fresh builds of all five
+supported 0032 Pi payloads match the executed bytes exactly in both modes;
+that reuses the earlier hardware proof, without claiming new positive runs.
+#4 remains partial for wider predicated exits, special/privileged transfers
+and pass combinations. See [evidence](results/correctness_pc_write_admission_20261002.json).
+
 ## Mandatory AArch32 inlining safety and branch-path Pi checks (2026-10-02)
 
 Overlay 0032 prevents `--force-inline` from bypassing the ARM callee safety

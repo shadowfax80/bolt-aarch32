@@ -1,0 +1,233 @@
+--- a/bolt/include/bolt/Core/MCPlusBuilder.h
++++ b/bolt/include/bolt/Core/MCPlusBuilder.h
+@@ -619,6 +619,9 @@
+   virtual bool isUnconditionalLinkRegisterReturn(const MCInst &Inst) const {
+     return false;
+   }
++
++  /// A target PC write whose control flow cannot safely be transformed.
++  virtual bool isUnsupportedPCWrite(const MCInst &Inst) const { return false; }
+ 
+   /// Returns the registers that are trusted at function entry.
+   ///
+--- a/bolt/lib/Target/ARM/ARMMCPlusBuilder.cpp
++++ b/bolt/lib/Target/ARM/ARMMCPlusBuilder.cpp
+@@ -272,13 +272,24 @@
+     // be in the register list, not on the opcode alone, so this has to be
+     // checked here dynamically rather than as a static MCInstrDesc property.
+     //
++    case ARM::LDMDB_UPD:
++    case ARM::t2LDMDB_UPD:
++      return false;
+     case ARM::LDMIA_UPD:
+-    case ARM::LDMDB_UPD:
+-    case ARM::tPOP:
+     case ARM::t2LDMIA_UPD:
+-    case ARM::t2LDMDB_UPD: {
+-      for (const MCOperand &Op : Inst)
+-        if (Op.isReg() && Op.getReg() == ARM::PC)
++      // Only the canonical stack pop is a supported load-multiple return.
++      // An arbitrary base can dispatch to another block, rather than return.
++      if (Inst.getNumOperands() < 2 || !Inst.getOperand(0).isReg() ||
++          Inst.getOperand(0).getReg() != ARM::SP ||
++          !Inst.getOperand(1).isReg() || Inst.getOperand(1).getReg() != ARM::SP)
++        return false;
++      [[fallthrough]];
++    case ARM::tPOP: {
++      const int Pred = Info->get(Inst.getOpcode()).findFirstPredOperandIdx();
++      if (Pred < 0)
++        return false;
++      for (unsigned I = Pred + 2, E = MCPlus::getNumPrimeOperands(Inst); I < E; ++I)
++        if (Inst.getOperand(I).isReg() && Inst.getOperand(I).getReg() == ARM::PC)
+           return true;
+       return false;
+     }
+@@ -298,6 +309,42 @@
+       return true;
+     }
+     return MCPlusBuilder::isTerminator(Inst);
++  }
++
++  bool hasDefOfPhysReg(const MCInst &Inst, unsigned Reg) const override {
++    // LLVM's fixed NumDefs excludes the variable register list of LDM/POP.
++    // The PC in a load list is still a definition and changes control flow.
++    const MCInstrDesc &Desc = Info->get(Inst.getOpcode());
++    if (Reg == ARM::PC && Desc.isVariadic() && Desc.mayLoad()) {
++      const int Pred = Desc.findFirstPredOperandIdx();
++      if (Pred >= 0)
++        for (unsigned I = Pred + 2, E = MCPlus::getNumPrimeOperands(Inst); I < E; ++I)
++          if (Inst.getOperand(I).isReg() && Inst.getOperand(I).getReg() == ARM::PC)
++            return true;
++    }
++    return MCPlusBuilder::hasDefOfPhysReg(Inst, Reg);
++  }
++
++  bool isUnsupportedPCWrite(const MCInst &Inst) const override {
++    if (!hasDefOfPhysReg(Inst, ARM::PC) || isCall(Inst) || isReturn(Inst))
++      return false;
++    switch (Inst.getOpcode()) {
++    case ARM::B:
++    case ARM::Bcc:
++    case ARM::BX:
++    case ARM::tB:
++    case ARM::tBcc:
++    case ARM::t2B:
++    case ARM::t2Bcc:
++    case ARM::tBX:
++    case ARM::tCBZ:
++    case ARM::tCBNZ:
++    case ARM::t2TBB:
++    case ARM::t2TBH:
++      return false;
++    default:
++      return true;
++    }
+   }
+ 
+   bool isUnconditionalLinkRegisterReturn(const MCInst &Inst) const override {
+--- a/bolt/lib/Core/BinaryFunction.cpp
++++ b/bolt/lib/Core/BinaryFunction.cpp
+@@ -1368,6 +1368,18 @@
+   return isDebugScopeBoundaryOffset(Offset);
+ }
+ 
++// The existing veneer-removal pass runs after disassembly/CFG construction.
++// This exact eight-byte A32 thunk is the only supported literal load into PC.
++static bool isRecognizedARMAbsoluteVeneer(const BinaryFunction &BF) {
++  const BinaryContext &BC = BF.getBinaryContext();
++  if (!BC.isARM() || !BF.isPossibleVeneer() || BF.isARMThumb() || BF.getSize() != 8)
++    return false;
++  auto Code = BC.getUnsignedValueAtAddress(BF.getAddress(), 4);
++  auto Target = BC.getUnsignedValueAtAddress(BF.getAddress() + 4, 4);
++  return Code && Target && *Code == 0xe51ff004 &&
++         BC.getBinaryFunctionAtAddress(*Target & ~1ULL);
++}
++
+ Error BinaryFunction::disassemble() {
+   NamedRegionTimer T("disassemble", "Disassemble function", "buildfuncs",
+                      "Build Binary Functions", opts::TimeBuild);
+@@ -1430,6 +1442,12 @@
+ 
+       break;
+     }
++
++    if (BC.isARM() && MIB->isUnsupportedPCWrite(Instruction) &&
++        !(Offset == 0 && isRecognizedARMAbsoluteVeneer(*this)))
++      return createFatalBOLTError("unsupported AArch32 PC-writing control transfer in " +
++                                 getPrintName() + " at 0x" +
++                                 Twine::utohexstr(AbsoluteInstrAddr));
+ 
+     if (BC.isARM() && isARMThumb()) {
+       if (MIB->isPrefix(Instruction)) {
+@@ -2631,16 +2649,7 @@
+   // A symbol boundary does not imply a return. Until inter-function
+   // fallthrough is modeled, do not erase a conditional branch, insert a
+   // return, or relocate a terminal call away from its continuation.
+-  bool IsARMAbsoluteVeneer = false;
+-  if (BC.isARM() && isPossibleVeneer() && !isARMThumb() && getSize() == 8) {
+-    // The existing veneer pass runs after CFG construction. Admit only its
+-    // exact A32 LDR-PC literal form here, not an arbitrary thunk-like name.
+-    auto Code = BC.getUnsignedValueAtAddress(getAddress(), 4);
+-    auto Target = BC.getUnsignedValueAtAddress(getAddress() + 4, 4);
+-    IsARMAbsoluteVeneer = Code && Target && *Code == 0xe51ff004 &&
+-                         BC.getBinaryFunctionAtAddress(*Target & ~1ULL);
+-  }
+-  if (BC.isARM() && IsPrevFT && !IsARMAbsoluteVeneer &&
++  if (BC.isARM() && IsPrevFT && !isRecognizedARMAbsoluteVeneer(*this) &&
+       (PrevBB->pred_size() != 0 || isEntryPoint(*PrevBB)))
+     return createFatalBOLTError("unmodeled AArch32 function fallthrough in " +
+                                getPrintName());
+--- a/bolt/unittests/Core/ARMReturns.cpp
++++ b/bolt/unittests/Core/ARMReturns.cpp
+@@ -126,5 +126,40 @@
+               C.SimpleReturn);
+   }
+ }
++TEST_F(ARMReturns, DecodedPCWriteBoundary) {
++  struct Case { bool Thumb; std::vector<uint8_t> Bytes; bool Unsupported; bool Return; };
++  const Case Cases[] = {
++      {false, {0x0f,0xf0,0xa0,0xe1}, true, false}, // pcself
++      {false, {0x03,0xf0,0xa0,0xe1}, true, false}, // pc_reg
++      {false, {0x00,0xf0,0x93,0xe5}, true, false}, // pc_load
++      {false, {0x08,0xf0,0x9d,0xe4}, true, false}, // pc_post
++      {false, {0x01,0x80,0xb3,0xe8}, true, false}, // ldm_reg
++      {false, {0x01,0x80,0x93,0xe8}, true, false}, // ldm_fixed
++      {false, {0x01,0x80,0xbd,0xe8}, false, true}, // ldm_sp
++      {false, {0x01,0x80,0xbd,0xe8}, false, true}, // pop
++      {false, {0x13,0xff,0x2f,0xe1}, false, false}, // bx
++      {true, {0xff,0x46}, true, false}, // pcself
++      {true, {0x9f,0x46}, true, false}, // pc_reg
++      {true, {0xd3,0xf8,0x00,0xf0}, true, false}, // pc_load
++      {true, {0x5d,0xf8,0x08,0xfb}, true, false}, // pc_post
++      {true, {0xb3,0xe8,0x01,0x80}, true, false}, // ldm_reg
++      {true, {0x93,0xe8,0x01,0x80}, true, false}, // ldm_fixed
++      {true, {0xbd,0xe8,0x01,0x80}, false, true}, // ldm_sp
++      {true, {0x01,0xbd}, false, true}, // pop
++      {true, {0x18,0x47}, false, false}, // bx
++  };
++  for (const Case &C : Cases) {
++    SCOPED_TRACE(C.Thumb ? "Thumb" : "ARM");
++    MCInst Inst;
++    uint64_t Size = 0;
++    MCDisassembler *Decoder = C.Thumb ? BC->ThumbDisAsm.get() : BC->DisAsm.get();
++    ASSERT_EQ(Decoder->getInstruction(Inst, Size, C.Bytes, 0x1000, nulls()),
++              MCDisassembler::Success);
++    EXPECT_EQ(Size, C.Bytes.size());
++    MCPlusBuilder *MIB = BC->getMIBFor(C.Thumb);
++    EXPECT_EQ(MIB->isUnsupportedPCWrite(Inst), C.Unsupported);
++    EXPECT_EQ(MIB->isReturn(Inst), C.Return);
++  }
++}
+ } // namespace
+ #endif
+--- /dev/null
++++ b/bolt/test/ARM/Inputs/check-arm-pc-writes.py
+@@ -0,0 +1,42 @@
++from pathlib import Path
++import json,subprocess,sys,tempfile
++parent=Path(sys.argv[1]);parent.mkdir(parents=True,exist_ok=True)
++out=Path(tempfile.mkdtemp(prefix='pc-writes-',dir=parent));results=[]
++for isa in ['arm','thumb']:
++    bodies={'pcself':'mov pc,pc\nmov r1,r1\nmov r0,#7\nbx lr',
++            'pc_reg':'mov pc,r3\nmov r0,#7\nbx lr',
++            'pc_load':'ldr pc,[r3]\nmov r0,#7\nbx lr',
++            'pc_post':'ldr pc,[sp],#8\nmov r0,#7\nbx lr',
++            'ldm_reg':'ldmia r3!,{r0,pc}\nmov r0,#7\nbx lr',
++            'ldm_fixed':'ldmia r3,{r0,pc}\nmov r0,#7\nbx lr',
++            'ldm_sp_fixed':'ldmia sp,{r0,pc}\nmov r0,#7\nbx lr',
++            'ldm_sp_db':'ldmdb sp!,{r0,pc}\nmov r0,#7\nbx lr',
++            'ldm_sp':'ldmia sp!,{r0,pc}',
++            'pop':'pop {r0,pc}',
++            'bx':'bx r3',
++            'load':'ldr r0,[r3]\nbx lr'}
++    if isa=='arm':bodies['predicated']='cmp r0,#0\nmoveq pc,r3\nmov r0,#7\nbx lr'
++    else:bodies['predicated']='cmp r0,#0\nit eq\nmoveq pc,r3\nmov r0,#7\nbx lr'
++    for kind,body in bodies.items():
++        name=isa+'_'+kind;d=out/name;d.mkdir()
++        asm='.syntax unified\n.arch armv7-a\n.text\n.'+isa+'\n.global _start\n.type _start,%function\n'+('.thumb_func\n' if isa=='thumb' else '')+'_start:\nbl probe\nbx lr\n.size _start,.-_start\n.balign 4\n.global probe\n.type probe,%function\n'+('.thumb_func\n' if isa=='thumb' else '')+'probe:\n'+body+'\n.size probe,.-probe\n'
++        (d/'input.s').write_text(asm);(d/'layout.ld').write_text('ENTRY(_start)\nSECTIONS { . = 0x8000; .text : { *(.text*) } }\n')
++        def run(label,cmd):
++            p=subprocess.run([str(x) for x in cmd],capture_output=True,text=True)
++            (d/(label+'.log')).write_text(p.stdout+p.stderr)
++            return p
++        for label,cmd in [('mc',['llvm-mc','-triple=armv7-none-eabi','-arm-add-build-attributes','-filetype=obj',d/'input.s','-o',d/'input.o']),('link',['ld.lld','--emit-relocs','-T',d/'layout.ld',d/'input.o','-o',d/'input.elf'])]:
++            p=run(label,cmd)
++            if p.returncode:raise RuntimeError(name+' '+label+': '+p.stdout+p.stderr)
++        unsafe=kind not in ['ldm_sp','pop','bx','load']
++        for mode,extra in [('normal',[]),('reverse',['--reorder-blocks=reverse'])]:
++            candidate=d/(mode+'.elf');mapping=d/(mode+'.map')
++            p=run(mode,['llvm-bolt',d/'input.elf','-o',candidate,'--no-huge-pages','-lite=0','--funcs=probe','--emit-function-map='+str(mapping),*extra])
++            if unsafe:
++                if p.returncode!=1 or 'unsupported AArch32 PC-writing control transfer' not in p.stdout+p.stderr or candidate.exists():
++                    raise RuntimeError(name+': unsupported PC write not rejected before output\n'+p.stdout+p.stderr)
++            elif p.returncode or not candidate.exists() or 'probe ' not in mapping.read_text():
++                raise RuntimeError(name+': supported load/pop/BX form not emitted\n'+p.stdout+p.stderr)
++            results.append(dict(name=name,mode=mode,rejected=unsafe,returncode=p.returncode))
++(out/'results.json').write_text(json.dumps(results,indent=2)+'\n')
++print('PASS: 36 unsupported PC-write rejections; 16 supported pop/BX/load admissions',out)
+--- /dev/null
++++ b/bolt/test/ARM/arm-pc-writes.test
+@@ -0,0 +1,3 @@
++## PC-writing moves, loads and arbitrary LDM dispatch cannot be transformed
++## as ordinary fallthrough or stack returns. Reject before output is written.
++RUN: %python %p/Inputs/check-arm-pc-writes.py %t.dir
