@@ -23,6 +23,13 @@ Windows checkout's `/mnt/c/...` path and point `--out` there too. The default
 toolchain is `/home/user/bolt-aarch32/build-atfe/bin`; override `--toolchain`
 when appropriate. Only an ATFE build with overlay 0026 is expected to pass.
 
+Add `--return-pop` to check the standard single-register POP-to-PC forms decoded
+as ARM LDR_POST_IMM and Thumb t2LDR_POST. This variant requires overlay 0030.
+It uses generated `start-pop.s`/`reference-pop.s` files in the build directory,
+and runs the same full register/CPSR/counter matrix and three fault images.
+Both assertions-on/off Pi runs pass, with byte-identical payloads; see
+[return/fallthrough evidence](results/correctness_cfg_fallthrough_20261002.json).
+
 The independent assembly oracle must match both complete generated functions.
 Original firmware code, data and entry are restored with exact section-size and
 address checks. Two explicit, decoded redirects enter the generated bodies.

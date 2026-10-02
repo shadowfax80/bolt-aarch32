@@ -2,6 +2,26 @@
 
 ## Latest: resumed by user; #3 active after verified #5/#6 boundaries
 
+Overlay 0029 is pushed as bb36795. Overlay 0030 is verified and ready to push:
+residual reachable function fallthrough rejects before CFG postprocessing;
+CFG construction/branch repair use the function's ARM/Thumb builder; invalid
+postprocessed ARM CFG no longer falls back to ignored code. Fatal ARM CFG
+admission exits after workers join. Exact SP/+4 single-register POP-to-PC is
+recognized from real ARM/Thumb decoder bytes. An exact eight-byte A32 absolute
+veneer remains admitted for the later existing removal pass; fake names reject.
+Host: 41 lit passes assertions-on, 40 plus one debug-only skip off, 53 unit
+passes/31 skips each. Dedicated gates: 20 fallthrough rejections, 18 safe
+admissions, nine decoder cases. Both Pi POP-state runs pass 512 baseline plus
+512 generated cases and all three faults; all five payloads match across modes
+and return to the loader. Evidence: pop-state-pi/build-nzl_pe_m/pi-verify-bu9o58sn
+and pop-state-pi-noasserts/build-tcd236d1/pi-verify-m_mgl8xl; tracked summary
+results/correctness_cfg_fallthrough_20261002.json. Fresh IT/nested build-ud1tq93u
+emits the same five payloads as previously verified build-y4njbgkd.
+Next #4: conditional-return exit edges, broader PC writes, live flags and pass
+safety. #3 remains partial for wider CFG audits; three original items complete.
+#12 remains explicitly paused. WSL running, Pi waiting in loader. ATFE only.
+The preparation/build notes below describe earlier stages of this same fix.
+
 Overlay 0028 is pushed as e9cd3b3. Local overlay 0029 removes ARM pseudo-count
 repair/ignore and makes mismatches fatal with or without assertions. Three new
 unit tests demonstrate that bypassed bookkeeping fails safely; the pre-fix

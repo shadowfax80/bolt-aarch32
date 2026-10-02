@@ -24,11 +24,24 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--out', type=Path, required=True, help='parent of fresh build directories')
     parser.add_argument('--toolchain', type=Path, default=Path('/home/user/bolt-aarch32/build-atfe/bin'))
+    parser.add_argument('--return-pop', action='store_true', help='verify decoded ARM/Thumb single-register POP-to-PC returns')
     args = parser.parse_args()
     parent, tc = args.out.resolve(), args.toolchain.resolve()
     parent.mkdir(parents=True, exist_ok=True)
     out = Path(tempfile.mkdtemp(prefix='build-', dir=parent))
     fixture = ROOT / 'scripts/pi4/fixtures/counter-state'
+    assembly, reference_asm = fixture/'start.s', fixture/'reference.s'
+    if args.return_pop:
+        assembly, reference_asm = out/'start-pop.s', out/'reference-pop.s'
+        text = (fixture/'start.s').read_text(encoding='utf-8')
+        text = text.replace('counter_arm:\n bx lr', 'counter_arm:\n push {lr}\n pop {pc}')
+        text = text.replace('counter_thumb:\n nop // Four bytes allow the original entry to hold an explicit B.W redirect.\n bx lr',
+                            'counter_thumb:\n push.w {lr}\n pop.w {pc}')
+        assembly.write_text(text, encoding='utf-8')
+        arm, thumb = (fixture/'reference.s').read_text(encoding='utf-8').split('.section .text.thumb,')
+        arm = arm.replace(' bx lr', ' push {lr}\n pop {pc}')
+        thumb = thumb.replace(' nop\n bx lr', ' push.w {lr}\n pop.w {pc}')
+        reference_asm.write_text(arm+'.section .text.thumb,'+thumb, encoding='utf-8')
     env = dict(os.environ, PATH=str(tc) + ':' + os.environ['PATH'])
 
     def run(name, command):
@@ -40,7 +53,7 @@ def main():
     compiler = tc / 'clang'
     runtime = tc.parent / 'bolt-rt-baremetal-arm/libbolt_rt_baremetal.a'
     run('assembly', [tc/'llvm-mc', '-triple=armv7-none-eabi', '-arm-add-build-attributes',
-                     '-filetype=obj', fixture/'start.s', '-o', out/'start.o'])
+                     '-filetype=obj', assembly, '-o', out/'start.o'])
     run('compile', [compiler, '--target=arm-none-eabi', '-march=armv7-a', '-marm',
                     '-mfloat-abi=soft', '-ffreestanding', '-fno-builtin', '-fno-stack-protector',
                     '-fno-unwind-tables', '-fno-asynchronous-unwind-tables', '-O2',
@@ -80,7 +93,7 @@ def main():
     run('reference-mc', [tc/'llvm-mc', '-triple=armv7-none-eabi', '-filetype=obj',
                          '--defsym=counter_arm_address='+str(counters['address']),
                          '--defsym=counter_thumb_address='+str(counters['address']+8),
-                         fixture/'reference.s', '-o', out/'reference.o'])
+                         reference_asm, '-o', out/'reference.o'])
     rows = {p[0]:tuple(int(x,16) for x in p[1:]) for line in mapping.read_text(encoding='utf-8').splitlines()
             if (p := line.split())}
     require(set(rows) == {'counter_arm','counter_thumb'}, 'unexpected emitted functions')
@@ -147,6 +160,8 @@ def main():
     files = ['baseline.elf','baseline.bin','instrumented.elf','instrumented.bin',
              'instrumented.funcmap','redirects.json','independent-bytes.log','disassembly.log']
     files += [name+suffix for name in mutations for suffix in ('.elf','.bin')]
+    if args.return_pop:
+        files += ['start-pop.s', 'reference-pop.s']
     manifest = dict(schema=1, kind='pi-counter-state', cases=512, cases_per_mode=256,
                     files={name:sha256(out/name) for name in files},
                     fixture={p.name:sha256(p) for p in sorted(fixture.iterdir()) if p.is_file()},
@@ -155,6 +170,7 @@ def main():
                     bolt_options=options, counters=dict(address=counters['address'],count=2),
                     negative_cases={name:dict(case_id=case,field=field) for name,(_,_,case,field) in mutations.items()},
                     scope='privileged MMU-off single-core ARM/Thumb leaf insertion; no active ISR, IT, nested, FIQ or SMP execution')
+    manifest['return_pop_checked'] = args.return_pop
     (out/'build.json').write_text(json.dumps(manifest,indent=2)+'\n',encoding='utf-8')
     print(out/'build.json')
 

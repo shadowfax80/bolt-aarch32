@@ -1,0 +1,390 @@
+--- a/bolt/lib/Core/BinaryFunction.cpp
++++ b/bolt/lib/Core/BinaryFunction.cpp
+@@ -36,6 +36,7 @@
+ #include "llvm/Object/ObjectFile.h"
+ #include "llvm/Support/CommandLine.h"
+ #include "llvm/Support/Debug.h"
++#include "llvm/Support/ErrorHandling.h"
+ #include "llvm/ADT/ScopeExit.h"
+ #include "llvm/Support/GenericDomTreeConstruction.h"
+ #include "llvm/Support/GenericLoopInfoImpl.h"
+@@ -2408,7 +2409,7 @@
+ }
+ 
+ Error BinaryFunction::buildCFG(MCPlusBuilder::AllocatorIdTy AllocatorId) {
+-  auto &MIB = BC.MIB;
++  MCPlusBuilder *MIB = BC.getMIBFor(BC.isARM() && isARMThumb());
+ 
+   if (!isSimple()) {
+     assert(!BC.HasRelocations &&
+@@ -2624,6 +2625,23 @@
+ 
+     PrevBB = BB;
+   }
++
++  // A symbol boundary does not imply a return. Until inter-function
++  // fallthrough is modeled, do not erase a conditional branch, insert a
++  // return, or relocate a terminal call away from its continuation.
++  bool IsARMAbsoluteVeneer = false;
++  if (BC.isARM() && isPossibleVeneer() && !isARMThumb() && getSize() == 8) {
++    // The existing veneer pass runs after CFG construction. Admit only its
++    // exact A32 LDR-PC literal form here, not an arbitrary thunk-like name.
++    auto Code = BC.getUnsignedValueAtAddress(getAddress(), 4);
++    auto Target = BC.getUnsignedValueAtAddress(getAddress() + 4, 4);
++    IsARMAbsoluteVeneer = Code && Target && *Code == 0xe51ff004 &&
++                         BC.getBinaryFunctionAtAddress(*Target & ~1ULL);
++  }
++  if (BC.isARM() && IsPrevFT && !IsARMAbsoluteVeneer &&
++      (PrevBB->pred_size() != 0 || isEntryPoint(*PrevBB)))
++    return createFatalBOLTError("unmodeled AArch32 function fallthrough in " +
++                               getPrintName());
+ 
+   // Assign landing pads and throwers info.
+   recomputeLandingPads();
+@@ -3936,11 +3954,12 @@
+ void BinaryFunction::postProcessBranches() {
+   if (!isSimple())
+     return;
++  MCPlusBuilder *MIB = BC.getMIBFor(BC.isARM() && isARMThumb());
+   for (BinaryBasicBlock &BB : blocks()) {
+     auto LastInstrRI = BB.getLastNonPseudo();
+     if (BB.succ_size() == 1) {
+       if (LastInstrRI != BB.rend() &&
+-          BC.MIB->isConditionalBranch(*LastInstrRI)) {
++          MIB->isConditionalBranch(*LastInstrRI)) {
+         // __builtin_unreachable() could create a conditional branch that
+         // falls-through into the next function - hence the block will have only
+         // one valid successor. Such behaviour is undefined and thus we remove
+@@ -3962,23 +3981,22 @@
+                    << BB.getName() << " in function " << *this << '\n');
+         continue;
+       }
+-      if (!BC.MIB->isTerminator(*LastInstrRI) &&
+-          !BC.MIB->isCall(*LastInstrRI)) {
++      if (!MIB->isTerminator(*LastInstrRI) &&
++          !MIB->isCall(*LastInstrRI)) {
+         LLVM_DEBUG(dbgs() << "BOLT-DEBUG: adding return to basic block "
+                           << BB.getName() << " in function " << *this << '\n');
++        if (BC.isARM())
++          report_fatal_error("unmodeled AArch32 basic block fallthrough", false);
+         MCInst ReturnInstr;
+-        BC.MIB->createReturn(ReturnInstr);
++        MIB->createReturn(ReturnInstr);
+         BB.addInstruction(ReturnInstr);
+       }
+     }
+   }
+   if (!validateCFG()) {
+-    if (BC.isARM()) {
+-      BC.errs() << "BOLT-WARNING: invalid CFG in " << *this
+-                << " ??? marking as ignored\n";
+-      setIgnored();
+-      return;
+-    }
++    if (BC.isARM())
++      report_fatal_error("invalid AArch32 CFG after branch post-processing",
++                         false);
+     assert(false && "invalid CFG");
+   }
+ }
+--- a/bolt/lib/Target/ARM/ARMMCPlusBuilder.cpp
++++ b/bolt/lib/Target/ARM/ARMMCPlusBuilder.cpp
+@@ -12,6 +12,7 @@
+ 
+ #include "ARMMCSymbolizer.h"
+ #include "MCTargetDesc/ARMBaseInfo.h"
++#include "MCTargetDesc/ARMAddressingModes.h"
+ #include "MCTargetDesc/ARMMCAsmInfo.h"
+ #include "MCTargetDesc/ARMMCTargetDesc.h"
+ #include "MCTargetDesc/ARMFixupKinds.h"
+@@ -240,6 +241,25 @@
+     }
+     case ARM::MOVPCLR:
+       return true;
++    case ARM::LDR_POST_IMM:
++    case ARM::t2LDR_POST: {
++      // A single-register POP {pc} decodes as a post-indexed load, not LDM.
++      // Recognize only the standard stack-pop form. Other loads to PC are
++      // computed control transfers and require a separate CFG model.
++      if (Inst.getNumOperands() < 4 || !Inst.getOperand(0).isReg() ||
++          Inst.getOperand(0).getReg() != ARM::PC ||
++          !Inst.getOperand(1).isReg() || Inst.getOperand(1).getReg() != ARM::SP ||
++          !Inst.getOperand(2).isReg() || Inst.getOperand(2).getReg() != ARM::SP)
++        return false;
++      if (Inst.getOpcode() == ARM::t2LDR_POST)
++        return Inst.getOperand(3).isImm() && Inst.getOperand(3).getImm() == 4;
++      if (Inst.getNumOperands() < 5 || !Inst.getOperand(3).isReg() ||
++          Inst.getOperand(3).getReg() || !Inst.getOperand(4).isImm())
++        return false;
++      const unsigned Offset = Inst.getOperand(4).getImm();
++      return ARM_AM::getAM2Op(Offset) == ARM_AM::add &&
++             ARM_AM::getAM2Offset(Offset) == 4;
++    }
+     // POP {..., pc} / LDM ...!, {..., pc} -- the standard epilogue for any
+     // function that spills callee-saved registers. Dual-purpose opcodes:
+     // whether a given instance is a return depends on whether PC happens to
+--- a/bolt/lib/Rewrite/RewriteInstance.cpp
++++ b/bolt/lib/Rewrite/RewriteInstance.cpp
+@@ -64,6 +64,7 @@
+ #include "llvm/Support/ToolOutputFile.h"
+ #include "llvm/Support/raw_ostream.h"
+ #include <algorithm>
++#include <atomic>
+ #include <fstream>
+ #include <memory>
+ #include <optional>
+@@ -4296,14 +4297,20 @@
+   BC->MIB->getOrCreateAnnotationIndex("JTIndexReg");
+   BC->MIB->getOrCreateAnnotationIndex("NOP");
+ 
++  std::atomic<bool> HadFatalARMError{false};
+   ParallelUtilities::WorkFuncWithAllocTy WorkFun =
+       [&](BinaryFunction &BF, MCPlusBuilder::AllocatorIdTy AllocId) {
+         bool HadErrors{false};
+         handleAllErrors(BF.buildCFG(AllocId), [&](const BOLTError &E) {
+           if (!E.getMessage().empty())
+             E.log(BC->errs());
+-          if (E.isFatal())
+-            exit(1);
++          if (E.isFatal()) {
++            if (!BC->isARM())
++              exit(1);
++            // Exit after workers join: exiting here can destroy the pool
++            // from its own worker and turn admission failure into a crash.
++            HadFatalARMError.store(true, std::memory_order_relaxed);
++          }
+           HadErrors = true;
+         });
+ 
+@@ -4324,6 +4331,9 @@
+       *BC, ParallelUtilities::SchedulingPolicy::SP_INST_LINEAR, WorkFun,
+       SkipPredicate, "disassembleFunctions-buildCFG",
+       /*ForceSequential*/ opts::SequentialDisassembly || opts::PrintAll);
++
++  if (HadFatalARMError.load(std::memory_order_relaxed))
++    exit(1);
+ 
+   BC->postProcessSymbolTable();
+ }
+--- a/bolt/unittests/Core/CMakeLists.txt
++++ b/bolt/unittests/Core/CMakeLists.txt
+@@ -9,6 +9,7 @@
+ add_bolt_unittest(CoreTests
+   BinaryContext.cpp
+   ARMPseudoCounts.cpp
++  ARMReturns.cpp
+   ClusteredRows.cpp
+   MCPlusBuilder.cpp
+   MemoryMaps.cpp
+--- a/bolt/test/ARM/Inputs/arm32-far-bl.s
++++ b/bolt/test/ARM/Inputs/arm32-far-bl.s
+@@ -8,6 +8,7 @@
+ 	mov	r0, #42
+ 	mov	r7, #1
+ 	svc	#0
++1:	b	1b
+ 	.size	_start, .-_start
+ 
+ 	.section .text.far,"ax",%progbits
+--- /dev/null
++++ b/bolt/unittests/Core/ARMReturns.cpp
+@@ -0,0 +1,102 @@
++//===- ARMReturns.cpp - ARM basic-block mutation invariants ------------===//
++// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
++
++#ifdef ARM_AVAILABLE
++#include "MCTargetDesc/ARMMCTargetDesc.h"
++#include "bolt/Core/BinaryBasicBlock.h"
++#include "bolt/Core/BinaryContext.h"
++#include "bolt/Core/BinaryFunction.h"
++#include "bolt/Rewrite/RewriteInstance.h"
++#include "llvm/BinaryFormat/ELF.h"
++#include "llvm/DebugInfo/DWARF/DWARFContext.h"
++#include "llvm/MC/MCInstBuilder.h"
++#include "llvm/MC/MCDisassembler/MCDisassembler.h"
++#include "llvm/MC/MCExpr.h"
++#include "llvm/Support/TargetSelect.h"
++#include "gtest/gtest.h"
++
++using namespace llvm;
++using namespace llvm::object;
++using namespace llvm::bolt;
++
++namespace {
++class ARMReturns : public testing::Test {
++protected:
++  ELF32LE::Ehdr Header{};
++  std::unique_ptr<ObjectFile> Object;
++  std::unique_ptr<BinaryContext> BC;
++  BinaryFunction *Function{nullptr};
++
++  void SetUp() override {
++    LLVMInitializeARMTargetInfo();
++    LLVMInitializeARMTargetMC();
++    LLVMInitializeARMAsmParser();
++    LLVMInitializeARMDisassembler();
++    LLVMInitializeARMTarget();
++    LLVMInitializeARMAsmPrinter();
++    memcpy(Header.e_ident, "\177ELF", 4);
++    Header.e_ident[ELF::EI_CLASS] = ELF::ELFCLASS32;
++    Header.e_ident[ELF::EI_DATA] = ELF::ELFDATA2LSB;
++    Header.e_machine = ELF::EM_ARM;
++    MemoryBufferRef Input(
++        StringRef(reinterpret_cast<const char *>(&Header), sizeof(Header)),
++        "ARM pseudo fixture");
++    Object = cantFail(ObjectFile::createObjectFile(Input));
++    const Triple TT("armv7-none-eabi");
++    Relocation::Arch = TT.getArch();
++    BC = cantFail(BinaryContext::createBinaryContext(
++        TT, std::make_shared<orc::SymbolStringPool>(), Object->getFileName(),
++        nullptr, true, DWARFContext::create(*Object), {outs(), errs()}));
++    BC->initializeTarget(std::unique_ptr<MCPlusBuilder>(createMCPlusBuilder(
++        TT.getArch(), BC->MIA.get(), BC->MII.get(), BC->MRI.get(), BC->STI.get())));
++    BinarySection &Text = BC->registerOrUpdateSection(
++        ".text", ELF::SHT_PROGBITS, ELF::SHF_ALLOC | ELF::SHF_EXECINSTR);
++    Function = BC->createBinaryFunction("pseudo_probe", Text, 0x1000, 4);
++    // Instruction accessors require an instruction-bearing parent state.
++    Function->setFinalized();
++  }
++
++  MCInst pseudo() {
++    return MCInstBuilder(ARM::B).addExpr(
++        MCSymbolRefExpr::create(BC->Ctx->createTempSymbol(), *BC->Ctx));
++  }
++
++  MCInst real() {
++    MCInst Inst;
++    BC->MIB->createNoop(Inst);
++    return Inst;
++  }
++};
++
++TEST_F(ARMReturns, DecodedSinglePCPop) {
++  BC->initializeThumbTarget(std::unique_ptr<MCPlusBuilder>(createMCPlusBuilder(
++      Triple::arm, BC->MIA.get(), BC->MII.get(), BC->MRI.get(),
++      BC->ThumbSTI.get())));
++  struct Case { bool Thumb; uint8_t Bytes[4]; bool Return; bool Terminator; };
++  const Case Cases[] = {
++      {false, {0x04,0xf0,0x9d,0xe4}, true, true}, // pop {pc}
++      {false, {0x04,0xf0,0x9d,0x14}, true, false}, // popne {pc}
++      {false, {0x04,0x00,0x9d,0xe4}, false, false}, // ldr r0,[sp],#4
++      {false, {0x04,0xf0,0x94,0xe4}, false, false}, // ldr pc,[r4],#4
++      {false, {0x08,0xf0,0x9d,0xe4}, false, false}, // ldr pc,[sp],#8
++      {true, {0x5d,0xf8,0x04,0xfb}, true, true}, // pop.w {pc}
++      {true, {0x5d,0xf8,0x04,0x0b}, false, false}, // ldr r0,[sp],#4
++      {true, {0x54,0xf8,0x04,0xfb}, false, false}, // ldr pc,[r4],#4
++      {true, {0x5d,0xf8,0x08,0xfb}, false, false}, // ldr pc,[sp],#8
++  };
++  for (const Case &C : Cases) {
++    SCOPED_TRACE(C.Thumb ? "Thumb" : "ARM");
++    MCInst Inst;
++    uint64_t Size = 0;
++    MCDisassembler *Decoder = C.Thumb ? BC->ThumbDisAsm.get() : BC->DisAsm.get();
++    ASSERT_NE(Decoder, nullptr);
++    ASSERT_EQ(Decoder->getInstruction(Inst, Size, C.Bytes, 0x1000, nulls()),
++              MCDisassembler::Success);
++    ASSERT_EQ(Size, 4u);
++    MCPlusBuilder *MIB = BC->getMIBFor(C.Thumb);
++    EXPECT_EQ(MIB->isReturn(Inst), C.Return);
++    EXPECT_EQ(MIB->isTerminator(Inst), C.Terminator);
++  }
++}
++} // namespace
++#endif
+--- /dev/null
++++ b/bolt/test/ARM/Inputs/check-arm-function-fallthrough.py
+@@ -0,0 +1,89 @@
++from pathlib import Path
++import json, subprocess, sys, tempfile
++
++parent = Path(sys.argv[1])
++parent.mkdir(parents=True, exist_ok=True)
++out = Path(tempfile.mkdtemp(prefix="fallthrough-", dir=parent))
++before = "--expect-bug" in sys.argv[2:]
++
++def run(label, command):
++    p = subprocess.run([str(x) for x in command], capture_output=True, text=True)
++    (out / (label + ".log")).write_text(p.stdout + p.stderr)
++    return p
++
++results = {}
++for isa in ("arm", "thumb"):
++    for kind in ("entry", "branch", "call", "conditional", "spoof", "closed", "tail", "padding", "pop", "popwide"):
++        if isa == "arm" and kind == "popwide":
++            continue
++        thumb = ".thumb_func\n" if isa == "thumb" else ""
++        body = {
++            "entry": "mov r0,#1\n",
++            "spoof": "mov r0,#1\n",
++            "branch": "cmp r0,#0\nbeq .Ldone\nbx lr\n.Ldone:\nmov r0,#1\n",
++            "call": "push {r4,lr}\nbl helper\n",
++            "conditional": "cmp r0,#0\nbeq .Lreturn\nb .Llast\n.Lreturn:\nbx lr\n.Llast:\ncmp r0,#1\nbeq .Lreturn\n",
++            "closed": "cmp r0,#0\nbeq .Lreturn\nmov r0,#1\n.Lreturn:\nbx lr\n",
++            "tail": "b neighbor\n",
++            "padding": "bx lr\nnop\nnop\n",
++            "pop": "push {lr}\nmov r0,#7\npop {pc}\n",
++            "popwide": "push.w {lr}\nmov r0,#7\npop.w {pc}\n",
++        }[kind]
++        neighbor = "pop {r4,pc}\n" if kind == "call" else "bx lr\n"
++        label = isa + "-" + kind
++        d = out / label
++        d.mkdir()
++        asm = f""".syntax unified
++.arch armv7-a
++.text
++.arm
++.global _start
++.type _start,%function
++_start: bl probe
++bx lr
++.size _start,.-_start
++.{isa}
++.balign 4
++.global probe
++.type probe,%function
++{thumb}probe:
++{body}.size probe,.-probe
++.balign 4
++.global neighbor
++.type neighbor,%function
++{thumb}neighbor: mov r0,#42
++{neighbor}.size neighbor,.-neighbor
++.balign 4
++.global helper
++.type helper,%function
++{thumb}helper: mov r0,#3
++bx lr
++.size helper,.-helper
++"""
++        function = "__ARMv5LongLdrPcThunk_fake" if kind == "spoof" else "probe"
++        if kind == "spoof":
++            asm = asm.replace("probe", function)
++        (d / "input.s").write_text(asm)
++        (d / "layout.ld").write_text("ENTRY(_start)\nSECTIONS { . = 0x8000; .text : { *(.text*) } }\n")
++        for phase, command in [
++            ("mc", ["llvm-mc", "-triple=armv7-none-eabi", "-arm-add-build-attributes", "-filetype=obj", d / "input.s", "-o", d / "input.o"]),
++            ("link", ["ld.lld", "--emit-relocs", "-T", d / "layout.ld", d / "input.o", "-o", d / "input.elf"]),
++        ]:
++            p = run(label + "-" + phase, command)
++            if p.returncode:
++                raise RuntimeError(p.stdout + p.stderr)
++        unsupported = kind in ("entry", "branch", "call", "conditional", "spoof")
++        for mode, options in [("normal", []), ("reverse", ["--reorder-blocks=reverse"])]:
++            candidate = d / (mode + ".elf")
++            mapping = d / (mode + ".map")
++            p = run(label + "-" + mode, ["llvm-bolt", d / "input.elf", "-o", candidate, "--no-huge-pages", "-lite=0", "--funcs=" + function, "--emit-function-map=" + str(mapping), *options])
++            reject = unsupported and not before
++            if reject:
++                if p.returncode != 1 or "unmodeled AArch32 function fallthrough" not in p.stdout + p.stderr or candidate.exists():
++                    raise RuntimeError(label + ": unsafe fallthrough was not rejected before output\n" + p.stdout + p.stderr)
++            else:
++                if p.returncode or not candidate.exists() or function + " " not in mapping.read_text():
++                    raise RuntimeError(label + ": expected emitted function\n" + p.stdout + p.stderr)
++            results[label + "-" + mode] = {"returncode": p.returncode, "rejected": reject, "output": candidate.exists()}
++(out / "results.json").write_text(json.dumps(results, indent=2) + "\n")
++print("PASS:", "pre-fix unsafe acceptance confirmed;" if before else "20 ARM/Thumb fallthrough rejections;", "18 explicit-return/tail/padding/pop admissions", out)
+--- /dev/null
++++ b/bolt/test/ARM/arm-function-fallthrough.test
+@@ -0,0 +1,2 @@
++## Reject unmodeled symbol-boundary fallthrough before CFG repair or emission.
++RUN: %python %p/Inputs/check-arm-function-fallthrough.py %t

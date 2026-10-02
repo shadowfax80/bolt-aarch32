@@ -441,3 +441,20 @@ detect the reset fault. All five payloads are byte-identical between build modes
 and return to the serial loader. Evidence: [CFG pseudo counts](results/correctness_cfg_pseudos_20261002.json).
 #3 remains partial: function-fallthrough, synthesized Thumb returns and other
 CFG recovery paths remain under review. #12 remains paused.
+# 2026-10-02: function fallthrough and decoded POP-to-PC
+
+Overlay 0030 rejects reachable residual function fallthrough before CFG repair,
+uses the function's ARM/Thumb builder, removes invalid-CFG ignore recovery and
+exits fatal ARM CFG admission after workers join. It prevents conditional-edge
+erasure, unmodeled final-call continuations and A32 returns inside Thumb output.
+The exact standard SP/+4 single-register POP-to-PC is recognized from real
+decoder bytes; general LDR-to-PC and conditional-exit modeling remain open.
+
+Twenty unsafe admissions reject with status 1 and no output; eighteen safe
+return/tail/padding/POP admissions pass. Both modes pass 53 unit tests with 31
+expected skips; lit passes 41 assertions-on and 40 with one debug-only skip off.
+Both Pi POP-state builds pass 512 baseline/512 generated cases and detect all
+three faults, with identical payloads. An exact existing A32 absolute veneer is
+admitted before its later removal pass; broader veneer matching remains to audit.
+The host veneer fixture now ends with an explicit loop if its SVC returns.
+Evidence: [CFG fallthrough](results/correctness_cfg_fallthrough_20261002.json).

@@ -21,7 +21,8 @@ correctness items. Its remaining validation gaps still limit completion claims.
 
 1. #5 counter carry/registers/flags/IT and #6 admission boundary verified;
    broader ISR/mixed-ISA/snapshot/exclusive-memory coverage remains open.
-2. **#3 active:** assertions-on/off CFG invariants and #4 conditional returns/PC writes/pass safety.
+2. #3 pseudo/CFG boundaries now verified in both build modes;
+   **#4 active:** conditional returns/PC writes/pass safety. Wider #3 audit stays open.
 3. #1 relocation boundaries, then #9 aliases, secondary entries and pointer targets.
 4. #7 ISA/ABI admission and #11 inline-table/pass/unsupported-input coverage.
 5. **#12 paused by user:** resume counter binding, core ownership, other gates,
@@ -70,8 +71,10 @@ deferred. Endianness admission is #7; arbitrary unwind consumers are not certifi
   on and off. Other invariant recovery paths remain under review.
 - [ ] Audit per-function ARM/Thumb builder selection in CFG repair and synthesized
   instructions, including `postProcessBranches()`.
-  A linked Thumb fallthrough probe confirms an A32 BX LR is synthesized into
-  Thumb output. The next fix is prepared separately, with live source unchanged.
+  Overlay 0030 selects the function builder in buildCFG/postProcessBranches and
+  rejects residual function fallthrough before repair. Twenty ARM/Thumb negative
+  admissions reject without output; eighteen safe return/tail/padding/POP cases
+  pass. Main-thread exit after worker join avoids fatal-CFG shutdown crashes.
 - [ ] Reject unsupported functions before partial transformations, or prove fallback
   preserves original code/references. Remove silent invariant recovery.
 - [x] Run current focused fixtures in a separate assertions-disabled ATFE build:
@@ -86,6 +89,10 @@ safe; unsupported cases cannot return a successful partially corrupted output.
 ## 4. Control flow, returns and branch flags — partial, P0
 
 - [x] Recognize unconditional POP/updated-LDM PC returns as terminators.
+- [x] Recognize decoded single-register POP-to-PC (ARM LDR_POST_IMM and Thumb
+  t2LDR_POST, exact SP/+4 form). Nine decoded host cases cover predicate,
+  destination, base and offset distinctions. Both build modes pass 512 baseline
+  plus 512 instrumented Pi state cases and all three fault checks.
 - [x] Fix ARM Bcc target operands and branch-based tail calls; add restricted
   same-ISA leaf inlining and literal materialization hooks (overlay 0023).
 - [x] **Fix CBZ/CBNZ expansion:** replace the flag-clobbering `CMP; Bcc` with an
@@ -102,6 +109,9 @@ safe; unsupported cases cannot return a successful partially corrupted output.
   reordering, peepholes and splitting.
 - [ ] Cover inlining safety overrides (`--force-inline` bypasses the ARM safety
   filter), IT call sites and pass combinations with negative fixtures.
+- [x] Reject unmodeled symbol-boundary fallthrough (entry, ordinary, final-call,
+  conditional and fake-thunk-name cases) before transforming it; preserve one
+  exact existing A32 absolute veneer pending its removal pass.
 
 **Done:** host CFG/encoding tests and Pi results cover ARM/Thumb, predication,
 live flags, return values, LR/SP and fallthrough.
