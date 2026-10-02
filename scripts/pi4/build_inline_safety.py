@@ -28,6 +28,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--out', type=Path, required=True)
     parser.add_argument('--toolchain', type=Path, default=Path('/home/user/bolt-aarch32/build-atfe/bin'))
+    parser.add_argument('--pass-matrix', action='store_true', help='also verify automatic/size-based inlining and peepholes with reverse layout')
     args = parser.parse_args()
     args.out.mkdir(parents=True, exist_ok=True)
     out = Path(tempfile.mkdtemp(prefix='build-', dir=args.out.resolve()))
@@ -98,6 +99,20 @@ b 1b
                             else 11 if kind == 'conditional' and value == 0
                             else 34 if kind == 'branch' and value == 0 else value+18)
                 cases.append(dict(function=caller, arg=value, expected=expected & 0xffffffff))
+    if args.pass_matrix:
+        # These call-site boundaries must hold even when a safe callee is
+        # eligible under force-inline, inline-all or size-based inlining.
+        for kind,body in [
+            ('predicated','push {r4,lr}\ncmp r0,#0\nbleq arm_safe\nadd r0,r0,#11\npop {r4,pc}'),
+            ('indirect','push {r4,lr}\nmovw r3,#:lower16:arm_safe\nmovt r3,#:upper16:arm_safe\nblx r3\nadd r0,r0,#11\npop {r4,pc}'),
+            ('cross','push {r4,lr}\nbl thumb_safe\nadd r0,r0,#11\npop {r4,pc}'),
+        ]:
+            name = 'caller_arm_'+kind
+            asm += f'.arm\n.balign 4\n.global {name}\n.type {name},%function\n{name}:\n{body}\n.size {name},.-{name}\n'
+            functions.append(name);wrappers.append(name);inline_expected[name] = False
+            for value in inputs:
+                expected = value+11 if kind == 'predicated' and value else value+18
+                cases.append(dict(function=name,arg=value,expected=expected & 0xffffffff))
     asm += '.data\n.balign 4\n.global case_entries\n.type case_entries,%object\ncase_entries:\n'
     asm += ''.join(f'.word {c["function"]},{c["arg"]},{c["expected"]}\n' for c in cases)
     asm += '.size case_entries,.-case_entries\n'
@@ -131,7 +146,9 @@ extern const struct Case case_entries[];
     finish();
 }
 '''
-    require(len(cases) == 55 and len(wrappers) == 11, 'wrong fixture matrix')
+    case_count, wrapper_count = (70,14) if args.pass_matrix else (55,11)
+    require(len(cases) == case_count and len(wrappers) == wrapper_count, 'wrong fixture matrix')
+    main_c = main_c.replace('i<55','i<'+str(case_count)).replace('PASS cases=55','PASS cases='+str(case_count))
     (out/'main.c').write_text(main_c)
     layout = ROOT/'scripts/pi4/fixtures/counter-state/link.ld'
     run('mc', [tc/'llvm-mc', '-triple=armv7-none-eabi', '-arm-add-build-attributes', '-filetype=obj', out/'start.s', '-o', out/'start.o'])
@@ -140,9 +157,16 @@ extern const struct Case case_entries[];
     original = (out/'baseline.elf').read_bytes()
     original_sections, _ = elf_metadata(original)
     variants, redirects = {}, {}
-    for mode, extra in [('normal', []), ('reverse', ['--reorder-blocks=reverse'])]:
+    configurations = [('normal', []), ('reverse', ['--reorder-blocks=reverse'])]
+    if args.pass_matrix:
+        configurations += [('inline_all',['--inline-all']),
+                           ('inline_small',['--inline-small-functions','--inline-small-functions-bytes=10000']),
+                           ('peepholes',['--peepholes=double-jumps','--reorder-blocks=reverse'])]
+    for mode, extra in configurations:
         candidate, mapping = out/(mode+'.elf'), out/(mode+'.map')
-        run(mode, [tc/'llvm-bolt', out/'baseline.elf', '-o', candidate, '--no-huge-pages', '-lite=0', '--funcs='+','.join(functions), '--force-inline='+','.join(callees), '--emit-function-map='+str(mapping), *extra])
+        inline = [] if mode in ('inline_all','inline_small') else ['--force-inline='+','.join(callees)]
+        log = run(mode, [tc/'llvm-bolt', out/'baseline.elf', '-o', candidate, '--no-huge-pages', '-lite=0', '--funcs='+','.join(functions), *inline, '--emit-function-map='+str(mapping), *extra])
+        require('inlined' in log and 'call sites' in log, 'inlining pass did not run '+mode)
         rows = {p[0]:[int(x,16) for x in p[1:]] for line in mapping.read_text().splitlines() if (p:=line.split())}
         require(set(rows) == set(functions), 'missing emitted fixture functions')
         dis = run(mode+'-disasm', [tc/'llvm-objdump', '-d', candidate])
@@ -153,7 +177,8 @@ extern const struct Case case_entries[];
                 m = re.match(r'\s*([0-9a-f]+):\s+(?:[0-9a-f]{2,8}\s+)+(\S+)\s*(.*)', line)
                 if m and address <= int(m[1],16) < address+size:
                     ops.append(m[2])
-            require(sum(op in ('bl','blx') for op in ops) == (0 if inline_expected[name] else 1), 'wrong inlining decision '+name)
+            calls = sum(bool(re.fullmatch(r'bl(?:x)?(?:eq|ne|cs|hs|cc|lo|mi|pl|vs|vc|hi|ls|ge|lt|gt|le|al)?(?:\.w)?',op)) for op in ops)
+            require(calls == (0 if inline_expected[name] else 1), 'wrong inlining decision '+name)
             if name.endswith(('cbz','cbnz')):
                 require(any(ops[i] in ('cbz','cbnz') and ops[i+1] == 'b.w' for i in range(len(ops)-1)), 'CBZ/CBNZ expansion not exercised '+name)
         blob = bytearray(candidate.read_bytes())
@@ -178,7 +203,7 @@ extern const struct Case case_entries[];
             blob[position:position+4] = branch
             redirects[mode].append(dict(name=name,input=old,output=new,thumb=thumb,branch_hex=branch.hex()))
         candidate.write_bytes(blob)
-        variants[mode] = dict(inlined=[n for n,v in inline_expected.items() if v],retained=[n for n,v in inline_expected.items() if not v])
+        variants[mode] = dict(inlined=[n for n,v in inline_expected.items() if v],retained=[n for n,v in inline_expected.items() if not v],options=inline+extra)
     # A return-value fault must be rejected at case zero by the independent oracle.
     fault = bytearray((out/'normal.elf').read_bytes())
     sections, _ = elf_metadata(fault)
@@ -206,13 +231,13 @@ extern const struct Case case_entries[];
         run(name+'-raw', [tc/'llvm-objcopy', '-O', 'binary', out/(name+'.elf'), out/(name+'.bin')])
     (out/'redirects.json').write_text(json.dumps(redirects,indent=2)+'\n')
     (out/'cases.json').write_text(json.dumps(cases,indent=2)+'\n')
-    manifest = dict(schema=1,kind='pi-inline-safety',cases=55,variants=variants,
+    manifest = dict(schema=1,kind='pi-inline-safety',cases=case_count,variants=variants,pass_matrix=args.pass_matrix,
                     faults={'bad-result':dict(case_id=0,field=0),'bad-cbz-flags':dict(case_id=46,field=0)},toolchain=str(tc),
-                    scope='HYP core 0, masked interrupts; ARM/Thumb leaf, stack, LR, conditional return and both branch paths; Thumb CBZ/CBNZ expansions preserve flags consumed on both paths',
+                    scope='HYP core 0, masked interrupts; ARM/Thumb leaf, stack, LR, conditional return and both branch paths; Thumb CBZ/CBNZ expansions preserve flags consumed on both paths'+('; predicated, indirect and mixed-ISA call-site exclusions under automatic/size-based inlining and reverse-layout peepholes' if args.pass_matrix else ''),
                     files={p.name:sha256(p) for p in sorted(out.iterdir()) if p.is_file()},
                     tools={name:sha256(tc/name) for name in ('llvm-bolt','llvm-mc','ld.lld','clang','llvm-objcopy')},builder_sha256=sha256(Path(__file__)))
     (out/'build.json').write_text(json.dumps(manifest,indent=2)+'\n')
-    print('Built 55 cases per image plus result and CBZ flag faults:', out)
+    print('Built',case_count,'cases per image plus result and CBZ flag faults:', out)
 
 
 if __name__ == '__main__':

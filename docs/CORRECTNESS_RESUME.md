@@ -1,6 +1,32 @@
 # ATFE correctness checkpoint - 2026-10-02
 
-## Latest: #4 unsupported PC-write boundary verified
+## Latest: #4 expanded pass and call-site matrix verified
+
+0033 is pushed as 796083d. Test-only overlay 0034 expands the inlining gate to
+92 emitted cases and four IT-call rejections per host build. Focused suites
+pass 44 assertions-on / 43 assertions-off with one expected debug-only skip.
+Six parser tests pass. Both Pi builds run seventy cases each in baseline,
+forced normal/reverse, automatic, size-based and reverse-plus-peepholes variants:
+840 positive cases, four expected faults and sixteen watchdog returns. All
+eight payloads match across build modes. Safe same-ISA leaves inline; predicated,
+indirect and mixed-ISA calls remain. Unsupported IT calls reject without output.
+
+Builds: inline-safety-passes-pi/build-ij4gfthz and
+inline-safety-passes-pi-noasserts/build-c6yymiw8. Hardware evidence directories:
+pi-verify-_6pe0j7y and pi-verify-3t9s94ww respectively. Tracked evidence:
+results/correctness_inline_passes_20261002.json. Scratch/preimages/source hashes
+and host logs: out/correctness/inlining-passes. The one-time
+extend-inline-pass-tests.py has already applied both host test edits; do not
+rerun it. Overlay 0034 reverse-apply checks against the live source.
+
+Next #4: wider conditional exits and special/privileged control transfers;
+profile-driven splitting and broader pass combinations remain. Three original
+items remain complete (#2/#8/#10). #12 stays explicitly paused. ATFE only,
+WSL running, Pi waiting in loader; no upstream changes. The peepholes option
+run does not prove every peephole transformed code. Current fixture is quiet
+HYP/core zero with masked interrupts and parked secondary cores.
+
+## Earlier: #4 unsupported PC-write boundary verified
 
 0032 is pushed as 66f1df1. The next audit confirms a PC-relative computed jump
 corruption: MOV PC,PC followed by an eliminated MOV r1,r1 changes the jump's

@@ -36,7 +36,31 @@ all 55 cases. `bad-result` must fail case 0/result field; `bad-cbz-flags` change
 the inlined CBZ nonzero-path ADD to ADDS and must fail case 46/result field because
 the caller detects changed flags. Every payload must reboot through the watchdog
 to the serial loader. This fixture checks the listed transforms and instruction
-forms; general PC writes, active interrupts, IT call sites and other pass
-combinations remain separate work.
+forms; general PC writes, active interrupts and broader pass combinations
+remain separate work.
 
 Recorded run: [correctness_inline_safety_20261002.json](results/correctness_inline_safety_20261002.json).
+
+## Expanded pass and call-site matrix
+
+Add `--pass-matrix` to the builder for seventy cases through fourteen wrapper
+redirects. Three extra ARM wrappers exercise predicated, indirect and mixed-ISA
+calls, which must retain their calls. The emitted-code checks distinguish those
+calls from ordinary conditional branches. Safe same-ISA leaf calls must inline.
+The baseline and five generated variants run all seventy cases: forced normal,
+forced reverse, `--inline-all`, `--inline-small-functions` with a 10000-byte limit,
+and forced reverse with `--peepholes=double-jumps`. The last variant tests the
+option combination; it does not establish that every peephole made a change.
+The same two fault payloads must fail their original case/result checks.
+
+Overlay 0034 expands the host inlining gate to 92 emitted cases and four Thumb
+IT-call rejection cases, under forced, reversed, automatic and size-based
+inlining. Unsupported IT calls must fail before output is created. Hardware
+does not execute rejected IT calls. General predicated exits, privileged
+transfers and profile-driven splitting remain open under item #4.
+
+Recorded expanded run:
+[correctness_inline_passes_20261002.json](results/correctness_inline_passes_20261002.json).
+Both build modes pass 840 positive cases in total, detect four fault runs and
+return all sixteen firmware runs to the loader. All eight payloads match across
+the independently built BOLT assertion configurations.

@@ -20,7 +20,15 @@ per mode, with result and CBZ-flag faults detected. Overlay 0032 is pushed as
 0033 rejects unsupported PC writes and noncanonical LDM returns. Both build
 modes pass their tests and reject the exact hardware input without output;
 all five supported Pi payloads match the previously executed bytes. Broader
-#5/#6 coverage stays open. #12 remains separately paused. See CORRECTNESS_RESUME.md.
+#5/#6 coverage stays open. Overlay 0033 is pushed as 796083d. Overlay 0034
+extends the inlining host gate to 92 emitted cases and four IT-call rejections
+per build mode. The expanded Pi matrix passes 840 positive cases across six
+configurations in both modes, detects four fault runs and watchdog-returns
+all sixteen images. Predicated, indirect and mixed-ISA calls remain intact;
+automatic and size-based inlining preserve the tested safety boundary.
+#4 remains partial for wider predicated exits, special/privileged transfers
+and profile-driven pass combinations. #12 remains separately paused.
+See CORRECTNESS_RESUME.md.
 
 Fresh source review at `bbae817`: [CORRECTNESS_REVIEW_BBAE817.md](CORRECTNESS_REVIEW_BBAE817.md).
 Actionable subitems and closure criteria: [CORRECTNESS_TODO.md](CORRECTNESS_TODO.md).
@@ -33,7 +41,7 @@ from completion criteria. Three items are complete within this scope (2, 8, 10).
 | 1 | Relocation matrix and literal loads | Partial | THM_JUMP19 and splitting now supported; complete signed range, alignment, BLX H-bit, addend and unsupported-path coverage |
 | 2 | EHABI exidx/extab | Complete via rejection | Unsupported unwind information is rejected; full unwind rewriting remains unsupported |
 | 3 | Pseudo/CFG invariants | Partial | Pseudo-count and fallthrough rejection verified in both build modes; worker fatal errors exit after join; wider CFG audit open |
-| 4 | Control flow and return semantics | Partial; active | POP-to-PC, self-move flags, inlining and both-path CBZ/CBNZ verified; unsupported PC writes/noncanonical LDM reject in both modes; wider predicated exits, special transfers and pass combinations remain |
+| 4 | Control flow and return semantics | Partial; active | POP-to-PC, flags, both-path CBZ/CBNZ and forced/automatic/size-based inlining verified; predicated/indirect/mixed-ISA calls retained and IT calls reject; wider predicated exits, special transfers and profile-driven pass combinations remain |
 | 5 | Instrumentation correctness | Partial; operating scope next | Carry, CPU-state, IT, nested Thumb/recursion and real runtime clear pass on Pi; mixed-ISA nested state, active interrupts and live snapshots remain |
 | 6 | Instrumentation scope | Partial | Explicit privileged/single-core/no-FIQ contract and call/process/dynamic rejection pass; audit exclusive-memory and active ISR boundaries |
 | 7 | ISA/profile/endianness | Pending | Enforce the supported target feature boundary |

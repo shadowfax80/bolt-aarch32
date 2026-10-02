@@ -1,5 +1,23 @@
 # Correctness fixes
 
+## Expanded inlining pass and call-site verification (2026-10-02)
+
+Test-only overlay 0034 extends the inlining gate to 92 emitted cases and four
+IT-call rejections per build mode. Forced normal/reverse, automatic and size-based
+inlining must preserve unsafe callee and call-site exclusions. Predicated,
+indirect and mixed-ISA calls remain; safe same-ISA leaves inline. Focused suites
+pass 44/43 tests (one debug-only skip off), and six result-parser tests pass.
+
+Both real Pi builds pass seventy cases in baseline and five generated variants:
+840 positive cases. The additional peepholes/reverse variant checks the option
+combination without claiming every peephole transforms code. Return-value and
+CBZ-flag faults fail at their specified cases in both modes. All eight payloads
+match across builds; all sixteen firmware runs watchdog-return to the loader.
+#4 remains partial for wider predicated exits, special/privileged transfers and
+profile-driven pass combinations; #12 remains paused. See
+[evidence](results/correctness_inline_passes_20261002.json) and
+[workflow](PI_INLINE_SAFETY.md).
+
 ## Unsupported PC-write admission and stack-return distinction (2026-10-02)
 
 Overlay 0033 rejects unsupported PC-writing moves, loads and noncanonical

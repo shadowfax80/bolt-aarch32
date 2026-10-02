@@ -1,0 +1,617 @@
+{
+  "schema": 1,
+  "date": "2026-10-02",
+  "items": [
+    4
+  ],
+  "status": "partial",
+  "patch": {
+    "name": "0034-bolt-arm-inline-pass-tests.patch",
+    "sha256": "e9001fa210bb1656060cce70d661d5286e71c035e1b712f92756e6594ab1116c",
+    "test_only": true
+  },
+  "source_change": {
+    "bolt/test/ARM/Inputs/check-arm-inline-safety.py": {
+      "before": "5fc4479d8b065cbd434070bdbab0ee56badfa8844b1d42c8f08bb2d13c49019b",
+      "after": "5ffadd07f61cf2a73ba80620d013ff8aa3e447f2aa2c01d4369a88f2d38db9f1"
+    },
+    "bolt/test/ARM/arm-inline-safety.test": {
+      "before": "2dea92fdbb89499f35f1767e2b51fdf24f393dcf546d8e658da22070d86831b1",
+      "after": "30149cee0042c1c0fc458367cecab41d919c89c416f522ffee1600d0dde253f4"
+    }
+  },
+  "host": {
+    "assertions-on": {
+      "lit_passed": 44,
+      "lit_skipped": 0,
+      "emitted_cases": 92,
+      "it_call_rejections": 4,
+      "log_sha256": "e0a99308aeba39220536e805acb24b089fbc0341bf580d76dac552c5594f0751"
+    },
+    "assertions-off": {
+      "lit_passed": 43,
+      "lit_skipped": 1,
+      "emitted_cases": 92,
+      "it_call_rejections": 4,
+      "log_sha256": "185d1b2f09bd1716c7e5c8ecd1bdb115ca37ccb6128aa2a1e10406826af43044"
+    },
+    "parser": {
+      "passed": 6,
+      "log_sha256": "beeb3ca60f690f81c43b1f9c1f095732faba78f64e86f912c3d396bd3d8fb280"
+    }
+  },
+  "pi": {
+    "assertions-on": {
+      "build": "out/correctness/inline-safety-passes-pi/build-ij4gfthz",
+      "evidence": "out/correctness/inline-safety-passes-pi/build-ij4gfthz/pi-verify-_6pe0j7y",
+      "manifest": {
+        "schema": 1,
+        "kind": "pi-inline-safety",
+        "cases": 70,
+        "variants": {
+          "normal": {
+            "inlined": [
+              "caller_arm_safe",
+              "caller_arm_branch",
+              "caller_thumb_safe",
+              "caller_thumb_branch",
+              "caller_thumb_cbz",
+              "caller_thumb_cbnz"
+            ],
+            "retained": [
+              "caller_arm_stack",
+              "caller_arm_lr",
+              "caller_arm_conditional",
+              "caller_thumb_stack",
+              "caller_thumb_lr",
+              "caller_arm_predicated",
+              "caller_arm_indirect",
+              "caller_arm_cross"
+            ],
+            "options": [
+              "--force-inline=arm_safe,arm_stack,arm_lr,arm_branch,arm_conditional,thumb_safe,thumb_stack,thumb_lr,thumb_branch,thumb_cbz,thumb_cbnz"
+            ]
+          },
+          "reverse": {
+            "inlined": [
+              "caller_arm_safe",
+              "caller_arm_branch",
+              "caller_thumb_safe",
+              "caller_thumb_branch",
+              "caller_thumb_cbz",
+              "caller_thumb_cbnz"
+            ],
+            "retained": [
+              "caller_arm_stack",
+              "caller_arm_lr",
+              "caller_arm_conditional",
+              "caller_thumb_stack",
+              "caller_thumb_lr",
+              "caller_arm_predicated",
+              "caller_arm_indirect",
+              "caller_arm_cross"
+            ],
+            "options": [
+              "--force-inline=arm_safe,arm_stack,arm_lr,arm_branch,arm_conditional,thumb_safe,thumb_stack,thumb_lr,thumb_branch,thumb_cbz,thumb_cbnz",
+              "--reorder-blocks=reverse"
+            ]
+          },
+          "inline_all": {
+            "inlined": [
+              "caller_arm_safe",
+              "caller_arm_branch",
+              "caller_thumb_safe",
+              "caller_thumb_branch",
+              "caller_thumb_cbz",
+              "caller_thumb_cbnz"
+            ],
+            "retained": [
+              "caller_arm_stack",
+              "caller_arm_lr",
+              "caller_arm_conditional",
+              "caller_thumb_stack",
+              "caller_thumb_lr",
+              "caller_arm_predicated",
+              "caller_arm_indirect",
+              "caller_arm_cross"
+            ],
+            "options": [
+              "--inline-all"
+            ]
+          },
+          "inline_small": {
+            "inlined": [
+              "caller_arm_safe",
+              "caller_arm_branch",
+              "caller_thumb_safe",
+              "caller_thumb_branch",
+              "caller_thumb_cbz",
+              "caller_thumb_cbnz"
+            ],
+            "retained": [
+              "caller_arm_stack",
+              "caller_arm_lr",
+              "caller_arm_conditional",
+              "caller_thumb_stack",
+              "caller_thumb_lr",
+              "caller_arm_predicated",
+              "caller_arm_indirect",
+              "caller_arm_cross"
+            ],
+            "options": [
+              "--inline-small-functions",
+              "--inline-small-functions-bytes=10000"
+            ]
+          },
+          "peepholes": {
+            "inlined": [
+              "caller_arm_safe",
+              "caller_arm_branch",
+              "caller_thumb_safe",
+              "caller_thumb_branch",
+              "caller_thumb_cbz",
+              "caller_thumb_cbnz"
+            ],
+            "retained": [
+              "caller_arm_stack",
+              "caller_arm_lr",
+              "caller_arm_conditional",
+              "caller_thumb_stack",
+              "caller_thumb_lr",
+              "caller_arm_predicated",
+              "caller_arm_indirect",
+              "caller_arm_cross"
+            ],
+            "options": [
+              "--force-inline=arm_safe,arm_stack,arm_lr,arm_branch,arm_conditional,thumb_safe,thumb_stack,thumb_lr,thumb_branch,thumb_cbz,thumb_cbnz",
+              "--peepholes=double-jumps",
+              "--reorder-blocks=reverse"
+            ]
+          }
+        },
+        "pass_matrix": true,
+        "faults": {
+          "bad-result": {
+            "case_id": 0,
+            "field": 0
+          },
+          "bad-cbz-flags": {
+            "case_id": 46,
+            "field": 0
+          }
+        },
+        "toolchain": "/home/user/bolt-aarch32/build-atfe/bin",
+        "scope": "HYP core 0, masked interrupts; ARM/Thumb leaf, stack, LR, conditional return and both branch paths; Thumb CBZ/CBNZ expansions preserve flags consumed on both paths; predicated, indirect and mixed-ISA call-site exclusions under automatic/size-based inlining and reverse-layout peepholes",
+        "files": {
+          "bad-cbz-flags-raw.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bad-cbz-flags.bin": "c3c4a88daf4a24ca4d81a3b169cc7c8d35d93d163c8f5e291156b67041311296",
+          "bad-cbz-flags.elf": "11a2f42b8addd6e8b75a849234bd80652bb61192aed6d2470071493c12601df0",
+          "bad-result-raw.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bad-result.bin": "d90e41a9175088b981be73a6833c4e4c2f3ce9938b9e5b8cb5e563b6e45e0827",
+          "bad-result.elf": "c011af446e24b10aa8477fca5973bd76de55a90f16205ec0a7029443c64fb353",
+          "baseline-raw.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "baseline.bin": "344a634a4ffbbc769c7fe68c176e6a9e6fd2019a3f76b4f16ef7fc7705b4a5fd",
+          "baseline.elf": "bb682cfa192517687e16bbd418244f10ae27ee8b70612b75664418f669674f00",
+          "cases.json": "68828415eee9867e76f3ad413881118b115a79bc0ba71390192883e7a1bc067d",
+          "compile.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "inline_all-disasm.log": "4aaf41d64b459d9556b9a5ca770f5cea7f013ac228836a22b2839e47cbaae762",
+          "inline_all-raw.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "inline_all.bin": "cecbc9db7f16ebd1a9d0291e2a2f69f704666f4776d699d9085c7bbdb51a15c6",
+          "inline_all.elf": "b7cf621dc8c9940b8b97fe446dbb3746af793502a81fb16e5ad90dae8c955556",
+          "inline_all.log": "683615598c4eb26244073f457462b319c87dabe0805074f2b232368938445d96",
+          "inline_all.map": "841ba036e25055dd8827f674a56f4a33312a23bc2570795e7362f947e9341e8e",
+          "inline_small-disasm.log": "34aa7d0c41e0106765893de1f3ce2c4c5fb6d35eddfcd041560dfc4cfe078f30",
+          "inline_small-raw.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "inline_small.bin": "cecbc9db7f16ebd1a9d0291e2a2f69f704666f4776d699d9085c7bbdb51a15c6",
+          "inline_small.elf": "81e553207299030af20da4bbef5aa0dd5f8d794b8fb747c074edefb932ac421e",
+          "inline_small.log": "683615598c4eb26244073f457462b319c87dabe0805074f2b232368938445d96",
+          "inline_small.map": "841ba036e25055dd8827f674a56f4a33312a23bc2570795e7362f947e9341e8e",
+          "link.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "main.c": "d2e234cb07ae1f4516b19b1375dca88b45630d0ff038d786cd00895a47ea6242",
+          "main.o": "1f54126b5d51813fd3e495c7183df3ad24eda84454ad88b390da18e43996c310",
+          "mc.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "normal-disasm.log": "47e6e1943c8e847e4070973bdd79eb8747bdeff5b95db9f67632180dd254822c",
+          "normal-raw.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "normal.bin": "cecbc9db7f16ebd1a9d0291e2a2f69f704666f4776d699d9085c7bbdb51a15c6",
+          "normal.elf": "d6fb2c4e0602b2364d3b525f4536f58bfd1d29b5a00fc3f63da88bb6eacfbe4a",
+          "normal.log": "683615598c4eb26244073f457462b319c87dabe0805074f2b232368938445d96",
+          "normal.map": "841ba036e25055dd8827f674a56f4a33312a23bc2570795e7362f947e9341e8e",
+          "peepholes-disasm.log": "45f19efd0208bfb9ec7d19724715fb77691b2fae61ecb032b165b878d6e6fafc",
+          "peepholes-raw.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "peepholes.bin": "b3e828184a5733f8ebd99a7e2a5ccad273e46df2d2759bc8e58cea8f31ca55d7",
+          "peepholes.elf": "59457cbb0be05ef1a1cafc859cc400ee023abf6a44f89d271c0be1aa3afba6ce",
+          "peepholes.log": "13b264d090e3efca3e9579f759a58baa84cee38bc4340c6ec327ae9003409a4e",
+          "peepholes.map": "6231e05756a0d57bd6b037d64c316ddc768565bcc46a22948e06ad1356448b87",
+          "redirects.json": "84edc948c328de79751063a1066e1b4effd4b03113a4f18823cf418a3ec8f202",
+          "reverse-disasm.log": "fb3c849b0f84db2cc76553f20eff6ca08f4fd4bfe37a0503663c02c518f2a525",
+          "reverse-raw.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "reverse.bin": "b3e828184a5733f8ebd99a7e2a5ccad273e46df2d2759bc8e58cea8f31ca55d7",
+          "reverse.elf": "58df179300125538a6ae16a456455741d2d187082ae68f7e83e5f35626d01088",
+          "reverse.log": "820d6c260fbd390b5b3a74fba1b90abb6b83d2be619f99389627e476ef0d305c",
+          "reverse.map": "6231e05756a0d57bd6b037d64c316ddc768565bcc46a22948e06ad1356448b87",
+          "start.o": "403c1e60b75a8b9b5c24ee57114c35c36240df99fba7849f005eba1725adef39",
+          "start.s": "d5f4f4da7b25f48c45e20db8845f29d48a3b1891247c76d7892cda0c9d033172"
+        },
+        "tools": {
+          "llvm-bolt": "902272da5842ea1c3b7186f4ddbffcc7124a0b5765977cdbcf0b965218acb3d1",
+          "llvm-mc": "0419ed87fde9fa95b827a58cc1e6d2817c0970304c9fb0bd7779e7188122dbed",
+          "ld.lld": "21f3d1e800b8de414efc347ed4630126d22996cddf663d92004af5e089b51be9",
+          "clang": "296dd268c36e9431e2fcc4e2f89ee3fa1cf66e47f5487df73fca85ea8999ecc6",
+          "llvm-objcopy": "f80e39c3121994c8b5baf3b9c2e586d4ffcd8da332e6c2c51b9f86fb482207de"
+        },
+        "builder_sha256": "a4d2a8986818e0263f4f1a465dc4da23e91609443fa401fea9d4d52d10cf963a"
+      },
+      "verification": {
+        "schema": 1,
+        "verified": true,
+        "port": "COM5",
+        "scope": "HYP core 0, masked interrupts; ARM/Thumb leaf, stack, LR, conditional return and both branch paths; Thumb CBZ/CBNZ expansions preserve flags consumed on both paths; predicated, indirect and mixed-ISA call-site exclusions under automatic/size-based inlining and reverse-layout peepholes",
+        "results": {
+          "baseline": {
+            "passed": true,
+            "cases": 70
+          },
+          "normal": {
+            "passed": true,
+            "cases": 70
+          },
+          "reverse": {
+            "passed": true,
+            "cases": 70
+          },
+          "inline_all": {
+            "passed": true,
+            "cases": 70
+          },
+          "inline_small": {
+            "passed": true,
+            "cases": 70
+          },
+          "peepholes": {
+            "passed": true,
+            "cases": 70
+          },
+          "bad-result": {
+            "expected_failure": true,
+            "case_id": 0,
+            "field": 0,
+            "expected": 18,
+            "actual": 19
+          },
+          "bad-cbz-flags": {
+            "expected_failure": true,
+            "case_id": 46,
+            "field": 0,
+            "expected": 8,
+            "actual": 0
+          }
+        },
+        "build_manifest_sha256": "1967feea3af53549471c8286491c182579df4fcffdab7c07f38ddf78dfddbe92",
+        "verifier_sha256": "69f4d99d97b5f425edb6ee5d6d19812948715731be5f30c196efdd6285333191",
+        "loader_sha256": "20d8a44f44c62ce001c3cd49007a0b73b9a6890d92bdb37f9d5a573246453ab0",
+        "logs": {
+          "bad-cbz-flags.log": "2c65407aa59ca3208a1314d11533598ae65af9c95628c6c1477c655ff153a0a9",
+          "bad-result.log": "1e0792a2364dc9c8d06e30c9d877c7dd7ef034a5e3da367b4631199ff87ffd6c",
+          "baseline.log": "0664b7c08a59a3191b3ec2afa204030cc79839e709147731f095239089696297",
+          "inline_all.log": "0a0f8d6da038848dba1eae9a5f768fdadb2d0eac62813f27bf6b9864f12af52c",
+          "inline_small.log": "0664b7c08a59a3191b3ec2afa204030cc79839e709147731f095239089696297",
+          "normal.log": "0664b7c08a59a3191b3ec2afa204030cc79839e709147731f095239089696297",
+          "peepholes.log": "0664b7c08a59a3191b3ec2afa204030cc79839e709147731f095239089696297",
+          "reverse.log": "0664b7c08a59a3191b3ec2afa204030cc79839e709147731f095239089696297"
+        }
+      }
+    },
+    "assertions-off": {
+      "build": "out/correctness/inline-safety-passes-pi-noasserts/build-c6yymiw8",
+      "evidence": "out/correctness/inline-safety-passes-pi-noasserts/build-c6yymiw8/pi-verify-3t9s94ww",
+      "manifest": {
+        "schema": 1,
+        "kind": "pi-inline-safety",
+        "cases": 70,
+        "variants": {
+          "normal": {
+            "inlined": [
+              "caller_arm_safe",
+              "caller_arm_branch",
+              "caller_thumb_safe",
+              "caller_thumb_branch",
+              "caller_thumb_cbz",
+              "caller_thumb_cbnz"
+            ],
+            "retained": [
+              "caller_arm_stack",
+              "caller_arm_lr",
+              "caller_arm_conditional",
+              "caller_thumb_stack",
+              "caller_thumb_lr",
+              "caller_arm_predicated",
+              "caller_arm_indirect",
+              "caller_arm_cross"
+            ],
+            "options": [
+              "--force-inline=arm_safe,arm_stack,arm_lr,arm_branch,arm_conditional,thumb_safe,thumb_stack,thumb_lr,thumb_branch,thumb_cbz,thumb_cbnz"
+            ]
+          },
+          "reverse": {
+            "inlined": [
+              "caller_arm_safe",
+              "caller_arm_branch",
+              "caller_thumb_safe",
+              "caller_thumb_branch",
+              "caller_thumb_cbz",
+              "caller_thumb_cbnz"
+            ],
+            "retained": [
+              "caller_arm_stack",
+              "caller_arm_lr",
+              "caller_arm_conditional",
+              "caller_thumb_stack",
+              "caller_thumb_lr",
+              "caller_arm_predicated",
+              "caller_arm_indirect",
+              "caller_arm_cross"
+            ],
+            "options": [
+              "--force-inline=arm_safe,arm_stack,arm_lr,arm_branch,arm_conditional,thumb_safe,thumb_stack,thumb_lr,thumb_branch,thumb_cbz,thumb_cbnz",
+              "--reorder-blocks=reverse"
+            ]
+          },
+          "inline_all": {
+            "inlined": [
+              "caller_arm_safe",
+              "caller_arm_branch",
+              "caller_thumb_safe",
+              "caller_thumb_branch",
+              "caller_thumb_cbz",
+              "caller_thumb_cbnz"
+            ],
+            "retained": [
+              "caller_arm_stack",
+              "caller_arm_lr",
+              "caller_arm_conditional",
+              "caller_thumb_stack",
+              "caller_thumb_lr",
+              "caller_arm_predicated",
+              "caller_arm_indirect",
+              "caller_arm_cross"
+            ],
+            "options": [
+              "--inline-all"
+            ]
+          },
+          "inline_small": {
+            "inlined": [
+              "caller_arm_safe",
+              "caller_arm_branch",
+              "caller_thumb_safe",
+              "caller_thumb_branch",
+              "caller_thumb_cbz",
+              "caller_thumb_cbnz"
+            ],
+            "retained": [
+              "caller_arm_stack",
+              "caller_arm_lr",
+              "caller_arm_conditional",
+              "caller_thumb_stack",
+              "caller_thumb_lr",
+              "caller_arm_predicated",
+              "caller_arm_indirect",
+              "caller_arm_cross"
+            ],
+            "options": [
+              "--inline-small-functions",
+              "--inline-small-functions-bytes=10000"
+            ]
+          },
+          "peepholes": {
+            "inlined": [
+              "caller_arm_safe",
+              "caller_arm_branch",
+              "caller_thumb_safe",
+              "caller_thumb_branch",
+              "caller_thumb_cbz",
+              "caller_thumb_cbnz"
+            ],
+            "retained": [
+              "caller_arm_stack",
+              "caller_arm_lr",
+              "caller_arm_conditional",
+              "caller_thumb_stack",
+              "caller_thumb_lr",
+              "caller_arm_predicated",
+              "caller_arm_indirect",
+              "caller_arm_cross"
+            ],
+            "options": [
+              "--force-inline=arm_safe,arm_stack,arm_lr,arm_branch,arm_conditional,thumb_safe,thumb_stack,thumb_lr,thumb_branch,thumb_cbz,thumb_cbnz",
+              "--peepholes=double-jumps",
+              "--reorder-blocks=reverse"
+            ]
+          }
+        },
+        "pass_matrix": true,
+        "faults": {
+          "bad-result": {
+            "case_id": 0,
+            "field": 0
+          },
+          "bad-cbz-flags": {
+            "case_id": 46,
+            "field": 0
+          }
+        },
+        "toolchain": "/home/user/bolt-aarch32/out/correctness/build-atfe-noasserts-20261002/bin",
+        "scope": "HYP core 0, masked interrupts; ARM/Thumb leaf, stack, LR, conditional return and both branch paths; Thumb CBZ/CBNZ expansions preserve flags consumed on both paths; predicated, indirect and mixed-ISA call-site exclusions under automatic/size-based inlining and reverse-layout peepholes",
+        "files": {
+          "bad-cbz-flags-raw.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bad-cbz-flags.bin": "c3c4a88daf4a24ca4d81a3b169cc7c8d35d93d163c8f5e291156b67041311296",
+          "bad-cbz-flags.elf": "0d3414acf3c6c876037dcc0d8669dae0d526d6bcad8df1db4680c10d4527456a",
+          "bad-result-raw.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bad-result.bin": "d90e41a9175088b981be73a6833c4e4c2f3ce9938b9e5b8cb5e563b6e45e0827",
+          "bad-result.elf": "a032fc0192c006fb709565a676d09a54ac12a2551444c6c8cea951b83cc9090f",
+          "baseline-raw.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "baseline.bin": "344a634a4ffbbc769c7fe68c176e6a9e6fd2019a3f76b4f16ef7fc7705b4a5fd",
+          "baseline.elf": "bb682cfa192517687e16bbd418244f10ae27ee8b70612b75664418f669674f00",
+          "cases.json": "68828415eee9867e76f3ad413881118b115a79bc0ba71390192883e7a1bc067d",
+          "compile.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "inline_all-disasm.log": "1cfb261781453d10f35f6ba8aed67c20facb1e13199904640d46e224e47203aa",
+          "inline_all-raw.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "inline_all.bin": "cecbc9db7f16ebd1a9d0291e2a2f69f704666f4776d699d9085c7bbdb51a15c6",
+          "inline_all.elf": "cc9b96c64c76978e50bda7d52e497bcc4dade6f515b66749eea59ff328ded5e3",
+          "inline_all.log": "683615598c4eb26244073f457462b319c87dabe0805074f2b232368938445d96",
+          "inline_all.map": "841ba036e25055dd8827f674a56f4a33312a23bc2570795e7362f947e9341e8e",
+          "inline_small-disasm.log": "e124ad9f73a9e5e3837960b60d89c91a7207027ad3d91c67b35a9b9717fb07f2",
+          "inline_small-raw.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "inline_small.bin": "cecbc9db7f16ebd1a9d0291e2a2f69f704666f4776d699d9085c7bbdb51a15c6",
+          "inline_small.elf": "855203760bfb74f03b73832c2a6049b5f871e66110cd2ad2df9bc6eb80000bf8",
+          "inline_small.log": "683615598c4eb26244073f457462b319c87dabe0805074f2b232368938445d96",
+          "inline_small.map": "841ba036e25055dd8827f674a56f4a33312a23bc2570795e7362f947e9341e8e",
+          "link.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "main.c": "d2e234cb07ae1f4516b19b1375dca88b45630d0ff038d786cd00895a47ea6242",
+          "main.o": "1f54126b5d51813fd3e495c7183df3ad24eda84454ad88b390da18e43996c310",
+          "mc.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "normal-disasm.log": "cbe4a5a9147c0bcb83c38dc7623c52e4bdb975e4858103d0a38a5674dd01a236",
+          "normal-raw.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "normal.bin": "cecbc9db7f16ebd1a9d0291e2a2f69f704666f4776d699d9085c7bbdb51a15c6",
+          "normal.elf": "29b83c8c1a2a321a3d282b1af000389c22665b785612b3adaddbecd4a4a7e6c3",
+          "normal.log": "683615598c4eb26244073f457462b319c87dabe0805074f2b232368938445d96",
+          "normal.map": "841ba036e25055dd8827f674a56f4a33312a23bc2570795e7362f947e9341e8e",
+          "peepholes-disasm.log": "fe04a65e38cdda45bd15efc3846caa0e934643f53d44af40edfa7284986c91f5",
+          "peepholes-raw.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "peepholes.bin": "b3e828184a5733f8ebd99a7e2a5ccad273e46df2d2759bc8e58cea8f31ca55d7",
+          "peepholes.elf": "65da1d77076a404f2013ecb931ec273b7ade105447c84e9240d66c6f6fae2feb",
+          "peepholes.log": "13b264d090e3efca3e9579f759a58baa84cee38bc4340c6ec327ae9003409a4e",
+          "peepholes.map": "6231e05756a0d57bd6b037d64c316ddc768565bcc46a22948e06ad1356448b87",
+          "redirects.json": "84edc948c328de79751063a1066e1b4effd4b03113a4f18823cf418a3ec8f202",
+          "reverse-disasm.log": "ba647103e66c94d5ab6bd5159225ca5e3618e7d4d1bd79a001b28e350a2096a6",
+          "reverse-raw.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "reverse.bin": "b3e828184a5733f8ebd99a7e2a5ccad273e46df2d2759bc8e58cea8f31ca55d7",
+          "reverse.elf": "37cb6a226aa71fafe02d3052ce68420af5125767a5717063ba3d31be7873370d",
+          "reverse.log": "820d6c260fbd390b5b3a74fba1b90abb6b83d2be619f99389627e476ef0d305c",
+          "reverse.map": "6231e05756a0d57bd6b037d64c316ddc768565bcc46a22948e06ad1356448b87",
+          "start.o": "403c1e60b75a8b9b5c24ee57114c35c36240df99fba7849f005eba1725adef39",
+          "start.s": "d5f4f4da7b25f48c45e20db8845f29d48a3b1891247c76d7892cda0c9d033172"
+        },
+        "tools": {
+          "llvm-bolt": "6c07806d186cf51097721f11f8ae4fc0858a8cac0c900192977c37144ad12946",
+          "llvm-mc": "0419ed87fde9fa95b827a58cc1e6d2817c0970304c9fb0bd7779e7188122dbed",
+          "ld.lld": "21f3d1e800b8de414efc347ed4630126d22996cddf663d92004af5e089b51be9",
+          "clang": "296dd268c36e9431e2fcc4e2f89ee3fa1cf66e47f5487df73fca85ea8999ecc6",
+          "llvm-objcopy": "f80e39c3121994c8b5baf3b9c2e586d4ffcd8da332e6c2c51b9f86fb482207de"
+        },
+        "builder_sha256": "a4d2a8986818e0263f4f1a465dc4da23e91609443fa401fea9d4d52d10cf963a"
+      },
+      "verification": {
+        "schema": 1,
+        "verified": true,
+        "port": "COM5",
+        "scope": "HYP core 0, masked interrupts; ARM/Thumb leaf, stack, LR, conditional return and both branch paths; Thumb CBZ/CBNZ expansions preserve flags consumed on both paths; predicated, indirect and mixed-ISA call-site exclusions under automatic/size-based inlining and reverse-layout peepholes",
+        "results": {
+          "baseline": {
+            "passed": true,
+            "cases": 70
+          },
+          "normal": {
+            "passed": true,
+            "cases": 70
+          },
+          "reverse": {
+            "passed": true,
+            "cases": 70
+          },
+          "inline_all": {
+            "passed": true,
+            "cases": 70
+          },
+          "inline_small": {
+            "passed": true,
+            "cases": 70
+          },
+          "peepholes": {
+            "passed": true,
+            "cases": 70
+          },
+          "bad-result": {
+            "expected_failure": true,
+            "case_id": 0,
+            "field": 0,
+            "expected": 18,
+            "actual": 19
+          },
+          "bad-cbz-flags": {
+            "expected_failure": true,
+            "case_id": 46,
+            "field": 0,
+            "expected": 8,
+            "actual": 0
+          }
+        },
+        "build_manifest_sha256": "5028f0dd45ed4b684d9e567e17accbaae428b2b12fde83cb2c479559c5f5228d",
+        "verifier_sha256": "69f4d99d97b5f425edb6ee5d6d19812948715731be5f30c196efdd6285333191",
+        "loader_sha256": "20d8a44f44c62ce001c3cd49007a0b73b9a6890d92bdb37f9d5a573246453ab0",
+        "logs": {
+          "bad-cbz-flags.log": "2c65407aa59ca3208a1314d11533598ae65af9c95628c6c1477c655ff153a0a9",
+          "bad-result.log": "1e0792a2364dc9c8d06e30c9d877c7dd7ef034a5e3da367b4631199ff87ffd6c",
+          "baseline.log": "0664b7c08a59a3191b3ec2afa204030cc79839e709147731f095239089696297",
+          "inline_all.log": "0664b7c08a59a3191b3ec2afa204030cc79839e709147731f095239089696297",
+          "inline_small.log": "0664b7c08a59a3191b3ec2afa204030cc79839e709147731f095239089696297",
+          "normal.log": "0664b7c08a59a3191b3ec2afa204030cc79839e709147731f095239089696297",
+          "peepholes.log": "0664b7c08a59a3191b3ec2afa204030cc79839e709147731f095239089696297",
+          "reverse.log": "0664b7c08a59a3191b3ec2afa204030cc79839e709147731f095239089696297"
+        }
+      }
+    }
+  },
+  "remaining": [
+    "Wider predicated exits and special/privileged control transfers",
+    "Profile-driven splitting and broader pass combinations",
+    "Active interrupts, SMP and live snapshots are outside this quiet HYP/core-zero fixture",
+    "#12 remains paused; ATFE only"
+  ],
+  "payload_parity": {
+    "baseline": {
+      "assertions_on": "344a634a4ffbbc769c7fe68c176e6a9e6fd2019a3f76b4f16ef7fc7705b4a5fd",
+      "assertions_off": "344a634a4ffbbc769c7fe68c176e6a9e6fd2019a3f76b4f16ef7fc7705b4a5fd",
+      "identical": true
+    },
+    "normal": {
+      "assertions_on": "cecbc9db7f16ebd1a9d0291e2a2f69f704666f4776d699d9085c7bbdb51a15c6",
+      "assertions_off": "cecbc9db7f16ebd1a9d0291e2a2f69f704666f4776d699d9085c7bbdb51a15c6",
+      "identical": true
+    },
+    "reverse": {
+      "assertions_on": "b3e828184a5733f8ebd99a7e2a5ccad273e46df2d2759bc8e58cea8f31ca55d7",
+      "assertions_off": "b3e828184a5733f8ebd99a7e2a5ccad273e46df2d2759bc8e58cea8f31ca55d7",
+      "identical": true
+    },
+    "inline_all": {
+      "assertions_on": "cecbc9db7f16ebd1a9d0291e2a2f69f704666f4776d699d9085c7bbdb51a15c6",
+      "assertions_off": "cecbc9db7f16ebd1a9d0291e2a2f69f704666f4776d699d9085c7bbdb51a15c6",
+      "identical": true
+    },
+    "inline_small": {
+      "assertions_on": "cecbc9db7f16ebd1a9d0291e2a2f69f704666f4776d699d9085c7bbdb51a15c6",
+      "assertions_off": "cecbc9db7f16ebd1a9d0291e2a2f69f704666f4776d699d9085c7bbdb51a15c6",
+      "identical": true
+    },
+    "peepholes": {
+      "assertions_on": "b3e828184a5733f8ebd99a7e2a5ccad273e46df2d2759bc8e58cea8f31ca55d7",
+      "assertions_off": "b3e828184a5733f8ebd99a7e2a5ccad273e46df2d2759bc8e58cea8f31ca55d7",
+      "identical": true
+    },
+    "bad-result": {
+      "assertions_on": "d90e41a9175088b981be73a6833c4e4c2f3ce9938b9e5b8cb5e563b6e45e0827",
+      "assertions_off": "d90e41a9175088b981be73a6833c4e4c2f3ce9938b9e5b8cb5e563b6e45e0827",
+      "identical": true
+    },
+    "bad-cbz-flags": {
+      "assertions_on": "c3c4a88daf4a24ca4d81a3b169cc7c8d35d93d163c8f5e291156b67041311296",
+      "assertions_off": "c3c4a88daf4a24ca4d81a3b169cc7c8d35d93d163c8f5e291156b67041311296",
+      "identical": true
+    }
+  },
+  "positive_cases": 840,
+  "fault_runs": 4,
+  "firmware_runs": 16,
+  "scope": "Same-ISA inlining and retained stack/LR callees, ARM predicated/indirect/mixed-ISA calls, conditional returns and Thumb CBZ/CBNZ flags; six positive configurations in each build mode; selected peepholes option combination, without claiming every peephole transformed code"
+}

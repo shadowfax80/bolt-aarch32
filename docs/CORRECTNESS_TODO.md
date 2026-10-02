@@ -130,6 +130,13 @@ safe; unsupported cases cannot return a successful partially corrupted output.
   baseline/normal/reverse cases each, including LR/stack behavior and both
   paths of an ARM conditional return; result and flag faults are detected.
 - [ ] Cover IT call-site and broader inlining/pass combinations with negatives.
+  Overlay 0034 covers 92 emitted cases and four IT-call rejections per host build.
+  Both Pi builds execute seventy cases each in baseline, forced normal/reverse,
+  automatic, size-based and reverse-plus-peepholes configurations: 840 positive
+  cases, four detected faults and sixteen watchdog returns. Predicated, indirect
+  and mixed-ISA calls retain their calls; safe same-ISA leaves inline. All eight
+  payloads match across builds. Wider/profile-driven combinations remain open;
+  the peepholes option run does not prove every peephole transformed code.
 - [x] Reject unmodeled symbol-boundary fallthrough (entry, ordinary, final-call,
   conditional and fake-thunk-name cases) before transforming it; preserve one
   exact existing A32 absolute veneer pending its removal pass.

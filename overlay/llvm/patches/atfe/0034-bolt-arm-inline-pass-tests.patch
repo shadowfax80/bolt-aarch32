@@ -1,0 +1,66 @@
+--- a/bolt/test/ARM/Inputs/check-arm-inline-safety.py
++++ b/bolt/test/ARM/Inputs/check-arm-inline-safety.py
+@@ -27,6 +27,13 @@
+     asm+=fn(caller,'push {r4,lr}\nbl '+name+'\nadd r0,r0,#11\npop {r4,pc}')
+     asm+=fn(name,'add r0,r0,#7\n.global '+name+'_secondary\n'+name+'_secondary:\nadd r0,r0,#1\nbx lr')
+     asm+=fn(isa+'_entry_user','push {r4,lr}\nbl '+name+'_secondary\npop {r4,pc}')
++for kind,callee,body in [
++    ('predicated','arm_safe','push {r4,lr}\ncmp r0,#0\nbleq arm_safe\nadd r0,r0,#11\npop {r4,pc}'),
++    ('indirect','arm_safe','push {r4,lr}\nmovw r3,#:lower16:arm_safe\nmovt r3,#:upper16:arm_safe\nblx r3\nadd r0,r0,#11\npop {r4,pc}'),
++    ('cross','thumb_safe','push {r4,lr}\nbl thumb_safe\nadd r0,r0,#11\npop {r4,pc}'),
++]:
++    name='caller_arm_'+kind;cases[name]={'callee':callee,'safe':False}
++    asm+='\n.arm\n.balign 4\n.global '+name+'\n.type '+name+',%function\n'+name+':\n'+body+'\n.size '+name+',.-'+name+'\n'
+ asm+='.arm\n.balign 4\n.global helper\n.type helper,%function\nhelper:\nadd r0,r0,#1\nbx lr\n.size helper,.-helper\n'
+ (out/'input.s').write_text(asm)
+ (out/'layout.ld').write_text('ENTRY(_start)\nSECTIONS { . = 0x8000; .text : { *(.text*) } .eh_frame : { *(.eh_frame) } }\n')
+@@ -38,12 +45,12 @@
+ run('mc',['llvm-mc','-triple=armv7-none-eabi','-arm-add-build-attributes','-filetype=obj',out/'input.s','-o',out/'input.o'])
+ run('link',['ld.lld','--emit-relocs','-T',out/'layout.ld',out/'input.o','-o',out/'input.elf'])
+ results=[]
+-for mode,extra in [('normal',[]),('reverse',['--reorder-blocks=reverse'])]:
++for mode,extra in [('normal',[]),('reverse',['--reorder-blocks=reverse']),('all',['--inline-all']),('small',['--inline-small-functions','--inline-small-functions-bytes=10000'])]:
+     for name,expected in cases.items():
+-        label=mode+'-'+expected['callee'];candidate=out/(label+'.elf');mapping=out/(label+'.map')
++        label=mode+'-'+name;candidate=out/(label+'.elf');mapping=out/(label+'.map')
+         try:
+             run(label,['llvm-bolt',out/'input.elf','-o',candidate,'--no-huge-pages','-lite=0',
+-                  '--force-inline='+expected['callee'],'--emit-function-map='+str(mapping),*extra])
++                  *([] if mode in ('all','small') else ['--force-inline='+expected['callee']]),'--emit-function-map='+str(mapping),*extra])
+         except RuntimeError:
+             if not a.observe:raise
+             results.append({'mode':mode,'caller':name,'safe':expected['safe'],'calls':None,'passed':False,'crashed':True})
+@@ -55,7 +62,7 @@
+         for line in text.splitlines():
+             m=re.match(r'\s*([0-9a-f]+):\s+(?:[0-9a-f]{2,8}\s+)+(\S+)\s*(.*)',line)
+             if m and address<=int(m[1],16)<address+size:body.append((m[2],m[3]))
+-        calls=[x for x in body if x[0] in ['bl','blx']]
++        calls=[x for x in body if re.fullmatch(r'bl(?:x)?(?:eq|ne|cs|hs|cc|lo|mi|pl|vs|vc|hi|ls|ge|lt|gt|le|al)?(?:\.w)?',x[0])]
+         good=len(calls)==(0 if expected['safe'] else 1)
+         results.append({'mode':mode,'caller':name,'safe':expected['safe'],'calls':len(calls),'passed':good,'body':body})
+ (out/'result.json').write_text(json.dumps(results,indent=2)+'\n')
+@@ -63,3 +70,16 @@
+ print('Inlining safety:',len(results)-len(bad),'/',len(results),'passed;',out)
+ for r in bad:print(r['mode'],r['caller'],'calls',r['calls'])
+ if bad and not a.observe:raise RuntimeError('unsafe forced inlining or safe leaf not inlined')
++
++# A Thumb IT call cannot bypass disassembly admission under any inlining option.
++it=out/'it-call.s'
++it.write_text('.syntax unified\n.arch armv7-a\n.text\n.thumb\n.global _start\n.type _start,%function\n.thumb_func\n_start:\npush {r4,lr}\ncmp r0,#0\nit eq\nbleq callee\npop {r4,pc}\n.size _start,.-_start\n.balign 4\n.global callee\n.type callee,%function\n.thumb_func\ncallee:\nadd.w r0,r0,#7\nbx lr\n.size callee,.-callee\n')
++run('it-mc',['llvm-mc','-triple=armv7-none-eabi','-arm-add-build-attributes','-filetype=obj',it,'-o',out/'it-call.o'])
++run('it-link',['ld.lld','--emit-relocs','-T',out/'layout.ld',out/'it-call.o','-o',out/'it-call.elf'])
++for mode,options in [('force',['--force-inline=callee']),('reverse',['--force-inline=callee','--reorder-blocks=reverse']),('all',['--inline-all']),('small',['--inline-small-functions','--inline-small-functions-bytes=10000'])]:
++    candidate=out/('it-call-'+mode+'.elf')
++    r=subprocess.run(['llvm-bolt',str(out/'it-call.elf'),'-o',str(candidate),'--no-huge-pages','-lite=0',*options],capture_output=True,text=True)
++    (out/('it-call-'+mode+'.log')).write_text(r.stdout+r.stderr)
++    if r.returncode!=1 or 'unsupported control transfer in Thumb IT group' not in r.stdout+r.stderr or candidate.exists():
++        raise RuntimeError('IT call admitted under '+mode+'\n'+r.stdout+r.stderr)
++print('PASS: 92 forced/automatic/size-based inlining cases and four IT-call rejections')
+--- a/bolt/test/ARM/arm-inline-safety.test
++++ b/bolt/test/ARM/arm-inline-safety.test
+@@ -1,3 +1,3 @@
+-## Force-inline must not bypass AArch32 architectural or metadata checks.
+-## Safe same-ISA leaf calls still inline in ARM and Thumb.
++## AArch32 architectural, metadata and call-site checks cannot be bypassed.
++## Force/reverse/automatic/size-based inlining keep unsafe calls and reject IT.
+ RUN: %python %p/Inputs/check-arm-inline-safety.py %t.dir

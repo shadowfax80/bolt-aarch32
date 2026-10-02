@@ -13,6 +13,9 @@ class ResultTests(unittest.TestCase):
         self.assertEqual(check_result(BEGIN+PASS),dict(passed=True,cases=55))
     def test_fault(self):
         self.assertTrue(check_result(BEGIN+FAIL,dict(case_id=0,field=0))['expected_failure'])
+    def test_pass_matrix_count(self):
+        self.assertEqual(check_result(BEGIN+PASS.replace('55','70'),cases=70),dict(passed=True,cases=70))
+        with self.assertRaises(ValueError):check_result(BEGIN+PASS,cases=70)
     def test_incomplete(self):
         for text in [BEGIN,BEGIN+PASS.replace('55','54'),PASS,BEGIN+FAIL,BEGIN+PASS+PASS,BEGIN+BEGIN+PASS]:
             with self.subTest(text=text),self.assertRaises(ValueError):check_result(text)

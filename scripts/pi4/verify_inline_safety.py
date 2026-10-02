@@ -18,7 +18,7 @@ from pi4_serial_boot import reboot_to_chainloader, resolve_port, send_image
 import serial
 
 
-def check_result(text, negative=None):
+def check_result(text, negative=None, cases=55):
     begins = re.findall(r'^BOLT_INLINE_STATE BEGIN mode=([0-9a-f]{8}) core=([0-9a-f]{8})\r?$',text,re.M)
     require(begins == [('0000001a','00000000')] and text.count('BOLT_INLINE_STATE BEGIN') == 1, 'missing/duplicate/wrong fixture entry')
     failures = re.findall(r'^BOLT_INLINE_STATE FAIL case=([0-9a-f]{8}) field=([0-9a-f]{8}) expected=([0-9a-f]{8}) actual=([0-9a-f]{8})\r?$',text,re.M)
@@ -29,17 +29,20 @@ def check_result(text, negative=None):
         case, field, expected, actual = (int(x,16) for x in failures[0])
         require(case == negative['case_id'] and field == negative['field'] and expected != actual, 'wrong fault location')
         return dict(expected_failure=True,case_id=case,field=field,expected=expected,actual=actual)
-    require(not failures and passes == ['55'], 'missing complete fixture pass')
-    return dict(passed=True,cases=55)
+    require(not failures and passes == [str(cases)], 'missing complete fixture pass')
+    return dict(passed=True,cases=cases)
 
 
 def check_artifacts(out, build):
-    require(build['schema'] == 1 and build['kind'] == 'pi-inline-safety' and build['cases'] == 55, 'wrong build')
-    require(set(build['variants']) == {'normal','reverse'} and set(build['faults']) == {'bad-result','bad-cbz-flags'}, 'wrong variant/fault matrix')
+    pass_matrix = build.get('pass_matrix',False)
+    cases, wrappers = (70,14) if pass_matrix else (55,11)
+    require(build['schema'] == 1 and build['kind'] == 'pi-inline-safety' and build['cases'] == cases, 'wrong build')
+    variants = {'normal','reverse','inline_all','inline_small','peepholes'} if build.get('pass_matrix',False) else {'normal','reverse'}
+    require(set(build['variants']) == variants and set(build['faults']) == {'bad-result','bad-cbz-flags'}, 'wrong variant/fault matrix')
     for name,digest in build['files'].items():
         require(sha256(out/name) == digest, 'changed artifact '+name)
     redirects = json.loads((out/'redirects.json').read_text())
-    for name in ('baseline','normal','reverse',*build['faults']):
+    for name in ('baseline',*build['variants'],*build['faults']):
         elf,raw = (out/(name+'.elf')).read_bytes(),(out/(name+'.bin')).read_bytes()
         sections,_ = elf_metadata(elf)
         loaded = [s for s in sections if 'physical' in s]
@@ -52,7 +55,7 @@ def check_artifacts(out, build):
             require(raw[offset:offset+s['size']] == elf[s['offset']:s['offset']+s['size']], 'ELF/raw mismatch')
         if name != 'baseline':
             rows = redirects['normal' if name in build['faults'] else name]
-            require(len(rows) == 11 and len({r['name'] for r in rows}) == 11 and sum(r['thumb'] for r in rows) == 6, 'wrong redirect matrix')
+            require(len(rows) == wrappers and len({r['name'] for r in rows}) == wrappers and sum(r['thumb'] for r in rows) == 6, 'wrong redirect matrix')
             for r in rows:
                 s = next(s for s in loaded if s['address'] <= r['input'] < r['input']+4 <= s['address']+s['size'])
                 pos = s['offset']+r['input']-s['address']
@@ -72,7 +75,7 @@ def main():
     print('Evidence:',evidence,flush=True)
     port_name = resolve_port(args.port)
     results = {}
-    for name in ('baseline','normal','reverse',*build['faults']):
+    for name in ('baseline',*build['variants'],*build['faults']):
         console = Capture(evidence/(name+'.log'))
         try:
             with serial.Serial(port_name,115200,timeout=0.1,write_timeout=20) as port:
@@ -90,7 +93,7 @@ def main():
                 text = console.data.decode('ascii','replace')
                 last = max(text.rfind('BOLT_INLINE_STATE PASS'),text.rfind('BOLT_INLINE_STATE FAIL'))
                 require(last >= 0 and text.rfind('SBOOT?') > last, name+': did not return to loader with a result')
-                results[name] = check_result(text,build['faults'].get(name))
+                results[name] = check_result(text,build['faults'].get(name),build['cases'])
                 print(name,results[name],flush=True)
         finally:
             if console.log:
