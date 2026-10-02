@@ -30,6 +30,14 @@ and runs the same full register/CPSR/counter matrix and three fault images.
 Both assertions-on/off Pi runs pass, with byte-identical payloads; see
 [return/fallthrough evidence](results/correctness_cfg_fallthrough_20261002.json).
 
+Alternatively add `--flag-self-move` (requires overlay 0031) to include ARM MOVS
+and Thumb MOVS.W self-moves in both leaf bodies. For the negative R0 sentinel,
+the independent oracle expects N=1/Z=0 and unchanged C/V/Q/GE/control bits.
+The variant adds a fourth `bad-flags` image that replaces MOVS with NOP and must
+fail at the CPSR check. Both modes pass all 512 baseline/512 generated cases and
+four fault images. See [self-move evidence](results/correctness_self_move_flags_20261002.json).
+The two variant options are mutually exclusive.
+
 The independent assembly oracle must match both complete generated functions.
 Original firmware code, data and entry are restored with exact section-size and
 address checks. Two explicit, decoded redirects enter the generated bodies.

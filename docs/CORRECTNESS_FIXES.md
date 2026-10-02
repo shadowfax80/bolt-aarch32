@@ -458,3 +458,18 @@ three faults, with identical payloads. An exact existing A32 absolute veneer is
 admitted before its later removal pass; broader veneer matching remains to audit.
 The host veneer fixture now ends with an explicit loop if its SVC returns.
 Evidence: [CFG fallthrough](results/correctness_cfg_fallthrough_20261002.json).
+# 2026-10-02: flag-writing self-moves and Thumb annotation ownership
+
+Overlay 0031 prevents deleting self-moves that write CPSR or PC. Pure self-moves
+still disappear. It also corrects a 0030 regression: Thumb CFG NOP annotations
+use the primary builder's worker allocator and generic index; instruction
+semantics use the mode-specific builder. The old ARM fixture loses MOVS before
+BEQ, and the old Thumb fixture asserts on an uninitialized annotation allocator.
+
+Nine decoder and twelve mixed-mode normal/reverse emission cases pass. Both
+build modes pass 54 units/31 expected skips; focused lit passes 42 with assertions
+on and 41 plus one debug-only skip off. Both Pi runs pass 512 baseline/512 generated
+state cases and catch four faults, including removed MOVS. The Pi self-move uses
+a negative R0 sentinel and checks N=1/Z=0 plus preserved C/V/Q/GE/control; it does
+not close the dedicated both-path CBZ/CBNZ hardware work. All six payloads match
+across modes and return to loader. Evidence: [self-move flags](results/correctness_self_move_flags_20261002.json).

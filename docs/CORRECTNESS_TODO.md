@@ -107,6 +107,11 @@ safe; unsupported cases cannot return a successful partially corrupted output.
   interworking and tail calls; distinguish returns from other computed branches.
 - [ ] Check flag-writing self-move/no-op recognition and branch reversal under
   reordering, peepholes and splitting.
+  Overlay 0031 preserves CPSR/PC-writing self-moves and removes pure self-moves.
+  Nine decoder cases and twelve mixed-mode normal/reverse emission cases pass;
+  both Pi builds pass 512 baseline/512 generated state cases and four expected
+  faults. Pi uses a negative R0 sentinel (N=1/Z=0); broader flags/pass coverage
+  and the dedicated both-path CBZ/CBNZ hardware matrix remain open.
 - [ ] Cover inlining safety overrides (`--force-inline` bypasses the ARM safety
   filter), IT call sites and pass combinations with negative fixtures.
 - [x] Reject unmodeled symbol-boundary fallthrough (entry, ordinary, final-call,

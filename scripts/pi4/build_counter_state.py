@@ -24,7 +24,9 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--out', type=Path, required=True, help='parent of fresh build directories')
     parser.add_argument('--toolchain', type=Path, default=Path('/home/user/bolt-aarch32/build-atfe/bin'))
-    parser.add_argument('--return-pop', action='store_true', help='verify decoded ARM/Thumb single-register POP-to-PC returns')
+    variants = parser.add_mutually_exclusive_group()
+    variants.add_argument('--return-pop', action='store_true', help='verify decoded ARM/Thumb single-register POP-to-PC returns')
+    variants.add_argument('--flag-self-move', action='store_true', help='verify ARM/Thumb flag-writing self-moves and preservation of the other CPU state')
     args = parser.parse_args()
     parent, tc = args.out.resolve(), args.toolchain.resolve()
     parent.mkdir(parents=True, exist_ok=True)
@@ -42,6 +44,17 @@ def main():
         arm = arm.replace(' bx lr', ' push {lr}\n pop {pc}')
         thumb = thumb.replace(' nop\n bx lr', ' push.w {lr}\n pop.w {pc}')
         reference_asm.write_text(arm+'.section .text.thumb,'+thumb, encoding='utf-8')
+    if args.flag_self_move:
+        assembly, reference_asm = out/'start-flags.s', out/'reference-flags.s'
+        text = (fixture/'start.s').read_text(encoding='utf-8')
+        text = text.replace('counter_arm:\n bx lr', 'counter_arm:\n movs r0,r0\n bx lr')
+        text = text.replace('counter_thumb:\n nop // Four bytes allow the original entry to hold an explicit B.W redirect.\n bx lr',
+                            'counter_thumb:\n movs.w r0,r0\n bx lr')
+        assembly.write_text(text, encoding='utf-8')
+        arm, thumb = (fixture/'reference.s').read_text(encoding='utf-8').split('.section .text.thumb,')
+        arm = arm.replace(' bx lr', 'arm_self_move:\n movs r0,r0\n bx lr')
+        thumb = thumb.replace(' nop\n bx lr', ' movs.w r0,r0\n bx lr')
+        reference_asm.write_text(arm+'.section .text.thumb,'+thumb, encoding='utf-8')
     env = dict(os.environ, PATH=str(tc) + ':' + os.environ['PATH'])
 
     def run(name, command):
@@ -57,6 +70,7 @@ def main():
     run('compile', [compiler, '--target=arm-none-eabi', '-march=armv7-a', '-marm',
                     '-mfloat-abi=soft', '-ffreestanding', '-fno-builtin', '-fno-stack-protector',
                     '-fno-unwind-tables', '-fno-asynchronous-unwind-tables', '-O2',
+                    *(['-DFLAG_SELF_MOVE=1'] if args.flag_self_move else []),
                     '-c', fixture/'main.c', '-o', out/'main.o'])
     original, candidate = out/'baseline.elf', out/'instrumented.elf'
     run('link', [tc/'ld.lld', '--emit-relocs', '-T', fixture/'link.ld',
@@ -135,6 +149,8 @@ def main():
     mutations = {'bad-carry':('arm_carry','nop',1,21),
                  'bad-irq':('arm_restore_cpsr','msr cpsr_f,r2',0,15),
                  'bad-register':('arm_restore_r0','mov r0,#0',0,0)}
+    if args.flag_self_move:
+        mutations['bad-flags'] = ('arm_self_move', 'nop', 0, 15)
     for name,(label,instruction,_,_) in mutations.items():
         asm = out/(name+'.s')
         asm.write_text('.syntax unified\n.arch armv7-a\n.arm\n.text\n'+instruction+'\n',encoding='utf-8')
@@ -162,6 +178,8 @@ def main():
     files += [name+suffix for name in mutations for suffix in ('.elf','.bin')]
     if args.return_pop:
         files += ['start-pop.s', 'reference-pop.s']
+    if args.flag_self_move:
+        files += ['start-flags.s', 'reference-flags.s']
     manifest = dict(schema=1, kind='pi-counter-state', cases=512, cases_per_mode=256,
                     files={name:sha256(out/name) for name in files},
                     fixture={p.name:sha256(p) for p in sorted(fixture.iterdir()) if p.is_file()},
@@ -171,6 +189,7 @@ def main():
                     negative_cases={name:dict(case_id=case,field=field) for name,(_,_,case,field) in mutations.items()},
                     scope='privileged MMU-off single-core ARM/Thumb leaf insertion; no active ISR, IT, nested, FIQ or SMP execution')
     manifest['return_pop_checked'] = args.return_pop
+    manifest['flag_self_move_checked'] = args.flag_self_move
     (out/'build.json').write_text(json.dumps(manifest,indent=2)+'\n',encoding='utf-8')
     print(out/'build.json')
 

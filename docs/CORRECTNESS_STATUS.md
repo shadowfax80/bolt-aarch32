@@ -9,7 +9,10 @@ and 372 Pi cases per mode, plus reset-fault detection. #3 CFG/assertion parity i
 active: overlays 0029/0030 reject pseudo-count mismatches, function fallthrough
 and invalid postprocessed CFG in both build modes. Decoded single-register
 POP-to-PC returns pass the full Pi state matrix in both modes. Next is #4's
-conditional-return/PC-write and pass-safety audit. Broader
+conditional-return/PC-write and pass-safety audit. Overlay 0031 additionally
+preserves flag-writing/PC-writing self-moves and fixes
+the 0030 Thumb NOP worker-annotation regression. Host and Pi state checks pass
+in both modes; forced-inlining safety is next. Broader
 #5/#6 coverage stays open. #12 remains separately paused. See CORRECTNESS_RESUME.md.
 
 Fresh source review at `bbae817`: [CORRECTNESS_REVIEW_BBAE817.md](CORRECTNESS_REVIEW_BBAE817.md).
@@ -23,7 +26,7 @@ from completion criteria. Three items are complete within this scope (2, 8, 10).
 | 1 | Relocation matrix and literal loads | Partial | THM_JUMP19 and splitting now supported; complete signed range, alignment, BLX H-bit, addend and unsupported-path coverage |
 | 2 | EHABI exidx/extab | Complete via rejection | Unsupported unwind information is rejected; full unwind rewriting remains unsupported |
 | 3 | Pseudo/CFG invariants | Partial | Pseudo-count and fallthrough rejection verified in both build modes; worker fatal errors exit after join; wider CFG audit open |
-| 4 | Control flow and return semantics | Partial; active | Single-register POP-to-PC decoded and verified on Pi; conditional returns, wider PC writes, live flags and pass/inlining boundaries remain |
+| 4 | Control flow and return semantics | Partial; active | POP-to-PC and flag-writing self-moves verified on Pi; conditional returns, wider PC writes, CBZ both-path hardware and inlining boundaries remain |
 | 5 | Instrumentation correctness | Partial; operating scope next | Carry, CPU-state, IT, nested Thumb/recursion and real runtime clear pass on Pi; mixed-ISA nested state, active interrupts and live snapshots remain |
 | 6 | Instrumentation scope | Partial | Explicit privileged/single-core/no-FIQ contract and call/process/dynamic rejection pass; audit exclusive-memory and active ISR boundaries |
 | 7 | ISA/profile/endianness | Pending | Enforce the supported target feature boundary |

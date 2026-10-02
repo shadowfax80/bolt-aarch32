@@ -1,0 +1,229 @@
+--- a/bolt/lib/Core/BinaryFunction.cpp
++++ b/bolt/lib/Core/BinaryFunction.cpp
+@@ -2494,7 +2494,9 @@
+       // deletion.
+       MIB->setOffset(Instr, static_cast<uint32_t>(Offset));
+       // Annotate ordinary nops, so we can safely delete them if required.
+-      MIB->addAnnotation(Instr, "NOP", static_cast<uint32_t>(1), AllocatorId);
++      // The primary builder owns generic annotation indices/worker allocators;
++      // the mode-specific builder is only used for instruction semantics.
++      BC.MIB->addAnnotation(Instr, "NOP", static_cast<uint32_t>(1), AllocatorId);
+     }
+ 
+     if (!InsertBB) {
+--- a/bolt/lib/Target/ARM/ARMMCPlusBuilder.cpp
++++ b/bolt/lib/Target/ARM/ARMMCPlusBuilder.cpp
+@@ -188,29 +188,35 @@
+   }
+ 
+   bool isNoop(const MCInst &Inst) const override {
++    // A self-move is removable only when it neither writes CPSR nor PC.
+     switch (Inst.getOpcode()) {
+     default:
+       return false;
+     case ARM::MOVr:
+-      if (Inst.getNumOperands() < 4)
++      if (MCPlus::getNumPrimeOperands(Inst) < 5)
+         return false;
+       return Inst.getOperand(0).isReg() && Inst.getOperand(1).isReg() &&
++             Inst.getOperand(0).getReg() != ARM::PC &&
+              Inst.getOperand(0).getReg() == Inst.getOperand(1).getReg() &&
+              Inst.getOperand(2).isImm() && Inst.getOperand(2).getImm() == ARMCC::AL &&
+-             Inst.getOperand(3).isReg() && Inst.getOperand(3).getReg() == 0;
++             Inst.getOperand(3).isReg() && Inst.getOperand(3).getReg() == 0 &&
++             Inst.getOperand(4).isReg() && Inst.getOperand(4).getReg() == 0;
+     case ARM::tMOVr:
+       if (Inst.getNumOperands() < 3)
+         return false;
+       return Inst.getOperand(0).isReg() && Inst.getOperand(1).isReg() &&
++             Inst.getOperand(0).getReg() != ARM::PC &&
+              Inst.getOperand(0).getReg() == Inst.getOperand(1).getReg() &&
+              Inst.getOperand(2).isImm() && Inst.getOperand(2).getImm() == ARMCC::AL;
+     case ARM::t2MOVr:
+-      if (Inst.getNumOperands() < 4)
++      if (MCPlus::getNumPrimeOperands(Inst) < 5)
+         return false;
+       return Inst.getOperand(0).isReg() && Inst.getOperand(1).isReg() &&
++             Inst.getOperand(0).getReg() != ARM::PC &&
+              Inst.getOperand(0).getReg() == Inst.getOperand(1).getReg() &&
+              Inst.getOperand(2).isImm() && Inst.getOperand(2).getImm() == ARMCC::AL &&
+-             Inst.getOperand(3).isReg() && Inst.getOperand(3).getReg() == 0;
++             Inst.getOperand(3).isReg() && Inst.getOperand(3).getReg() == 0 &&
++             Inst.getOperand(4).isReg() && Inst.getOperand(4).getReg() == 0;
+     }
+   }
+ 
+--- a/bolt/unittests/Core/CMakeLists.txt
++++ b/bolt/unittests/Core/CMakeLists.txt
+@@ -10,6 +10,7 @@
+   BinaryContext.cpp
+   ARMPseudoCounts.cpp
+   ARMReturns.cpp
++  ARMSelfMoves.cpp
+   ClusteredRows.cpp
+   MCPlusBuilder.cpp
+   MemoryMaps.cpp
+--- /dev/null
++++ b/bolt/unittests/Core/ARMSelfMoves.cpp
+@@ -0,0 +1,98 @@
++//===- ARMSelfMoves.cpp - ARM basic-block mutation invariants ------------===//
++// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
++
++#ifdef ARM_AVAILABLE
++#include "MCTargetDesc/ARMMCTargetDesc.h"
++#include "bolt/Core/BinaryBasicBlock.h"
++#include "bolt/Core/BinaryContext.h"
++#include "bolt/Core/BinaryFunction.h"
++#include "bolt/Rewrite/RewriteInstance.h"
++#include "llvm/BinaryFormat/ELF.h"
++#include "llvm/DebugInfo/DWARF/DWARFContext.h"
++#include "llvm/MC/MCInstBuilder.h"
++#include "llvm/MC/MCDisassembler/MCDisassembler.h"
++#include "llvm/MC/MCExpr.h"
++#include "llvm/Support/TargetSelect.h"
++#include "gtest/gtest.h"
++
++using namespace llvm;
++using namespace llvm::object;
++using namespace llvm::bolt;
++
++namespace {
++class ARMSelfMoves : public testing::Test {
++protected:
++  ELF32LE::Ehdr Header{};
++  std::unique_ptr<ObjectFile> Object;
++  std::unique_ptr<BinaryContext> BC;
++  BinaryFunction *Function{nullptr};
++
++  void SetUp() override {
++    LLVMInitializeARMTargetInfo();
++    LLVMInitializeARMTargetMC();
++    LLVMInitializeARMAsmParser();
++    LLVMInitializeARMDisassembler();
++    LLVMInitializeARMTarget();
++    LLVMInitializeARMAsmPrinter();
++    memcpy(Header.e_ident, "\177ELF", 4);
++    Header.e_ident[ELF::EI_CLASS] = ELF::ELFCLASS32;
++    Header.e_ident[ELF::EI_DATA] = ELF::ELFDATA2LSB;
++    Header.e_machine = ELF::EM_ARM;
++    MemoryBufferRef Input(
++        StringRef(reinterpret_cast<const char *>(&Header), sizeof(Header)),
++        "ARM pseudo fixture");
++    Object = cantFail(ObjectFile::createObjectFile(Input));
++    const Triple TT("armv7-none-eabi");
++    Relocation::Arch = TT.getArch();
++    BC = cantFail(BinaryContext::createBinaryContext(
++        TT, std::make_shared<orc::SymbolStringPool>(), Object->getFileName(),
++        nullptr, true, DWARFContext::create(*Object), {outs(), errs()}));
++    BC->initializeTarget(std::unique_ptr<MCPlusBuilder>(createMCPlusBuilder(
++        TT.getArch(), BC->MIA.get(), BC->MII.get(), BC->MRI.get(), BC->STI.get())));
++    BinarySection &Text = BC->registerOrUpdateSection(
++        ".text", ELF::SHT_PROGBITS, ELF::SHF_ALLOC | ELF::SHF_EXECINSTR);
++    Function = BC->createBinaryFunction("pseudo_probe", Text, 0x1000, 4);
++    // Instruction accessors require an instruction-bearing parent state.
++    Function->setFinalized();
++  }
++
++  MCInst pseudo() {
++    return MCInstBuilder(ARM::B).addExpr(
++        MCSymbolRefExpr::create(BC->Ctx->createTempSymbol(), *BC->Ctx));
++  }
++
++  MCInst real() {
++    MCInst Inst;
++    BC->MIB->createNoop(Inst);
++    return Inst;
++  }
++};
++
++TEST_F(ARMSelfMoves, DecodedFlagsAndPCSideEffects) {
++  BC->initializeThumbTarget(std::unique_ptr<MCPlusBuilder>(createMCPlusBuilder(
++      Triple::arm, BC->MIA.get(), BC->MII.get(), BC->MRI.get(), BC->ThumbSTI.get())));
++  struct Case { bool Thumb; uint8_t Bytes[4]; unsigned Length; bool Noop; };
++  const Case Cases[] = {
++      {false, {0x00,0x00,0xa0,0xe1}, 4, true}, // mov r0,r0
++      {false, {0x00,0x00,0xb0,0xe1}, 4, false}, // movs r0,r0
++      {false, {0x00,0x00,0xa0,0x01}, 4, false}, // moveq r0,r0: conservative
++      {false, {0x0f,0xf0,0xa0,0xe1}, 4, false}, // mov pc,pc: control transfer
++      {true, {0x4f,0xea,0x00,0x00}, 4, true}, // mov.w r0,r0
++      {true, {0x5f,0xea,0x00,0x00}, 4, false}, // movs.w r0,r0
++      {true, {0x00,0x46,0x00,0x00}, 2, true}, // mov r0,r0
++      {true, {0x00,0x00,0x00,0x00}, 2, false}, // movs r0,r0
++      {true, {0xff,0x46,0x00,0x00}, 2, false}, // mov pc,pc
++  };
++  for (const Case &C : Cases) {
++    MCInst Inst;
++    uint64_t Size = 0;
++    MCDisassembler *Decoder = C.Thumb ? BC->ThumbDisAsm.get() : BC->DisAsm.get();
++    ASSERT_NE(Decoder, nullptr);
++    ASSERT_EQ(Decoder->getInstruction(Inst, Size, ArrayRef(C.Bytes, C.Length),
++                                    0x1000, nulls()), MCDisassembler::Success);
++    ASSERT_EQ(Size, C.Length);
++    EXPECT_EQ(BC->getMIBFor(C.Thumb)->isNoop(Inst), C.Noop);
++  }
++}
++} // namespace
++#endif
+--- /dev/null
++++ b/bolt/test/ARM/Inputs/check-arm-self-move-flags.py
+@@ -0,0 +1,55 @@
++from pathlib import Path
++import re,subprocess,sys,tempfile
++parent=Path(sys.argv[1]);parent.mkdir(parents=True,exist_ok=True)
++out=Path(tempfile.mkdtemp(prefix='self-moves-',dir=parent))
++asm='.syntax unified\n.arch armv7-a\n.text\n.arm\n.global _start\n.type _start,%function\n_start:\n'
++names=[];expected={}
++for mode,move in [('arm','mov'),('thumb_wide','mov.w'),('thumb_narrow','mov')]:
++    for flag in [False,True]:
++        name=mode+('_flags' if flag else '_plain');names.append(name);expected[name]=flag
++        asm+='bl '+name+'\n'
++asm+='bx lr\n.size _start,.-_start\n'
++for name in names:
++    thumb=not name.startswith('arm_')
++    move='mov'+('s' if expected[name] else '')+('.w' if name.startswith('thumb_wide') else '')
++    asm+=f'''.{'thumb' if thumb else 'arm'}
++.balign 4
++.global {name}
++.type {name},%function
++{'.thumb_func' if thumb else ''}
++{name}:
++cmp r0,#1
++{move} r0,r0
++beq .Lzero_{name}
++mov r0,#11
++bx lr
++.Lzero_{name}:
++mov r0,#22
++bx lr
++.size {name},.-{name}
++'''
++(out/'input.s').write_text(asm)
++(out/'layout.ld').write_text('ENTRY(_start)\nSECTIONS { . = 0x8000; .text : { *(.text*) } }\n')
++def run(label,cmd):
++    p=subprocess.run([str(x) for x in cmd],capture_output=True,text=True)
++    (out/(label+'.log')).write_text(p.stdout+p.stderr)
++    if p.returncode:raise RuntimeError(label+': '+p.stdout+p.stderr)
++    return p.stdout
++run('mc',['llvm-mc','-triple=armv7-none-eabi','-arm-add-build-attributes','-filetype=obj',out/'input.s','-o',out/'input.o'])
++run('link',['ld.lld','--emit-relocs','-T',out/'layout.ld',out/'input.o','-o',out/'input.elf'])
++for mode,extra in [('normal',[]),('reverse',['--reorder-blocks=reverse'])]:
++    candidate=out/(mode+'.elf');mapping=out/(mode+'.map')
++    run(mode,['llvm-bolt',out/'input.elf','-o',candidate,'--no-huge-pages','-lite=0','--funcs='+','.join(names),'--emit-function-map='+str(mapping),*extra])
++    rows={parts[0]:[int(x,16) for x in parts[1:]] for line in mapping.read_text().splitlines() if (parts:=line.split())}
++    if set(rows)!=set(names):raise RuntimeError('missing emitted self-move functions')
++    text=run(mode+'-disasm',['llvm-objdump','-d',candidate])
++    for name,(_,address,size) in rows.items():
++        body=[]
++        for line in text.splitlines():
++            m=re.match(r'\s*([0-9a-f]+):\s+(?:[0-9a-f]{2,8}\s+)+(\S+)\s*(.*)',line)
++            if m and address<=int(m[1],16)<address+size:body.append((m[2],m[3]))
++        moves=[op for op,args in body if re.match(r'r0,\s*r0(?:\s|$)',args)]
++        if expected[name]:
++            if len(moves)!=1 or not moves[0].startswith('movs'):raise RuntimeError(name+': flag-writing move lost '+repr(body))
++        elif moves:raise RuntimeError(name+': pure self-move not eliminated '+repr(body))
++print('PASS: 12 emitted flag-writing/pure self-move cases; Thumb annotation workers exercised',out)
+--- /dev/null
++++ b/bolt/test/ARM/arm-self-move-flags.test
+@@ -0,0 +1,2 @@
++## Keep flags/PC side effects; allocate Thumb NOP annotations on primary builder.
++RUN: %python %p/Inputs/check-arm-self-move-flags.py %t

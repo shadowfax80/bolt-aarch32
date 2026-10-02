@@ -2,6 +2,27 @@
 
 ## Latest: resumed by user; #3 active after verified #5/#6 boundaries
 
+Overlay 0030 is pushed as 39bd782. #4 self-move audit confirms that the old
+no-op classifier deletes flag-writing MOVS before a flag-consuming branch.
+Local overlay 0031 preserves CPSR/PC side effects, and fixes a 0030 regression:
+Thumb CFG NOP annotations must use the primary builder's worker allocator and
+generic annotation index. Semantic queries still use the mode-specific builder.
+Assertions-on focused lit passes 42; assertions-off passes 41 with one debug-only
+skip. Both modes pass 54 CoreTests with 31 expected skips. New gates cover twelve
+mixed-mode emitted self-moves and nine actual decoded flag/PC forms. Hardware
+flag-state verification now passes in both modes; 0031 is ready to push.
+Use build_counter_state.py --flag-self-move. The negative-R0 sentinel intentionally
+sets N=1/Z=0 and preserves C/V/Q/GE/control; bad-flags replaces MOVS with NOP and
+must fail at case 0/CPSR field 15. Baseline/generated each run 512 cases. Artifacts:
+self-move-state-pi/build-692hq5t8 and self-move-state-pi-noasserts/build-rzet_h4h.
+Pi evidence is pi-verify-ce7eip_5 / pi-verify-oyfcewwx under those builds. All six
+images match across modes and return to loader. Tracked summary:
+results/correctness_self_move_flags_20261002.json. Final build-6lofcngc and POP
+build-lf_p8za7 produce byte-identical payloads to their executed fixtures.
+Source preimages/postimages/logs are in out/correctness/control-flow. #12 paused.
+Next investigate conditional returns, other PC writes and --force-inline safety
+(the current override bypasses the ARM callee safety filter). ATFE only.
+
 Overlay 0029 is pushed as bb36795. Overlay 0030 is verified and ready to push:
 residual reachable function fallthrough rejects before CFG postprocessing;
 CFG construction/branch repair use the function's ARM/Thumb builder; invalid

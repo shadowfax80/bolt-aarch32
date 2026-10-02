@@ -75,7 +75,14 @@ void state_main(void) {
                     if (observed[14] != observed[16]) fail(id,14,observed[16],observed[14]);
                     if (observed[16] & 7) fail(id,16,0,observed[16] & 7);
                     // Back in ARM state: compare the entire CPSR, including IRQ/FIQ/control.
+#ifdef FLAG_SELF_MOVE
+                    // MOVS r0,r0 sets N=1/Z=0 for the negative R0 sentinel.
+                    // No shift: C is preserved, as are V/Q/GE/control bits.
+                    uint32_t expected_cpsr = (observed[17] & ~0xc0000000u) | 0x80000000u;
+                    if (observed[15] != expected_cpsr) fail(id,15,expected_cpsr,observed[15]);
+#else
                     if (observed[15] != observed[17]) fail(id,15,observed[17],observed[15]);
+#endif
                     // Also prove the harness really established the requested flag/IRQ state.
                     if ((observed[17] & 0xf80f0080u) != (flags | (irq << 7)))
                         fail(id,17,flags | (irq << 7),observed[17] & 0xf80f0080u);
