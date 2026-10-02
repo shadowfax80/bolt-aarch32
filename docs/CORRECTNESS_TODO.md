@@ -115,6 +115,14 @@ safe; unsupported cases cannot return a successful partially corrupted output.
   A32 veneers remain admitted. Pi confirms the pre-fix ARM MOV PC,PC corruption;
   both new builds reject that input, and supported firmware stays byte-identical
   to executed 0032 images. Special/privileged transfers and wider variants remain.
+- [x] Reject decoded exception returns before the ordinary-return/PC-definition
+  exemptions. Overlay 0035 rejects all ARM/Thumb RFE variants, decoded ERET and
+  Thumb exception SUBS PC,LR. ARM RFE descriptors omit PC/terminator effects;
+  Thumb/ERET descriptors label these ordinary returns. Both modes pass 56
+  rejection cases, attribute-decoded ERET rejection, fourteen actual decoder
+  cases and the ERET descriptor gate. Supported Pi firmware rebuilds match
+  the eight executed 0034 images exactly in both modes. Undecodable instructions
+  and other special/trap transfers still need the broader #7/#11 boundary.
 - [ ] Check flag-writing self-move/no-op recognition and branch reversal under
   reordering, peepholes and splitting.
   Overlay 0031 preserves CPSR/PC-writing self-moves and removes pure self-moves.

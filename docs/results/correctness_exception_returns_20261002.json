@@ -1,0 +1,113 @@
+{
+  "schema": 1,
+  "date": "2026-10-02",
+  "items": [
+    4
+  ],
+  "status": "partial",
+  "patch": {
+    "name": "0035-bolt-arm-exception-return-admission.patch",
+    "sha256": "a5fb2a2af1d8c1a79a88dbf67c70a6f11cec5d3a149af2ee448b629189e98609"
+  },
+  "fixes": [
+    "Reject ARM/Thumb RFE before the descriptor-based PC-definition and return exemptions",
+    "Reject decoded ERET and Thumb exception SUBS PC,LR forms before transformation",
+    "Keep supported attribute-derived ARM/Thumb UDIV byte tests and add decoded-ERET rejection"
+  ],
+  "source_change": {
+    "bolt/lib/Target/ARM/ARMMCPlusBuilder.cpp": {
+      "before": "f4142b16da61eaf7f069fb944d91f74d8c9b056959ea10788acdef8d3843730c",
+      "after": "de03bf6c6e208ca5f8ebf1c551ec5d7eaf11e842e8aff37d412d8ad2be9001b8"
+    },
+    "bolt/unittests/Core/ARMReturns.cpp": {
+      "before": "0ef636362e37dde0c23a44f533faa1b948b064c687c0a2d1a9d3e6322f73d047",
+      "after": "b6040b983315e44119a21102276b316b2f9a067162e24dfc7a2d7dc62104941c"
+    },
+    "bolt/test/ARM/Inputs/check-arm-kept-code.py": {
+      "before": "aef487e13b01383251121dc412de06d8d82a51fc173a409763fcacff6a738419",
+      "after": "86222ab7d3c1acf9ce3329b7098ce62e86a65c9764129fb6532fa7caa41fe7e2"
+    }
+  },
+  "before": {
+    "evidence": "out/correctness/exception-returns/before-probes/exception-yaargyyt/results.json",
+    "sha256": "0ce2daa8d8f73a4a74544896d4f4a3add3d3c3069ed47f33b2a8d1a3edb57606",
+    "noninstrument_outputs": 42,
+    "noninstrument_probes": 42,
+    "instrumentation_fixture_limitation": "Initial 14 instrumentation probes failed static sleep-time validation before admission; corrected regression passes valid sleep-time options",
+    "scope": "Descriptor/admission defect confirmed; no new hardware corruption reproduction claimed"
+  },
+  "host": {
+    "assertions-on": {
+      "lit_passed": 45,
+      "lit_skipped": 0,
+      "unit_passed": 57,
+      "unit_skipped": 31,
+      "negative_admissions": 56,
+      "decoded_exception_cases": 14,
+      "eret_descriptor_cases": 1,
+      "attribute_decoded_eret_rejected": true,
+      "logs": {
+        "assertions-on-lit.log": "cd1778ecb8cb73ba59b21fa6fc19692640774eaf90ce92b9f813f6b78b930c86",
+        "assertions-on-units.log": "2c8f599ec4a406734eb09ee26fb7a75f6e5752cbfdf5619680cfd88c9682b72e"
+      }
+    },
+    "assertions-off": {
+      "lit_passed": 44,
+      "lit_skipped": 1,
+      "unit_passed": 57,
+      "unit_skipped": 31,
+      "negative_admissions": 56,
+      "decoded_exception_cases": 14,
+      "eret_descriptor_cases": 1,
+      "attribute_decoded_eret_rejected": true,
+      "logs": {
+        "assertions-off-lit.log": "981ce2bea5381de0c5efcf5afae7e2d311dc84e2b3b933a9dc68e2fb1a8c160a",
+        "assertions-off-units.log": "653d48c851e593f1ee11b0cabc67a07e4ae629255fc2c38ff557607e414ae371"
+      }
+    }
+  },
+  "remaining": [
+    "General predicated-exit model, special/trap transfers beyond this boundary and profile-driven pass combinations",
+    "Undecodable ERET may remain kept/ignored under the existing decoder policy; feature/ISA admission (#7) is still open",
+    "Rejected exception returns are unsupported, not implemented",
+    "#12 remains paused; ATFE only"
+  ],
+  "supported_pi_payloads": {
+    "parity": {
+      "assertions-on": {
+        "build": "out/correctness/exception-returns/assertions-on-pi-positive/build-3q6tmi1q",
+        "matches_executed_0034_build": "inline-safety-passes-pi/build-ij4gfthz",
+        "payload_sha256": {
+          "baseline": "344a634a4ffbbc769c7fe68c176e6a9e6fd2019a3f76b4f16ef7fc7705b4a5fd",
+          "normal": "cecbc9db7f16ebd1a9d0291e2a2f69f704666f4776d699d9085c7bbdb51a15c6",
+          "reverse": "b3e828184a5733f8ebd99a7e2a5ccad273e46df2d2759bc8e58cea8f31ca55d7",
+          "inline_all": "cecbc9db7f16ebd1a9d0291e2a2f69f704666f4776d699d9085c7bbdb51a15c6",
+          "inline_small": "cecbc9db7f16ebd1a9d0291e2a2f69f704666f4776d699d9085c7bbdb51a15c6",
+          "peepholes": "b3e828184a5733f8ebd99a7e2a5ccad273e46df2d2759bc8e58cea8f31ca55d7",
+          "bad-result": "d90e41a9175088b981be73a6833c4e4c2f3ce9938b9e5b8cb5e563b6e45e0827",
+          "bad-cbz-flags": "c3c4a88daf4a24ca4d81a3b169cc7c8d35d93d163c8f5e291156b67041311296"
+        },
+        "new_tool_sha256": "ce85635cfc4c4c4c407c06f45b7371783b6d264ec1c77a09105ea7f7f90bfad3",
+        "executed_verification_sha256": "cde18d71a2d76b1f619df81fe7e063fb9dc171f7155a01eace33527a3b3376c8"
+      },
+      "assertions-off": {
+        "build": "out/correctness/exception-returns/assertions-off-pi-positive/build-n8itz8y4",
+        "matches_executed_0034_build": "inline-safety-passes-pi-noasserts/build-c6yymiw8",
+        "payload_sha256": {
+          "baseline": "344a634a4ffbbc769c7fe68c176e6a9e6fd2019a3f76b4f16ef7fc7705b4a5fd",
+          "normal": "cecbc9db7f16ebd1a9d0291e2a2f69f704666f4776d699d9085c7bbdb51a15c6",
+          "reverse": "b3e828184a5733f8ebd99a7e2a5ccad273e46df2d2759bc8e58cea8f31ca55d7",
+          "inline_all": "cecbc9db7f16ebd1a9d0291e2a2f69f704666f4776d699d9085c7bbdb51a15c6",
+          "inline_small": "cecbc9db7f16ebd1a9d0291e2a2f69f704666f4776d699d9085c7bbdb51a15c6",
+          "peepholes": "b3e828184a5733f8ebd99a7e2a5ccad273e46df2d2759bc8e58cea8f31ca55d7",
+          "bad-result": "d90e41a9175088b981be73a6833c4e4c2f3ce9938b9e5b8cb5e563b6e45e0827",
+          "bad-cbz-flags": "c3c4a88daf4a24ca4d81a3b169cc7c8d35d93d163c8f5e291156b67041311296"
+        },
+        "new_tool_sha256": "4d25ceddfb6abef3c5428a5e1f5acaade8112e088dd70d0d80ea8d6ea86ac17f",
+        "executed_verification_sha256": "25d4b1b52d8847054852790e3b5bb6518e693bb6bd25a9954117a2abd3549d98"
+      }
+    },
+    "verification": "Fresh builds of all eight supported positive/fault payloads in both modes are byte-identical to executed overlay 0034 evidence; no new Pi execution for 0035",
+    "previous_evidence": "docs/results/correctness_inline_passes_20261002.json"
+  }
+}

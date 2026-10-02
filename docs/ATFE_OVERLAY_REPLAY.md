@@ -45,6 +45,11 @@ interior reference fail with diagnostics; failed outputs are not published.
 The twelve probes and all 37 focused lit tests pass. ERET is host emission
 coverage only, and kept-code hardware execution is not claimed.
 
+Overlay 0035 supersedes the historical ERET emission check with explicit
+rejection when ELF attributes enable its decoding. Supported ARM/Thumb UDIV
+emission checks remain. Exception-return rewriting is unsupported; this change
+does not update the older full-series replay or resume #12's provenance work.
+
 The final 2026-10-02 replay applies all 25 patches and reports no mismatched or
 uncovered source files. Its evidence is preserved in
 `out/correctness/atfe-clean-replay-0025-final-20261002/replay.json`, source identity

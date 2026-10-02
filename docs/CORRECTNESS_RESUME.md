@@ -1,6 +1,31 @@
 # ATFE correctness checkpoint - 2026-10-02
 
-## Latest: #4 expanded pass and call-site matrix verified
+## Latest: #4 exception-return admission verified
+
+0034 is pushed as a14fc05. Overlay 0035 rejects decoded ARM/Thumb RFE, ERET and
+Thumb exception SUBS PC,LR before the ordinary-return/PC-definition exemptions.
+Both builds pass 56 negative admissions, attribute-decoded ERET rejection,
+fourteen actual decoder cases and the ERET descriptor gate. Focused suites pass
+45/44 tests (off has one debug-only skip) and both pass 57 CoreTests/31 skips.
+Fresh supported Pi builds match all eight executed 0034 payloads per mode:
+exception-returns/assertions-on-pi-positive/build-3q6tmi1q and
+exception-returns/assertions-off-pi-positive/build-n8itz8y4. No fresh Pi execution
+is claimed for 0035. Evidence: results/correctness_exception_returns_20261002.json.
+
+Preimages/postimages/source hashes, initial failed test logs and final host logs
+are in out/correctness/exception-returns. apply-exception-return-boundary.py and
+refine-exception-return-tests.py are already applied; do not rerun them. The
+refinement preserves supported UDIV byte checks and turns decoded ERET into a
+negative feature-admission case. The new patch reverse-apply checks. Preserve
+the dirty WSL ATFE/LK source and unrelated Windows Microsoft/ directory.
+
+Next #4: conditional exits under instrumentation/reordering/splitting and other
+special/trap transfers. Undecodable ERET still falls under the existing kept/
+ignored decoder policy; #7 general ISA/feature admission remains open. Three
+original items complete (#2/#8/#10); #12 remains paused. ATFE only, WSL running,
+Pi waiting in loader. No upstream work.
+
+## Earlier: #4 expanded pass and call-site matrix verified
 
 0033 is pushed as 796083d. Test-only overlay 0034 expands the inlining gate to
 92 emitted cases and four IT-call rejections per host build. Focused suites

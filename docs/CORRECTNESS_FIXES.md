@@ -1,5 +1,25 @@
 # Correctness fixes
 
+## Exception-return admission boundary (2026-10-02)
+
+Overlay 0035 rejects decoded ARM/Thumb RFE, ERET and Thumb exception SUBS PC,LR
+before descriptor-based PC-definition and ordinary-return exemptions. ARM RFE
+descriptors omit their PC/terminator effects; Thumb RFE/SUBS and ERET descriptors
+mark ordinary returns. The former gate admitted 42 normal/reverse/forced-inline
+probes. No new hardware corruption reproduction is claimed. The initial fourteen
+instrumentation probes stopped at static sleep-time validation; the corrected
+regression uses valid options and checks rejection at the intended boundary.
+
+Both builds pass 56 exception-return rejections plus attribute-decoded ERET
+rejection, fourteen actual decoder cases and an ERET descriptor case. Supported
+attribute-derived ARM/Thumb UDIV byte checks remain. Focused suites pass 45/44
+tests (one debug-only skip off), and both pass 57 CoreTests with 31 expected skips.
+Fresh supported Pi rebuilds match all eight executed 0034 payloads in each mode;
+this reuses the byte-identical hardware evidence without a fresh Pi execution.
+Exception returns remain unsupported; undecodable ERET may still be kept/ignored
+under the existing decoder policy. General admission and other special transfers
+remain open. See [evidence](results/correctness_exception_returns_20261002.json).
+
 ## Expanded inlining pass and call-site verification (2026-10-02)
 
 Test-only overlay 0034 extends the inlining gate to 92 emitted cases and four

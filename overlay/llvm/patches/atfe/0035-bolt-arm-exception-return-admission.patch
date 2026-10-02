@@ -1,0 +1,140 @@
+--- a/bolt/lib/Target/ARM/ARMMCPlusBuilder.cpp
++++ b/bolt/lib/Target/ARM/ARMMCPlusBuilder.cpp
+@@ -326,6 +326,29 @@
+   }
+ 
+   bool isUnsupportedPCWrite(const MCInst &Inst) const override {
++    // Exception returns restore PC and processor state, not a normal call
++    // continuation. ARM RFE descriptors omit their PC definition/terminator,
++    // while Thumb RFE/SUBS and ERET are marked as ordinary returns. Neither
++    // descriptor path is sufficient for our CFG/transformation model.
++    switch (Inst.getOpcode()) {
++    case ARM::RFEDA:
++    case ARM::RFEDA_UPD:
++    case ARM::RFEDB:
++    case ARM::RFEDB_UPD:
++    case ARM::RFEIA:
++    case ARM::RFEIA_UPD:
++    case ARM::RFEIB:
++    case ARM::RFEIB_UPD:
++    case ARM::t2RFEDB:
++    case ARM::t2RFEDBW:
++    case ARM::t2RFEIA:
++    case ARM::t2RFEIAW:
++    case ARM::t2SUBS_PC_LR:
++    case ARM::ERET:
++      return true;
++    default:
++      break;
++    }
+     if (!hasDefOfPhysReg(Inst, ARM::PC) || isCall(Inst) || isReturn(Inst))
+       return false;
+     switch (Inst.getOpcode()) {
+--- a/bolt/unittests/Core/ARMReturns.cpp
++++ b/bolt/unittests/Core/ARMReturns.cpp
+@@ -161,5 +161,39 @@
+     EXPECT_EQ(MIB->isReturn(Inst), C.Return);
+   }
+ }
++TEST_F(ARMReturns, ExceptionReturnsCannotBypassPCWriteAdmission) {
++  struct Case { bool Thumb; std::vector<uint8_t> Bytes; };
++  const Case Cases[] = {
++      {false, {0x00,0x0a,0x13,0xf8}}, // arm_rfeda
++      {false, {0x00,0x0a,0x33,0xf8}}, // arm_rfeda_wb
++      {false, {0x00,0x0a,0x13,0xf9}}, // arm_rfedb
++      {false, {0x00,0x0a,0x33,0xf9}}, // arm_rfedb_wb
++      {false, {0x00,0x0a,0x93,0xf8}}, // arm_rfeia
++      {false, {0x00,0x0a,0xb3,0xf8}}, // arm_rfeia_wb
++      {false, {0x00,0x0a,0x93,0xf9}}, // arm_rfeib
++      {false, {0x00,0x0a,0xb3,0xf9}}, // arm_rfeib_wb
++      {true, {0x13,0xe8,0x00,0xc0}}, // thumb_rfedb
++      {true, {0x33,0xe8,0x00,0xc0}}, // thumb_rfedb_wb
++      {true, {0x93,0xe9,0x00,0xc0}}, // thumb_rfeia
++      {true, {0xb3,0xe9,0x00,0xc0}}, // thumb_rfeia_wb
++      {true, {0xde,0xf3,0x00,0x8f}}, // thumb_subs0
++      {true, {0xde,0xf3,0x04,0x8f}}, // thumb_subs4
++  };
++  for (const Case &C : Cases) {
++    SCOPED_TRACE(C.Thumb ? "Thumb" : "ARM");
++    MCInst Inst;
++    uint64_t Size = 0;
++    MCDisassembler *Decoder = C.Thumb ? BC->ThumbDisAsm.get() : BC->DisAsm.get();
++    ASSERT_EQ(Decoder->getInstruction(Inst, Size, C.Bytes, 0x1000, nulls()),
++              MCDisassembler::Success);
++    EXPECT_EQ(Size, C.Bytes.size());
++    EXPECT_TRUE(BC->getMIBFor(C.Thumb)->isUnsupportedPCWrite(Inst));
++  }
++  // Default armv7 disassembly may not decode ERET without virtualization.
++  // When enabled and decoded, its isReturn descriptor must not bypass admission.
++  MCInst ERET;
++  ERET.setOpcode(ARM::ERET);
++  EXPECT_TRUE(BC->MIB->isUnsupportedPCWrite(ERET));
++}
+ } // namespace
+ #endif
+--- a/bolt/test/ARM/Inputs/check-arm-kept-code.py
++++ b/bolt/test/ARM/Inputs/check-arm-kept-code.py
+@@ -74,6 +74,10 @@
+  .size thumb_feature,.-thumb_feature
+ '''
+ }
++# Preserve attribute-derived decoding as a negative boundary for ERET.
++fixtures['features-exception']=fixtures['features']
++# UDIV still verifies ARM/Thumb feature propagation and emitted bytes.
++fixtures['features']=fixtures['features'].replace(' bl privileged_feature\n','').replace(' .global privileged_feature\n .type privileged_feature,%function\nprivileged_feature:\n eret\n bx lr\n .size privileged_feature,.-privileged_feature\n','')
+ fixtures['kept-mixed']=''' .syntax unified
+  .text
+  .arm
+@@ -199,7 +203,7 @@
+             _,word=a32_target(original,0x10000)
+             assert word&(1<<24),'fixture did not exercise input BLX H=1'
+     elif name=='features':
+-        for function,expected in [('arm_feature','11f230e71eff2fe1'),('privileged_feature','6e0060e1'),('thumb_feature','b1fbf2f07047')]:
++        for function,expected in [('arm_feature','11f230e71eff2fe1'),('thumb_feature','b1fbf2f07047')]:
+             start,end,size=moved[function]
+             assert start!=end,(function,moved[function])
+             actual=at(output,end,len(bytes.fromhex(expected))).hex()
+@@ -258,7 +262,8 @@
+     if name in ('kept-h1','kept-h1-interior'):options+=['--align-functions=2','--align-text=2']
+     results[name]['bolt']=run(name+'-bolt',[tc/'llvm-bolt',out/(name+'.elf'),'-o',out/(name+'.bolt.elf'),*options,'--emit-function-map='+str(out/(name+'.funcmap'))])
+     results[name]['input_disassembly']=run(name+'-input-disassembly',[tc/'llvm-objdump','-d','--start-address=0x10000','--stop-address=0x10040','--mattr=+hwdiv,+hwdiv-arm,+virtualization',out/(name+'.elf')])
+-    expected={'kept-malformed':'invalid kept A32 branch relocation',
++    expected={'features-exception':'unsupported AArch32 PC-writing control transfer',
++              'kept-malformed':'invalid kept A32 branch relocation',
+               'kept-unaligned':'invalid kept A32 branch relocation',
+               'kept-tail':'does not support --hot-functions-at-end',
+               'kept-short':'requires sufficient space',
+--- /dev/null
++++ b/bolt/test/ARM/Inputs/check-arm-exception-returns.py
+@@ -0,0 +1,25 @@
++from pathlib import Path
++import json, subprocess, sys, tempfile
++parent=Path(sys.argv[1]);parent.mkdir(parents=True,exist_ok=True)
++observe='--observe' in sys.argv
++out=Path(tempfile.mkdtemp(prefix='exception-',dir=parent));results=[]
++cases=[('arm',mode+wb,mode+' r3'+wb) for mode in ('rfeda','rfedb','rfeia','rfeib') for wb in ('','!')]
++cases += [('thumb',mode+wb,mode+' r3'+wb) for mode in ('rfedb','rfeia') for wb in ('','!')]
++cases += [('thumb','subs'+str(n),'subs pc,lr,#'+str(n)) for n in (0,4)]
++for isa,kind,instruction in cases:
++    d=out/(isa+'_'+kind.replace('!','_wb'));d.mkdir()
++    asm='.syntax unified\n.arch armv7-a\n.text\n.'+isa+'\n.global _start\n.type _start,%function\n'+('.thumb_func\n' if isa=='thumb' else '')+'_start:\nbl probe\nbx lr\n.size _start,.-_start\n.balign 4\n.global probe\n.type probe,%function\n'+('.thumb_func\n' if isa=='thumb' else '')+'probe:\n'+instruction+'\nmov r0,#7\nbx lr\n.size probe,.-probe\n'
++    (d/'input.s').write_text(asm);(d/'layout.ld').write_text('ENTRY(_start)\nSECTIONS { . = 0x8000; .text : { *(.text*) } }\n')
++    def run(label,cmd):
++        p=subprocess.run([str(x) for x in cmd],capture_output=True,text=True)
++        (d/(label+'.log')).write_text(p.stdout+p.stderr);return p
++    p=run('mc',['llvm-mc','-triple=armv7-none-eabi','-arm-add-build-attributes','-filetype=obj',d/'input.s','-o',d/'input.o']);assert p.returncode==0,p.stderr
++    p=run('link',['ld.lld','--emit-relocs','-T',d/'layout.ld',d/'input.o','-o',d/'input.elf']);assert p.returncode==0,p.stderr
++    for mode,options in [('normal',[]),('reverse',['--reorder-blocks=reverse']),('inline',['--force-inline=probe']),('instrument',['--instrument','--instrument-calls=false','--instrumentation-sleep-time=1','--arm-instrumentation-contract=privileged-single-core-no-fiq'])]:
++        candidate=d/(mode+'.elf')
++        p=run(mode,['llvm-bolt',d/'input.elf','-o',candidate,'--no-huge-pages','-lite=0','--funcs=probe',*options])
++        good=p.returncode==1 and 'unsupported AArch32 PC-writing control transfer' in p.stdout+p.stderr and not candidate.exists()
++        results.append(dict(isa=isa,kind=kind,mode=mode,returncode=p.returncode,output=candidate.exists(),rejected=good))
++        if not good and not observe:raise RuntimeError('exception return admitted: '+isa+' '+kind+' '+mode+'\n'+p.stdout+p.stderr)
++(out/'results.json').write_text(json.dumps(results,indent=2)+'\n')
++print('Exception return admissions:',sum(r['rejected'] for r in results),'/',len(results),'rejected;',out)
+--- /dev/null
++++ b/bolt/test/ARM/arm-exception-returns.test
+@@ -0,0 +1,3 @@
++## Exception returns must reject before transformation, including RFE
++## instructions whose ARM descriptors omit the PC definition/terminator.
++RUN: %python %p/Inputs/check-arm-exception-returns.py %t.dir

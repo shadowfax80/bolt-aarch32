@@ -13,6 +13,12 @@ This doc exists so gaps stay visible instead of getting lost once the verify
 scripts go green. Where something is fixed, that's stated; where it isn't, the
 repro or the evidence is given rather than a vague caveat.
 
+ATFE overlay 0035 rejects decoded ARM/Thumb RFE, ERET and Thumb exception
+SUBS PC,LR before transformation. Exception-return rewriting is unsupported.
+Undecodable instructions can still remain kept/ignored under the existing
+policy; general ISA/feature admission is open. See the
+[exception-return evidence](results/correctness_exception_returns_20261002.json).
+
 **Verification status is marked per item**, because it matters for how much to
 trust each entry:
 
