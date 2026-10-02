@@ -15,6 +15,7 @@ win = Path(__file__).resolve().parents[2]
 parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument('--toolchain', type=Path, default=Path('/home/user/bolt-aarch32/build-atfe/bin'))
 parser.add_argument('--out', type=Path, required=True)
+parser.add_argument('--nested', action='store_true', help='add nested calls and recursion with exact cross-function counts')
 args = parser.parse_args()
 tc = args.toolchain.resolve()
 parent = args.out.resolve()
@@ -109,12 +110,53 @@ for width in ('n', 'w'):
         cases.append(dict(function=name, arg=arg, result=3 * arg, visits=visits, edges=edges))
 if not (len(names) == 47 and len(cases) == 100):
     raise ValueError('fixture invariant failed')
+if args.nested:
+    begin('nested_inner')
+    asm += 'push {r4,lr}\nbl it_loop_w\nmov r4,r0\nmovw r0,#0\nbl it_tete\nadd r0,r4\npop {r4,pc}\n'
+    end('nested_inner')
+    models['nested_inner'] = ['nested_inner']
+    begin('nested_outer')
+    asm += 'push {r4,r5,r6,lr}\nmov r4,r0\nbl nested_inner\nmov r5,r0\nadd.w r0,r4,#1\nbl nested_inner\nadd r0,r5\npop {r4,r5,r6,pc}\n'
+    end('nested_outer')
+    models['nested_outer'] = ['nested_outer']
+    begin('nested_recursive')
+    asm += 'push {r4,lr}\ncmp r0,#0\nbeq .Lmodel_nested_recursive_zero\n'
+    label('nested_recursive_body')
+    asm += 'mov r4,r0\nsub.w r0,r0,#1\nbl nested_recursive\nadd r0,r4\npop {r4,pc}\n'
+    label('nested_recursive_zero')
+    asm += 'movw r0,#0\npop {r4,pc}\n'
+    end('nested_recursive')
+    models['nested_recursive'] = ['nested_recursive','nested_recursive_body','nested_recursive_zero']
+    def merge_case(target, visits, edges):
+        for field, values in [('visits',visits),('edges',edges)]:
+            for key,count in values.items():target[field][key]=target[field].get(key,0)+count
+    def add_loop(target, arg):
+        name='it_loop_w'
+        visits={name:1,name+'_head':max(arg,1),name+'_body':arg,name+'_done':1}
+        edges={name+'>'+name+'_head':1,name+'_head>'+name+'_body':arg,
+               name+'_head>'+name+'_done':int(arg==0),name+'_body>'+name+'_head':max(arg-1,0),
+               name+'_body>'+name+'_done':int(arg>0)}
+        merge_case(target,visits,edges)
+    for arg in (0,1,2,3,8,17,33,64):
+        for name in ('nested_inner','nested_outer'):
+            case=dict(function=name,arg=arg,result=3*arg+5 if name=='nested_inner' else 6*arg+13,visits={},edges={})
+            if name=='nested_outer':case['visits'][name]=1
+            loop_args=[arg] if name=='nested_inner' else [arg,arg+1]
+            case['visits']['nested_inner']=len(loop_args)
+            case['visits']['it_tete']=len(loop_args)
+            for loop_arg in loop_args:add_loop(case,loop_arg)
+            cases.append(case)
+        name='nested_recursive'
+        cases.append(dict(function=name,arg=arg,result=arg*(arg+1)//2,
+            visits={name:arg+1,name+'_body':arg,name+'_zero':1},
+            edges={name+'>'+name+'_body':arg,name+'>'+name+'_zero':1}))
+    if not (len(names)==50 and len(cases)==124):raise ValueError('wrong nested matrix')
 asm += '\n.data\n.balign 8\n'
 
 def object_decl(name, body):
     return f'.global {name}\n.type {name},%object\n{name}:\n{body}\n.size {name},.-{name}\n'
 asm += object_decl('cases', '\n'.join((f".word {c['function']},{c['arg']},{c['result']}" for c in cases)))
-asm += object_decl('expected_counts', '.zero ' + str(100 * 128 * 4))
+asm += object_decl('expected_counts', '.zero ' + str(len(cases) * 128 * 4))
 asm += object_decl('counter_base', '.word dummy_counters')
 asm += object_decl('counter_count', '.word 1')
 asm += object_decl('instrumented', '.word 0')
@@ -122,7 +164,8 @@ asm += 'dummy_counters: .zero 8\n'
 (out / 'fixture.s').write_text(asm, encoding='utf-8')
 (out / 'models.json').write_text(json.dumps(dict(blocks=models, cases=cases), indent=2) + '\n', encoding='utf-8')
 run('assembly', [tc / 'llvm-mc', '-triple=armv7-none-eabi', '-arm-add-build-attributes', '--save-temp-labels', '-filetype=obj', out / 'fixture.s', '-o', out / 'fixture.o'])
-run('compile', [tc / 'clang', '--target=arm-none-eabi', '-march=armv7-a', '-marm', '-mfloat-abi=soft', '-ffreestanding', '-fno-builtin', '-fno-stack-protector', '-fno-unwind-tables', '-fno-asynchronous-unwind-tables', '-O2', '-c', win / 'scripts/pi4/fixtures/it-counts/main.c', '-o', out / 'main.o'])
+defines=['-DNUM_CASES='+str(len(cases)),'-DPASS_CASES="'+str(len(cases)*3)+'"'] if args.nested else []
+run('compile', [tc / 'clang', '--target=arm-none-eabi', '-march=armv7-a', '-marm', '-mfloat-abi=soft', '-ffreestanding', '-fno-builtin', '-fno-stack-protector', '-fno-unwind-tables', '-fno-asynchronous-unwind-tables', '-O2', *defines, '-c', win / 'scripts/pi4/fixtures/it-counts/main.c', '-o', out / 'main.o'])
 original = out / 'baseline.elf'
 run('link', [tc / 'ld.lld', '--emit-relocs', '--discard-locals', '-T', win / 'scripts/pi4/fixtures/counter-state/link.ld', out / 'fixture.o', out / 'main.o', '-o', original])
 original_blob = original.read_bytes()
@@ -274,7 +317,7 @@ for variant, extra in [('normal', []), ('reverse', ['--reorder-blocks=reverse'])
         vector = []
         for index in range(n):
             row = assignments[index]
-            value = 0 if row['function'] != case['function'] else case['edges'].get(row['edge'], 0) if 'edge' in row else case['visits'].get(row['block'], 0)
+            value = case['edges'].get(row['edge'], 0) if 'edge' in row else case['visits'].get(row['block'], 0)
             vector.append(value)
         vectors.append(vector)
 
@@ -298,6 +341,6 @@ for variant, extra in [('normal', []), ('reverse', ['--reorder-blocks=reverse'])
 for name in ('baseline', *report):
     run(name + '-objcopy', [tc / 'llvm-objcopy', '-O', 'binary', out / (name + '.elf'), out / (name + '.bin')])
 files = [p.name for p in out.iterdir() if p.suffix in ('.elf', '.bin', '.funcmap') or p.name.endswith('-redirects.json') or p.name.endswith('-disassembly.log') or (p.name in ('fixture.s', 'models.json', 'narrow-branches.json'))]
-manifest = dict(schema=1, kind='pi-it-counts', cases=300, functions=names, variants=report, files={name: sha256(out / name) for name in sorted(files)}, tools={name: sha256(tc / name) for name in ('llvm-bolt', 'llvm-mc', 'clang', 'ld.lld', 'llvm-objcopy')}, main_sha256=sha256(win / 'scripts/pi4/fixtures/it-counts/main.c'), builder_sha256=sha256(Path(__file__)), runtime_sha256=sha256(tc.parent / 'bolt-rt-baremetal-arm/libbolt_rt_baremetal.a'), scope='15 IT masks; narrow/wide terminal IT branches and loops; single-core privileged quiet firmware; no active IRQ/FIQ/SMP')
+manifest = dict(schema=1, kind='pi-it-nested-counts' if args.nested else 'pi-it-counts', cases=len(cases)*3, functions=names, variants=report, files={name: sha256(out / name) for name in sorted(files)}, tools={name: sha256(tc / name) for name in ('llvm-bolt', 'llvm-mc', 'clang', 'ld.lld', 'llvm-objcopy')}, main_sha256=sha256(win / 'scripts/pi4/fixtures/it-counts/main.c'), builder_sha256=sha256(Path(__file__)), runtime_sha256=sha256(tc.parent / 'bolt-rt-baremetal-arm/libbolt_rt_baremetal.a'), scope='15 IT masks; narrow/wide terminal IT branches and loops; '+('nested calls and recursion; ' if args.nested else '')+'single-core privileged quiet firmware; no active IRQ/FIQ/SMP')
 (out / 'build.json').write_text(json.dumps(manifest, indent=2) + '\n', encoding='utf-8')
 print(out / 'build.json')

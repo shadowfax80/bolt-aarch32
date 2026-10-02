@@ -1,0 +1,183 @@
+{
+  "schema": 1,
+  "date": "2026-10-02",
+  "item": 5,
+  "status": "partial",
+  "hardware": {
+    "schema": 1,
+    "verified": true,
+    "scope": "15 IT masks; narrow/wide terminal IT branches and loops; nested calls and recursion; single-core privileged quiet firmware; no active IRQ/FIQ/SMP",
+    "port": "COM5",
+    "results": {
+      "baseline": {
+        "passed": true,
+        "cases": 372,
+        "counters": 1,
+        "instrumented": false
+      },
+      "normal": {
+        "passed": true,
+        "cases": 372,
+        "counters": 85,
+        "instrumented": true
+      },
+      "reverse": {
+        "passed": true,
+        "cases": 372,
+        "counters": 85,
+        "instrumented": true
+      },
+      "conservative": {
+        "passed": true,
+        "cases": 372,
+        "counters": 73,
+        "instrumented": true
+      }
+    },
+    "build_manifest_sha256": "04e91cb7424fa68b16979494c96c09f69f84fe6fe8aef71e744ebd2abd6f0862",
+    "verifier_sha256": "690daa567e39be3e1ee1e88b761e9789d2c0bde6b4feca1408d5ddeed4da5d43",
+    "loader_sha256": "20d8a44f44c62ce001c3cd49007a0b73b9a6890d92bdb37f9d5a573246453ab0",
+    "log_sha256": {
+      "baseline": "0092882c1c94ac241da88ac2b6427f26adfb104b35619dfbeece44a1aedba46c",
+      "normal": "4f47742e451d43c9258b0116bb3a79996a3f37aed6b71841d9287b489a39abaf",
+      "reverse": "dd9391476931412e54138b8d38647a567024ec36b26490e747f475018beebc48",
+      "conservative": "3f12368e608bacdb94e57a6079f4a73c2d0bca5bbcfd1c5146d16a41dd9d6f16"
+    }
+  },
+  "build": {
+    "schema": 1,
+    "kind": "pi-it-nested-counts",
+    "cases": 372,
+    "functions": [
+      "it_t",
+      "it_branch_t_n",
+      "it_branch_t_w",
+      "it_tt",
+      "it_branch_tt_n",
+      "it_branch_tt_w",
+      "it_te",
+      "it_branch_te_n",
+      "it_branch_te_w",
+      "it_ttt",
+      "it_branch_ttt_n",
+      "it_branch_ttt_w",
+      "it_tte",
+      "it_branch_tte_n",
+      "it_branch_tte_w",
+      "it_tet",
+      "it_branch_tet_n",
+      "it_branch_tet_w",
+      "it_tee",
+      "it_branch_tee_n",
+      "it_branch_tee_w",
+      "it_tttt",
+      "it_branch_tttt_n",
+      "it_branch_tttt_w",
+      "it_ttte",
+      "it_branch_ttte_n",
+      "it_branch_ttte_w",
+      "it_ttet",
+      "it_branch_ttet_n",
+      "it_branch_ttet_w",
+      "it_ttee",
+      "it_branch_ttee_n",
+      "it_branch_ttee_w",
+      "it_tett",
+      "it_branch_tett_n",
+      "it_branch_tett_w",
+      "it_tete",
+      "it_branch_tete_n",
+      "it_branch_tete_w",
+      "it_teet",
+      "it_branch_teet_n",
+      "it_branch_teet_w",
+      "it_teee",
+      "it_branch_teee_n",
+      "it_branch_teee_w",
+      "it_loop_n",
+      "it_loop_w",
+      "nested_inner",
+      "nested_outer",
+      "nested_recursive"
+    ],
+    "variants": {
+      "normal": {
+        "counters": 85
+      },
+      "reverse": {
+        "counters": 85
+      },
+      "conservative": {
+        "counters": 73
+      }
+    },
+    "files": {
+      "baseline.bin": "692dff7fa9b2320eb754a75858647c89dc7b8c3ba473003651326e94bd98040c",
+      "baseline.elf": "6bdf218cbbf6d6149ac0a744c44ed3b310e2c756f32e08c8cf680d84e67d6a00",
+      "conservative-disassembly.log": "da945cdc77e67e6b22a296bce1fc3c0d71e75cfa6536921d60c59b673df0c109",
+      "conservative-redirects.json": "c13ac63442338d98453ccdd1a9415f3e41f7ca2aa1298f904184f521167b5f7a",
+      "conservative-reference.bin": "fa9aabdc2e5b55e4eb343dd6cee1423b90753bf049b9ab69364de186c6bddb99",
+      "conservative.bin": "3b35e6beda3d3126835be6c61383cf15b9b9f5f7d6ac38c09d45754b6937daad",
+      "conservative.elf": "c2dcfe2368fa56fa1af7fa50ce6fc2d5deec8539e734d2b1bc34d8b864f0ced8",
+      "conservative.funcmap": "4929b0813a668b2884a8519882e3871abbd5e989827fb69ced9d1cf86375c1e0",
+      "fixture.s": "237b4536943abda30b91261da5cf0966bf572c28097e4c26b67a723f365b57af",
+      "models.json": "c7f2a9d7f24f37ef3e89bc2f1408ffa892791f8a31c3483e4dab60567b535a4e",
+      "narrow-branches.json": "f4c406c4c3dee51ba6b0a042cc80cfb51a8db8e6221d738f30ec6764715e61a3",
+      "normal-disassembly.log": "cdbba44b97c91f9f6ce8228d8f0e52769fa3456b34d1f1712f94cb088fd1f36c",
+      "normal-redirects.json": "35998f8085562764a5a2e455f0e339325d0db18bacf24c9aab0db64e8bead7b3",
+      "normal-reference.bin": "ad97dde77961c34e9d06469f31eb8e92389e5afc7a4bbaecf0b8353d0f6ed223",
+      "normal.bin": "e259113659b40e17d79af5cd944beed9094d805bef3323c91e7b9e363dc0fccb",
+      "normal.elf": "f01e1b28e97885c59c420f14d70bb95d0ea1667a8565180a7fa4eb2ff394cdf3",
+      "normal.funcmap": "4d1a48404a3a0f325eb44b8723807fc4953c072852674aaef1ce0e2b28b771ff",
+      "reverse-disassembly.log": "e3a8f6a36232a9e7f35970d85801b95c2b89f21368bf6d81082a116349fa0c74",
+      "reverse-redirects.json": "784ed9fcbb5fbde608f41cca66021d5729e86202b46d4d4af155b807f77f2bf9",
+      "reverse-reference.bin": "ad97dde77961c34e9d06469f31eb8e92389e5afc7a4bbaecf0b8353d0f6ed223",
+      "reverse.bin": "ebaaea7291bcf3d228cb79e4f47f5b6d4c3f1f3b8b8f62001594e539a6fe781b",
+      "reverse.elf": "af397743688ee4574362d48f42d3f0bc111734463e3820055a1bce4821d12b31",
+      "reverse.funcmap": "eb1226f8b669d1601ee4bc1455212adf7f09e84f12366c3ebbb0cc5a837e53a2"
+    },
+    "tools": {
+      "llvm-bolt": "74b11a3c9ff577f33e57cfd6bff3d26398d34f79b1efc367aca3c18948625d19",
+      "llvm-mc": "0419ed87fde9fa95b827a58cc1e6d2817c0970304c9fb0bd7779e7188122dbed",
+      "clang": "296dd268c36e9431e2fcc4e2f89ee3fa1cf66e47f5487df73fca85ea8999ecc6",
+      "ld.lld": "21f3d1e800b8de414efc347ed4630126d22996cddf663d92004af5e089b51be9",
+      "llvm-objcopy": "f80e39c3121994c8b5baf3b9c2e586d4ffcd8da332e6c2c51b9f86fb482207de"
+    },
+    "main_sha256": "cc3c2013c36d28b5902d8aedb83a3e54196c06b939a58e205d009f6bef4f4507",
+    "builder_sha256": "4130a690b864f02fe5bebe1f61aa669abf4a18fb303e9614ade0e41ee59a8c1c",
+    "runtime_sha256": "eceba9ea9fcfbda21c13e97c78f9b1795a5051223d4bad07666ee2aea431b24d",
+    "scope": "15 IT masks; narrow/wide terminal IT branches and loops; nested calls and recursion; single-core privileged quiet firmware; no active IRQ/FIQ/SMP"
+  },
+  "evidence": "out/correctness/it-counts-pi/build-i6hc3l6i/pi-verify-j59k8mxz",
+  "host_parser_tests": 6,
+  "nested_cases": {
+    "inputs": [
+      0,
+      1,
+      2,
+      3,
+      8,
+      17,
+      33,
+      64
+    ],
+    "functions": [
+      "nested_inner",
+      "nested_outer",
+      "nested_recursive"
+    ],
+    "formulas": [
+      "3*n+5",
+      "6*n+13",
+      "n*(n+1)/2"
+    ],
+    "maximum_recursion_depth": 65
+  },
+  "limits": [
+    "Thumb nested calls only",
+    "quiet privileged single core",
+    "no active ISR/FIQ/SMP",
+    "no full nested register/flags matrix",
+    "no live snapshot claim"
+  ]
+}

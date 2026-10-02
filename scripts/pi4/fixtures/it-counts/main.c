@@ -3,11 +3,15 @@
 #define REG(address) (*(volatile uint32_t *)(address))
 #define UART 0xfe201000u
 #define PM 0xfe100000u
+#ifndef NUM_CASES
+#define NUM_CASES 100
+#define PASS_CASES "300"
+#endif
 struct Case { uint32_t (*function)(uint32_t); uint32_t argument, result; };
-extern struct Case cases[100];
+extern struct Case cases[NUM_CASES];
 extern volatile uint32_t *counter_base;
 extern volatile uint32_t counter_count, instrumented;
-extern uint32_t expected_counts[100][128];
+extern uint32_t expected_counts[NUM_CASES][128];
 
 static void puts_uart(const char *s) {
     while (*s) {
@@ -51,7 +55,7 @@ void state_main(void) {
     if (!counter_count || counter_count>128) fail(0,0,999,128,counter_count);
     const uint32_t seed_low[3]={0,0xfffffff0u,0xffffffffu};
     const uint32_t seed_high[3]={0,7,0xffffffffu};
-    for (unsigned id=0; id<100; ++id) {
+    for (unsigned id=0; id<NUM_CASES; ++id) {
         for (unsigned seed=0; seed<3; ++seed) {
             for (unsigned index=0; index<counter_count; ++index) {
                 counter_base[2*index]=seed_low[seed];
@@ -69,6 +73,6 @@ void state_main(void) {
         }
         watchdog(10);
     }
-    puts_uart("BOLT_IT_COUNTS PASS cases=300\r\n");
+    puts_uart("BOLT_IT_COUNTS PASS cases=" PASS_CASES "\r\n");
     finish();
 }

@@ -6,6 +6,13 @@ Run the isolated fixture in WSL using the assertions-enabled ATFE toolchain:
 python3 scripts/pi4/build_it_counts.py --out out/correctness/it-counts-pi
 ```
 
+Add `--nested` for the 50-function matrix: two nested caller levels and
+recursion at inputs 0/1/2/3/8/17/33/64, reaching 65 frames. Returns follow
+`3*n+5`, `6*n+13` and `n*(n+1)/2`; cross-function counts come from those call
+paths. All original IT cases remain, giving 124 inputs/372 seeded cases per
+image. Recorded [nested evidence](results/correctness_nested_counts_20261002.json)
+passes baseline and all three instrumented modes.
+
 From Windows, pass its printed fresh build directory to:
 
 ```powershell
@@ -31,7 +38,7 @@ is used for unnamed leaf descriptors.
 Firmware runs privileged on one core with IRQ/FIQ disabled and MMU/caches off.
 The verifier uses the temporary fast serial loader and requires watchdog return
 after each image. This verifies quiet IT/branch/loop counts and reset, with no
-claim about nested execution, active interrupts, SMP, live snapshots, other
+claim about a full nested register/flags matrix, active interrupts, SMP, live snapshots, other
 predicate conditions or all pass combinations. Full source/build provenance
 remains part of paused item #12.
 

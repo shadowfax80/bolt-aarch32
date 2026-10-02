@@ -111,8 +111,12 @@ live flags, return values, LR/SP and fallthrough.
   Counter seeds exercise low carry and uint64 wrap; three deliberately broken
   images fail at the expected checks. The eight-byte entry alignment and emitted
   sixteen-byte frame are checked. See PI_COUNTER_STATE.md and recorded evidence.
-- [ ] Verify nested execution, active interrupt behavior and other insertion sites;
-  the leaf state fixture keeps FIQ disabled and does not invoke an ISR.
+- [x] Verify quiet nested Thumb calls and recursion counts/returns on Pi: two
+  caller levels, eight inputs and recursion through 65 frames. The expanded
+  50-function fixture passes 372 cases in each of baseline/normal/reverse/
+  conservative modes; all 85/85/73 slots match independent path counts.
+- [ ] Extend nested state to mixed ISA and active interrupt behavior; neither
+  fixture invokes an ISR or verifies a complete nested register/flags matrix.
 - [x] Preserve supported IT header/body groups through insertion and reverse
   layout: all fifteen data masks, narrow/wide terminal branches and loops pass
   300 Pi cases in each of baseline/normal/reverse/conservative modes. Seven

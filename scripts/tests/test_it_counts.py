@@ -15,6 +15,12 @@ GROUP='''00010000 <it_tt>:
 '''
 
 class ITCountsTest(unittest.TestCase):
+    def test_nested_completion_requires_full_matrix(self):
+        text='BOLT_IT_COUNTS BEGIN instrumented=00000001 counters=00000055\r\nBOLT_IT_COUNTS PASS cases=372\r\n'
+        self.assertEqual(check_result(text,1,85,372)['cases'],372)
+        with self.assertRaises(ValueError):check_result(text,1,85,300)
+        with self.assertRaises(ValueError):check_result(text.replace('372','369'),1,85,372)
+
     def test_complete(self):
         self.assertEqual(check_result(BEGIN+PASS,1,81)['cases'],300)
 

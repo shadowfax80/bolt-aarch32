@@ -4,8 +4,9 @@ Last updated: 2026-10-02. Verification details: [CORRECTNESS_FIXES.md](CORRECTNE
 
 Work resumed by user on 2026-10-02; WSL is running and #5 is active. The terminal
 IT-branch fix passes 39 focused host tests and 300 Pi cases each in baseline,
-normal, reverse-layout and conservative modes. Overlay 0027 is being prepared
-for delivery. #12 remains separately paused. See CORRECTNESS_RESUME.md.
+normal, reverse-layout and conservative modes. Overlay 0027 is pushed as
+`be09efb`. Nested Thumb calls/recursion pass 372 Pi cases per mode. #12 remains
+separately paused. See CORRECTNESS_RESUME.md.
 
 Fresh source review at `bbae817`: [CORRECTNESS_REVIEW_BBAE817.md](CORRECTNESS_REVIEW_BBAE817.md).
 Actionable subitems and closure criteria: [CORRECTNESS_TODO.md](CORRECTNESS_TODO.md).
@@ -19,7 +20,7 @@ from completion criteria. Three items are complete within this scope (2, 8, 10).
 | 2 | EHABI exidx/extab | Complete via rejection | Unsupported unwind information is rejected; full unwind rewriting remains unsupported |
 | 3 | Pseudo/CFG invariants | Partial | ARM B pseudo root cause fixed; debug-only recovery remains and assertions-on/off parity is unverified |
 | 4 | Control flow and return semantics | Partial | CBZ flags, ARM Bcc and tail calls improved; conditional returns, wider PC writes, live flags, IT and inlining boundaries remain |
-| 5 | Instrumentation correctness | Active, partial | Carry, 512 CPU-state cases and IT masks/terminal branches/exact loop counts pass on Pi; nested execution, active interrupts and wider snapshot/CFG coverage remain |
+| 5 | Instrumentation correctness | Active, partial | Carry, CPU-state, IT and nested Thumb/recursion counts pass on Pi; mixed-ISA nested state, active interrupts and runtime reset/snapshot coverage remain |
 | 6 | Instrumentation scope | Open | Enforce privilege/single-core/IRQ-FIQ contract and reject placeholder indirect-call profiling |
 | 7 | ISA/profile/endianness | Pending | Enforce the supported target feature boundary |
 | 8 | FK_Data_8 / ABS32 mismatch | Complete | ATFE host and Pi checks passed; symbolic 64-bit relocations rejected; resolved values and map width corrected |

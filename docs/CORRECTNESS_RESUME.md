@@ -2,6 +2,17 @@
 
 ## Latest: resumed by user; #5 active
 
+Overlay 0027 is pushed as be09efb. The expanded fixture adds nested Thumb calls
+and recursion (two caller levels; n=0,1,2,3,8,17,33,64, maximum 65 frames).
+All four Pi images pass 372 cases each, including original IT cases plus 72
+nested/recursive seeded cases. All 85/85/73 slots match independent cross-function
+path counts, and all images return to the loader. Six host gate tests pass.
+Evidence: it-counts-pi/build-i6hc3l6i/pi-verify-j59k8mxz and the tracked
+correctness_nested_counts_20261002.json. Run build_it_counts.py --nested to
+reproduce. No backend change was required. Next validate actual runtime clear
+and define snapshot/quiescence boundaries, then enforce #6. Active interrupts
+and mixed-ISA nested state are still open; #12 remains separately paused.
+
 WSL is running. Overlay 0027 normalizes terminal direct IT branches before CFG
 construction and rejects unsupported IT control transfers/interior entries.
 All 39 focused ARM/JITLink tests pass; the new lit test covers seven rejection
@@ -15,8 +26,8 @@ Reusable build/verify scripts are scripts/pi4/build_it_counts.py and
 verify_it_counts.py. The tracked builder's fresh build-gqwkbnr0 also passes
 host modeling. Exact preimages/postimages remain in it-branch-fix.
 
-Three original items are complete (#2/#8/#10); #5 stays partial. Next: nested
-execution, remaining reset/snapshot/CFG cases and operating contract #6.
+Three original items are complete (#2/#8/#10); #5 stays partial. Next: remaining
+reset/snapshot/CFG cases and operating contract #6.
 #12 stays explicitly paused. Order remains #5, #6, #3, #4, #1, #9, #7, #11, #12.
 The host-only test also reproduced the existing odd Thumb entry instrumentation
 assertion (Instrumentation::createAuxiliaryFunctions Start lookup); retain that

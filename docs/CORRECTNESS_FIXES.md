@@ -1,5 +1,16 @@
 # Correctness fixes
 
+## Nested Thumb calls and recursion counts (2026-10-02)
+
+The optional `build_it_counts.py --nested` matrix passes 372 Pi cases each in
+baseline/normal/reverse/conservative modes (1,488 total). It adds two caller
+levels and recursion through 65 frames at eight inputs; return values and
+all 85/85/73 counter slots match independent cross-function path models with
+zero/carry/wrap seeds. Every image watchdog-returns to the loader. Six host
+gate tests pass. No additional backend fix was required. This checks quiet
+Thumb nested calls, without full register/flag-state or active ISR coverage.
+See [evidence](results/correctness_nested_counts_20261002.json).
+
 ## Terminal IT branches and exact IT counts (2026-10-02)
 
 Overlay 0027 fixes a confirmed silent corruption: LLVM decodes an IT-predicated

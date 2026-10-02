@@ -47,13 +47,15 @@ def check_groups(text, names):
             for (body_op, args), sense in zip(body,senses):
                 require(body_op == ('addeq.w' if sense=='t' else 'addne.w')
                         and re.match(r'r1,\s*r1,\s*#',args), 'foreign instruction inside IT in ' + name)
-        expected = 0 if name.startswith('it_loop') or name in ('it_branch_t_n','it_branch_t_w') else 1
+        expected = 0 if name.startswith(('it_loop','nested_')) or name in ('it_branch_t_n','it_branch_t_w') else 1
         require(groups == expected, 'missing/extra IT groups in ' + name)
 
 
 def check_artifacts(out, build):
-    require(build['schema']==1 and build['kind']=='pi-it-counts' and build['cases']==300, 'wrong IT build')
-    require(len(build['functions'])==47 and set(build['variants'])=={'normal','reverse','conservative'}, 'wrong IT matrix')
+    require(build['schema']==1 and build['kind'] in ('pi-it-counts','pi-it-nested-counts'), 'wrong IT build')
+    nested=build['kind']=='pi-it-nested-counts'
+    require(build['cases']==(372 if nested else 300) and len(build['functions'])==(50 if nested else 47)
+            and set(build['variants'])=={'normal','reverse','conservative'}, 'wrong IT matrix')
     for name,digest in build['files'].items():
         require(sha256(out/name)==digest,'changed artifact '+name)
     for name in ('baseline',*build['variants']):
@@ -72,7 +74,7 @@ def check_artifacts(out, build):
             continue
         report=json.loads((out/(name+'-redirects.json')).read_text(encoding='utf-8'))
         require({r['name'] for r in report['redirected']}==set(build['functions'])
-                and len(report['redirected'])==47,'incomplete redirects')
+                and len(report['redirected'])==len(build['functions']),'incomplete redirects')
         for row in report['redirected']:
             require(row['thumb'],'fixture function must be Thumb')
             section=next(s for s in loaded if s['address']<=row['input']<row['input']+4<=s['address']+s['size'])
@@ -82,13 +84,13 @@ def check_artifacts(out, build):
         check_groups((out/(name+'-disassembly.log')).read_text(encoding='utf-8'),build['functions'])
 
 
-def check_result(text, instrumented, counters):
+def check_result(text, instrumented, counters, cases=300):
     begins=re.findall(r'^BOLT_IT_COUNTS BEGIN instrumented=([0-9a-f]{8}) counters=([0-9a-f]{8})\r?$',text,re.M)
     require(len(begins)==1 and tuple(int(x,16) for x in begins[0])==(instrumented,counters),'wrong/missing IT begin')
     require('BOLT_IT_COUNTS FAIL' not in text,'Pi reported a result/counter mismatch')
     passes=re.findall(r'^BOLT_IT_COUNTS PASS cases=(\d+)\r?$',text,re.M)
-    require(passes==['300'] and text.count('BOLT_IT_COUNTS PASS')==1,'missing/malformed/duplicate IT pass')
-    return dict(passed=True,cases=300,counters=counters,instrumented=bool(instrumented))
+    require(passes==[str(cases)] and text.count('BOLT_IT_COUNTS PASS')==1,'missing/malformed/duplicate IT pass')
+    return dict(passed=True,cases=cases,counters=counters,instrumented=bool(instrumented))
 
 
 def main():
@@ -121,7 +123,7 @@ def main():
                 text=console.data.decode('ascii','replace')
                 result=max(text.rfind('BOLT_IT_COUNTS PASS'),text.rfind('BOLT_IT_COUNTS FAIL'))
                 require(result>=0 and text.rfind('SBOOT?')>result,'payload did not report and return to loader')
-                results[name]=check_result(text,0 if name=='baseline' else 1,1 if name=='baseline' else build['variants'][name]['counters'])
+                results[name]=check_result(text,0 if name=='baseline' else 1,1 if name=='baseline' else build['variants'][name]['counters'],build['cases'])
         finally:
             if console.log:console.log.close()
     check_artifacts(out,build)
