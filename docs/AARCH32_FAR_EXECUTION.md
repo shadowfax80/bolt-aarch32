@@ -1,5 +1,9 @@
 # A32 far-call execution gate — item 6, second checkpoint
 
+The later [0044 checkpoint](AARCH32_FAR_INTERWORK.md) adds bounded four-ISA
+QEMU execution and fixes Thumb-caller far-stub construction. Thumb/mixed
+exclusions below describe this earlier A32-only checkpoint. Item 6 remains active.
+
 The legacy P5 gate now requires a bounded execution certificate. Item 6 and
 original workstream #12 remain active. No LLVM source changes were made;
 the backend remains at overlay 0043.

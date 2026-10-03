@@ -1,5 +1,11 @@
 # Known limitations and improvement items
 
+> **0044 follow-up (2026-10-03):** Thumb-caller far stubs previously failed
+> linking with ARM MOVW bytes and Thumb relocations. This is fixed and verified
+> for four-ISA QEMU fixtures; Pi, automatic v7 retained thunks and wider
+> relocation/range/interrupt/provenance scope stay open. See
+> [the contract](AARCH32_FAR_INTERWORK.md) and [queue](CORRECTNESS_PRIORITY_TODO.md).
+
 > **Follow-up (2026-10-03):** overlay 0039 closes the reproduced unnamed
 > interior-entry reservation bypass for decoded original code by analyzing every
 > acquisition independently of entry metadata. The other 0038 caveats below

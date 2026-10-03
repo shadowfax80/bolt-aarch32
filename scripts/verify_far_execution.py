@@ -148,12 +148,12 @@ def route(blob, mapping):
     return found[0]
 
 
-def execute(qemu, image, evidence, name, timeout, tracing=True):
+def execute(qemu, image, evidence, name, timeout, tracing=True, cpu_trace=False):
     image_hash = sha256(image)
     trace = evidence / (name + '.trace')
     command = [str(qemu), '-cpu', 'cortex-a15']
     if tracing:
-        command += ['-d', 'exec,nochain', '-D', str(trace)]
+        command += ['-d', 'cpu,exec,nochain' if cpu_trace else 'exec,nochain', '-D', str(trace)]
     command += [str(image)]
     timed_out = False
     try:

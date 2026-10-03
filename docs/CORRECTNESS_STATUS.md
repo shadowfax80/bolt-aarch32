@@ -1,5 +1,21 @@
 # Twelve-item correctness work
 
+## Latest: item 6 ARM/Thumb far-call stage verified in 0044
+
+Overlay 0044 fixes eight reproduced Thumb-caller far-stub link failures by
+selecting the owning function's ISA builder, preventing cross-ISA stub sharing,
+and using actual instruction lengths. All four caller/callee ISA pairs pass
+normal/reverse layouts in both assertion modes: 80 transformed inputs, 40
+baseline inputs and 128 rejected faults overall. Actual CPU traces verify the
+ordered inputs/returns, SP and caller/stub/callee/return ISA states. Eight
+grouping fixtures confirm same-ISA sharing and cross-ISA separation. All 89
+Python tests pass; each build passes 37 ARM lit tests and 58 CoreTests/31 skips.
+All 44 overlays replay exactly. This is bounded QEMU user-mode evidence, not
+new Pi execution or a clean build. Item 6 and original #12 stay active; hardware,
+remaining verification paths, automatic v7 thunks, near-range/split/cold matrices,
+PMU and provenance remain open. See [scope](AARCH32_FAR_INTERWORK.md) and
+[evidence](results/correctness_far_interwork_20261003.json).
+
 ## Latest: item 6 A32 far-call execution stage verified
 
 The legacy P5 gate now requires QEMU execution, an independent five-input

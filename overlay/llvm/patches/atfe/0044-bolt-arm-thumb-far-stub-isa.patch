@@ -1,0 +1,251 @@
+--- a/bolt/lib/Passes/LongJmp.cpp
++++ b/bolt/lib/Passes/LongJmp.cpp
+@@ -52,22 +52,24 @@
+ 
+ static void relaxStubToShortJmp(BinaryBasicBlock &StubBB, const MCSymbol *Tgt) {
+   const BinaryContext &BC = StubBB.getFunction()->getBinaryContext();
++  MCPlusBuilder *MIB = BC.getMIBFor(BC.isARM() && StubBB.getFunction()->isARMThumb());
+   InstructionListType Seq;
+-  BC.MIB->createShortJmp(Seq, Tgt, BC.Ctx.get());
++  MIB->createShortJmp(Seq, Tgt, BC.Ctx.get());
+   StubBB.clear();
+   StubBB.addInstructions(Seq.begin(), Seq.end());
+   if (BC.usesBTI())
+-    BC.MIB->applyBTIFixupToTarget(StubBB);
++    MIB->applyBTIFixupToTarget(StubBB);
+ }
+ 
+ static void relaxStubToLongJmp(BinaryBasicBlock &StubBB, const MCSymbol *Tgt) {
+   const BinaryContext &BC = StubBB.getFunction()->getBinaryContext();
++  MCPlusBuilder *MIB = BC.getMIBFor(BC.isARM() && StubBB.getFunction()->isARMThumb());
+   InstructionListType Seq;
+-  BC.MIB->createLongJmp(Seq, Tgt, BC.Ctx.get());
++  MIB->createLongJmp(Seq, Tgt, BC.Ctx.get());
+   StubBB.clear();
+   StubBB.addInstructions(Seq.begin(), Seq.end());
+   if (BC.usesBTI())
+-    BC.MIB->applyBTIFixupToTarget(StubBB);
++    MIB->applyBTIFixupToTarget(StubBB);
+ }
+ 
+ static BinaryBasicBlock *getBBAtHotColdSplitPoint(BinaryFunction &Func) {
+@@ -102,13 +104,14 @@
+                            bool TgtIsFunc, uint64_t AtAddress) {
+   BinaryFunction &Func = *SourceBB.getFunction();
+   const BinaryContext &BC = Func.getBinaryContext();
++  MCPlusBuilder *MIB = BC.getMIBFor(BC.isARM() && Func.isARMThumb());
+   const bool IsCold = SourceBB.isCold();
+   MCSymbol *StubSym = BC.Ctx->createNamedTempSymbol("Stub");
+   std::unique_ptr<BinaryBasicBlock> StubBB = Func.createBasicBlock(StubSym);
+   MCInst Inst;
+-  BC.MIB->createUncondBranch(Inst, TgtSym, BC.Ctx.get());
++  MIB->createUncondBranch(Inst, TgtSym, BC.Ctx.get());
+   if (TgtIsFunc)
+-    BC.MIB->convertJmpToTailCall(Inst);
++    MIB->convertJmpToTailCall(Inst);
+   StubBB->addInstruction(Inst);
+   StubBB->setExecutionCount(0);
+ 
+@@ -126,7 +129,7 @@
+   };
+ 
+   Stubs[&Func].insert(StubBB.get());
+-  StubBits[StubBB.get()] = BC.MIB->getUncondBranchEncodingSize();
++  StubBits[StubBB.get()] = MIB->getUncondBranchEncodingSize();
+   if (IsCold) {
+     registerInMap(ColdLocalStubs[&Func]);
+     if (opts::GroupStubs && TgtIsFunc)
+@@ -146,6 +149,7 @@
+     const StubGroupsTy &StubGroups, const BinaryFunction &Func,
+     const MCInst &Inst, const MCSymbol *TgtSym, uint64_t DotAddress) const {
+   const BinaryContext &BC = Func.getBinaryContext();
++  MCPlusBuilder *MIB = BC.getMIBFor(BC.isARM() && Func.isARMThumb());
+   auto CandidatesIter = StubGroups.find(TgtSym);
+   if (CandidatesIter == StubGroups.end())
+     return nullptr;
+@@ -165,7 +169,7 @@
+     if (Cand->first - DotAddress > DotAddress - LeftCand->first)
+       Cand = LeftCand;
+   }
+-  int BitsAvail = BC.MIB->getPCRelEncodingSize(Inst) - 1;
++  int BitsAvail = MIB->getPCRelEncodingSize(Inst) - 1;
+   assert(BitsAvail < 63 && "PCRelEncodingSize is too large to use int64_t to"
+                            "check for out-of-bounds.");
+   int64_t MaxVal = (1ULL << BitsAvail) - 1;
+@@ -180,6 +184,10 @@
+              << ", chosen candidate address is "
+              << Twine::utohexstr(Cand->first) << "\n";
+   });
++  // Stubs contain code in their owner's ISA. Never share across modes.
++  if (BC.isARM() &&
++      Cand->second->getFunction()->isARMThumb() != Func.isARMThumb())
++    return nullptr;
+   return (PCOffset < MinVal || PCOffset > MaxVal) ? nullptr : Cand->second;
+ }
+ 
+@@ -212,8 +220,9 @@
+                                    uint64_t StubCreationAddress) {
+   const BinaryFunction &Func = *BB.getFunction();
+   const BinaryContext &BC = Func.getBinaryContext();
++  MCPlusBuilder *MIB = BC.getMIBFor(BC.isARM() && Func.isARMThumb());
+   std::unique_ptr<BinaryBasicBlock> NewBB;
+-  const MCSymbol *TgtSym = BC.MIB->getTargetSymbol(Inst);
++  const MCSymbol *TgtSym = MIB->getTargetSymbol(Inst);
+   assert(TgtSym && "getTargetSymbol failed");
+ 
+   BinaryBasicBlock::BinaryBranchInfo BI{0, 0};
+@@ -225,7 +234,7 @@
+   if (!TgtBB) {
+     auto SSIter = SharedStubs.find(TgtSym);
+     if (SSIter != SharedStubs.end()) {
+-      TgtSym = BC.MIB->getTargetSymbol(*SSIter->second->begin());
++      TgtSym = MIB->getTargetSymbol(*SSIter->second->begin());
+       --NumSharedStubs;
+     }
+   } else if (LocalStubsIter != Stubs.end() &&
+@@ -233,7 +242,7 @@
+     // The TgtBB and TgtSym now are the local out-of-range stub and its label.
+     // So, we are attempting to restore BB to its previous state without using
+     // this stub.
+-    TgtSym = BC.MIB->getTargetSymbol(*TgtBB->begin());
++    TgtSym = MIB->getTargetSymbol(*TgtBB->begin());
+     assert(TgtSym &&
+            "First instruction is expected to contain a target symbol.");
+     BinaryBasicBlock *TgtBBSucc = TgtBB->getSuccessor(TgtSym, BI);
+@@ -288,7 +297,11 @@
+       StubBB->getFunction()->addEntryPoint(*StubBB);
+     }
+   }
+-  BC.MIB->replaceBranchTarget(Inst, StubSymbol, BC.Ctx.get());
++  MIB->replaceBranchTarget(Inst, StubSymbol, BC.Ctx.get());
++  if (BC.isARM() && MIB->isCall(Inst))
++    MIB->adjustCallForTargetMode(Inst, Func.isARMThumb(),
++                                 StubBB->getFunction()->isARMThumb(),
++                                 BC.Ctx.get());
+ 
+   return NewBB;
+ }
+@@ -511,18 +524,19 @@
+ Error LongJmpPass::relaxStub(BinaryBasicBlock &StubBB, bool &Modified) {
+   BinaryFunction &Func = *StubBB.getFunction();
+   BinaryContext &BC = Func.getBinaryContext();
++  MCPlusBuilder *MIB = BC.getMIBFor(BC.isARM() && Func.isARMThumb());
+   const int Bits = StubBits[&StubBB];
+   // Already working with the largest range?
+   if (Bits == static_cast<int>(BC.AsmInfo->getCodePointerSize() * 8))
+     return Error::success();
+ 
+-  const static int RangeShortJmp = BC.MIB->getShortJmpEncodingSize();
+-  const static int RangeSingleInstr = BC.MIB->getUncondBranchEncodingSize();
+-  const static uint64_t ShortJmpMask = ~((1ULL << RangeShortJmp) - 1);
+-  const static uint64_t SingleInstrMask =
++  const int RangeShortJmp = MIB->getShortJmpEncodingSize();
++  const int RangeSingleInstr = MIB->getUncondBranchEncodingSize();
++  const uint64_t ShortJmpMask = ~((1ULL << RangeShortJmp) - 1);
++  const uint64_t SingleInstrMask =
+       ~((1ULL << (RangeSingleInstr - 1)) - 1);
+ 
+-  const MCSymbol *RealTargetSym = BC.MIB->getTargetSymbol(*StubBB.begin());
++  const MCSymbol *RealTargetSym = MIB->getTargetSymbol(*StubBB.begin());
+   const BinaryBasicBlock *TgtBB = Func.getBasicBlockForLabel(RealTargetSym);
+   uint64_t TgtAddress = getSymbolAddress(BC, RealTargetSym, TgtBB);
+   uint64_t DotAddress = BBAddresses[&StubBB];
+@@ -567,7 +581,8 @@
+                             uint64_t DotAddress) const {
+   const BinaryFunction &Func = *BB.getFunction();
+   const BinaryContext &BC = Func.getBinaryContext();
+-  const MCSymbol *TgtSym = BC.MIB->getTargetSymbol(Inst);
++  MCPlusBuilder *MIB = BC.getMIBFor(BC.isARM() && Func.isARMThumb());
++  const MCSymbol *TgtSym = MIB->getTargetSymbol(Inst);
+   if (!TgtSym)
+     return false;
+ 
+@@ -579,7 +594,7 @@
+       TgtBB = SSIter->second;
+   }
+ 
+-  int BitsAvail = BC.MIB->getPCRelEncodingSize(Inst) - 1;
++  int BitsAvail = MIB->getPCRelEncodingSize(Inst) - 1;
+   assert(BitsAvail < 63 && "PCRelEncodingSize is too large to use int64_t to"
+                            "check for out-of-bounds.");
+   int64_t MaxVal = (1ULL << BitsAvail) - 1;
+@@ -598,14 +613,13 @@
+   // Select the ARM- or Thumb-mode builder for this function rather than
+   // mutating the shared MIB's STI in place -- see BinaryContext::getMIBFor().
+   MCPlusBuilder *MIB = BC.getMIBFor(BC.isARM() && Func.isARMThumb());
+-  constexpr int InsnSize = 4; // AArch64 / ARM (Thumb-2 branches also 4)
+   std::vector<std::pair<BinaryBasicBlock *, std::unique_ptr<BinaryBasicBlock>>>
+       Insertions;
+ 
+   BinaryBasicBlock *Frontier = getBBAtHotColdSplitPoint(Func);
+   uint64_t FrontierAddress = Frontier ? BBAddresses[Frontier] : 0;
+   if (FrontierAddress)
+-    FrontierAddress += Frontier->getNumNonPseudos() * InsnSize;
++    FrontierAddress += BC.computeCodeSize(Frontier->begin(), Frontier->end());
+ 
+   // Add necessary stubs for branch targets we know we can't fit in the
+   // instruction
+@@ -618,6 +632,7 @@
+     for (MCInst &Inst : BB) {
+       if (MIB->isPseudo(Inst))
+         continue;
++      const uint64_t InsnSize = BC.computeInstructionSize(Inst);
+ 
+       if (!mayNeedStub(BC, Inst)) {
+         DotAddress += InsnSize;
+--- /dev/null
++++ b/bolt/test/ARM/thumb-far-stub.test
+@@ -0,0 +1,53 @@
++# Thumb callers must emit Thumb MOVW/MOVT/BX stubs, including interworking.
++# REQUIRES: system-linux
++# RUN: split-file %s %t
++# RUN: llvm-mc -arm-add-build-attributes -triple=armv7-none-eabi -filetype=obj %t/input.s -o %t.arm.o
++# RUN: ld.lld --emit-relocs -T %t/link.ld %t.arm.o -o %t.arm
++# RUN: llvm-bolt %t.arm -o %t.arm.bolt --no-huge-pages -lite=0 --pad-funcs-before=far_away:0x2100000 2>&1 | FileCheck %s --check-prefix=LOG
++# RUN: llvm-mc -arm-add-build-attributes -triple=armv7-none-eabi -defsym=THUMB_CALLEE=1 -filetype=obj %t/input.s -o %t.thumb.o
++# RUN: ld.lld --emit-relocs -T %t/link.ld %t.thumb.o -o %t.thumb
++# RUN: llvm-bolt %t.thumb -o %t.thumb.bolt --no-huge-pages -lite=0 --pad-funcs-before=far_away:0x2100000 --reorder-blocks=reverse 2>&1 | FileCheck %s --check-prefix=LOG
++# LOG: number of removed linker-inserted veneers: 1
++# LOG: Inserted 1 stubs
++# LOG-NOT: BOLT-ERROR
++#--- input.s
++.syntax unified
++.arch armv7-a
++.section .text.start,"ax",%progbits
++.thumb
++.global _start
++.type _start,%function
++.thumb_func
++_start:
++push {r4,lr}
++movs r0,#17
++blx __ARMv5LongLdrPcThunk_far_away
++pop {r4,pc}
++.size _start,.-_start
++.arm
++.balign 4
++.global __ARMv5LongLdrPcThunk_far_away
++.type __ARMv5LongLdrPcThunk_far_away,%function
++__ARMv5LongLdrPcThunk_far_away:
++ldr pc,[pc,#-4]
++.word far_away
++.size __ARMv5LongLdrPcThunk_far_away,.-__ARMv5LongLdrPcThunk_far_away
++.section .text.far,"ax",%progbits
++.global far_away
++.type far_away,%function
++.ifdef THUMB_CALLEE
++.thumb
++.thumb_func
++far_away:
++add.w r0,r0,#7
++bx lr
++.else
++.arm
++far_away:
++add r0,r0,#7
++bx lr
++.endif
++.size far_away,.-far_away
++#--- link.ld
++ENTRY(_start)
++SECTIONS { . = 0x10000; .text : { *(.text.start) . = . + 0x2100000; *(.text.far) } }
