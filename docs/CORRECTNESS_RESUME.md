@@ -1,5 +1,33 @@
 # ATFE correctness checkpoint - 2026-10-03
 
+## Latest: item 6 measurement association stage verified
+
+Two preserved admissions now reject: missing PMU output cannot shift the next
+run's counters onto an earlier run, and PGO-lab checksum mismatches cannot exit
+successfully. Both measurement tools require exact command-framed ordered
+cycle/PMU/checksum triples, valid widths and complete kernel/repetition coverage.
+Failures retain upload snapshots and child logs and propagate without retry.
+All 111 Python tests pass, including thirteen new association/failure tests.
+
+This is parser/measurement and output-consistency evidence, with no new Pi run
+or LLVM change beyond 0044. It does not prove rewritten execution or independent
+correctness. Item 6 and original #12 remain active; raw-grep gates, manual hooks,
+wider oracle coverage, PMU and provenance remain open. See
+[contract](AARCH32_MEASUREMENT_GATES.md) and
+[evidence](results/correctness_measurement_gates_20261003.json).
+
+Evidence/preimages and reproduction helpers are under
+`out/correctness/measurement-gates-20261003`. The complete suite is
+`python-tests.log` (111 pass). Reproductions use saved synthetic serial output
+and mocked child captures; they are not new physical hardware executions.
+Do not rerun one-time publication or overwrite the preserved preimages/evidence.
+Preserve dirty ATFE/LK and unrelated Microsoft/.
+
+Stop at this verified milestone under the standing user instruction. On resume,
+continue item 6 with the raw-grep QEMU workload/milestone gates and remaining
+legacy/manual hook paths, independent execution oracles and durable receipts.
+Do not advance to item 7, weaken whole-LK admission, or close original #12.
+
 ## Latest: item 6 Pi far-call milestone verified
 
 Both assertion modes pass all four caller/callee ISA pairs on Pi 4 in normal

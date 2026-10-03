@@ -6,7 +6,8 @@ records cycles plus the PMU event counters bolt_bench prints. Variants are
 interleaved across rounds (A B C D A B C D ...) rather than run back-to-back,
 so slow drift (thermal, firmware) cannot systematically favor one variant.
 
-Every run is written to a CSV; nothing is discarded or averaged away before
+This compares measurements and output consistency; it does not certify rewritten
+execution or independently correct results. Every run is written to a CSV; nothing is discarded or averaged away before
 that. The summary reports mean/min/max/stdev per variant and the delta of each
 variant's mean against the first (baseline).
 
@@ -19,63 +20,23 @@ from __future__ import annotations
 import argparse
 import csv
 import os
-import re
 import statistics
-import subprocess
 import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 from stats_util import fmt_delta, mean_ci95  # noqa: E402
-from proc_util import run_bounded  # noqa: E402
-CYC_RE = re.compile(r"bolt_bench: (\w+) done \((\d+) cycles\)")
-PMU_RE = re.compile(
-    r"bolt_bench: (\w+) pmu inst=(\d+) l1i_refill=(\d+) l1d_refill=(\d+) br_mispred=(\d+)(?: taken=(\d+))?"
-)
+from measurement_records import capture_measurements, consistent  # noqa: E402
 FIELDS = ["cycles", "inst", "l1i_refill", "l1d_refill", "br_mispred", "taken"]
-# Result checksum the workload prints; every variant must agree or the comparison
-# is between programs that compute different things.
-ACC_RE = re.compile(r"bolt_bench: (\w+) acc=(0x[0-9a-fA-F]+)")
-
 
 # Extra words after the workload name (PMU set, input variant), set from --args.
 EXTRA_ARGS = ""
 
 
 def boot_and_run(image: str, port: str, workload: str, runs: int) -> list[dict]:
-    """One boot, `runs` workload runs. A boot can hang (seen once on the Pi, cause
-    unknown: the Pi itself answered a soft reboot right after), so retry once."""
-    try:
-        return _boot_and_run(image, port, workload, runs)
-    except (RuntimeError, subprocess.TimeoutExpired) as exc:
-        print(f"  retrying {image} after: {str(exc)[-160:]}", file=sys.stderr)
-        return _boot_and_run(image, port, workload, runs)
-
-
-def _boot_and_run(image: str, port: str, workload: str, runs: int) -> list[dict]:
-    cmd = [
-        sys.executable, os.path.join(HERE, "pi4_run.py"), image,
-        "--port", port, "--reboot", "--wait", "30", "--max-wait", "60",
-    ] + [f"bolt_bench {workload} {EXTRA_ARGS}".strip()] * runs
-    out = run_bounded(cmd, 150)
-    text = out.stdout.decode("utf-8", errors="replace").replace("\r", "\n")
-    if out.returncode != 0:
-        tail = text[-600:]
-        raise RuntimeError(f"pi4_run failed for {image}: {tail}")
-    cycles = [int(m.group(2)) for m in CYC_RE.finditer(text) if m.group(1) == workload]
-    accs = [m.group(2) for m in ACC_RE.finditer(text) if m.group(1) == workload]
-    pmus = [tuple(int(x) for x in m.groups()[1:] if x is not None) for m in PMU_RE.finditer(text) if m.group(1) == workload]
-    if "INVALID" in text:
-        print("  note: a run reported a core migration; its PMU line is absent", file=sys.stderr)
-    if len(cycles) != runs:
-        raise RuntimeError(f"{image}: expected {runs} runs, got {len(cycles)} cycle lines")
-    rows = []
-    for i, c in enumerate(cycles):
-        row = {"cycles": c, "acc": accs[i] if i < len(accs) else ""}
-        if i < len(pmus):
-            row.update(zip(FIELDS[1:], pmus[i]))
-        rows.append(row)
-    return rows
+    command = f"bolt_bench {workload} {EXTRA_ARGS}".strip()
+    rows = capture_measurements(image,port,command,[workload],runs,30,60)
+    return [{k:v for k,v in row.items() if k not in ('kernel','run')} for row in rows]
 
 
 def fmt(vals: list[float]) -> str:
@@ -96,6 +57,8 @@ def main() -> int:
     ap.add_argument("--args", default="", help="extra words after the workload name, e.g. "
                     "\"0 2\" = PMU set 0, input variant 2 (held-out input; profiles train on 0)")
     args = ap.parse_args()
+    if not 1 <= args.runs <= 32 or args.rounds < 1:
+        ap.error("runs must be 1..32 and rounds must be positive")
     global EXTRA_ARGS
     EXTRA_ARGS = args.args
 
@@ -104,6 +67,8 @@ def main() -> int:
         name, _, path = v.partition("=")
         if not path or not os.path.exists(path):
             sys.exit(f"bad variant spec / missing file: {v}")
+        if not name or name in {n for n,_ in variants}:
+            ap.error("variant names must be nonempty and unique")
         variants.append((name, path))
 
     records: list[dict] = []
@@ -120,6 +85,7 @@ def main() -> int:
                 fh.flush()
 
     print(f"\n{len(records)} runs -> {args.out}\n")
+    consistent(records,[args.workload])
     accs = sorted({r.get("acc", "") for r in records})
     if len(accs) != 1 or not accs[0]:
         print(f"CHECKSUM MISMATCH across runs/variants: {accs}", file=sys.stderr)

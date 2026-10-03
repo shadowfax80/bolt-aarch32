@@ -5,7 +5,8 @@ Each image is booted once per round and runs `bolt_bench pgo_lab` `--runs` times
 rounds interleave the images (A B A B ...) so drift cannot favour one. Every run is
 kept in the CSV; the table reports, per kernel and image, mean cycles, instructions,
 IPC, L1I refills and mispredicts, and the change of cycles against the first image.
-Checksums must agree across images or the comparison is between different programs.
+This is measurement/output consistency, not proof of rewritten execution or an
+independent correctness oracle. Checksums must agree across images or the comparison is between different programs.
 
 usage: pgo_lab_measure.py --out lab.csv [--rounds 3] [--runs 2] name=image.bin ...
 """
@@ -15,56 +16,23 @@ from __future__ import annotations
 import argparse
 import csv
 import os
-import re
 import statistics
-import subprocess
 import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 from stats_util import welch_delta_pct  # noqa: E402
-from proc_util import run_bounded  # noqa: E402
-CYC_RE = re.compile(r"bolt_bench: (pl_\w) done \((\d+) cycles\)")
-PMU_RE = re.compile(
-    r"bolt_bench: (pl_\w) pmu inst=(\d+) l1i_refill=(\d+) l1d_refill=(\d+) br_mispred=(\d+)"
-)
-ACC_RE = re.compile(r"bolt_bench: (pl_\w) acc=(0x[0-9a-fA-F]+)")
+from measurement_records import capture_measurements, consistent  # noqa: E402
 KERNELS = ["pl_a", "pl_b", "pl_c", "pl_d"]
-
 
 # Extra words after `pgo_lab` (PMU set, input variant), set from --args.
 EXTRA_ARGS = ""
 
 
 def boot_and_run(image: str, port: str, runs: int) -> list[dict]:
-    try:
-        return _boot_and_run(image, port, runs)
-    except (RuntimeError, subprocess.TimeoutExpired) as exc:
-        print(f"  retrying {image} after: {str(exc)[-160:]}", file=sys.stderr)
-        return _boot_and_run(image, port, runs)
-
-
-def _boot_and_run(image: str, port: str, runs: int) -> list[dict]:
-    cmd = [
-        sys.executable, os.path.join(HERE, "pi4_run.py"), image,
-        "--port", port, "--reboot", "--wait", "60", "--max-wait", "120",
-    ] + [f"bolt_bench pgo_lab {EXTRA_ARGS}".strip()] * runs
-    out = run_bounded(cmd, 150)
-    text = out.stdout.decode("utf-8", errors="replace").replace("\r", "\n")
-    if out.returncode != 0:
-        raise RuntimeError(f"pi4_run failed for {image}: {text[-600:]}")
-    rows = []
-    for k in KERNELS:
-        cyc = [int(m.group(2)) for m in CYC_RE.finditer(text) if m.group(1) == k]
-        pmu = [tuple(int(x) for x in m.groups()[1:]) for m in PMU_RE.finditer(text) if m.group(1) == k]
-        acc = [m.group(2) for m in ACC_RE.finditer(text) if m.group(1) == k]
-        if len(cyc) != runs or len(pmu) != runs or len(acc) != runs:
-            raise RuntimeError(f"{image}: {k}: expected {runs} runs, got {len(cyc)}/{len(pmu)}/{len(acc)}")
-        for i in range(runs):
-            rows.append({"kernel": k, "run": i + 1, "cycles": cyc[i], "inst": pmu[i][0],
-                         "l1i_refill": pmu[i][1], "l1d_refill": pmu[i][2], "br_mispred": pmu[i][3],
-                         "acc": acc[i]})
-    return rows
+    command = f"bolt_bench pgo_lab {EXTRA_ARGS}".strip()
+    rows = capture_measurements(image,port,command,KERNELS,runs,60,120)
+    return [{k:v for k,v in row.items() if k != 'taken'} for row in rows]
 
 
 def main() -> int:
@@ -77,6 +45,8 @@ def main() -> int:
     ap.add_argument("--args", default="", help="extra words after the workload name, e.g. "
                     "\"0 2\" = PMU set 0, input variant 2 (held-out input; profiles train on 0)")
     args = ap.parse_args()
+    if not 1 <= args.runs <= 32 or args.rounds < 1:
+        ap.error("runs must be 1..32 and rounds must be positive")
     global EXTRA_ARGS
     EXTRA_ARGS = args.args
 
@@ -85,6 +55,8 @@ def main() -> int:
         name, _, path = v.partition("=")
         if not path or not os.path.exists(path):
             sys.exit(f"bad variant spec / missing file: {v}")
+        if not name or name in {n for n,_ in variants}:
+            ap.error("variant names must be nonempty and unique")
         variants.append((name, path))
 
     records: list[dict] = []
@@ -102,6 +74,7 @@ def main() -> int:
                 fh.flush()
 
     print(f"\n{len(records)} kernel runs -> {args.out}\n")
+    consistent(records,KERNELS)
     for k in KERNELS:
         accs = {r["acc"] for r in records if r["kernel"] == k}
         note = "checksum " + next(iter(accs)) if len(accs) == 1 else f"CHECKSUM MISMATCH {sorted(accs)}"

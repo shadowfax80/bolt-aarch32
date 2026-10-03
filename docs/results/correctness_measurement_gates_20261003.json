@@ -1,0 +1,67 @@
+{
+  "schema": 1,
+  "date": "2026-10-03",
+  "queue_item": 6,
+  "status": "measurement association stage verified; item 6/original #12 active",
+  "repository_revision": "a84a59f38437d025c65731f212a6576991d8b20d",
+  "llvm_overlay_count": 44,
+  "llvm_source_changed": false,
+  "new_hardware_execution": false,
+  "scope": "command-framed measurement association and baseline output consistency only",
+  "tests": {
+    "total": 111,
+    "new": 13,
+    "successful": true,
+    "log_sha256": "21379ec2a930a23941451107eda45451186fdf6cbef21747c16e1ad5fd800487"
+  },
+  "reproductions": {
+    "missing_pmu": {
+      "before": [
+        {
+          "cycles": 10,
+          "acc": "0x7",
+          "inst": 20,
+          "l1i_refill": 1,
+          "l1d_refill": 2,
+          "br_mispred": 3,
+          "taken": 4
+        },
+        {
+          "cycles": 10,
+          "acc": "0x7"
+        }
+      ],
+      "after_rejected": "incomplete/duplicate/reordered measurement records",
+      "problem": "PMU from run 2 attached to run 1; run 2 left without counters"
+    },
+    "lab_checksum": {
+      "before_returncode": 0,
+      "before_mismatched_kernels": 4,
+      "after_rejected": "checksum mismatch/missing result for pl_a"
+    }
+  },
+  "scripts": {
+    "scripts/pi4/pi4_compare.py": "2b26b6d5c47d5e6752f5a2ba94b2c45438f9d3a5c13105b9f0ee7d7696404483",
+    "scripts/pi4/pgo_lab_measure.py": "b4f5b3ff37bc21b55ce27cae41087a4931c61a9133946c10b42a376d574e8c15",
+    "scripts/pi4/measurement_records.py": "3f98ddd8b22b7d165cc73d395bca187c3123f8e6f2e9d8f7ed915470426efcad",
+    "scripts/tests/test_measurement_records.py": "96839335a5e5b0160ac7f2e78814ca2de45a20e5d3fc5f9615d848fb7a23b313"
+  },
+  "evidence": {
+    "checksum-before.log": "c03a71f82bb0efde8845855fbbdf9f7a62f17d1c07a6c9f32a9b978e9d1c275d",
+    "focused.log": "e17301d754f0cb84b95ccf654c84db7ef04386a830129d37e9b35c1b5a02a709",
+    "missing-pmu.log": "aa499f4af658b1ce3e74d7b9c94641a1eeefa9367caa1aaf0d6a18da6ef7c7dc",
+    "pgo_lab_measure.before.py": "fba47b014175f2d5fbf8bf30620696cd78d42e7aaf8be8591d6c25dc58d89630",
+    "pi4_compare.before.py": "e36e0f3ee2f2f39e31ed1a42a329ac490682323711c4ebba2a5f619f2d929de1",
+    "python-tests.log": "21379ec2a930a23941451107eda45451186fdf6cbef21747c16e1ad5fd800487",
+    "reproduce.py": "c8647ae4205ba93cfa5dd96e9fcfcf1a42cbcc579dc401cb6a5f77a91ff89d1a",
+    "reproductions.json": "49708fa1b9cb3744884dc2db14bbabfe0cfccda9f763f354d4fdad9ed03d7993"
+  },
+  "remaining": [
+    "raw-grep QEMU gates",
+    "legacy/manual section hooks",
+    "independent result/execution coverage for remaining gates",
+    "cross-round image/tool/revision receipts",
+    "PMU ownership",
+    "original #12 clean-build provenance"
+  ]
+}

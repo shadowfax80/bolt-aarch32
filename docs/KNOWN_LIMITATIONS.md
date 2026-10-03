@@ -1,5 +1,11 @@
 # Known limitations and improvement items
 
+> **Measurement audit (2026-10-03):** missing PMU lines could shift counters
+> between runs, and PGO-lab checksum mismatches previously returned success.
+> Both now reject; these tools remain measurement/output comparisons without
+> independent rewritten-execution proof. Raw-grep gates, PMU ownership and
+> cross-round provenance remain open. See [scope](AARCH32_MEASUREMENT_GATES.md).
+
 > **0044 follow-up (2026-10-03):** Thumb-caller far stubs previously failed
 > linking with ARM MOVW bytes and Thumb relocations. This is fixed and verified
 > for four-ISA QEMU and bounded sparse Pi fixtures; automatic v7 retained thunks and wider

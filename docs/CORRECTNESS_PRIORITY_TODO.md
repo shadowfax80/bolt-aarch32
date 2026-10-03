@@ -20,7 +20,7 @@ items are complete in their bounded scope (#2/#8/#10); nine remain open.
 | 3 · P0 | ISA/profile/ABI admission | Verified conservative contract; 0041 + Pi |
 | 4 · P0 | Fixed-load ELF/PIE boundary | Verified fixed-load admission; 0042 |
 | 5 · P0 | Exact profile/artifact identity | Verified sealed pipeline scope; 0043; #12 active |
-| 6 · P0 | Execution/result gate integrity | Active; gate hardening + four-ISA QEMU/Pi far calls verified; remaining gates/wider proof pending |
+| 6 · P0 | Execution/result gate integrity | Active; gate hardening, four-ISA QEMU/Pi and measurement association verified; remaining gates/wider proof pending |
 | 7 · P1 | Relocation/literal matrix | Partial; remaining work pending |
 | 8 · P1 | Control-flow/mutation invariants | Partial; remaining work pending |
 | 9 · P1 | Interrupt/reentrancy boundaries | Partial; remaining work pending |
@@ -69,7 +69,7 @@ provenance are not claimed. See [contract](AARCH32_PROFILE_IDENTITY.md) and
 [evidence](results/correctness_profile_identity_20261003.json). Next is item 6;
 all remaining #12 work stays active. Work stops at this verified milestone.
 
-Item 6: first gate-hardening stage verified. All five reproduced admissions now
+Item 6: measurement association stage also verified; see [contract](AARCH32_MEASUREMENT_GATES.md) and [evidence](results/correctness_measurement_gates_20261003.json). First gate-hardening stage verified. All five reproduced admissions now
 reject; 80 Python tests and 7 valid/80 malformed transport cases pass. Fresh Pi
 checks pass 420 positive cases and two expected faults per build. Whole-LK
 rewriting still rejects arm_reset; wider independent execution coverage and
@@ -151,13 +151,16 @@ and original #12 remain active; stop at this verified stage.
    - [x] Replace the legacy P5 exit-only/optional-QEMU gate with bounded A32
      result/memory/NZCV/SP checks, exact veneer/callee visit counts, executable
      faults and durable tool/artifact/route receipts in both modes/layouts.
-     Pi/Thumb/mixed routes and automatic v7 thunk scope remain open.
+     Four-ISA QEMU/Pi routes are verified below; automatic v7 thunk scope remains open.
    - [x] Fix Thumb-caller far-stub construction and verify all four ISA pairs,
      observed CPU modes/inputs/returns and same/cross-ISA sharing in both builds.
      Sparse Pi execution now passes both builds; wider range/split/cold/sharing proof remains open.
    - [x] Certify sparse Pi far calls with exact staging bytes, live PCs/R12,
      ordered independent results/state and three hardware faults per build;
      all twelve uploads return to the loader.
+   - [x] Fix legacy Pi measurement record association and PGO-lab checksum
+     failure propagation; exact command-framed triples and diagnostic snapshots
+     verified by 111 Python tests. This is output consistency, not execution proof.
    - [ ] Require selected/emitted/redirected/executed coverage and independent
      results in every optimization gate, not only the scoped full-image gate.
    - [ ] Extend ARM/Thumb/mixed inputs, flags, memory and return-value checks over
