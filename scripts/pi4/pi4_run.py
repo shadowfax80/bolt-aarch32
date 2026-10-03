@@ -154,7 +154,8 @@ def main() -> None:
                 sys.exit(1)
 
         if args.wdog:
-            run_command(port, console, "wdog 0", args.max_wait)
+            if not run_command(port, console, "wdog 0", args.max_wait):
+                sys.exit(1)
 
 
 if __name__ == "__main__":

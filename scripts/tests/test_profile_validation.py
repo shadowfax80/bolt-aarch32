@@ -46,9 +46,11 @@ class ValidationTests(unittest.TestCase):
     def complete_results(self):
         return ''.join(f'bolt_bench: {name} sink=0x1234\n' for name in gate.EXPECTED_WORKLOADS)
 
-    def test_complete_workloads_and_identical_duplicates(self):
-        text = self.complete_results() + 'bolt_bench: hot_loop sink=0x00001234\n'
+    def test_complete_workloads_and_internal_acc_report(self):
+        text = self.complete_results() + 'bolt_bench: composite acc=0x00001234\n'
         self.assertEqual(len(gate.parse_results(text)), 18)
+        with self.assertRaises(ValueError):
+            gate.parse_results(self.complete_results() + 'bolt_bench: hot_loop sink=0x00001234\n')
 
     def test_incomplete_conflicting_and_unexpected_results(self):
         for text in ('bolt_bench: hot_loop sink=0x1234\n',
@@ -58,6 +60,49 @@ class ValidationTests(unittest.TestCase):
                      self.complete_results() + 'bolt_bench: memcpy FAIL: destination mismatch\n'):
             with self.subTest(text=text[-60:]), self.assertRaises(ValueError):
                 gate.parse_results(text)
+
+    def test_every_repetition_requires_complete_ordered_results(self):
+        complete = self.complete_results()
+        self.assertEqual(gate.parse_results(complete * 2, 2), gate.parse_results(complete))
+        for text in (complete + complete.replace('bolt_bench: stair sink=0x1234\n', ''),
+                     complete + 'bolt_bench: hot_loop sink=0x1234\n',
+                     ''.join(reversed(complete.splitlines(keepends=True))) + complete):
+            with self.assertRaises(ValueError):
+                gate.parse_results(text, 2)
+
+    def test_command_frames_cannot_merge_an_empty_and_double_run(self):
+        complete = self.complete_results()
+        good = '$ bolt_bench all\n' + complete + '$ bolt_bench all\n' + complete
+        self.assertEqual(gate.parse_results(good, 2), gate.parse_results(complete))
+        bad = '$ bolt_bench all\n$ bolt_bench all\n' + complete * 2
+        with self.assertRaises(ValueError):
+            gate.parse_results(bad, 2)
+
+    def test_generic_comparison_records_results_without_claiming_rewritten_execution(self):
+        a, b = self.base / 'a.bin', self.base / 'b.bin'
+        a.write_bytes(b'baseline'); b.write_bytes(b'candidate')
+        result = gate.parse_results(self.complete_results())
+        args = ['compare', '--log-dir', str(self.base), f'a={a}', f'b={b}']
+        with patch.object(sys, 'argv', args), patch.object(gate, 'results', return_value=result), \
+                contextlib.redirect_stdout(io.StringIO()):
+            self.assertEqual(gate.main(), 0)
+        report = json.loads(next(self.base.glob('result-consistency-*/comparison.json')).read_text())
+        self.assertTrue(report['result_consistency'])
+        self.assertFalse(report['execution_verified'])
+        self.assertEqual(report['images']['a']['sha256'], identity.sha256(a))
+
+    def test_generic_comparison_rejects_source_changed_during_run(self):
+        a, b = self.base / 'a.bin', self.base / 'b.bin'
+        a.write_bytes(b'baseline'); b.write_bytes(b'candidate')
+        result = gate.parse_results(self.complete_results())
+        def observe(*args):
+            b.write_bytes(b'changed source')
+            return result
+        with patch.object(sys, 'argv', ['compare', '--log-dir', str(self.base), f'a={a}', f'b={b}']), \
+                patch.object(gate, 'results', side_effect=observe), contextlib.redirect_stdout(io.StringIO()):
+            with self.assertRaisesRegex(ValueError, 'image changed'):
+                gate.main()
+        self.assertFalse(list(self.base.glob('result-consistency-*/comparison.json')))
 
     def test_nonzero_child_fails_even_with_complete_results(self):
         observation = subprocess.CompletedProcess([], 7, self.complete_results().encode())

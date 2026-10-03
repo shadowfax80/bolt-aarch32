@@ -2,8 +2,8 @@
 """Pi gate: exact artifacts, all workloads, and PCs in required rewritten bodies.
 
 Usage: full_image_verify.py OUTDIR --require-executed NAME[,NAME...] [--port COM5]
-OUTDIR is produced by full_image_build.py. Coverage is scoped to the required set,
-not every emitted symbol. Each invocation uses a fresh evidence directory.
+OUTDIR is produced by full_image_build.py. Every selected redirect requires PC
+evidence; other emitted symbols are outside that execution claim.
 """
 from __future__ import annotations
 
@@ -16,13 +16,17 @@ import re
 import struct
 import sys
 import tempfile
+import shutil
+import subprocess
+import os
 
 HERE = Path(__file__).resolve().parent
 sys.path[:0] = [str(HERE), str(HERE.parent)]
 from passes_check import parse_results
 from proc_util import run_bounded
-from bolt_dump_reassemble import parse_dump_stream
+from bolt_dump_reassemble import validate_single_dump
 from profile_identity import check_profile
+from pi4_sample_profile import validate_capture
 
 
 def sha256(path):
@@ -112,6 +116,8 @@ def check_artifacts(out, manifest):
     sections = loadable_sections(elf)
     physical_base = min(s['physical'] for s in sections)
     emitted = {row['name']: row for row in manifest['emitted']}
+    if len(emitted) != len(manifest['emitted']):
+        raise ValueError('duplicate emitted coverage')
     redirects = manifest['redirected']
     if not redirects or len({r['name'] for r in redirects}) != len(redirects):
         raise ValueError('empty or duplicate redirect set')
@@ -139,66 +145,93 @@ def check_artifacts(out, manifest):
             raise ValueError('rewritten body differs between ELF and uploaded binary')
 
 
-def execution_evidence(text, manifest, required):
-    parse_results(text)  # Reject interrupted/mismatched workload sets independently.
+def execution_evidence(text, manifest, required, repetitions=1, sampling_period=None):
+    parse_results(text, repetitions)  # Every requested workload repetition must finish.
+    names = [r['name'] for r in manifest['redirected']]
+    if not names or len(set(names)) != len(names) or len(set(required)) != len(required) or set(required) != set(names):
+        raise ValueError('execution requirement must cover every selected redirect exactly')
     reports = list(re.finditer(r'bolt_sample: (\d+) samples \((\d+) taken\) buf=0x([0-9a-f]+) bytes=0x([0-9a-f]+)', text))
     if len(reports) != 1:
         raise ValueError('expected exactly one sample completion report')
     kept, taken, address, size = reports[0].groups()
     kept, taken, address, size = int(kept), int(taken), int(address, 16), int(size, 16)
     buffer = manifest['sample_buffer']
+    capture_metadata = None
+    if sampling_period is not None:
+        _, capture_metadata = validate_capture(text, buffer, 'all', repetitions, sampling_period)
     if not 0 < kept == taken < buffer['size'] // 4 or size != kept * 4 or address != buffer['address']:
         raise ValueError('invalid, saturated or mismatched sample report')
-    if len(re.findall('BOLT_DUMP_BEGIN', text)) != 1 or len(re.findall('BOLT_DUMP_END', text)) != 1:
-        raise ValueError('expected one complete PC buffer dump')
-    dumped = parse_dump_stream(text)
-    if (dumped.addr, dumped.size) != (buffer['address'], buffer['size']):
-        raise ValueError('PC dump does not match the image buffer')
-    if dumped.bad_seqs or not dumped.is_complete() or dumped.total_seq != (buffer['size'] + 63) // 64:
-        raise ValueError('incomplete or corrupt PC dump')
-    if any(offset < 0 or offset + len(chunk) > dumped.size for offset, chunk in dumped.chunks.items()):
-        raise ValueError('PC dump chunk exceeds buffer bounds')
-    raw = dumped.to_bytes()[:size]
+    raw = validate_single_dump(text, buffer['address'], buffer['size'])[:size]
     samples = struct.unpack(f'<{kept}I', raw)
     coverage = []
     for row in manifest['redirected']:
         hits = sum(row['output'] <= (pc & ~1) < row['output'] + row['output_size']
-                   and bool(pc & 1) == row['thumb'] for pc in samples)
+                   and bool(pc & 1) == row['thumb'] and (row['thumb'] or pc % 4 == 0) for pc in samples)
         coverage.append(dict(name=row['name'], pc_samples=hits, execution_observed=bool(hits), required=row['name'] in required))
     observed = {r['name'] for r in coverage if r['execution_observed']}
     if set(required) - observed:
         raise ValueError('no rewritten execution observed for: ' + ', '.join(sorted(set(required) - observed)))
     return dict(kept_samples=kept, taken_samples=taken, redirected_coverage=coverage,
-                required_executed=required, sampled_pc_sha256=hashlib.sha256(raw).hexdigest())
+                required_executed=required, sampled_pc_sha256=hashlib.sha256(raw).hexdigest(),
+                sampling_capture=capture_metadata)
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('outdir', type=Path)
-    parser.add_argument('--require-executed', required=True, help='exact comma-separated redirect names requiring PC evidence')
+    parser.add_argument('--require-executed', help='optional exact comma-separated redirect set; default: every redirect')
     parser.add_argument('--port', default='COM5')
     parser.add_argument('--fast-loader', type=Path)
     parser.add_argument('--period', type=int, default=20000)
     parser.add_argument('--repeat', type=int, default=5,
                         help='repeat all workloads to sample short rewritten bodies (1..32; default 5)')
     args = parser.parse_args()
+    if args.fast_loader is None and os.environ.get('PI4_FAST_LOADER'):
+        args.fast_loader = Path(os.environ['PI4_FAST_LOADER'])
     out = args.outdir.resolve()
-    manifest = json.loads((out / 'full_manifest.json').read_text())
-    required = args.require_executed.split(',')
-    if not all(required) or len(set(required)) != len(required) or set(required) - {r['name'] for r in manifest['redirected']}:
-        parser.error('require distinct names from the manifest redirect set')
+    manifest_bytes = (out / 'full_manifest.json').read_bytes()
+    manifest = json.loads(manifest_bytes)
+    manifest_hash = hashlib.sha256(manifest_bytes).hexdigest()
+    script_paths = [Path(__file__), HERE/'pi4_run.py', HERE/'pi4_serial_boot.py', HERE/'passes_check.py',
+                    HERE/'pi4_sample_profile.py', HERE/'proc_util.py', HERE.parent/'bolt_dump_reassemble.py',
+                    HERE.parent/'profile_identity.py']
+    script_hashes = {p.name: sha256(p) for p in script_paths}
+    revision = subprocess.check_output(['git', '-C', str(HERE.parent.parent), 'rev-parse', 'HEAD'], text=True).strip()
+    required = args.require_executed.split(',') if args.require_executed else [r['name'] for r in manifest['redirected']]
+    if not all(required) or len(set(required)) != len(required) or set(required) != {r['name'] for r in manifest['redirected']}:
+        parser.error('require distinct names covering every selected redirect')
     if args.period < 20000:
         parser.error('period must be >= 20000')
     if not 1 <= args.repeat <= 32:
         parser.error('repeat must be 1..32')
     check_artifacts(out, manifest)
     evidence_dir = Path(tempfile.mkdtemp(prefix='pi-verify-', dir=out))
+    (evidence_dir / 'build_manifest.json').write_bytes(manifest_bytes)
+    if sha256(evidence_dir / 'build_manifest.json') != manifest_hash:
+        raise ValueError('build manifest changed while snapshotting')
+    uploads = {}
+    for name, filename, key in [('baseline', 'baseline.bin', 'baseline_binary_sha256'),
+                                 ('candidate', 'baseline_full.bin', 'binary_sha256')]:
+        upload = evidence_dir / (name + '.bin')
+        shutil.copyfile(out / filename, upload)
+        if sha256(upload) != manifest[key]:
+            raise ValueError('image changed while snapshotting: ' + name)
+        uploads[name] = upload
+    loader_hash = sha256(args.fast_loader.resolve()) if args.fast_loader else None
+    loader_copy = None
+    if args.fast_loader:
+        loader_copy = evidence_dir / 'fast-loader.img'
+        shutil.copyfile(args.fast_loader.resolve(), loader_copy)
+        if sha256(loader_copy) != loader_hash:
+            raise ValueError('fast loader changed while snapshotting')
 
     def boot(name, image, commands):
         cmd = [sys.executable, str(HERE / 'pi4_run.py'), str(image), '--port', args.port,
                '--reboot', '--wait', '30', '--max-wait', '120', '--wdog', '180']
         if args.fast_loader:
-            cmd += ['--fast-loader', str(args.fast_loader.resolve())]
+            if sha256(args.fast_loader.resolve()) != loader_hash:
+                raise ValueError('fast loader changed during verification')
+            cmd += ['--fast-loader', str(loader_copy)]
         run = run_bounded([*cmd, *commands], 600)
         text = run.stdout.decode('utf-8', 'replace')
         (evidence_dir / (name + '.log')).write_text(text, encoding='utf-8')
@@ -206,20 +239,39 @@ def main():
             raise ValueError(f'{name} child failed ({run.returncode}); see {evidence_dir}')
         return text
 
-    baseline = boot('baseline', out / 'baseline.bin', ['bolt_bench all'])
+    baseline = boot('baseline', uploads['baseline'], ['bolt_bench all'])
     expected = parse_results(baseline)
     buffer = manifest['sample_buffer']
-    candidate = boot('candidate', out / 'baseline_full.bin', [f'bolt_sample start {args.period}',
+    candidate = boot('candidate', uploads['candidate'], [f'bolt_sample start {args.period}',
                      *(['bolt_bench all'] * args.repeat), 'bolt_sample stop',
                      f'bolt_dump {buffer["address"]:x} {buffer["size"]:x}'])
-    actual = parse_results(candidate)
+    actual = parse_results(candidate, args.repeat)
     if expected != actual:
         raise ValueError('candidate workload results differ from baseline')
     check_artifacts(out, manifest)  # Do not certify artifacts modified during a run.
-    evidence = execution_evidence(candidate, manifest, required)
+    if sha256(out / 'full_manifest.json') != manifest_hash:
+        raise ValueError('build manifest changed during verification')
+    for name, key in [('baseline', 'baseline_binary_sha256'), ('candidate', 'binary_sha256')]:
+        if sha256(uploads[name]) != manifest[key]:
+            raise ValueError('immutable upload copy changed: ' + name)
+    if args.fast_loader and sha256(args.fast_loader.resolve()) != loader_hash:
+        raise ValueError('fast loader changed during verification')
+    if loader_copy and sha256(loader_copy) != loader_hash:
+        raise ValueError('fast loader upload copy changed during verification')
+    if (script_hashes != {p.name: sha256(p) for p in script_paths}
+            or revision != subprocess.check_output(['git', '-C', str(HERE.parent.parent), 'rev-parse', 'HEAD'], text=True).strip()):
+        raise ValueError('verifier scripts or repository revision changed during verification')
+    evidence = execution_evidence(candidate, manifest, required, args.repeat, args.period)
     result = dict(schema=1, execution_verified=True, verified_at=datetime.now(timezone.utc).isoformat(),
-                  scope='required redirected functions only; emitted functions are not execution coverage',
-                  manifest_sha256=sha256(out / 'full_manifest.json'),
+                  scope='every selected redirect; other emitted functions are not execution coverage',
+                  manifest_sha256=manifest_hash, verifier_sha256=sha256(__file__),
+                  fast_loader_sha256=loader_hash,
+                  uploaded_images={name: sha256(path) for name, path in uploads.items()},
+                  selected_functions=required, emitted_functions=[r['name'] for r in manifest['emitted']],
+                  redirected_functions=[r['name'] for r in manifest['redirected']],
+                  expected_workload_results=expected,
+                  repository_revision=revision, script_sha256=script_hashes,
+                  build_provenance={key: manifest.get(key) for key in ('repository_revision', 'bolt_options', 'tool_sha256', 'patch_sha256', 'script_sha256')},
                   baseline_log_sha256=sha256(evidence_dir / 'baseline.log'),
                   candidate_log_sha256=sha256(evidence_dir / 'candidate.log'),
                   workload_results=actual, sampling_period=args.period, workload_repetitions=args.repeat, **evidence)

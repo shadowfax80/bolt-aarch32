@@ -25,31 +25,13 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.join(HERE, ".."))
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from proc_util import run_bounded  # noqa: E402
-from bolt_dump_reassemble import parse_dump_stream  # noqa: E402
+from bolt_dump_reassemble import validate_single_dump  # noqa: E402
 from profile_identity import read_json, sha256, publish_files  # noqa: E402
 from counter_identity import check_build  # noqa: E402
 
 
 def validate_dump(text, layout):
-    import re
-    from bolt_dump_reassemble import BEGIN_RE, LINE_RE, END_RE
-    result = parse_dump_stream(text)
-    lines = list(LINE_RE.finditer(text))
-    chunks = (layout['size'] + 63) // 64
-    begin, end = BEGIN_RE.search(text), END_RE.search(text)
-    if (len(BEGIN_RE.findall(text)) != 1 or len(END_RE.findall(text)) != 1
-            or (result.addr, result.size) != (layout['address'], layout['size'])
-            or result.bad_seqs or not result.is_complete() or result.total_seq != chunks
-            or len(lines) != chunks):
-        raise ValueError('counter dump is corrupt, duplicated, incomplete or misplaced')
-    if (int(end[2], 16) != layout['size'] or begin.end() > end.start()
-            or any(line.start() < begin.end() or line.end() > end.start() for line in lines)):
-        raise ValueError('counter dump marker order/total mismatch')
-    for sequence, line in enumerate(lines):
-        seq, off, length = [int(line[i], 16) for i in (1, 2, 3)]
-        if (seq, off, length) != (sequence, 64 * sequence, min(64, layout['size'] - 64 * sequence)):
-            raise ValueError('counter dump chunk extent/sequence mismatch')
-    return result.to_bytes()
+    return validate_single_dump(text, layout['address'], layout['size'])
 
 
 def main() -> int:

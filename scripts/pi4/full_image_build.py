@@ -72,6 +72,12 @@ def main():
     if any((out / name).exists() for name in names):
         parser.error('use a fresh output directory; existing verification artifacts are preserved')
     tc = args.toolchain.resolve()
+    tool_hashes = {name: redirect.sha256(tc / name) for name in ('llvm-bolt', 'llvm-objcopy', 'llvm-readelf', 'llvm-nm')}
+    patch_hashes = {p.name: redirect.sha256(p) for p in sorted((ROOT/'overlay/llvm/patches/atfe').glob('*.patch'))}
+    script_paths = [Path(__file__), ROOT/'scripts/redirect-bolt-entries.py', ROOT/'scripts/fix-kernel-elf-sections.py',
+                    ROOT/'scripts/fix-kernel-elf-entry.py', ROOT/'scripts/fix-kernel-elf-paddr.py', ROOT/'scripts/profile_identity.py']
+    script_hashes = {str(p.relative_to(ROOT)): redirect.sha256(p) for p in script_paths}
+    revision = subprocess.check_output(['git', '-C', str(ROOT), 'rev-parse', 'HEAD'], text=True).strip()
     original = args.input.resolve()
     elf, mapping, report = out / 'baseline_full.elf', out / 'full.funcmap', out / 'full_manifest.json'
     baseline = out / 'baseline.elf'
@@ -110,12 +116,17 @@ def main():
         check_profile(baseline, out / 'profile.fdata')
         manifest['profile'] = dict(profile_sha256=redirect.sha256(out / 'profile.fdata'),
                                    manifest_sha256=redirect.sha256(out / 'profile.fdata.manifest.json'))
+    if (tool_hashes != {name: redirect.sha256(tc / name) for name in tool_hashes}
+            or patch_hashes != {p.name: redirect.sha256(p) for p in sorted((ROOT/'overlay/llvm/patches/atfe').glob('*.patch'))}
+            or script_hashes != {str(p.relative_to(ROOT)): redirect.sha256(p) for p in script_paths}
+            or revision != subprocess.check_output(['git', '-C', str(ROOT), 'rev-parse', 'HEAD'], text=True).strip()):
+        raise ValueError('tools, patches, scripts or repository revision changed during the build')
     manifest.update(binary_sha256=redirect.sha256(out / 'baseline_full.bin'),
                     baseline_binary_sha256=redirect.sha256(out / 'baseline.bin'),
                     sample_buffer=dict(address=symbols['bolt_sample_buf'][0], size=symbols['bolt_sample_buf'][1]),
                     restored_sections=restored, bolt_options=bolt_options,
-                    tool_sha256={name: redirect.sha256(tc / name) for name in ('llvm-bolt', 'llvm-objcopy', 'llvm-readelf')},
-                    patch_sha256={p.name: redirect.sha256(p) for p in sorted((ROOT / 'overlay/llvm/patches/atfe').glob('*.patch'))},
+                    tool_sha256=tool_hashes, patch_sha256=patch_hashes,
+                    repository_revision=revision, script_sha256=script_hashes,
                     input_functions=[dict(name=name, address=a, size=s, thumb=t)
                                      for name, definitions in functions.items() for a, s, t in sorted(set(definitions))])
     emitted_names = {redirect.symbol_name(row['name']) for row in manifest['emitted']}

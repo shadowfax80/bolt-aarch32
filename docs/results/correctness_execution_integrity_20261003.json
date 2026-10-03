@@ -1,0 +1,767 @@
+{
+  "schema": 1,
+  "date": "2026-10-03",
+  "queue_item": 6,
+  "stage": "execution/result gate hardening",
+  "status": "stage verified; item 6 remains active",
+  "original_workstream_12": "active",
+  "base_repository_revision": "1f3262e554f1db818776d248fb7683e94fc75f58",
+  "backend_overlay": "0043; no LLVM source changes in this stage",
+  "source_changes": {
+    "scripts/bolt_dump_reassemble.py": {
+      "before_sha256": "f47b0442abfdd2ac6eb11a9019ea2b721fed7f5f9d5b138e9ce8f013dc1df6ac",
+      "after_sha256": "f37f2be959229db37eb7021b3e9fe9c0eb480c782b678a6f38b24f4a84a5f02b"
+    },
+    "scripts/fix-kernel-elf-sections.py": {
+      "before_sha256": "1c2ceac86777335bb9d3d071671b3ee6dd3982eb0c08a7e3396ef525ca814355",
+      "after_sha256": "ac234f4fd1fafe97ffbea75df4532cd3abd959ed6bbd14f7964eaed865187934"
+    },
+    "scripts/pi4/full_image_build.py": {
+      "before_sha256": "6e4241cbf81d8e6af49228af312a2e6bf2e8edc16767332d17e486a5828b60d3",
+      "after_sha256": "7d103abf40776f6d82cf95a1fd3496494e815a4031df149e38d3e7d66687625e"
+    },
+    "scripts/pi4/full_image_verify.py": {
+      "before_sha256": "5b307a49b27704c12c8351b354a5613d0cef6e3e50a4efcd4499fad93ad0d1e7",
+      "after_sha256": "cc4705b05529b2b942b521cf14e333293fd8b6908c5999e4177a3e3b2588a98e"
+    },
+    "scripts/pi4/passes_check.py": {
+      "before_sha256": "ce497f3d61765c2f5a902d1f01e588544fe04e9a62001e05dfe86f0fcc634d98",
+      "after_sha256": "f590ab943cbadf8c6918f88bcabd873dd2c96256a13f40de9abe02d855737bff"
+    },
+    "scripts/pi4/pi4_bolt_profile.py": {
+      "before_sha256": "e24415e80f430d2d409f7671b4a58af58a281f6b3e67569a7c6a9af82efd48e6",
+      "after_sha256": "a8489d8706f899ad8cb7bc093f80518f39aba9d08ad156266f842af090892202"
+    },
+    "scripts/pi4/pi4_run.py": {
+      "before_sha256": "f2b438cb8e8b68bee2ab9536feb77eb721d66ee0d17874a2bf29c97ffc8b005f",
+      "after_sha256": "bb640ab00a8a301c81a040127612d6953e0ae47036348e6035084b97ce3401ba"
+    },
+    "scripts/pi4/pi4_sample_profile.py": {
+      "before_sha256": "1bf7309dabe046bef0f500d2d5e3a710fb636f21872604060419a09874a3fcd6",
+      "after_sha256": "a2d75a7a279ed22617108194fc20860ba58e1921f087f2d8f7b2c2463617eb85"
+    },
+    "scripts/tests/test_execution_gate.py": {
+      "before_sha256": "9d8a7d3e19ab3997ca1f7dca301805ae28912a5c84caff489de60a777780f552",
+      "after_sha256": "d707426fa666f131a96e7dd9ed7435fcc1ca1ca85fb686175569764df33ba1b2"
+    },
+    "scripts/tests/test_profile_validation.py": {
+      "before_sha256": "3e8faadbd1b7bdb1307159dbc253ffd692b727d283323d553f8582cb55c88093",
+      "after_sha256": "8bb233af8a35f44c353dec21912ab57abb7faca09e0386f6dbad671e31c7157d"
+    }
+  },
+  "reproductions": {
+    "before": {
+      "schema": 1,
+      "rows": [
+        {
+          "case": "incomplete-second-repetition",
+          "admitted": true,
+          "value": 18
+        },
+        {
+          "case": "duplicate-chunk",
+          "admitted": true,
+          "value": [
+            "function"
+          ]
+        },
+        {
+          "case": "wrong-END-total",
+          "admitted": true,
+          "value": [
+            "function"
+          ]
+        },
+        {
+          "case": "chunk-before-BEGIN",
+          "admitted": true,
+          "value": [
+            "function"
+          ]
+        },
+        {
+          "case": "ARM-PC-prologue-and-scratch-overflow",
+          "admitted": true,
+          "value": 8240,
+          "input_length": 12,
+          "output_length": 40
+        }
+      ]
+    },
+    "after": {
+      "schema": 1,
+      "rows": [
+        {
+          "case": "incomplete-second-repetition",
+          "admitted": false,
+          "error": "workload completion order/count does not match requested repetitions"
+        },
+        {
+          "case": "duplicate-chunk",
+          "admitted": false,
+          "error": "expected one dump with exactly the required chunks"
+        },
+        {
+          "case": "wrong-END-total",
+          "admitted": false,
+          "error": "dump marker extent/order/total mismatch"
+        },
+        {
+          "case": "chunk-before-BEGIN",
+          "admitted": false,
+          "error": "dump chunk sequence/order/extent mismatch"
+        },
+        {
+          "case": "ARM-PC-prologue-and-scratch-overflow",
+          "admitted": false,
+          "error": "manual ARM/Thumb counter hooks are unsupported: flags, prologue relocation, scratch and exact CFG/64-bit counts are unverified; use BOLT-generated instrumentation",
+          "input_length": 12,
+          "output_length": 12
+        }
+      ]
+    }
+  },
+  "transport": {
+    "schema": 1,
+    "verified": true,
+    "admissions": 7,
+    "rejections": 80,
+    "rows": [
+      {
+        "size": 1,
+        "admitted": true
+      },
+      {
+        "size": 1,
+        "mutation": 0,
+        "rejected": true
+      },
+      {
+        "size": 1,
+        "mutation": 1,
+        "rejected": true
+      },
+      {
+        "size": 1,
+        "mutation": 2,
+        "rejected": true
+      },
+      {
+        "size": 1,
+        "mutation": 3,
+        "rejected": true
+      },
+      {
+        "size": 1,
+        "mutation": 4,
+        "rejected": true
+      },
+      {
+        "size": 1,
+        "mutation": 5,
+        "rejected": true
+      },
+      {
+        "size": 1,
+        "mutation": 6,
+        "rejected": true
+      },
+      {
+        "size": 1,
+        "mutation": 7,
+        "rejected": true
+      },
+      {
+        "size": 1,
+        "mutation": 8,
+        "rejected": true
+      },
+      {
+        "size": 1,
+        "mutation": 9,
+        "rejected": true
+      },
+      {
+        "size": 1,
+        "mutation": 10,
+        "rejected": true
+      },
+      {
+        "size": 8,
+        "admitted": true
+      },
+      {
+        "size": 8,
+        "mutation": 0,
+        "rejected": true
+      },
+      {
+        "size": 8,
+        "mutation": 1,
+        "rejected": true
+      },
+      {
+        "size": 8,
+        "mutation": 2,
+        "rejected": true
+      },
+      {
+        "size": 8,
+        "mutation": 3,
+        "rejected": true
+      },
+      {
+        "size": 8,
+        "mutation": 4,
+        "rejected": true
+      },
+      {
+        "size": 8,
+        "mutation": 5,
+        "rejected": true
+      },
+      {
+        "size": 8,
+        "mutation": 6,
+        "rejected": true
+      },
+      {
+        "size": 8,
+        "mutation": 7,
+        "rejected": true
+      },
+      {
+        "size": 8,
+        "mutation": 8,
+        "rejected": true
+      },
+      {
+        "size": 8,
+        "mutation": 9,
+        "rejected": true
+      },
+      {
+        "size": 8,
+        "mutation": 10,
+        "rejected": true
+      },
+      {
+        "size": 63,
+        "admitted": true
+      },
+      {
+        "size": 63,
+        "mutation": 0,
+        "rejected": true
+      },
+      {
+        "size": 63,
+        "mutation": 1,
+        "rejected": true
+      },
+      {
+        "size": 63,
+        "mutation": 2,
+        "rejected": true
+      },
+      {
+        "size": 63,
+        "mutation": 3,
+        "rejected": true
+      },
+      {
+        "size": 63,
+        "mutation": 4,
+        "rejected": true
+      },
+      {
+        "size": 63,
+        "mutation": 5,
+        "rejected": true
+      },
+      {
+        "size": 63,
+        "mutation": 6,
+        "rejected": true
+      },
+      {
+        "size": 63,
+        "mutation": 7,
+        "rejected": true
+      },
+      {
+        "size": 63,
+        "mutation": 8,
+        "rejected": true
+      },
+      {
+        "size": 63,
+        "mutation": 9,
+        "rejected": true
+      },
+      {
+        "size": 63,
+        "mutation": 10,
+        "rejected": true
+      },
+      {
+        "size": 64,
+        "admitted": true
+      },
+      {
+        "size": 64,
+        "mutation": 0,
+        "rejected": true
+      },
+      {
+        "size": 64,
+        "mutation": 1,
+        "rejected": true
+      },
+      {
+        "size": 64,
+        "mutation": 2,
+        "rejected": true
+      },
+      {
+        "size": 64,
+        "mutation": 3,
+        "rejected": true
+      },
+      {
+        "size": 64,
+        "mutation": 4,
+        "rejected": true
+      },
+      {
+        "size": 64,
+        "mutation": 5,
+        "rejected": true
+      },
+      {
+        "size": 64,
+        "mutation": 6,
+        "rejected": true
+      },
+      {
+        "size": 64,
+        "mutation": 7,
+        "rejected": true
+      },
+      {
+        "size": 64,
+        "mutation": 8,
+        "rejected": true
+      },
+      {
+        "size": 64,
+        "mutation": 9,
+        "rejected": true
+      },
+      {
+        "size": 64,
+        "mutation": 10,
+        "rejected": true
+      },
+      {
+        "size": 65,
+        "admitted": true
+      },
+      {
+        "size": 65,
+        "mutation": 0,
+        "rejected": true
+      },
+      {
+        "size": 65,
+        "mutation": 1,
+        "rejected": true
+      },
+      {
+        "size": 65,
+        "mutation": 2,
+        "rejected": true
+      },
+      {
+        "size": 65,
+        "mutation": 3,
+        "rejected": true
+      },
+      {
+        "size": 65,
+        "mutation": 4,
+        "rejected": true
+      },
+      {
+        "size": 65,
+        "mutation": 5,
+        "rejected": true
+      },
+      {
+        "size": 65,
+        "mutation": 6,
+        "rejected": true
+      },
+      {
+        "size": 65,
+        "mutation": 7,
+        "rejected": true
+      },
+      {
+        "size": 65,
+        "mutation": 8,
+        "rejected": true
+      },
+      {
+        "size": 65,
+        "mutation": 9,
+        "rejected": true
+      },
+      {
+        "size": 65,
+        "mutation": 10,
+        "rejected": true
+      },
+      {
+        "size": 65,
+        "mutation": 11,
+        "rejected": true
+      },
+      {
+        "size": 127,
+        "admitted": true
+      },
+      {
+        "size": 127,
+        "mutation": 0,
+        "rejected": true
+      },
+      {
+        "size": 127,
+        "mutation": 1,
+        "rejected": true
+      },
+      {
+        "size": 127,
+        "mutation": 2,
+        "rejected": true
+      },
+      {
+        "size": 127,
+        "mutation": 3,
+        "rejected": true
+      },
+      {
+        "size": 127,
+        "mutation": 4,
+        "rejected": true
+      },
+      {
+        "size": 127,
+        "mutation": 5,
+        "rejected": true
+      },
+      {
+        "size": 127,
+        "mutation": 6,
+        "rejected": true
+      },
+      {
+        "size": 127,
+        "mutation": 7,
+        "rejected": true
+      },
+      {
+        "size": 127,
+        "mutation": 8,
+        "rejected": true
+      },
+      {
+        "size": 127,
+        "mutation": 9,
+        "rejected": true
+      },
+      {
+        "size": 127,
+        "mutation": 10,
+        "rejected": true
+      },
+      {
+        "size": 127,
+        "mutation": 11,
+        "rejected": true
+      },
+      {
+        "size": 128,
+        "admitted": true
+      },
+      {
+        "size": 128,
+        "mutation": 0,
+        "rejected": true
+      },
+      {
+        "size": 128,
+        "mutation": 1,
+        "rejected": true
+      },
+      {
+        "size": 128,
+        "mutation": 2,
+        "rejected": true
+      },
+      {
+        "size": 128,
+        "mutation": 3,
+        "rejected": true
+      },
+      {
+        "size": 128,
+        "mutation": 4,
+        "rejected": true
+      },
+      {
+        "size": 128,
+        "mutation": 5,
+        "rejected": true
+      },
+      {
+        "size": 128,
+        "mutation": 6,
+        "rejected": true
+      },
+      {
+        "size": 128,
+        "mutation": 7,
+        "rejected": true
+      },
+      {
+        "size": 128,
+        "mutation": 8,
+        "rejected": true
+      },
+      {
+        "size": 128,
+        "mutation": 9,
+        "rejected": true
+      },
+      {
+        "size": 128,
+        "mutation": 10,
+        "rejected": true
+      },
+      {
+        "size": 128,
+        "mutation": 11,
+        "rejected": true
+      }
+    ]
+  },
+  "python_tests": {
+    "schema": 1,
+    "tests": 80,
+    "successful": true,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "python_test_log_sha256": "aebe6564c4825025a7e3e8558803e5a38f149e7c737ca75ab3f67a2b59d86e43",
+  "host_artifact_builds": {
+    "schema": 1,
+    "rows": [
+      {
+        "build": "on",
+        "artifact_checks_passed": true,
+        "redirects": [
+          {
+            "name": "_start",
+            "input": 32768,
+            "output": 565248,
+            "output_size": 12,
+            "thumb": false,
+            "branch_hex": "fe0702ea"
+          },
+          {
+            "name": "helper",
+            "input": 32780,
+            "output": 565260,
+            "output_size": 8,
+            "thumb": true,
+            "branch_hex": "81f0febf"
+          }
+        ],
+        "manifest_sha256": "ebcc5b250617c3ff7dad514d8ccaa637e2700e6b6e856814dde13a99769189c7",
+        "execution_verified": false
+      },
+      {
+        "build": "off",
+        "artifact_checks_passed": true,
+        "redirects": [
+          {
+            "name": "_start",
+            "input": 32768,
+            "output": 565248,
+            "output_size": 12,
+            "thumb": false,
+            "branch_hex": "fe0702ea"
+          },
+          {
+            "name": "helper",
+            "input": 32780,
+            "output": 565260,
+            "output_size": 8,
+            "thumb": true,
+            "branch_hex": "81f0febf"
+          }
+        ],
+        "manifest_sha256": "b8b7e4a5df27424e4c0796c28b10f6a8a33d62a800f2e35dd7dd3f27054986e9",
+        "execution_verified": false
+      }
+    ],
+    "scope": "real ARM/Thumb host artifact builds; no execution"
+  },
+  "hardware": {
+    "on": {
+      "build": "out\\correctness\\execution-integrity-20261003\\inline-on\\build-8n7ln9xg",
+      "verification": "out\\correctness\\execution-integrity-20261003\\inline-on\\build-8n7ln9xg\\pi-verify-yqtnd7be\\verification.json",
+      "build_manifest_sha256": "6090adb04b3957f23bd89584a3951ced73b445082e9d1a6491fc987ed3500144",
+      "verification_sha256": "03fd8b30b6eb10de70864e9a4fefdac74e46af44e16946c210383e1c4e118918",
+      "positive_cases": 420,
+      "expected_faults": 2,
+      "images": 8,
+      "scope": "HYP core 0, masked interrupts; ARM/Thumb leaf, stack, LR, conditional return and both branch paths; Thumb CBZ/CBNZ expansions preserve flags consumed on both paths; predicated, indirect and mixed-ISA call-site exclusions under automatic/size-based inlining and reverse-layout peepholes",
+      "results": {
+        "baseline": {
+          "passed": true,
+          "cases": 70
+        },
+        "normal": {
+          "passed": true,
+          "cases": 70
+        },
+        "reverse": {
+          "passed": true,
+          "cases": 70
+        },
+        "inline_all": {
+          "passed": true,
+          "cases": 70
+        },
+        "inline_small": {
+          "passed": true,
+          "cases": 70
+        },
+        "peepholes": {
+          "passed": true,
+          "cases": 70
+        },
+        "bad-result": {
+          "expected_failure": true,
+          "case_id": 0,
+          "field": 0,
+          "expected": 18,
+          "actual": 19
+        },
+        "bad-cbz-flags": {
+          "expected_failure": true,
+          "case_id": 46,
+          "field": 0,
+          "expected": 8,
+          "actual": 0
+        }
+      },
+      "loader_sha256": "20d8a44f44c62ce001c3cd49007a0b73b9a6890d92bdb37f9d5a573246453ab0",
+      "payload_sha256": {
+        "bad-cbz-flags": "c3c4a88daf4a24ca4d81a3b169cc7c8d35d93d163c8f5e291156b67041311296",
+        "bad-result": "d90e41a9175088b981be73a6833c4e4c2f3ce9938b9e5b8cb5e563b6e45e0827",
+        "baseline": "344a634a4ffbbc769c7fe68c176e6a9e6fd2019a3f76b4f16ef7fc7705b4a5fd",
+        "inline_all": "cecbc9db7f16ebd1a9d0291e2a2f69f704666f4776d699d9085c7bbdb51a15c6",
+        "inline_small": "cecbc9db7f16ebd1a9d0291e2a2f69f704666f4776d699d9085c7bbdb51a15c6",
+        "normal": "cecbc9db7f16ebd1a9d0291e2a2f69f704666f4776d699d9085c7bbdb51a15c6",
+        "peepholes": "b3e828184a5733f8ebd99a7e2a5ccad273e46df2d2759bc8e58cea8f31ca55d7",
+        "reverse": "b3e828184a5733f8ebd99a7e2a5ccad273e46df2d2759bc8e58cea8f31ca55d7"
+      }
+    },
+    "off": {
+      "build": "out\\correctness\\execution-integrity-20261003\\inline-off\\build-pq6uywqd",
+      "verification": "out\\correctness\\execution-integrity-20261003\\inline-off\\build-pq6uywqd\\pi-verify-v4kj01j7\\verification.json",
+      "build_manifest_sha256": "240e9e0e3fe2c054ec3b3f92b479a13448e5c21d3b350b5ae1fea04dcb252247",
+      "verification_sha256": "e9880a3c35958cfb507793a5b0847a35f091e7dd9d8e3d281d0b733f33bd8a0e",
+      "positive_cases": 420,
+      "expected_faults": 2,
+      "images": 8,
+      "scope": "HYP core 0, masked interrupts; ARM/Thumb leaf, stack, LR, conditional return and both branch paths; Thumb CBZ/CBNZ expansions preserve flags consumed on both paths; predicated, indirect and mixed-ISA call-site exclusions under automatic/size-based inlining and reverse-layout peepholes",
+      "results": {
+        "baseline": {
+          "passed": true,
+          "cases": 70
+        },
+        "normal": {
+          "passed": true,
+          "cases": 70
+        },
+        "reverse": {
+          "passed": true,
+          "cases": 70
+        },
+        "inline_all": {
+          "passed": true,
+          "cases": 70
+        },
+        "inline_small": {
+          "passed": true,
+          "cases": 70
+        },
+        "peepholes": {
+          "passed": true,
+          "cases": 70
+        },
+        "bad-result": {
+          "expected_failure": true,
+          "case_id": 0,
+          "field": 0,
+          "expected": 18,
+          "actual": 19
+        },
+        "bad-cbz-flags": {
+          "expected_failure": true,
+          "case_id": 46,
+          "field": 0,
+          "expected": 8,
+          "actual": 0
+        }
+      },
+      "loader_sha256": "20d8a44f44c62ce001c3cd49007a0b73b9a6890d92bdb37f9d5a573246453ab0",
+      "payload_sha256": {
+        "bad-cbz-flags": "c3c4a88daf4a24ca4d81a3b169cc7c8d35d93d163c8f5e291156b67041311296",
+        "bad-result": "d90e41a9175088b981be73a6833c4e4c2f3ce9938b9e5b8cb5e563b6e45e0827",
+        "baseline": "344a634a4ffbbc769c7fe68c176e6a9e6fd2019a3f76b4f16ef7fc7705b4a5fd",
+        "inline_all": "cecbc9db7f16ebd1a9d0291e2a2f69f704666f4776d699d9085c7bbdb51a15c6",
+        "inline_small": "cecbc9db7f16ebd1a9d0291e2a2f69f704666f4776d699d9085c7bbdb51a15c6",
+        "normal": "cecbc9db7f16ebd1a9d0291e2a2f69f704666f4776d699d9085c7bbdb51a15c6",
+        "peepholes": "b3e828184a5733f8ebd99a7e2a5ccad273e46df2d2759bc8e58cea8f31ca55d7",
+        "reverse": "b3e828184a5733f8ebd99a7e2a5ccad273e46df2d2759bc8e58cea8f31ca55d7"
+      }
+    }
+  },
+  "whole_lk_attempt": {
+    "execution_verified": false,
+    "build_rejected": true,
+    "log_sha256": "2d2e3751c62c37225d1ef1479132a8162ab3e3f1eef98bf85ceb8f1fc9d36085",
+    "diagnostic": "unsupported AArch32 PC-writing control transfer in arm_reset(*2) at 0x8000809c"
+  },
+  "remaining": [
+    "Coverage and independent oracles for remaining optimization/comparison gates.",
+    "Additional ARM/Thumb/mixed inputs, memory/flags/return witnesses and timeout/fault cases.",
+    "Observed rewritten far-call routes; retain v7 thunk caveat in 7/11.",
+    "Remaining legacy/manual helper and raw-grep failure/coverage audit.",
+    "Whole-LK control-transfer boundary in 8/11; PMU ownership and clean builds in 10/14."
+  ],
+  "limitations": [
+    "PC sampling does not prove every path or instruction boundary; all-core/IRQ-masking limitations remain.",
+    "Baseline output agreement is not an independent oracle for every workload.",
+    "Manifests detect mixed artifacts, not forgery or clean compiler provenance.",
+    "Host full-gate fixtures have no hardware execution claim; Pi evidence is the bounded pass matrix.",
+    "Legacy ARM/Thumb entry-bump counter hooks are excluded; no AArch64 hook claim."
+  ]
+}

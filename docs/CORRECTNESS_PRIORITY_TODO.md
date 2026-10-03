@@ -6,7 +6,7 @@ Queue positions below are new priorities; the original twelve workstream IDs
 remain stable in [CORRECTNESS_TODO.md](CORRECTNESS_TODO.md).
 
 ATFE only. Items 1-5 have verified scoped fixes in overlays 0039-0043.
-Next is item 6, execution/result gate integrity. The user
+Item 6 is active; its first gate-hardening stage is verified. The user
 reactivated #12 on 2026-10-02; all its remaining work is included below. Nothing
 is paused in this correctness queue. Three original
 items are complete in their bounded scope (#2/#8/#10); nine remain open.
@@ -20,7 +20,7 @@ items are complete in their bounded scope (#2/#8/#10); nine remain open.
 | 3 · P0 | ISA/profile/ABI admission | Verified conservative contract; 0041 + Pi |
 | 4 · P0 | Fixed-load ELF/PIE boundary | Verified fixed-load admission; 0042 |
 | 5 · P0 | Exact profile/artifact identity | Verified sealed pipeline scope; 0043; #12 active |
-| 6 · P0 | Execution/result gate integrity | Next; original #12 active |
+| 6 · P0 | Execution/result gate integrity | Active; gate-hardening stage verified; wider proof pending |
 | 7 · P1 | Relocation/literal matrix | Partial; remaining work pending |
 | 8 · P1 | Control-flow/mutation invariants | Partial; remaining work pending |
 | 9 · P1 | Interrupt/reentrancy boundaries | Partial; remaining work pending |
@@ -68,6 +68,14 @@ legacy captures are excluded; crash/power-loss atomicity and clean build
 provenance are not claimed. See [contract](AARCH32_PROFILE_IDENTITY.md) and
 [evidence](results/correctness_profile_identity_20261003.json). Next is item 6;
 all remaining #12 work stays active. Work stops at this verified milestone.
+
+Item 6: first gate-hardening stage verified. All five reproduced admissions now
+reject; 80 Python tests and 7 valid/80 malformed transport cases pass. Fresh Pi
+checks pass 420 positive cases and two expected faults per build. Whole-LK
+rewriting still rejects arm_reset; wider independent execution coverage and
+rewritten far-call witnesses remain open. See [scope](AARCH32_EXECUTION_GATES.md)
+and [evidence](results/correctness_execution_integrity_20261003.json). Item 6
+and original #12 remain active; stop at this verified stage.
 
 ## P0: confirmed defects and unsafe admission
 
@@ -131,6 +139,10 @@ all remaining #12 work stays active. Work stops at this verified milestone.
      staged publication and caught-error rollback leave existing profiles intact after late failures.
 
 6. **Make every execution/result gate prove its claimed coverage — #12/#11.**
+   - [x] Close the reproduced repetition/dump admissions; require every selected
+     redirect, stable upload/manifest/loader identities and cleanup failure
+     propagation. Reject unsafe ARM/Thumb entry-bump hooks; enforce exact
+     section restoration. Publish the bounded host/Pi stage and its limits.
    - [ ] Require selected/emitted/redirected/executed coverage and independent
      results in every optimization gate, not only the scoped full-image gate.
    - [ ] Extend ARM/Thumb/mixed inputs, flags, memory and return-value checks over

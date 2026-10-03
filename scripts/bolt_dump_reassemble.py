@@ -107,3 +107,30 @@ def parse_dump_stream(text: str, result: DumpResult | None = None) -> DumpResult
         result.total_seq = int(em.group(1), 16)
 
     return result
+
+
+def validate_single_dump(text: str, address: int, size: int) -> bytes:
+    """Validate one exact dump; retry/merge parsing alone is not a proof gate."""
+    if address < 0 or size <= 0 or address + size > 1 << 32:
+        raise ValueError('invalid expected dump extent')
+    begins, ends, lines = list(BEGIN_RE.finditer(text)), list(END_RE.finditer(text)), list(LINE_RE.finditer(text))
+    chunks = (size + 63) // 64
+    if len(begins) != 1 or len(ends) != 1 or len(lines) != chunks:
+        raise ValueError('expected one dump with exactly the required chunks')
+    begin, end = begins[0], ends[0]
+    if ((int(begin[1], 16), int(begin[2], 16)) != (address, size)
+            or (int(end[1], 16), int(end[2], 16)) != (chunks, size)
+            or begin.end() > end.start()):
+        raise ValueError('dump marker extent/order/total mismatch')
+    for line in text.splitlines():
+        if 'BOLT_DUMP' in line and not any(pattern.fullmatch(line.strip()) for pattern in (BEGIN_RE, LINE_RE, END_RE)):
+            raise ValueError('malformed dump record')
+    for sequence, line in enumerate(lines):
+        seq, off, length = [int(line[i], 16) for i in (1, 2, 3)]
+        if (line.start() < begin.end() or line.end() > end.start()
+                or (seq, off, length) != (sequence, sequence * 64, min(64, size - sequence * 64))):
+            raise ValueError('dump chunk sequence/order/extent mismatch')
+    result = parse_dump_stream(text)
+    if result.bad_seqs or not result.is_complete():
+        raise ValueError('dump checksum or completeness failure')
+    return result.to_bytes()

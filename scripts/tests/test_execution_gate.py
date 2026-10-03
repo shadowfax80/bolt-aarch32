@@ -7,8 +7,9 @@ from pathlib import Path
 import struct
 import sys
 import tempfile
+import subprocess
 import unittest
-from unittest.mock import patch
+from unittest.mock import patch, MagicMock
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path[:0] = [str(ROOT / 'scripts'), str(ROOT / 'scripts/pi4')]
@@ -126,6 +127,8 @@ class ExecutionGateTests(unittest.TestCase):
         manifest = dict(sample_buffer=dict(address=0x4000, size=64), redirected=[dict(name='function', output=0x2000, output_size=8, thumb=True)])
         raw = struct.pack('<I', pc) + b'\0' * 60
         text = ''.join(f'bolt_bench: {name} sink=0x1\n' for name in gate.parse_results.__globals__['EXPECTED_WORKLOADS'])
+        text = 'bolt_sample: on, every 20000 cycles\n' + text
+        text += 'bolt_sample: cpu 0; PMU interrupts per core: 1 0 0 0\n'
         text += f'bolt_sample: {kept} samples ({taken} taken) buf=0x{address:x} bytes=0x{kept*4:x}\n'
         text += f'BOLT_DUMP_BEGIN addr=00004000 size=00000040\nBOLT_DUMP seq=00000000 off=00000000 len=0040 crc={checksum(raw):08x} data={raw.hex()}\nBOLT_DUMP_END seq=00000001 total=00000040\n'
         return text, manifest
@@ -183,6 +186,121 @@ class ExecutionGateTests(unittest.TestCase):
             with self.subTest(flags=flags), patch.object(sys, 'argv', ['builder', str(self.out), '--redirect-functions', 'first', '--', *flags]), \
                  contextlib.redirect_stderr(io.StringIO()), self.assertRaises(SystemExit):
                 builder.main()
+
+    def test_dump_framing_cannot_certify_duplicate_or_out_of_order_data(self):
+        text, manifest = self.sample_fixture()
+        line = next(line + '\n' for line in text.splitlines() if line.startswith('BOLT_DUMP seq='))
+        for bad in (text.replace(line, line + line), text.replace('total=00000040', 'total=00000004'),
+                    line + text.replace(line, ''), text + 'BOLT_DUMP seq=invalid\n',
+                    text.replace(line, line.rstrip() + ' junk\n')):
+            with self.subTest(bad=bad[-150:]), self.assertRaises(ValueError):
+                gate.execution_evidence(bad, manifest, ['function'])
+
+    def test_subset_cannot_hide_an_unobserved_selected_redirect(self):
+        text, manifest = self.sample_fixture()
+        manifest['redirected'].append(dict(name='unobserved', output=0x3000, output_size=8, thumb=True))
+        for required in (['function'], ['function', 'unobserved'], ['function', 'function']):
+            with self.subTest(required=required), self.assertRaises(ValueError):
+                gate.execution_evidence(text, manifest, required)
+
+    def test_unaligned_arm_pc_is_not_execution_evidence(self):
+        text, manifest = self.sample_fixture(pc=0x2002)
+        manifest['redirected'][0]['thumb'] = False
+        with self.assertRaisesRegex(ValueError, 'no rewritten execution'):
+            gate.execution_evidence(text, manifest, ['function'])
+
+    def run_mock_full_gate(self, mutate=None, child_returncode=0):
+        manifest = self.artifact_fixture()
+        manifest['sample_buffer'] = dict(address=0x4000, size=64)
+        (self.out / 'full_manifest.json').write_text(json.dumps(manifest))
+        text, _ = self.sample_fixture(pc=manifest['redirected'][0]['output'])
+        calls = []
+        def child(command, timeout):
+            calls.append(command)
+            if mutate:
+                mutate(command, len(calls))
+            return subprocess.CompletedProcess(command, child_returncode, text.encode())
+        with patch.object(sys, 'argv', ['verify', str(self.out), '--repeat', '1']), \
+             patch.object(gate, 'loadable_sections', return_value=self.sections), \
+             patch.object(gate, 'run_bounded', side_effect=child), contextlib.redirect_stdout(io.StringIO()):
+            result = gate.main()
+        return result, calls
+
+    def test_full_gate_snapshots_uploads_and_records_exact_coverage(self):
+        result, calls = self.run_mock_full_gate()
+        self.assertEqual(result, 0)
+        self.assertEqual(len(calls), 2)
+        self.assertEqual(Path(calls[0][2]).name, 'baseline.bin')
+        self.assertNotEqual(Path(calls[0][2]), self.out / 'baseline.bin')
+        report = json.loads(next(self.out.glob('pi-verify-*/verification.json')).read_text())
+        self.assertEqual(report['selected_functions'], ['function'])
+        self.assertEqual(report['redirected_functions'], ['function'])
+        self.assertEqual(report['expected_workload_results'], report['workload_results'])
+        self.assertEqual(report['manifest_sha256'], gate.sha256(self.out / 'full_manifest.json'))
+
+    def test_environment_loader_is_snapshotted_and_bound_to_evidence(self):
+        loader = self.out / 'loader.img'; loader.write_bytes(b'loader fixture')
+        with patch.dict(gate.os.environ, {'PI4_FAST_LOADER': str(loader)}):
+            result, calls = self.run_mock_full_gate()
+        self.assertEqual(result, 0)
+        for command in calls:
+            upload = Path(command[command.index('--fast-loader') + 1])
+            self.assertNotEqual(upload, loader)
+            self.assertEqual(upload.read_bytes(), loader.read_bytes())
+        report = json.loads(next(self.out.glob('pi-verify-*/verification.json')).read_text())
+        self.assertEqual(report['fast_loader_sha256'], gate.sha256(loader))
+
+    def test_changed_manifest_cannot_be_certified_with_old_in_memory_ranges(self):
+        def mutate(command, number):
+            if number == 2:
+                p = self.out / 'full_manifest.json'
+                p.write_text(p.read_text() + '\n')
+        with self.assertRaisesRegex(ValueError, 'manifest changed'):
+            self.run_mock_full_gate(mutate)
+        self.assertFalse(list(self.out.glob('pi-verify-*/verification.json')))
+
+    def test_changed_upload_copy_cannot_be_certified(self):
+        def mutate(command, number):
+            if number == 2:
+                Path(command[2]).write_bytes(b'corrupt upload')
+        with self.assertRaisesRegex(ValueError, 'upload copy changed'):
+            self.run_mock_full_gate(mutate)
+        self.assertFalse(list(self.out.glob('pi-verify-*/verification.json')))
+
+    def test_failed_child_with_complete_output_never_publishes_execution(self):
+        with self.assertRaisesRegex(ValueError, 'child failed'):
+            self.run_mock_full_gate(child_returncode=7)
+        self.assertFalse(list(self.out.glob('pi-verify-*/verification.json')))
+
+    def test_legacy_arm_and_thumb_hooks_reject_before_modification(self):
+        for hook in (redirect.fix.patch_orgtext_counter_hook_arm32, redirect.fix.patch_orgtext_counter_hook_thumb):
+            data = bytearray(bytes(32)); original = bytes(data)
+            with self.assertRaisesRegex(SystemExit, 'unsupported'):
+                hook(data, 'nm', {}, 'original', ['f'], {'f': [0]}, 0x1000)
+            self.assertEqual(bytes(data), original)
+
+    def test_restoration_rejects_mismatch_and_preserves_existing_file(self):
+        original, candidate = self.out / 'source.elf', self.out / 'candidate.elf'
+        original.write_bytes(b'abcdefgh'); candidate.write_bytes(b'previous')
+        before = {'.text': (0x1000, 0, 8)}
+        for after in ({'.bolt.org.text': (0x1000, 0, 4)}, {'.bolt.org.text': (0x1004, 0, 8)},
+                      {'.bolt.org.text': (0x1000, 4, 8)}, {}):
+            with patch.object(sys, 'argv', ['fix', str(candidate), '--original', str(original)]), \
+                 patch.object(redirect.fix, 'sections', side_effect=[after, before]), self.assertRaises(SystemExit):
+                redirect.fix.main()
+            self.assertEqual(candidate.read_bytes(), b'previous')
+
+    def test_watchdog_cleanup_failure_must_fail_the_serial_child(self):
+        import pi4_run
+        image = self.out / 'image.bin'; image.write_bytes(b'fixture')
+        fake_port = MagicMock()
+        with patch.object(sys, 'argv', ['serial-run', str(image), '--post-jump-baud', '115200', '--wdog', '5', 'bolt_bench all']), \
+             patch.object(pi4_run, 'resolve_port', return_value='COM5'), \
+             patch.object(pi4_run.serial, 'Serial', return_value=fake_port), \
+             patch.object(pi4_run, 'send_image'), patch.object(pi4_run, 'Console'), \
+             patch.object(pi4_run, 'run_command', side_effect=[True, True, True, False]), self.assertRaises(SystemExit) as raised:
+            pi4_run.main()
+        self.assertEqual(raised.exception.code, 1)
 
 
 if __name__ == '__main__':

@@ -48,6 +48,8 @@ def sections(readelf: str, elf: str) -> dict[str, tuple[int, int, int]]:
     for line in out.splitlines():
         m = SECTION_RE.search(line)
         if m:
+            if m.group('name') in result:
+                raise SystemExit('ambiguous duplicate section name: ' + m.group('name'))
             result[m.group("name")] = (
                 int(m.group("addr"), 16),
                 int(m.group("off"), 16),
@@ -393,65 +395,8 @@ def patch_orgtext_counter_hook_thumb(
     counter_indices: dict[str, list[int]],
     scratch: int,
 ) -> int:
-    """Thumb org.text entry hooks that bump BOLT counter slots once per call.
-
-    Returns the next free scratch address, so a mixed ARM+Thumb batch can
-    hand off to patch_orgtext_counter_hook_arm32 without colliding stubs.
-    """
-    counter_base = section_map[".bolt.instr.counters"][0]
-    scratch &= ~1
-
-    for func in funcs:
-        entry = symbol_addr(nm, original, func)
-        if entry is None:
-            print(f"warning: skipping hook for missing symbol {func}", file=sys.stderr)
-            continue
-        entry &= ~1
-        if func not in counter_indices:
-            print(
-                f"warning: no BOLT counter indices for {func}, skipping hook",
-                file=sys.stderr,
-            )
-            continue
-        indices = counter_indices[func]
-        hook_off = vaddr_to_offset(section_map, entry)
-        displaced = thumb_displaced_len(data, hook_off)
-        probe = 0
-        while probe < displaced:
-            if thumb_insn_is_pc_relative(data, hook_off + probe):
-                raise SystemExit(
-                    f"error: {func} entry 0x{entry:x} displaces a PC-relative "
-                    f"instruction at +{probe}; it would break when relocated "
-                    f"into the stub"
-                )
-            probe += thumb_insn_len(struct.unpack_from("<H", data, hook_off + probe)[0])
-        orig_bytes = bytes(data[hook_off : hook_off + displaced])
-        resume = entry + displaced
-        stub = scratch & ~1
-
-        body = bytearray()
-        body += struct.pack("<H", 0xB403)  # push {r0, r1}
-        for counter_index in indices:
-            counter_addr = counter_base + counter_index * 8
-            body += encode_thumb_movw(0, counter_addr & 0xFFFF)
-            body += encode_thumb_movt(0, (counter_addr >> 16) & 0xFFFF)
-            body += struct.pack("<H", 0x6801)  # ldr r1, [r0]
-            body += struct.pack("<H", 0x3101)  # adds r1, #1
-            body += struct.pack("<H", 0x6001)  # str r1, [r0]
-        body += struct.pack("<H", 0xBC03)  # pop {r0, r1}
-        body += orig_bytes
-        body += encode_thumb_bw(stub + len(body), resume)
-
-        stub_off = vaddr_to_offset(section_map, stub)
-        data[stub_off : stub_off + len(body)] = body
-        data[hook_off : hook_off + 4] = encode_thumb_bw(entry, stub)
-        scratch = (stub + len(body) + 15) & ~15
-        addrs = ", ".join(f"{idx}->0x{counter_base + idx * 8:x}" for idx in indices)
-        print(
-            f"org.text thumb hook {func}: entry 0x{entry:x} -> stub 0x{stub:x}, "
-            f"counters [{addrs}]"
-        )
-    return scratch
+    """Unsupported legacy entry bumps; use BOLT-generated instrumentation."""
+    raise SystemExit("manual ARM/Thumb counter hooks are unsupported: flags, prologue relocation, scratch and exact CFG/64-bit counts are unverified; use BOLT-generated instrumentation")
 
 
 def encode_arm_movw(rd: int, imm16: int) -> int:
@@ -491,64 +436,8 @@ def patch_orgtext_counter_hook_arm32(
     counter_indices: dict[str, list[int]],
     scratch: int,
 ) -> int:
-    """ARM-mode (non-Thumb) org.text entry hooks, for AArch32 functions
-    compiled without -mthumb (e.g. BOLT_BENCH_ISA=arm test builds). Same
-    push/counter-bump/pop/orig/branch-back structure as the Thumb version,
-    but every instruction is 4 bytes and ARM-encoded throughout -- entering
-    a Thumb-encoded stub in ARM state (or vice versa) misdecodes every byte
-    that follows, which is exactly the bug this function exists to avoid.
-
-    ldr/add/str encodings below (0xe5901000 / 0xe2811001 / 0xe5801000) were
-    independently confirmed correct via a real instrumented-ARM boot
-    earlier in this investigation (see docs/KNOWN_LIMITATIONS.md, the
-    register-spill operand-order fix); push/pop/movw/movt/b were verified
-    here against llvm-mc -show-encoding ground truth.
-    """
-    counter_base = section_map[".bolt.instr.counters"][0]
-    scratch &= ~3
-
-    for func in funcs:
-        entry = symbol_addr(nm, original, func)
-        if entry is None:
-            print(f"warning: skipping hook for missing symbol {func}", file=sys.stderr)
-            continue
-        entry &= ~3
-        if func not in counter_indices:
-            print(
-                f"warning: no BOLT counter indices for {func}, skipping hook",
-                file=sys.stderr,
-            )
-            continue
-        indices = counter_indices[func]
-        hook_off = vaddr_to_offset(section_map, entry)
-        orig_bytes = bytes(data[hook_off : hook_off + 4])
-        resume = entry + 4
-        stub = scratch & ~3
-
-        insns: list[int] = [0xE92D0003]  # push {r0, r1}
-        for counter_index in indices:
-            counter_addr = counter_base + counter_index * 8
-            insns.append(encode_arm_movw(0, counter_addr & 0xFFFF))
-            insns.append(encode_arm_movt(0, (counter_addr >> 16) & 0xFFFF))
-            insns.append(0xE5901000)  # ldr r1, [r0]
-            insns.append(0xE2811001)  # add r1, r1, #1
-            insns.append(0xE5801000)  # str r1, [r0]
-        insns.append(0xE8BD0003)  # pop {r0, r1}
-
-        body = struct.pack("<" + "I" * len(insns), *insns)
-        body += orig_bytes
-        body += encode_arm_b(stub + len(body), resume)
-
-        stub_off = vaddr_to_offset(section_map, stub)
-        data[stub_off : stub_off + len(body)] = body
-        data[hook_off : hook_off + 4] = encode_arm_b(entry, stub)
-        scratch = (stub + len(body) + 15) & ~15
-        addrs = ", ".join(f"{idx}->0x{counter_base + idx * 8:x}" for idx in indices)
-        print(
-            f"org.text arm hook {func}: entry 0x{entry:x} -> stub 0x{stub:x}, "
-            f"counters [{addrs}]"
-        )
-    return scratch
+    """Unsupported legacy entry bumps; use BOLT-generated instrumentation."""
+    raise SystemExit("manual ARM/Thumb counter hooks are unsupported: flags, prologue relocation, scratch and exact CFG/64-bit counts are unverified; use BOLT-generated instrumentation")
 
 
 def patch_orgtext_counter_hook_aarch64(
@@ -685,23 +574,18 @@ def main() -> int:
         orig = fh.read()
 
     def restore(dst_name: str, src_name: str) -> None:
-        if dst_name not in dst_map:
-            print(f"warning: {args.elf} has no {dst_name}, skipping", file=sys.stderr)
-            return
         if src_name not in src_map:
-            print(f"error: {args.original} has no {src_name}", file=sys.stderr)
-            raise SystemExit(1)
-        _, dst_off, dst_size = dst_map[dst_name]
-        _, src_off, src_size = src_map[src_name]
-        copy_size = min(dst_size, src_size)
-        if dst_size != src_size:
-            print(
-                f"warning: {dst_name} size 0x{dst_size:x} != "
-                f"{src_name} size 0x{src_size:x}; copying 0x{copy_size:x}",
-                file=sys.stderr,
-            )
-        data[dst_off : dst_off + copy_size] = orig[src_off : src_off + copy_size]
-        print(f"restored {copy_size} bytes: {src_name} -> {dst_name}")
+            return
+        if dst_name not in dst_map:
+            raise SystemExit(f'missing restoration destination {dst_name}')
+        dst_addr, dst_off, dst_size = dst_map[dst_name]
+        src_addr, src_off, src_size = src_map[src_name]
+        if ((dst_addr, dst_size) != (src_addr, src_size)
+                or min(dst_off, src_off, dst_size) < 0
+                or dst_off + dst_size > len(data) or src_off + src_size > len(orig)):
+            raise SystemExit(f'restoration extent/address/size mismatch: {src_name} -> {dst_name}')
+        data[dst_off : dst_off + dst_size] = orig[src_off : src_off + src_size]
+        print(f"restored {src_size} bytes: {src_name} -> {dst_name}")
 
     for dst_name, src_name in RESTORE_RENAME:
         restore(dst_name, src_name)
@@ -716,8 +600,8 @@ def main() -> int:
         )
 
     out = args.output or args.elf
-    with open(out, "wb") as fh:
-        fh.write(data)
+    from profile_identity import publish_files
+    publish_files({out: bytes(data)})
     print(f"patched {out}")
     return 0
 

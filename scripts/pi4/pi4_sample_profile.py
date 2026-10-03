@@ -26,7 +26,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.join(HERE, ".."))
 sys.path.insert(0, HERE)
 from proc_util import run_bounded  # noqa: E402
-from bolt_dump_reassemble import parse_dump_stream  # noqa: E402
+from bolt_dump_reassemble import validate_single_dump  # noqa: E402
 from profile_identity import read_json, check_build, sha256, publish_files  # noqa: E402
 from passes_check import EXPECTED_WORKLOADS, RESULT_RE, parse_results  # noqa: E402
 
@@ -36,7 +36,7 @@ BUF_BYTES = (1 << 17) * 4  # BB_SAMPLE_MAX words in bolt_bench.c
 def validate_capture(text, buffer, workload, repeat, period):
     name = workload.split()[0]
     if name == 'all':
-        results = parse_results(text)
+        results = parse_results(text, repeat)
         expected = set(EXPECTED_WORKLOADS)
     else:
         if name not in (*EXPECTED_WORKLOADS, 'multi'):
@@ -78,14 +78,8 @@ def validate_capture(text, buffer, workload, repeat, period):
         raise ValueError('inconsistent sampling core/PMU counts')
     # The present runtime arms all cores. Preserve that fact instead of
     # claiming the sample stream belongs exclusively to the workload core.
-    if len(re.findall('BOLT_DUMP_BEGIN', text)) != 1 or len(re.findall('BOLT_DUMP_END', text)) != 1:
-        raise ValueError('expected one complete sample buffer dump')
-    result = parse_dump_stream(text)
-    if ((result.addr, result.size) != (buffer['address'], buffer['size']) or result.bad_seqs
-            or not result.is_complete() or result.total_seq != (buffer['size'] + 63) // 64
-            or any(off < 0 or off + len(data) > result.size for off, data in result.chunks.items())):
-        raise ValueError('sample dump is corrupt, incomplete or outside the image buffer')
-    return result.to_bytes()[:size], dict(kept=kept, taken=taken, workload_results=results,
+    raw = validate_single_dump(text, buffer['address'], buffer['size'])
+    return raw[:size], dict(kept=kept, taken=taken, workload_results=results,
                                          workload_core=cpu, interrupts_per_core=irqs,
                                          sampling_scope='all cores; IRQ-masked code is invisible; not exact edge counts')
 

@@ -1,5 +1,46 @@
 # ATFE correctness checkpoint - 2026-10-03
 
+## Latest: item 6 gate hardening verified; item 6 remains active
+
+Item 6's first execution/result gate hardening stage is verified; item 6
+remains active. Complete ordered workload repetitions, strict dump framing,
+every-selected-redirect PC coverage, immutable upload/manifest/loader snapshots,
+stable tool/script/revision receipts and watchdog-cleanup failure propagation are
+enforced. Unsafe legacy ARM/Thumb counter hooks reject; section restoration is
+exact and bounded. Generic comparisons explicitly claim output consistency only.
+All five reproduced admissions reject, 80 Python tests pass, and the transport
+matrix passes 7 admissions/80 rejections. Real ARM/Thumb host artifact builds pass
+both modes. Fresh Pi pass matrices pass 420 positive cases and two expected faults
+per build, with all eight images returning to the loader. The whole-LK attempt
+still rejects an unsupported transfer in arm_reset; no whole-LK or rewritten
+far-call execution is claimed. No LLVM source changes were made (overlay 0043).
+Next is the remaining item 6 execution/oracle/legacy-path work; #12 stays active.
+See [gate scope and remaining work](AARCH32_EXECUTION_GATES.md),
+[evidence](results/correctness_execution_integrity_20261003.json) and
+[status table](CORRECTNESS_PRIORITY_TODO.md).
+
+Evidence/preimages/afterimages are in `out/correctness/execution-integrity-20261003`.
+Final tests are `python-tests-release.log` and `python-test-result.json` (80 pass).
+`before.json`/`after.json` preserve the five reproduced admissions and rejections;
+`dump-boundaries.json` preserves seven valid sizes and 80 malformed cases.
+`checked-host-builds` contains the final real ARM/Thumb artifact checks in both
+build modes. `inline-on/off` contains fresh eight-image Pi build and verification
+manifests; both modes pass 420 positive cases and detect both deliberate faults.
+`full-on/full.log` is the rejected whole-LK diagnostic, not execution evidence.
+
+One-time hook removal and source/evidence snapshot helpers already ran; preserve
+the evidence and do not rerun fresh-directory builders blindly. LLVM source is
+unchanged from 0043. Tool/revision hashes do not certify clean compiler provenance.
+
+Stop at this verified stage under the user's earlier milestone instruction. On
+resume, continue item 6 with independent ARM/Thumb/mixed execution witnesses,
+additional inputs/state/memory/fault/timeouts, rewritten far-call coverage and
+the remaining legacy/comparison-path audit. Do not weaken the arm_reset admission
+guard to obtain a whole-LK result. Items 7/11 retain the automatic v7 thunk caveat;
+10/14 retain PMU ownership and clean-build provenance. Original #12 stays active.
+Preserve dirty ATFE/LK, unrelated Microsoft/ and all evidence.
+
+
 ## Latest: consolidated queue item 5 verified in 0043; milestone stop
 
 Consolidated queue item 5 is scoped verified in overlay 0043 for the sealed

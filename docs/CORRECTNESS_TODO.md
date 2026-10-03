@@ -1,5 +1,24 @@
 # ATFE correctness TODO
 
+## Follow-up: execution gate hardening, item 6 active (2026-10-03)
+
+Item 6's first execution/result gate hardening stage is verified; item 6
+remains active. Complete ordered workload repetitions, strict dump framing,
+every-selected-redirect PC coverage, immutable upload/manifest/loader snapshots,
+stable tool/script/revision receipts and watchdog-cleanup failure propagation are
+enforced. Unsafe legacy ARM/Thumb counter hooks reject; section restoration is
+exact and bounded. Generic comparisons explicitly claim output consistency only.
+All five reproduced admissions reject, 80 Python tests pass, and the transport
+matrix passes 7 admissions/80 rejections. Real ARM/Thumb host artifact builds pass
+both modes. Fresh Pi pass matrices pass 420 positive cases and two expected faults
+per build, with all eight images returning to the loader. The whole-LK attempt
+still rejects an unsupported transfer in arm_reset; no whole-LK or rewritten
+far-call execution is claimed. No LLVM source changes were made (overlay 0043).
+Next is the remaining item 6 execution/oracle/legacy-path work; #12 stays active.
+See [gate scope and remaining work](AARCH32_EXECUTION_GATES.md),
+[evidence](results/correctness_execution_integrity_20261003.json) and
+[status table](CORRECTNESS_PRIORITY_TODO.md).
+
 ## Follow-up: exact profile/artifact identity (2026-10-03)
 
 Consolidated queue item 5 is scoped verified in overlay 0043 for the sealed
