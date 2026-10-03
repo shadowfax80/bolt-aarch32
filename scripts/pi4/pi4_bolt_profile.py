@@ -4,13 +4,10 @@
 Boots a BOLT-instrumented LK image (llvm-bolt -instrument, then objcopy -O
 binary), runs the training workload, then reads the `.bolt.instr.counters`
 section back over UART with `bolt_dump` (checksum-verified chunk by chunk).
-The output is byte-for-byte what QEMU's QMP memsave used to produce, so
-ram-dump-to-fdata.py converts it to .fdata unchanged.
-
-The section address/size come from the instrumented ELF on the build host:
-    llvm-readelf --sections lk.instr.elf | grep bolt.instr.counters
-
-usage: pi4_bolt_profile.py <instr.bin> <out.bin> --addr 8002a000 --size 100d
+Verified collection requires a pre-capture seal plus the exact original ELF,
+instrumented ELF, emitted function map, toolchain and source replay report.
+The counter extent comes from that seal. --debug-unbound requires a manual
+extent and produces diagnostic output excluded from verified optimization.
 """
 
 from __future__ import annotations
@@ -19,42 +16,111 @@ import argparse
 import os
 import subprocess
 import sys
+import json
+import shutil
+import tempfile
+from pathlib import Path
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.join(HERE, ".."))
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from proc_util import run_bounded  # noqa: E402
 from bolt_dump_reassemble import parse_dump_stream  # noqa: E402
+from profile_identity import read_json, sha256, publish_files  # noqa: E402
+from counter_identity import check_build  # noqa: E402
+
+
+def validate_dump(text, layout):
+    import re
+    from bolt_dump_reassemble import BEGIN_RE, LINE_RE, END_RE
+    result = parse_dump_stream(text)
+    lines = list(LINE_RE.finditer(text))
+    chunks = (layout['size'] + 63) // 64
+    begin, end = BEGIN_RE.search(text), END_RE.search(text)
+    if (len(BEGIN_RE.findall(text)) != 1 or len(END_RE.findall(text)) != 1
+            or (result.addr, result.size) != (layout['address'], layout['size'])
+            or result.bad_seqs or not result.is_complete() or result.total_seq != chunks
+            or len(lines) != chunks):
+        raise ValueError('counter dump is corrupt, duplicated, incomplete or misplaced')
+    if (int(end[2], 16) != layout['size'] or begin.end() > end.start()
+            or any(line.start() < begin.end() or line.end() > end.start() for line in lines)):
+        raise ValueError('counter dump marker order/total mismatch')
+    for sequence, line in enumerate(lines):
+        seq, off, length = [int(line[i], 16) for i in (1, 2, 3)]
+        if (seq, off, length) != (sequence, 64 * sequence, min(64, layout['size'] - 64 * sequence)):
+            raise ValueError('counter dump chunk extent/sequence mismatch')
+    return result.to_bytes()
 
 
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("image")
     ap.add_argument("out")
-    ap.add_argument("--addr", required=True, help="counter section address (hex)")
-    ap.add_argument("--size", required=True, help="counter section size (hex)")
+    ap.add_argument("--addr", help="optional counter address (hex); must match seal")
+    ap.add_argument("--size", help="optional counter size (hex); must match seal")
+    ap.add_argument('--elf')
+    ap.add_argument('--original')
+    ap.add_argument('--function-map')
+    ap.add_argument('--source-replay')
+    ap.add_argument('--toolchain', default='build-atfe/bin')
+    ap.add_argument('--patch-dir', default=str(Path(HERE).parents[1] / 'overlay/llvm/patches/atfe'))
+    ap.add_argument('--build-manifest', help='default: IMAGE.manifest.json, sealed before capture')
+    ap.add_argument('--debug-unbound', action='store_true')
     ap.add_argument("--workload", default="composite")
     ap.add_argument("--port", default="COM5")
     args = ap.parse_args()
+    evidence = Path(tempfile.mkdtemp(prefix='pi-counters-', dir=Path(args.out).resolve().parent))
+    build = None
+    manifest_path = args.build_manifest or args.image + '.manifest.json'
+    if not args.debug_unbound:
+        if not all((args.elf, args.original, args.function_map, args.source_replay)):
+            ap.error('verified counter capture requires --elf, --original, --function-map and --source-replay')
+        build = read_json(manifest_path)
+        check_build(build, args.original, args.elf, args.function_map, args.image,
+                    args.toolchain, args.patch_dir, args.source_replay)
+        manifest_hash = sha256(manifest_path)
+        layout = build['metadata']['counter_layout']
+        if ((args.addr and int(args.addr, 16) != layout['address'])
+                or (args.size and int(args.size, 16) != layout['size'])):
+            raise ValueError('requested counter range differs from sealed ELF')
+        args.addr, args.size = f"{layout['address']:x}", f"{layout['size']:x}"
+    elif not args.addr or not args.size:
+        ap.error('diagnostic capture requires --addr and --size')
+    image = evidence / 'image.bin'
+    shutil.copyfile(args.image, image)
+    if build and sha256(image) != build['artifacts']['image']:
+        raise ValueError('image changed while making immutable upload copy')
 
     cmd = [
-        sys.executable, os.path.join(HERE, "pi4_run.py"), args.image,
+        sys.executable, os.path.join(HERE, "pi4_run.py"), str(image),
         "--port", args.port, "--reboot", "--wait", "30", "--max-wait", "60",
         f"bolt_bench {args.workload}", f"bolt_dump {args.addr} {args.size}",
     ]
     out = run_bounded(cmd, 900)
     text = out.stdout.decode("utf-8", errors="replace")
+    log = evidence / 'capture.log'; log.write_text(text, encoding='utf-8')
     if out.returncode != 0:
         sys.exit(f"pi4_run.py failed ({out.returncode}):\n{text[-2000:]}")
 
-    result = parse_dump_stream(text)
-    if result.bad_seqs:
-        print(f"note: {len(result.bad_seqs)} chunk(s) failed checksum", file=sys.stderr)
-    if not result.is_complete():
-        sys.exit(f"dump incomplete: missing {result.missing_ranges()}")
-    blob = result.to_bytes()
-    with open(args.out, "wb") as fh:
-        fh.write(blob)
+    blob = validate_dump(text, dict(address=int(args.addr, 16), size=int(args.size, 16)))
+    if build:
+        import struct
+        if struct.unpack_from('<I', blob, layout['count_address'] - layout['address'])[0] != layout['count']:
+            raise ValueError('captured counter count differs from pre-capture seal')
+    if build:
+        check_build(build, args.original, args.elf, args.function_map, args.image,
+                    args.toolchain, args.patch_dir, args.source_replay)
+        if sha256(manifest_path) != manifest_hash:
+            raise ValueError('counter build manifest changed during capture')
+    import hashlib
+    capture = dict(schema=1, kind='arm-counter-capture', verified_binding=bool(build),
+                   build=build, build_manifest_sha256=manifest_hash if build else None,
+                   payload_sha256=hashlib.sha256(blob).hexdigest(), log_sha256=sha256(log),
+                   collector_sha256=sha256(__file__), evidence=str(evidence),
+                   range=dict(address=int(args.addr, 16), size=int(args.size, 16)),
+                   workload=args.workload, limitation='identity binding only; workload semantics are a separate gate')
+    publish_files({args.out: blob, args.out + '.manifest.json':
+                   (json.dumps(capture, indent=2) + '\n').encode('utf-8')})
     print(f"wrote {len(blob)} bytes to {args.out}")
     return 0
 

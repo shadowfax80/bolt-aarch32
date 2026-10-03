@@ -5,8 +5,8 @@ Updated 2026-10-03 from [the fresh review](CORRECTNESS_REVIEW_0038.md) and
 Queue positions below are new priorities; the original twelve workstream IDs
 remain stable in [CORRECTNESS_TODO.md](CORRECTNESS_TODO.md).
 
-ATFE only. Items 1-4 have verified scoped fixes in overlays 0039-0042.
-Next is item 5, exact profile/artifact identity. The user
+ATFE only. Items 1-5 have verified scoped fixes in overlays 0039-0043.
+Next is item 6, execution/result gate integrity. The user
 reactivated #12 on 2026-10-02; all its remaining work is included below. Nothing
 is paused in this correctness queue. Three original
 items are complete in their bounded scope (#2/#8/#10); nine remain open.
@@ -19,8 +19,8 @@ items are complete in their bounded scope (#2/#8/#10); nine remain open.
 | 2 · P0 | Thumb instrumentation startup crash | Verified for static entry and dummy-fini scope; 0040 + Pi |
 | 3 · P0 | ISA/profile/ABI admission | Verified conservative contract; 0041 + Pi |
 | 4 · P0 | Fixed-load ELF/PIE boundary | Verified fixed-load admission; 0042 |
-| 5 · P0 | Exact profile/artifact identity | Next; original #12 active |
-| 6 · P0 | Execution/result gate integrity | Remaining work pending |
+| 5 · P0 | Exact profile/artifact identity | Verified sealed pipeline scope; 0043; #12 active |
+| 6 · P0 | Execution/result gate integrity | Next; original #12 active |
 | 7 · P1 | Relocation/literal matrix | Partial; remaining work pending |
 | 8 · P1 | Control-flow/mutation invariants | Partial; remaining work pending |
 | 9 · P1 | Interrupt/reentrancy boundaries | Partial; remaining work pending |
@@ -59,6 +59,14 @@ focused suites 51/50 and CoreTests 58/31 skips. Original static PIE now rejects
 before output; prior PIE/DT_FINI admissions are superseded. Supported Pi bytes
 match the executed 0041 fixtures. See [contract](AARCH32_FIXED_LOAD_CONTRACT.md)
 and [evidence](results/correctness_fixed_load_20261003.json). Next is item 5;
+all remaining #12 work stays active. Work stops at this verified milestone.
+
+Item 5: scoped sealed-pipeline identity verified in 0043. Both builds pass 300
+host cases each; 65 Python tests and four wrapper rejection checks pass.
+Captures are synthetic; no fresh hardware execution is claimed. Unsealed
+legacy captures are excluded; crash/power-loss atomicity and clean build
+provenance are not claimed. See [contract](AARCH32_PROFILE_IDENTITY.md) and
+[evidence](results/correctness_profile_identity_20261003.json). Next is item 6;
 all remaining #12 work stays active. Work stops at this verified milestone.
 
 ## P0: confirmed defects and unsafe admission
@@ -115,12 +123,12 @@ all remaining #12 work stays active. Work stops at this verified milestone.
      or dynamic finalization support is claimed; broader code/reference proof stays open.
 
 5. **Bind counter profiles and every artifact to exact inputs — #12.**
-   - [ ] Validate every named counter location/offset against the exact original
+   - [x] Validate every named counter location/offset against the exact original
      ELF/function/map before fdata publication; string consistency alone is insufficient.
-   - [ ] Bind dumps, counters, metadata, maps, profiles and tools to image and
+   - [x] Bind dumps, counters, metadata, maps, profiles and tools to image and
      patch digests; reject stale/mismatched artifacts and ambiguous source identity.
-   - [ ] Extend deliberate wrong-image/wrong-map/wrong-offset tests and verify
-     atomic publication leaves existing profiles intact after late failures.
+   - [x] Extend deliberate wrong-image/wrong-map/wrong-offset tests and verify
+     staged publication and caught-error rollback leave existing profiles intact after late failures.
 
 6. **Make every execution/result gate prove its claimed coverage — #12/#11.**
    - [ ] Require selected/emitted/redirected/executed coverage and independent
@@ -135,6 +143,10 @@ all remaining #12 work stays active. Work stops at this verified milestone.
 ## P1: required boundaries and wider correctness proof
 
 7. **Complete the relocation and literal-load matrix — #1.**
+   - [ ] Resolve automatic v7 thunk recognition and retained-target routes:
+     the reviewed retained MOVW/MOVT thunk names the old target, while the tested
+     caller uses a correct new stub. This is an open route caveat; no tested
+     runtime failure was demonstrated (also item 11).
    - [ ] Publish each relocation's recognition, addend extraction, MC emission,
      JITLink application, pending-write and kept-code behavior.
    - [ ] Resolve the core/JITLink declaration differences and justify skips;

@@ -19,6 +19,7 @@ import re
 import shutil
 import sys
 import tempfile
+import json
 from pathlib import Path
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -26,7 +27,7 @@ sys.path.insert(0, os.path.join(HERE, ".."))
 sys.path.insert(0, HERE)
 from proc_util import run_bounded  # noqa: E402
 from bolt_dump_reassemble import parse_dump_stream  # noqa: E402
-from profile_identity import read_json, check_build, sha256, write_json  # noqa: E402
+from profile_identity import read_json, check_build, sha256, publish_files  # noqa: E402
 from passes_check import EXPECTED_WORKLOADS, RESULT_RE, parse_results  # noqa: E402
 
 BUF_BYTES = (1 << 17) * 4  # BB_SAMPLE_MAX words in bolt_bench.c
@@ -151,8 +152,8 @@ def main() -> int:
                    log_sha256=sha256(log), log_path=str(log), period=args.period,
                    workload=args.workload, repetitions=args.repeat, port=args.port,
                    collector_sha256=sha256(__file__), **observations)
-    os.replace(staged, args.out)
-    write_json(args.out + '.manifest.json', capture)
+    publish_files({args.out: staged.read_bytes(), args.out + '.manifest.json':
+                   (json.dumps(capture, indent=2) + '\n').encode('utf-8')})
     print(f"wrote {observations['kept']} samples (period {args.period} cycles) to {args.out}")
     print(f'capture evidence: {evidence}')
     return 0

@@ -19,8 +19,9 @@ import struct
 import subprocess
 import sys
 import tempfile
+import json
 
-from profile_identity import (check_capture, sha256, validate_sample_fdata, write_json)
+from profile_identity import (check_capture, sha256, validate_sample_fdata, publish_files)
 
 
 def load_samples(path: str) -> tuple[int, ...]:
@@ -84,11 +85,9 @@ def main() -> int:
                                 build=capture['build'] if capture else None,
                                 profile_scope=profile_scope,
                                 limitations='IRQ-masked code is invisible; PC frequencies are not exact edge counts')
-        os.replace(staged_preagg, preagg)
-        os.replace(staged_fdata, destination)
-        # A crash between profile and sidecar publication leaves a hash mismatch,
-        # so a consumer fails closed rather than accepting the previous identity.
-        write_json(destination + '.manifest.json', profile_manifest)
+        from pathlib import Path
+        publish_files({preagg: Path(staged_preagg).read_bytes(), destination: Path(staged_fdata).read_bytes(),
+                       destination + '.manifest.json': (json.dumps(profile_manifest, indent=2) + '\n').encode('utf-8')})
     print(f"{len(words)} samples, {len(counts)} distinct PCs -> {args.out}")
     return 0
 

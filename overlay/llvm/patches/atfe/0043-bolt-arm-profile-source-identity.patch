@@ -1,0 +1,63 @@
+--- a/bolt/lib/Rewrite/RewriteInstance.cpp
++++ b/bolt/lib/Rewrite/RewriteInstance.cpp
+@@ -61,6 +61,7 @@
+ #include "llvm/Support/FileSystem.h"
+ #include "llvm/Support/ManagedStatic.h"
+ #include "llvm/Support/Timer.h"
++#include "llvm/Support/SHA256.h"
+ #include "llvm/Support/ToolOutputFile.h"
+ #include "llvm/Support/raw_ostream.h"
+ #include <algorithm>
+@@ -607,6 +608,20 @@
+     BC->initializeThumbTarget(std::unique_ptr<MCPlusBuilder>(createMCPlusBuilder(
+         BC->TheTriple->getArch(), BC->MIA.get(), BC->MII.get(), BC->MRI.get(),
+         BC->ThumbSTI.get())));
++
++  if (BC->isARM() && opts::Instrument) {
++    // Bind host-only profile metadata to the exact input buffer that BOLT read,
++    // including data and symbols; owner ranges alone cannot establish identity.
++    const auto Digest = SHA256::hash(
++        arrayRefFromStringRef(File->getMemoryBufferRef().getBuffer()));
++    const StringRef Bytes(reinterpret_cast<const char *>(Digest.data()),
++                          Digest.size());
++    const std::string SourceNote =
++        BinarySection::encodeELFNote("BOLTARM", Bytes, 0x41524d02);
++    BC->registerOrUpdateNoteSection(".bolt.arm.source", copyByteArray(SourceNote),
++                                   SourceNote.size(), /*Alignment=*/1,
++                                   /*IsReadOnly=*/true, ELF::SHT_NOTE);
++  }
+ 
+   BAT = std::make_unique<BoltAddressTranslation>();
+ 
+--- a/bolt/lib/RuntimeLibs/InstrumentationRuntimeLibrary.cpp
++++ b/bolt/lib/RuntimeLibs/InstrumentationRuntimeLibrary.cpp
+@@ -383,4 +383,29 @@
+                                  BoltInfo.size(),
+                                  /*Alignment=*/1,
+                                  /*IsReadOnly=*/true, ELF::SHT_NOTE);
++  if (BC.isARM()) {
++    // The runtime tables omit owner names for leaf-only functions. Preserve an
++    // explicit descriptor-order identity in a non-loaded note for host profile
++    // validation; never infer owners from a user-supplied function-name order.
++    std::string Owners = "BAP1";
++    auto append = [&](uint64_t Value, unsigned Size) {
++      for (unsigned I = 0; I < Size; ++I)
++        Owners.push_back(char(Value >> (8 * I)));
++    };
++    append(Summary->FunctionDescriptions.size(), 4);
++    for (const FunctionDescription &Desc : Summary->FunctionDescriptions) {
++      const BinaryFunction &Function = *Desc.Function;
++      const StringRef Name = Function.getOneName();
++      append(Function.getAddress(), 8);
++      append(Function.getSize(), 8);
++      append(Function.isARMThumb(), 1);
++      append(Name.size(), 4);
++      Owners.append(Name.data(), Name.size());
++    }
++    const std::string OwnerNote = BinarySection::encodeELFNote(
++        "BOLTARM", Owners, 0x41524d01);
++    BC.registerOrUpdateNoteSection(".bolt.arm.profile", copyByteArray(OwnerNote),
++                                  OwnerNote.size(), /*Alignment=*/1,
++                                  /*IsReadOnly=*/true, ELF::SHT_NOTE);
++  }
+ }

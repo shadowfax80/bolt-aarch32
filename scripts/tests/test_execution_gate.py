@@ -100,11 +100,18 @@ class ExecutionGateTests(unittest.TestCase):
         profile = self.out / 'profile.fdata'
         sidecar = self.out / 'profile.fdata.manifest.json'
         profile.write_text('no_lbr\n1 function 0 1\n')
+        digest = 'a' * 64
+        source_digest = gate.sha256(self.out / 'baseline.elf')
+        functions = [dict(name='function', address=0x1000, size=8, thumb=False, kind=2)]
+        build = dict(schema=1, kind='pi-sampling-build', elf_sha256=source_digest,
+                     source_elf_sha256=source_digest, binary_sha256=digest, functions=functions,
+                     tools={n: digest for n in ('llvm-bolt', 'perf2bolt', 'llvm-objcopy')}, patches={'test.patch': digest})
         identity = dict(schema=1, kind='bolt-profile', verified_binding=True,
+                        profile_type='pc-samples', build=build, capture_manifest_sha256=digest, perf2bolt_sha256=digest,
                         profile_sha256=gate.sha256(profile), source_elf_sha256=gate.sha256(self.out / 'baseline.elf'))
         sidecar.write_text(json.dumps(identity))
         manifest['profile'] = dict(profile_sha256=gate.sha256(profile), manifest_sha256=gate.sha256(sidecar))
-        with patch.object(gate, 'loadable_sections', return_value=self.sections):
+        with patch.object(gate, 'loadable_sections', return_value=self.sections), patch('profile_identity.elf_metadata', return_value=([], identity['build']['functions'])):
             gate.check_artifacts(self.out, manifest)
             identity['verified_binding'] = False
             sidecar.write_text(json.dumps(identity))

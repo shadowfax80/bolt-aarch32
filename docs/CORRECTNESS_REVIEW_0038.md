@@ -1,5 +1,23 @@
 # ATFE correctness re-evaluation through overlay 0038
 
+## Follow-up: exact profile/artifact identity (2026-10-03)
+
+Consolidated queue item 5 is scoped verified in overlay 0043 for the sealed
+ARM counter and PC-sampling pipelines. Instrumentation records exact source-input
+SHA-256 and descriptor owners; seals bind ELFs, map, image, tools and patch/source
+identity. Capture, conversion and consumption reject stale artifacts and invalid
+source offsets. Publication stages output bundles and rolls back caught errors;
+crash/power-loss atomicity is not claimed. Both builds pass 300 cases each
+(12 admissions, 288 rejections), focused suites 51/50 and CoreTests 58/31 skips.
+All 65 Python tests and four wrapper rejection checks pass. All 43 overlays replay
+exactly; fresh supported Pi bytes equal the executed 0041 payloads. Captures in
+this milestone are synthetic host fixtures; no fresh hardware execution is claimed.
+Legacy unsealed captures are excluded from verified optimization. Item 6 is next;
+original #12 remains active, including PMU and clean-build provenance work.
+See [the identity contract](AARCH32_PROFILE_IDENTITY.md),
+[evidence](results/correctness_profile_identity_20261003.json) and
+[status table](CORRECTNESS_PRIORITY_TODO.md).
+
 ## Follow-up: fixed-load ELF boundary (2026-10-03)
 
 Consolidated queue item 4 is scoped verified in overlay 0042. Both ordinary

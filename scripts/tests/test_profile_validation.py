@@ -93,7 +93,7 @@ class ValidationTests(unittest.TestCase):
         counter_file = self.blob(struct.pack('<IIQ', 1, 0, 7))
         valid_edge = struct.pack('<II', 0, 1) + struct.pack('<IIIIIII', 0, 0, 0, 0, 4, 1, 0) + struct.pack('<II', 0, 0)
         ctx = dump.ProfileWriterContext(valid_edge + b'\x01', b'leaf\0')
-        args = ['converter', '--elf', str(elf), '--dump', counter_file, '-o', str(output)]
+        args = ['converter', '--elf', str(elf), '--dump', counter_file, '-o', str(output), '--debug-unbound']
         stdout = io.StringIO()
         with patch.object(sys, 'argv', args), patch.object(dump, 'section_info', return_value=(0, 0, 0)), \
              patch.object(dump, 'parse_tables_note', return_value=ctx), \
@@ -231,7 +231,9 @@ class ValidationTests(unittest.TestCase):
             identity.check_capture(manifest, payload, elf, 'pi-pc-capture')
         profile = self.base / 'profile.fdata'; profile.write_text('no_lbr\n1 foo 0 1\n')
         identity.write_json(str(profile) + '.manifest.json', dict(schema=1, kind='bolt-profile',
-                            verified_binding=True, source_elf_sha256=identity.sha256(elf), profile_sha256=identity.sha256(profile)))
+                            verified_binding=True, profile_type='pc-samples', build=build,
+                            capture_manifest_sha256='a' * 64, perf2bolt_sha256=build['tools']['perf2bolt'],
+                            source_elf_sha256=identity.sha256(elf), profile_sha256=identity.sha256(profile)))
         identity.check_profile(elf, profile)
         profile.write_text('no_lbr\n1 foo 0 2\n')
         with self.assertRaises(ValueError):
@@ -408,6 +410,87 @@ class ValidationTests(unittest.TestCase):
         for path in ('../outside', '/outside', 'C:/outside', '.git/config', 'nested/.git/config', 'nested\\outside'):
             with self.subTest(path=path), self.assertRaises(ValueError):
                 overlay_replay.safe_path(path)
+
+    def test_publication_rolls_back_payload_when_sidecar_replace_fails(self):
+        a, b = self.base / 'profile', self.base / 'identity'
+        a.write_bytes(b'old profile'); b.write_bytes(b'old identity')
+        replace = identity.os.replace
+        calls = [0]
+        def fail_once(source, target):
+            calls[0] += 1
+            if calls[0] == 2:
+                raise OSError('late sidecar publication failure')
+            return replace(source, target)
+        with patch.object(identity.os, 'replace', side_effect=fail_once), self.assertRaises(OSError):
+            identity.publish_files({a: b'new profile', b: b'new identity'})
+        self.assertEqual(a.read_bytes(), b'old profile')
+        self.assertEqual(b.read_bytes(), b'old identity')
+
+    def test_counter_profile_consumer_checks_offsets_even_with_matching_hashes(self):
+        elf, binary, tools, build = self.identity_fixture()
+        digest = 'a' * 64
+        _, symbols = identity.elf_metadata(elf.read_bytes())
+        owner = {k: symbols[0][k] for k in ('name', 'address', 'size', 'thumb')}
+        counter_build = dict(schema=1, kind='arm-counter-build', verified_binding=True,
+            artifacts=dict(original=identity.sha256(elf), elf=digest, mapping=digest, image=digest, replay=digest),
+            tools={name: digest for name in ('llvm-bolt', 'llvm-readelf', 'llvm-nm', 'llvm-objdump', 'llvm-objcopy')},
+            patches={'test.patch': digest}, source_identity_sha256=digest, metadata=dict(owners=[owner]))
+        profile = self.base / 'counter.fdata'
+        for offset in ('0', '7', '8', '-1'):
+            profile.write_text(f'1 foo {offset} 1 foo 0 0 7\n')
+            identity.write_json(str(profile) + '.manifest.json', dict(schema=1, kind='bolt-profile',
+                profile_type='arm-counters', verified_binding=True, source_elf_sha256=identity.sha256(elf),
+                profile_sha256=identity.sha256(profile), build=counter_build, capture_manifest_sha256=digest))
+            if offset in ('0', '7'):
+                identity.check_profile(elf, profile)
+            else:
+                with self.assertRaises(ValueError):
+                    identity.check_profile(elf, profile)
+        functions = [s for s in symbols if s['kind'] == 2]
+        identity.validate_counter_fdata(f'1 foo 0 1 foo 0 0 {(1 << 64) - 1}\n', functions)
+        with self.assertRaises(ValueError):
+            identity.validate_counter_fdata(f'1 foo 0 1 foo 0 0 {1 << 64}\n', functions)
+        with self.assertRaises(ValueError):
+            identity.validate_counter_fdata('1 foo/1 0 1 foo/1 0 0 1\n', functions + functions)
+
+    def test_failed_counter_child_preserves_payload_and_identity(self):
+        counter_collector = load('failed_counter_collector', 'scripts/pi4/pi4_bolt_profile.py')
+        elf, binary, tools, _ = self.identity_fixture()
+        build = dict(schema=1, artifacts=dict(image=identity.sha256(binary)),
+                     metadata=dict(counter_layout=dict(address=0x9000, size=8, count_address=0x9000, count=1)))
+        identity.write_json(str(binary) + '.manifest.json', build)
+        output = self.base / 'counters.bin'; output.write_bytes(b'previous payload')
+        sidecar = pathlib.Path(str(output) + '.manifest.json'); sidecar.write_bytes(b'previous identity')
+        args = ['collector', str(binary), str(output), '--elf', str(elf), '--original', str(elf),
+                '--function-map', 'map', '--source-replay', 'replay']
+        child = subprocess.CompletedProcess([], 7, b'failed boot')
+        with patch.object(sys, 'argv', args), patch.object(counter_collector, 'check_build'), \
+                patch.object(counter_collector, 'run_bounded', return_value=child):
+            with self.assertRaises(SystemExit):
+                counter_collector.main()
+        self.assertEqual(output.read_bytes(), b'previous payload')
+        self.assertEqual(sidecar.read_bytes(), b'previous identity')
+
+    def test_owner_hint_cannot_override_named_descriptor_locations(self):
+        f = self.graph_function([self.edge(0, 1, 0)])
+        ctx = dump.ProfileWriterContext(b'', b'function\0')
+        with self.assertRaisesRegex(ValueError, 'explicit owner'):
+            dump.validate_function(ctx, f, [7], owner_name='other')
+        leaf = self.graph_function([], [dump.InstrumentedNode(0, 0)])
+        dump.validate_function(dump.ProfileWriterContext(b'', b''), leaf, [7], owner_name='function')
+
+    def test_counter_wire_rejects_wrong_range_duplicate_and_bad_crc(self):
+        counter_collector = load('bound_counter_collector', 'scripts/pi4/pi4_bolt_profile.py')
+        import bolt_dump_reassemble as wire
+        blob = bytes(8)
+        line = f'BOLT_DUMP seq=0 off=0 len=8 crc={wire.checksum(blob):x} data={blob.hex()}\n'
+        text = 'BOLT_DUMP_BEGIN addr=9000 size=8\n' + line + 'BOLT_DUMP_END seq=1 total=8\n'
+        self.assertEqual(counter_collector.validate_dump(text, dict(address=0x9000, size=8)), blob)
+        for bad in (text.replace('addr=9000', 'addr=9004'), text.replace(line, line + line),
+                    text.replace(f'crc={wire.checksum(blob):x}', f'crc={wire.checksum(blob) ^ 1:x}'), text.replace('seq=1 total', 'seq=2 total'),
+                    text.replace('total=8', 'total=7'), line + text.replace(line, '')):
+            with self.assertRaises(ValueError):
+                counter_collector.validate_dump(bad, dict(address=0x9000, size=8))
 
 
 if __name__ == '__main__':

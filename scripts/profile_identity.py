@@ -14,6 +14,7 @@ from pathlib import Path
 import re
 import struct
 import tempfile
+import shutil
 
 
 def sha256(path):
@@ -43,6 +44,56 @@ def write_json(path, value):
     finally:
         if staged and os.path.exists(staged):
             os.unlink(staged)
+
+
+def publish_files(files):
+    """Stage the whole bundle before replacing anything; roll back caught I/O errors.
+
+    A process/power failure between replacements is not a transaction. Hash-bound
+    consumers reject such mixed generations. Validation must precede this call.
+    """
+    destinations = [Path(p).resolve() for p in files]
+    if len(set(destinations)) != len(destinations):
+        raise ValueError('duplicate publication path')
+    with tempfile.TemporaryDirectory(dir=destinations[0].parent) as directory:
+        staged, previous, replaced = {}, {}, []
+        for i, (path, data) in enumerate(zip(destinations, files.values())):
+            stage = Path(directory) / (str(i) + '.new')
+            stage.write_bytes(data)
+            staged[path] = stage
+            backup = Path(directory) / (str(i) + '.old')
+            if path.exists():
+                shutil.copyfile(path, backup)
+                previous[path] = backup
+            else:
+                previous[path] = None
+        try:
+            for path in destinations:
+                os.replace(staged[path], path)
+                replaced.append(path)
+        except BaseException:
+            for path in reversed(replaced):
+                if previous[path] is None:
+                    path.unlink(missing_ok=True)
+                else:
+                    os.replace(previous[path], path)
+            raise
+
+
+def check_load_image(elf, image):
+    elf_blob, image_blob = Path(elf).read_bytes(), Path(image).read_bytes()
+    sections, _ = elf_metadata(elf_blob)
+    loaded = [s for s in sections if 'physical' in s]
+    if not loaded:
+        raise ValueError('ELF has no uploaded sections')
+    base = min(s['physical'] for s in loaded)
+    end = max(s['physical'] + s['size'] for s in loaded)
+    if len(image_blob) != end - base:
+        raise ValueError('binary length does not match ELF load image')
+    for s in loaded:
+        off = s['physical'] - base
+        if image_blob[off:off + s['size']] != elf_blob[s['offset']:s['offset'] + s['size']]:
+            raise ValueError('uploaded binary differs from ELF section ' + s['name'])
 
 
 def elf_metadata(blob):
@@ -209,7 +260,72 @@ def check_profile(elf, profile, manifest_path=None):
     if (manifest.get('kind') != 'bolt-profile' or manifest.get('verified_binding') is not True
             or manifest['source_elf_sha256'] != sha256(elf) or manifest['profile_sha256'] != sha256(profile)):
         raise ValueError('profile is unbound or belongs to another image')
+    _, symbols = elf_metadata(Path(elf).read_bytes())
+    functions = [s for s in symbols if s['kind'] == 2]
+    valid_digest = lambda value: isinstance(value, str) and re.fullmatch(r'[0-9a-f]{64}', value)
+    if manifest.get('profile_type') == 'pc-samples':
+        build = manifest.get('build', {})
+        if (build.get('schema') != 1 or build.get('kind') != 'pi-sampling-build'
+                or build.get('elf_sha256') != manifest['source_elf_sha256']
+                or build.get('source_elf_sha256') != manifest['source_elf_sha256']
+                or not valid_digest(build.get('binary_sha256'))
+                or set(build.get('tools', {})) != {'llvm-bolt', 'perf2bolt', 'llvm-objcopy'}
+                or not all(valid_digest(v) for v in build['tools'].values())
+                or manifest.get('perf2bolt_sha256') != build['tools']['perf2bolt']
+                or not build.get('patches') or not all(valid_digest(v) for v in build['patches'].values())
+                or not valid_digest(manifest.get('capture_manifest_sha256'))):
+            raise ValueError('incomplete sampling profile identity receipt')
+        if manifest['build']['functions'] != functions:
+            raise ValueError('profile source metadata disagrees with ELF')
+        validate_sample_fdata(profile, functions)
+    elif manifest.get('profile_type') == 'arm-counters':
+        build = manifest.get('build', {})
+        if (build.get('schema') != 1 or build.get('kind') != 'arm-counter-build' or build.get('verified_binding') is not True
+                or build.get('artifacts', {}).get('original') != manifest['source_elf_sha256']
+                or set(build.get('artifacts', {})) != {'original', 'elf', 'mapping', 'image', 'replay'}
+                or not all(valid_digest(v) for v in build['artifacts'].values())
+                or set(build.get('tools', {})) != {'llvm-bolt', 'llvm-readelf', 'llvm-nm', 'llvm-objdump', 'llvm-objcopy'}
+                or not all(valid_digest(v) for v in build['tools'].values())
+                or not build.get('patches') or not all(valid_digest(v) for v in build['patches'].values())
+                or not valid_digest(build.get('source_identity_sha256'))
+                or not valid_digest(manifest.get('capture_manifest_sha256'))):
+            raise ValueError('incomplete counter profile identity receipt')
+        owners = build.get('metadata', {}).get('owners', [])
+        if not owners or len({o['name'] for o in owners}) != len(owners):
+            raise ValueError('missing/duplicate counter profile owners')
+        for owner in owners:
+            base = re.sub(r'/[0-9]+$', '', owner['name'])
+            hits = [f for f in functions if f['name'] == owner['name']]
+            if not hits and base != owner['name']:
+                hits = [f for f in functions if f['name'] == base]
+            if len(hits) != 1 or any(owner[k] != hits[0][k] for k in ('address', 'size', 'thumb')):
+                raise ValueError('counter profile owner disagrees with source ELF')
+        owner_names = {o['name'] for o in owners}
+        for line in Path(profile).read_text(encoding='utf-8').splitlines():
+            fields = line.split()
+            if len(fields) != 8 or any(fields[i] not in owner_names for i in (1, 4)):
+                raise ValueError('counter profile references an unsealed owner')
+        validate_counter_fdata(Path(profile).read_text(encoding='utf-8'), functions)
+    else:
+        raise ValueError('unsupported/missing verified profile type')
     return manifest
+
+
+def validate_counter_fdata(text, functions):
+    by_name = {}
+    for f in functions:
+        by_name.setdefault(f['name'], []).append(f)
+    for line in text.splitlines():
+        f = line.split()
+        if len(f) != 8 or f[0] != '1' or f[3] != '1' or f[6] != '0' or not 0 < int(f[7]) < 1 << 64:
+            raise ValueError('unsupported counter fdata record')
+        for name, offset in [(f[1], f[2]), (f[4], f[5])]:
+            base = re.sub(r'/[0-9]+$', '', name)
+            candidates = by_name.get(name, []) or by_name.get(base, [])
+            if len(candidates) != 1 or not 0 <= int(offset, 16) < candidates[0]['size']:
+                raise ValueError('counter fdata location outside exact source function')
+    if not text.strip():
+        raise ValueError('counter profile has no measured locations')
 
 
 def main():
@@ -221,12 +337,20 @@ def main():
     seal.add_argument('--toolchain', required=True)
     seal.add_argument('--patch-dir', required=True)
     seal.add_argument('--out')
+    counters = sub.add_parser('seal-counters')
+    for name in ('original', 'elf', 'map', 'image', 'toolchain', 'patch-dir', 'source-replay'):
+        counters.add_argument('--' + name, required=True)
+    counters.add_argument('--out')
     check = sub.add_parser('check-profile')
     check.add_argument('--elf', required=True)
     check.add_argument('--profile', required=True)
     args = parser.parse_args()
     if args.command == 'seal-samples':
         write_json(args.out or args.image + '.manifest.json', seal_samples(args.elf, args.image, args.toolchain, args.patch_dir))
+    elif args.command == 'seal-counters':
+        from counter_identity import seal as seal_counters
+        write_json(args.out or args.image + '.manifest.json', seal_counters(
+            args.original, args.elf, args.map, args.image, args.toolchain, args.patch_dir, args.source_replay))
     else:
         check_profile(args.elf, args.profile)
     return 0

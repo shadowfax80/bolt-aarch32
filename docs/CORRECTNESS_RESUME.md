@@ -1,5 +1,44 @@
 # ATFE correctness checkpoint - 2026-10-03
 
+## Latest: consolidated queue item 5 verified in 0043; milestone stop
+
+Consolidated queue item 5 is scoped verified in overlay 0043 for the sealed
+ARM counter and PC-sampling pipelines. Instrumentation records exact source-input
+SHA-256 and descriptor owners; seals bind ELFs, map, image, tools and patch/source
+identity. Capture, conversion and consumption reject stale artifacts and invalid
+source offsets. Publication stages output bundles and rolls back caught errors;
+crash/power-loss atomicity is not claimed. Both builds pass 300 cases each
+(12 admissions, 288 rejections), focused suites 51/50 and CoreTests 58/31 skips.
+All 65 Python tests and four wrapper rejection checks pass. All 43 overlays replay
+exactly; fresh supported Pi bytes equal the executed 0041 payloads. Captures in
+this milestone are synthetic host fixtures; no fresh hardware execution is claimed.
+Legacy unsealed captures are excluded from verified optimization. Item 6 is next;
+original #12 remains active, including PMU and clean-build provenance work.
+See [the identity contract](AARCH32_PROFILE_IDENTITY.md),
+[evidence](results/correctness_profile_identity_20261003.json) and
+[status table](CORRECTNESS_PRIORITY_TODO.md).
+
+Source identity: `65688953f330ecf099dea730d22e6bfc810d491bfd79d0152c7c741954204d03`.
+
+Evidence and source preimages/afterimages are under
+`out/correctness/profile-identity-20261003`. Final matrices are `checked-host-on/off`,
+Python tests `python-tests-checked.log`, boundary reviews `checked-review-on/off`,
+and exact source replay `replay/replay.json`. `positive-byte-parity.json` binds
+fresh startup and IT payloads to executed 0041 verifications. Wrapper checks are
+in `wrappers`. Initial failed test fixtures/logs are diagnostic only.
+
+The one-time C++ mutation/export helpers already ran. Do not rerun them blindly:
+`export-profile-identity.py` exported 0043 and preserved the live source. Both
+LLVM builds are incremental; replay verifies source contents, not clean build
+provenance. Counter seals must be made before capture; never certify an old dump
+after the fact. Legacy QEMU/manual paths do not pass the verified pipeline.
+
+Stop at this verified milestone under the user's previous instruction. When
+resumed, proceed to queue item 6, execution/result gate integrity, including the
+remaining original #12 work. Preserve dirty ATFE/LK, Microsoft/ and all evidence.
+Automatic v7 thunk recognition and retained-target routes remain open in 7/11.
+
+
 ## Latest: consolidated queue item 4 verified in 0042; milestone stop
 
 Consolidated queue item 4 is scoped verified in overlay 0042. Both ordinary

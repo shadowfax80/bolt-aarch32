@@ -1,0 +1,2808 @@
+{
+  "schema": 1,
+  "date": "2026-10-03",
+  "overlay": "0043",
+  "queue_item": 5,
+  "status": "scoped verified: sealed ARM counter and PC-sampling pipelines",
+  "next_queue_item": 6,
+  "original_workstream_12": "active; execution, PMU and clean build work remains",
+  "source_identity_sha256": "65688953f330ecf099dea730d22e6bfc810d491bfd79d0152c7c741954204d03",
+  "replay_sha256": "fbc449fe0bce41dc18d8fa84b0a843f3becebb4b85becd8aad7e43316c5dba0f",
+  "patch_sha256": "9eb4b60aad28cd052cff602bfaa59f51287eef8f53ac2eeee53b107aa770da17",
+  "source_changes": {
+    "bolt/lib/Rewrite/RewriteInstance.cpp": {
+      "before": "c7df1df42f25637835b82a73db1a7fbcb82a16a0992a846a272b9f22a018db5a",
+      "after": "9b3572add43e85eb59131097ce939d331b3c046deb547ae186270d1cfc988617"
+    },
+    "bolt/lib/RuntimeLibs/InstrumentationRuntimeLibrary.cpp": {
+      "before": "246f0374f68cc109f8500b25e7a1ec82e661082f953dc80ea0f85c9319e69906",
+      "after": "a82b386e84de31b63ea2e4f4afa0528085ffd221949a4ace9c1a4502974fc874"
+    }
+  },
+  "host": {
+    "on": {
+      "counter_identity": {
+        "schema": 1,
+        "verified": true,
+        "scope": "host-generated synthetic captures; no hardware execution",
+        "tool_sha256": "b34b3b6cfa6b760b023e3985f36238d1a679e510a73deb8d90988efa3c3f680c",
+        "cases": 300,
+        "admissions": 12,
+        "rejections": 288,
+        "rows": [
+          {
+            "case": "arm-arm-normal",
+            "admitted": true,
+            "counts": 3,
+            "original_sha256": "f2320114e8d5dea309e25d07fdc21f246101206e53f9d5e54bcc3b23140948a5",
+            "instrumented_sha256": "d648bda8e4d759aa593d745d59a33f49b23fd7fcadcdbff06ee41fa198bb4cb7",
+            "profile_sha256": "8915f51c704a48d7881a502e2373389f71e26d597b5468d3fcd7e34382a2c304"
+          },
+          {
+            "case": "wrong-original",
+            "rejected": true
+          },
+          {
+            "case": "wrong-instrumented",
+            "rejected": true
+          },
+          {
+            "case": "wrong-map",
+            "rejected": true
+          },
+          {
+            "case": "wrong-dump",
+            "rejected": true
+          },
+          {
+            "case": "unbound",
+            "rejected": true
+          },
+          {
+            "case": "wrong-range",
+            "rejected": true
+          },
+          {
+            "case": "wrong-tool",
+            "rejected": true
+          },
+          {
+            "case": "missing-tools",
+            "rejected": true
+          },
+          {
+            "case": "missing-image-identity",
+            "rejected": true
+          },
+          {
+            "case": "wrong-patch",
+            "rejected": true
+          },
+          {
+            "case": "wrong-owner",
+            "rejected": true
+          },
+          {
+            "case": "wrong-source-identity",
+            "rejected": true
+          },
+          {
+            "case": "wrong-upload-image",
+            "rejected": true
+          },
+          {
+            "case": "wrong-count-with-matching-dump-hash",
+            "rejected": true
+          },
+          {
+            "case": "wrong-map-field-1",
+            "rejected": true
+          },
+          {
+            "case": "wrong-map-field-2",
+            "rejected": true
+          },
+          {
+            "case": "wrong-map-field-3",
+            "rejected": true
+          },
+          {
+            "case": "wrong-source-note",
+            "rejected": true
+          },
+          {
+            "case": "wrong-owner-size",
+            "rejected": true
+          },
+          {
+            "case": "wrong-owner-isa",
+            "rejected": true
+          },
+          {
+            "case": "missing-owner-name",
+            "rejected": true
+          },
+          {
+            "case": "unsupported-indirect-metadata",
+            "rejected": true
+          },
+          {
+            "case": "out-of-range-metadata-location",
+            "rejected": true
+          },
+          {
+            "case": "late-dump-change",
+            "rejected": true
+          },
+          {
+            "case": "arm-arm-reverse",
+            "admitted": true,
+            "counts": 3,
+            "original_sha256": "f2320114e8d5dea309e25d07fdc21f246101206e53f9d5e54bcc3b23140948a5",
+            "instrumented_sha256": "ddd57cb54f979ddd40e11248fe385599b3991979564bada93024bd9930f1d928",
+            "profile_sha256": "8915f51c704a48d7881a502e2373389f71e26d597b5468d3fcd7e34382a2c304"
+          },
+          {
+            "case": "wrong-original",
+            "rejected": true
+          },
+          {
+            "case": "wrong-instrumented",
+            "rejected": true
+          },
+          {
+            "case": "wrong-map",
+            "rejected": true
+          },
+          {
+            "case": "wrong-dump",
+            "rejected": true
+          },
+          {
+            "case": "unbound",
+            "rejected": true
+          },
+          {
+            "case": "wrong-range",
+            "rejected": true
+          },
+          {
+            "case": "wrong-tool",
+            "rejected": true
+          },
+          {
+            "case": "missing-tools",
+            "rejected": true
+          },
+          {
+            "case": "missing-image-identity",
+            "rejected": true
+          },
+          {
+            "case": "wrong-patch",
+            "rejected": true
+          },
+          {
+            "case": "wrong-owner",
+            "rejected": true
+          },
+          {
+            "case": "wrong-source-identity",
+            "rejected": true
+          },
+          {
+            "case": "wrong-upload-image",
+            "rejected": true
+          },
+          {
+            "case": "wrong-count-with-matching-dump-hash",
+            "rejected": true
+          },
+          {
+            "case": "wrong-map-field-1",
+            "rejected": true
+          },
+          {
+            "case": "wrong-map-field-2",
+            "rejected": true
+          },
+          {
+            "case": "wrong-map-field-3",
+            "rejected": true
+          },
+          {
+            "case": "wrong-source-note",
+            "rejected": true
+          },
+          {
+            "case": "wrong-owner-size",
+            "rejected": true
+          },
+          {
+            "case": "wrong-owner-isa",
+            "rejected": true
+          },
+          {
+            "case": "missing-owner-name",
+            "rejected": true
+          },
+          {
+            "case": "unsupported-indirect-metadata",
+            "rejected": true
+          },
+          {
+            "case": "out-of-range-metadata-location",
+            "rejected": true
+          },
+          {
+            "case": "late-dump-change",
+            "rejected": true
+          },
+          {
+            "case": "arm-arm-conservative",
+            "admitted": true,
+            "counts": 3,
+            "original_sha256": "f2320114e8d5dea309e25d07fdc21f246101206e53f9d5e54bcc3b23140948a5",
+            "instrumented_sha256": "288112e1c138081ffc8f936e692cef1cc6ba041229302dc134d521143c2121ad",
+            "profile_sha256": "2a7b004701dbfb7b97bc816c609c5b021258148637e8ca8d31c23ff669e895cb"
+          },
+          {
+            "case": "wrong-original",
+            "rejected": true
+          },
+          {
+            "case": "wrong-instrumented",
+            "rejected": true
+          },
+          {
+            "case": "wrong-map",
+            "rejected": true
+          },
+          {
+            "case": "wrong-dump",
+            "rejected": true
+          },
+          {
+            "case": "unbound",
+            "rejected": true
+          },
+          {
+            "case": "wrong-range",
+            "rejected": true
+          },
+          {
+            "case": "wrong-tool",
+            "rejected": true
+          },
+          {
+            "case": "missing-tools",
+            "rejected": true
+          },
+          {
+            "case": "missing-image-identity",
+            "rejected": true
+          },
+          {
+            "case": "wrong-patch",
+            "rejected": true
+          },
+          {
+            "case": "wrong-owner",
+            "rejected": true
+          },
+          {
+            "case": "wrong-source-identity",
+            "rejected": true
+          },
+          {
+            "case": "wrong-upload-image",
+            "rejected": true
+          },
+          {
+            "case": "wrong-count-with-matching-dump-hash",
+            "rejected": true
+          },
+          {
+            "case": "wrong-map-field-1",
+            "rejected": true
+          },
+          {
+            "case": "wrong-map-field-2",
+            "rejected": true
+          },
+          {
+            "case": "wrong-map-field-3",
+            "rejected": true
+          },
+          {
+            "case": "wrong-source-note",
+            "rejected": true
+          },
+          {
+            "case": "wrong-owner-size",
+            "rejected": true
+          },
+          {
+            "case": "wrong-owner-isa",
+            "rejected": true
+          },
+          {
+            "case": "missing-owner-name",
+            "rejected": true
+          },
+          {
+            "case": "unsupported-indirect-metadata",
+            "rejected": true
+          },
+          {
+            "case": "out-of-range-metadata-location",
+            "rejected": true
+          },
+          {
+            "case": "late-dump-change",
+            "rejected": true
+          },
+          {
+            "case": "thumb-thumb-normal",
+            "admitted": true,
+            "counts": 3,
+            "original_sha256": "643be1b027834efe383de52feffc8ec11d2a2b0f4de930032bbb821f32263bfa",
+            "instrumented_sha256": "a7204e67acfab266f2c67e4c64555824a86126c3fe02a57d3e97ebbe09e3ab43",
+            "profile_sha256": "25737b2f6a36cfe658cfb9e5f74d7509698ffd9b8048e337d17e5c288d4579e4"
+          },
+          {
+            "case": "wrong-original",
+            "rejected": true
+          },
+          {
+            "case": "wrong-instrumented",
+            "rejected": true
+          },
+          {
+            "case": "wrong-map",
+            "rejected": true
+          },
+          {
+            "case": "wrong-dump",
+            "rejected": true
+          },
+          {
+            "case": "unbound",
+            "rejected": true
+          },
+          {
+            "case": "wrong-range",
+            "rejected": true
+          },
+          {
+            "case": "wrong-tool",
+            "rejected": true
+          },
+          {
+            "case": "missing-tools",
+            "rejected": true
+          },
+          {
+            "case": "missing-image-identity",
+            "rejected": true
+          },
+          {
+            "case": "wrong-patch",
+            "rejected": true
+          },
+          {
+            "case": "wrong-owner",
+            "rejected": true
+          },
+          {
+            "case": "wrong-source-identity",
+            "rejected": true
+          },
+          {
+            "case": "wrong-upload-image",
+            "rejected": true
+          },
+          {
+            "case": "wrong-count-with-matching-dump-hash",
+            "rejected": true
+          },
+          {
+            "case": "wrong-map-field-1",
+            "rejected": true
+          },
+          {
+            "case": "wrong-map-field-2",
+            "rejected": true
+          },
+          {
+            "case": "wrong-map-field-3",
+            "rejected": true
+          },
+          {
+            "case": "wrong-source-note",
+            "rejected": true
+          },
+          {
+            "case": "wrong-owner-size",
+            "rejected": true
+          },
+          {
+            "case": "wrong-owner-isa",
+            "rejected": true
+          },
+          {
+            "case": "missing-owner-name",
+            "rejected": true
+          },
+          {
+            "case": "unsupported-indirect-metadata",
+            "rejected": true
+          },
+          {
+            "case": "out-of-range-metadata-location",
+            "rejected": true
+          },
+          {
+            "case": "late-dump-change",
+            "rejected": true
+          },
+          {
+            "case": "thumb-thumb-reverse",
+            "admitted": true,
+            "counts": 3,
+            "original_sha256": "643be1b027834efe383de52feffc8ec11d2a2b0f4de930032bbb821f32263bfa",
+            "instrumented_sha256": "af6c597f4c3d480cb1e735aa9cd050d5db34238f8c189b3b9efdbb8b2eb84098",
+            "profile_sha256": "25737b2f6a36cfe658cfb9e5f74d7509698ffd9b8048e337d17e5c288d4579e4"
+          },
+          {
+            "case": "wrong-original",
+            "rejected": true
+          },
+          {
+            "case": "wrong-instrumented",
+            "rejected": true
+          },
+          {
+            "case": "wrong-map",
+            "rejected": true
+          },
+          {
+            "case": "wrong-dump",
+            "rejected": true
+          },
+          {
+            "case": "unbound",
+            "rejected": true
+          },
+          {
+            "case": "wrong-range",
+            "rejected": true
+          },
+          {
+            "case": "wrong-tool",
+            "rejected": true
+          },
+          {
+            "case": "missing-tools",
+            "rejected": true
+          },
+          {
+            "case": "missing-image-identity",
+            "rejected": true
+          },
+          {
+            "case": "wrong-patch",
+            "rejected": true
+          },
+          {
+            "case": "wrong-owner",
+            "rejected": true
+          },
+          {
+            "case": "wrong-source-identity",
+            "rejected": true
+          },
+          {
+            "case": "wrong-upload-image",
+            "rejected": true
+          },
+          {
+            "case": "wrong-count-with-matching-dump-hash",
+            "rejected": true
+          },
+          {
+            "case": "wrong-map-field-1",
+            "rejected": true
+          },
+          {
+            "case": "wrong-map-field-2",
+            "rejected": true
+          },
+          {
+            "case": "wrong-map-field-3",
+            "rejected": true
+          },
+          {
+            "case": "wrong-source-note",
+            "rejected": true
+          },
+          {
+            "case": "wrong-owner-size",
+            "rejected": true
+          },
+          {
+            "case": "wrong-owner-isa",
+            "rejected": true
+          },
+          {
+            "case": "missing-owner-name",
+            "rejected": true
+          },
+          {
+            "case": "unsupported-indirect-metadata",
+            "rejected": true
+          },
+          {
+            "case": "out-of-range-metadata-location",
+            "rejected": true
+          },
+          {
+            "case": "late-dump-change",
+            "rejected": true
+          },
+          {
+            "case": "thumb-thumb-conservative",
+            "admitted": true,
+            "counts": 3,
+            "original_sha256": "643be1b027834efe383de52feffc8ec11d2a2b0f4de930032bbb821f32263bfa",
+            "instrumented_sha256": "48c1a031a9ed42626ac0f8533b1b8a56f26c48c53391e7335de1b9929dab5aae",
+            "profile_sha256": "6cc3479b1a2eade9bf33e25e35d182e896bd61c80316140656a400546602d4e8"
+          },
+          {
+            "case": "wrong-original",
+            "rejected": true
+          },
+          {
+            "case": "wrong-instrumented",
+            "rejected": true
+          },
+          {
+            "case": "wrong-map",
+            "rejected": true
+          },
+          {
+            "case": "wrong-dump",
+            "rejected": true
+          },
+          {
+            "case": "unbound",
+            "rejected": true
+          },
+          {
+            "case": "wrong-range",
+            "rejected": true
+          },
+          {
+            "case": "wrong-tool",
+            "rejected": true
+          },
+          {
+            "case": "missing-tools",
+            "rejected": true
+          },
+          {
+            "case": "missing-image-identity",
+            "rejected": true
+          },
+          {
+            "case": "wrong-patch",
+            "rejected": true
+          },
+          {
+            "case": "wrong-owner",
+            "rejected": true
+          },
+          {
+            "case": "wrong-source-identity",
+            "rejected": true
+          },
+          {
+            "case": "wrong-upload-image",
+            "rejected": true
+          },
+          {
+            "case": "wrong-count-with-matching-dump-hash",
+            "rejected": true
+          },
+          {
+            "case": "wrong-map-field-1",
+            "rejected": true
+          },
+          {
+            "case": "wrong-map-field-2",
+            "rejected": true
+          },
+          {
+            "case": "wrong-map-field-3",
+            "rejected": true
+          },
+          {
+            "case": "wrong-source-note",
+            "rejected": true
+          },
+          {
+            "case": "wrong-owner-size",
+            "rejected": true
+          },
+          {
+            "case": "wrong-owner-isa",
+            "rejected": true
+          },
+          {
+            "case": "missing-owner-name",
+            "rejected": true
+          },
+          {
+            "case": "unsupported-indirect-metadata",
+            "rejected": true
+          },
+          {
+            "case": "out-of-range-metadata-location",
+            "rejected": true
+          },
+          {
+            "case": "late-dump-change",
+            "rejected": true
+          },
+          {
+            "case": "arm-thumb-normal",
+            "admitted": true,
+            "counts": 3,
+            "original_sha256": "e6322a28af9ef6bbc5898fafdff8c78f538e5baed093497b0856f4b20cd77be3",
+            "instrumented_sha256": "193cee133cad46a57bd77839a7f6d32f98ce01ae84d066bd98e7e8b6161f47c6",
+            "profile_sha256": "25737b2f6a36cfe658cfb9e5f74d7509698ffd9b8048e337d17e5c288d4579e4"
+          },
+          {
+            "case": "wrong-original",
+            "rejected": true
+          },
+          {
+            "case": "wrong-instrumented",
+            "rejected": true
+          },
+          {
+            "case": "wrong-map",
+            "rejected": true
+          },
+          {
+            "case": "wrong-dump",
+            "rejected": true
+          },
+          {
+            "case": "unbound",
+            "rejected": true
+          },
+          {
+            "case": "wrong-range",
+            "rejected": true
+          },
+          {
+            "case": "wrong-tool",
+            "rejected": true
+          },
+          {
+            "case": "missing-tools",
+            "rejected": true
+          },
+          {
+            "case": "missing-image-identity",
+            "rejected": true
+          },
+          {
+            "case": "wrong-patch",
+            "rejected": true
+          },
+          {
+            "case": "wrong-owner",
+            "rejected": true
+          },
+          {
+            "case": "wrong-source-identity",
+            "rejected": true
+          },
+          {
+            "case": "wrong-upload-image",
+            "rejected": true
+          },
+          {
+            "case": "wrong-count-with-matching-dump-hash",
+            "rejected": true
+          },
+          {
+            "case": "wrong-map-field-1",
+            "rejected": true
+          },
+          {
+            "case": "wrong-map-field-2",
+            "rejected": true
+          },
+          {
+            "case": "wrong-map-field-3",
+            "rejected": true
+          },
+          {
+            "case": "wrong-source-note",
+            "rejected": true
+          },
+          {
+            "case": "wrong-owner-size",
+            "rejected": true
+          },
+          {
+            "case": "wrong-owner-isa",
+            "rejected": true
+          },
+          {
+            "case": "missing-owner-name",
+            "rejected": true
+          },
+          {
+            "case": "unsupported-indirect-metadata",
+            "rejected": true
+          },
+          {
+            "case": "out-of-range-metadata-location",
+            "rejected": true
+          },
+          {
+            "case": "late-dump-change",
+            "rejected": true
+          },
+          {
+            "case": "arm-thumb-reverse",
+            "admitted": true,
+            "counts": 3,
+            "original_sha256": "e6322a28af9ef6bbc5898fafdff8c78f538e5baed093497b0856f4b20cd77be3",
+            "instrumented_sha256": "efc21c53311b7f2beac5b1fd6f76865752b3b10b3cb0fa8ef52542e5523d5395",
+            "profile_sha256": "25737b2f6a36cfe658cfb9e5f74d7509698ffd9b8048e337d17e5c288d4579e4"
+          },
+          {
+            "case": "wrong-original",
+            "rejected": true
+          },
+          {
+            "case": "wrong-instrumented",
+            "rejected": true
+          },
+          {
+            "case": "wrong-map",
+            "rejected": true
+          },
+          {
+            "case": "wrong-dump",
+            "rejected": true
+          },
+          {
+            "case": "unbound",
+            "rejected": true
+          },
+          {
+            "case": "wrong-range",
+            "rejected": true
+          },
+          {
+            "case": "wrong-tool",
+            "rejected": true
+          },
+          {
+            "case": "missing-tools",
+            "rejected": true
+          },
+          {
+            "case": "missing-image-identity",
+            "rejected": true
+          },
+          {
+            "case": "wrong-patch",
+            "rejected": true
+          },
+          {
+            "case": "wrong-owner",
+            "rejected": true
+          },
+          {
+            "case": "wrong-source-identity",
+            "rejected": true
+          },
+          {
+            "case": "wrong-upload-image",
+            "rejected": true
+          },
+          {
+            "case": "wrong-count-with-matching-dump-hash",
+            "rejected": true
+          },
+          {
+            "case": "wrong-map-field-1",
+            "rejected": true
+          },
+          {
+            "case": "wrong-map-field-2",
+            "rejected": true
+          },
+          {
+            "case": "wrong-map-field-3",
+            "rejected": true
+          },
+          {
+            "case": "wrong-source-note",
+            "rejected": true
+          },
+          {
+            "case": "wrong-owner-size",
+            "rejected": true
+          },
+          {
+            "case": "wrong-owner-isa",
+            "rejected": true
+          },
+          {
+            "case": "missing-owner-name",
+            "rejected": true
+          },
+          {
+            "case": "unsupported-indirect-metadata",
+            "rejected": true
+          },
+          {
+            "case": "out-of-range-metadata-location",
+            "rejected": true
+          },
+          {
+            "case": "late-dump-change",
+            "rejected": true
+          },
+          {
+            "case": "arm-thumb-conservative",
+            "admitted": true,
+            "counts": 3,
+            "original_sha256": "e6322a28af9ef6bbc5898fafdff8c78f538e5baed093497b0856f4b20cd77be3",
+            "instrumented_sha256": "977f3fb411a9c361415975eb8a79e18f30ebc6ec2fa906f59efbe2f0599026b6",
+            "profile_sha256": "6cc3479b1a2eade9bf33e25e35d182e896bd61c80316140656a400546602d4e8"
+          },
+          {
+            "case": "wrong-original",
+            "rejected": true
+          },
+          {
+            "case": "wrong-instrumented",
+            "rejected": true
+          },
+          {
+            "case": "wrong-map",
+            "rejected": true
+          },
+          {
+            "case": "wrong-dump",
+            "rejected": true
+          },
+          {
+            "case": "unbound",
+            "rejected": true
+          },
+          {
+            "case": "wrong-range",
+            "rejected": true
+          },
+          {
+            "case": "wrong-tool",
+            "rejected": true
+          },
+          {
+            "case": "missing-tools",
+            "rejected": true
+          },
+          {
+            "case": "missing-image-identity",
+            "rejected": true
+          },
+          {
+            "case": "wrong-patch",
+            "rejected": true
+          },
+          {
+            "case": "wrong-owner",
+            "rejected": true
+          },
+          {
+            "case": "wrong-source-identity",
+            "rejected": true
+          },
+          {
+            "case": "wrong-upload-image",
+            "rejected": true
+          },
+          {
+            "case": "wrong-count-with-matching-dump-hash",
+            "rejected": true
+          },
+          {
+            "case": "wrong-map-field-1",
+            "rejected": true
+          },
+          {
+            "case": "wrong-map-field-2",
+            "rejected": true
+          },
+          {
+            "case": "wrong-map-field-3",
+            "rejected": true
+          },
+          {
+            "case": "wrong-source-note",
+            "rejected": true
+          },
+          {
+            "case": "wrong-owner-size",
+            "rejected": true
+          },
+          {
+            "case": "wrong-owner-isa",
+            "rejected": true
+          },
+          {
+            "case": "missing-owner-name",
+            "rejected": true
+          },
+          {
+            "case": "unsupported-indirect-metadata",
+            "rejected": true
+          },
+          {
+            "case": "out-of-range-metadata-location",
+            "rejected": true
+          },
+          {
+            "case": "late-dump-change",
+            "rejected": true
+          },
+          {
+            "case": "thumb-arm-normal",
+            "admitted": true,
+            "counts": 3,
+            "original_sha256": "89c719120527372eb7286bf7da3214776199cddede2d08568b7afc0e78e021cf",
+            "instrumented_sha256": "5d8550d8e21d59b15590c2e762f4344e75129bc1198d7e9d3ed24313112627ab",
+            "profile_sha256": "8915f51c704a48d7881a502e2373389f71e26d597b5468d3fcd7e34382a2c304"
+          },
+          {
+            "case": "wrong-original",
+            "rejected": true
+          },
+          {
+            "case": "wrong-instrumented",
+            "rejected": true
+          },
+          {
+            "case": "wrong-map",
+            "rejected": true
+          },
+          {
+            "case": "wrong-dump",
+            "rejected": true
+          },
+          {
+            "case": "unbound",
+            "rejected": true
+          },
+          {
+            "case": "wrong-range",
+            "rejected": true
+          },
+          {
+            "case": "wrong-tool",
+            "rejected": true
+          },
+          {
+            "case": "missing-tools",
+            "rejected": true
+          },
+          {
+            "case": "missing-image-identity",
+            "rejected": true
+          },
+          {
+            "case": "wrong-patch",
+            "rejected": true
+          },
+          {
+            "case": "wrong-owner",
+            "rejected": true
+          },
+          {
+            "case": "wrong-source-identity",
+            "rejected": true
+          },
+          {
+            "case": "wrong-upload-image",
+            "rejected": true
+          },
+          {
+            "case": "wrong-count-with-matching-dump-hash",
+            "rejected": true
+          },
+          {
+            "case": "wrong-map-field-1",
+            "rejected": true
+          },
+          {
+            "case": "wrong-map-field-2",
+            "rejected": true
+          },
+          {
+            "case": "wrong-map-field-3",
+            "rejected": true
+          },
+          {
+            "case": "wrong-source-note",
+            "rejected": true
+          },
+          {
+            "case": "wrong-owner-size",
+            "rejected": true
+          },
+          {
+            "case": "wrong-owner-isa",
+            "rejected": true
+          },
+          {
+            "case": "missing-owner-name",
+            "rejected": true
+          },
+          {
+            "case": "unsupported-indirect-metadata",
+            "rejected": true
+          },
+          {
+            "case": "out-of-range-metadata-location",
+            "rejected": true
+          },
+          {
+            "case": "late-dump-change",
+            "rejected": true
+          },
+          {
+            "case": "thumb-arm-reverse",
+            "admitted": true,
+            "counts": 3,
+            "original_sha256": "89c719120527372eb7286bf7da3214776199cddede2d08568b7afc0e78e021cf",
+            "instrumented_sha256": "da083447fda499c5ee0b4e0bb68407e2d0c34bc861128cdd593aceedf1a1c196",
+            "profile_sha256": "8915f51c704a48d7881a502e2373389f71e26d597b5468d3fcd7e34382a2c304"
+          },
+          {
+            "case": "wrong-original",
+            "rejected": true
+          },
+          {
+            "case": "wrong-instrumented",
+            "rejected": true
+          },
+          {
+            "case": "wrong-map",
+            "rejected": true
+          },
+          {
+            "case": "wrong-dump",
+            "rejected": true
+          },
+          {
+            "case": "unbound",
+            "rejected": true
+          },
+          {
+            "case": "wrong-range",
+            "rejected": true
+          },
+          {
+            "case": "wrong-tool",
+            "rejected": true
+          },
+          {
+            "case": "missing-tools",
+            "rejected": true
+          },
+          {
+            "case": "missing-image-identity",
+            "rejected": true
+          },
+          {
+            "case": "wrong-patch",
+            "rejected": true
+          },
+          {
+            "case": "wrong-owner",
+            "rejected": true
+          },
+          {
+            "case": "wrong-source-identity",
+            "rejected": true
+          },
+          {
+            "case": "wrong-upload-image",
+            "rejected": true
+          },
+          {
+            "case": "wrong-count-with-matching-dump-hash",
+            "rejected": true
+          },
+          {
+            "case": "wrong-map-field-1",
+            "rejected": true
+          },
+          {
+            "case": "wrong-map-field-2",
+            "rejected": true
+          },
+          {
+            "case": "wrong-map-field-3",
+            "rejected": true
+          },
+          {
+            "case": "wrong-source-note",
+            "rejected": true
+          },
+          {
+            "case": "wrong-owner-size",
+            "rejected": true
+          },
+          {
+            "case": "wrong-owner-isa",
+            "rejected": true
+          },
+          {
+            "case": "missing-owner-name",
+            "rejected": true
+          },
+          {
+            "case": "unsupported-indirect-metadata",
+            "rejected": true
+          },
+          {
+            "case": "out-of-range-metadata-location",
+            "rejected": true
+          },
+          {
+            "case": "late-dump-change",
+            "rejected": true
+          },
+          {
+            "case": "thumb-arm-conservative",
+            "admitted": true,
+            "counts": 3,
+            "original_sha256": "89c719120527372eb7286bf7da3214776199cddede2d08568b7afc0e78e021cf",
+            "instrumented_sha256": "d6c02b54201211cb287e50af905732172111bd2c4f5126935701a3d3163c7c5b",
+            "profile_sha256": "2a7b004701dbfb7b97bc816c609c5b021258148637e8ca8d31c23ff669e895cb"
+          },
+          {
+            "case": "wrong-original",
+            "rejected": true
+          },
+          {
+            "case": "wrong-instrumented",
+            "rejected": true
+          },
+          {
+            "case": "wrong-map",
+            "rejected": true
+          },
+          {
+            "case": "wrong-dump",
+            "rejected": true
+          },
+          {
+            "case": "unbound",
+            "rejected": true
+          },
+          {
+            "case": "wrong-range",
+            "rejected": true
+          },
+          {
+            "case": "wrong-tool",
+            "rejected": true
+          },
+          {
+            "case": "missing-tools",
+            "rejected": true
+          },
+          {
+            "case": "missing-image-identity",
+            "rejected": true
+          },
+          {
+            "case": "wrong-patch",
+            "rejected": true
+          },
+          {
+            "case": "wrong-owner",
+            "rejected": true
+          },
+          {
+            "case": "wrong-source-identity",
+            "rejected": true
+          },
+          {
+            "case": "wrong-upload-image",
+            "rejected": true
+          },
+          {
+            "case": "wrong-count-with-matching-dump-hash",
+            "rejected": true
+          },
+          {
+            "case": "wrong-map-field-1",
+            "rejected": true
+          },
+          {
+            "case": "wrong-map-field-2",
+            "rejected": true
+          },
+          {
+            "case": "wrong-map-field-3",
+            "rejected": true
+          },
+          {
+            "case": "wrong-source-note",
+            "rejected": true
+          },
+          {
+            "case": "wrong-owner-size",
+            "rejected": true
+          },
+          {
+            "case": "wrong-owner-isa",
+            "rejected": true
+          },
+          {
+            "case": "missing-owner-name",
+            "rejected": true
+          },
+          {
+            "case": "unsupported-indirect-metadata",
+            "rejected": true
+          },
+          {
+            "case": "out-of-range-metadata-location",
+            "rejected": true
+          },
+          {
+            "case": "late-dump-change",
+            "rejected": true
+          }
+        ]
+      },
+      "counter_identity_results_sha256": "60824ba7a2d3fe4a896df91931baae3583b5698d29019eee6d779cb0d0fad36f",
+      "focused_passed": 51,
+      "focused_expected_skips": 0,
+      "core_passed": 58,
+      "core_skipped": 31,
+      "boundary_cases": 17,
+      "boundary_results_sha256": "8e6cc2e37b0db04a71cf55350a1ae34dbbb337665d68f0ce78049641652d4381",
+      "lit_log_sha256": "9dea304b0af879688e353b04c22e0e9cab013ec4980e2763d9250c06370e92d0",
+      "core_log_sha256": "4a3b5e80a483a613df582a557e420c77556bd324e864faf0f82003f94d43ec84"
+    },
+    "off": {
+      "counter_identity": {
+        "schema": 1,
+        "verified": true,
+        "scope": "host-generated synthetic captures; no hardware execution",
+        "tool_sha256": "886d3143edd3a1d8d1a67393630348de395ec07d235aae06ed8f57cefa6a6773",
+        "cases": 300,
+        "admissions": 12,
+        "rejections": 288,
+        "rows": [
+          {
+            "case": "arm-arm-normal",
+            "admitted": true,
+            "counts": 3,
+            "original_sha256": "f2320114e8d5dea309e25d07fdc21f246101206e53f9d5e54bcc3b23140948a5",
+            "instrumented_sha256": "5987c0f7226c511a74d02de4877f5c1d9af97059b02b518b6d59e083c8a583ed",
+            "profile_sha256": "8915f51c704a48d7881a502e2373389f71e26d597b5468d3fcd7e34382a2c304"
+          },
+          {
+            "case": "wrong-original",
+            "rejected": true
+          },
+          {
+            "case": "wrong-instrumented",
+            "rejected": true
+          },
+          {
+            "case": "wrong-map",
+            "rejected": true
+          },
+          {
+            "case": "wrong-dump",
+            "rejected": true
+          },
+          {
+            "case": "unbound",
+            "rejected": true
+          },
+          {
+            "case": "wrong-range",
+            "rejected": true
+          },
+          {
+            "case": "wrong-tool",
+            "rejected": true
+          },
+          {
+            "case": "missing-tools",
+            "rejected": true
+          },
+          {
+            "case": "missing-image-identity",
+            "rejected": true
+          },
+          {
+            "case": "wrong-patch",
+            "rejected": true
+          },
+          {
+            "case": "wrong-owner",
+            "rejected": true
+          },
+          {
+            "case": "wrong-source-identity",
+            "rejected": true
+          },
+          {
+            "case": "wrong-upload-image",
+            "rejected": true
+          },
+          {
+            "case": "wrong-count-with-matching-dump-hash",
+            "rejected": true
+          },
+          {
+            "case": "wrong-map-field-1",
+            "rejected": true
+          },
+          {
+            "case": "wrong-map-field-2",
+            "rejected": true
+          },
+          {
+            "case": "wrong-map-field-3",
+            "rejected": true
+          },
+          {
+            "case": "wrong-source-note",
+            "rejected": true
+          },
+          {
+            "case": "wrong-owner-size",
+            "rejected": true
+          },
+          {
+            "case": "wrong-owner-isa",
+            "rejected": true
+          },
+          {
+            "case": "missing-owner-name",
+            "rejected": true
+          },
+          {
+            "case": "unsupported-indirect-metadata",
+            "rejected": true
+          },
+          {
+            "case": "out-of-range-metadata-location",
+            "rejected": true
+          },
+          {
+            "case": "late-dump-change",
+            "rejected": true
+          },
+          {
+            "case": "arm-arm-reverse",
+            "admitted": true,
+            "counts": 3,
+            "original_sha256": "f2320114e8d5dea309e25d07fdc21f246101206e53f9d5e54bcc3b23140948a5",
+            "instrumented_sha256": "cd969a592940a1bfc791ff64fad79a0da06080b13d0bb462fae8d70d9e0303d6",
+            "profile_sha256": "8915f51c704a48d7881a502e2373389f71e26d597b5468d3fcd7e34382a2c304"
+          },
+          {
+            "case": "wrong-original",
+            "rejected": true
+          },
+          {
+            "case": "wrong-instrumented",
+            "rejected": true
+          },
+          {
+            "case": "wrong-map",
+            "rejected": true
+          },
+          {
+            "case": "wrong-dump",
+            "rejected": true
+          },
+          {
+            "case": "unbound",
+            "rejected": true
+          },
+          {
+            "case": "wrong-range",
+            "rejected": true
+          },
+          {
+            "case": "wrong-tool",
+            "rejected": true
+          },
+          {
+            "case": "missing-tools",
+            "rejected": true
+          },
+          {
+            "case": "missing-image-identity",
+            "rejected": true
+          },
+          {
+            "case": "wrong-patch",
+            "rejected": true
+          },
+          {
+            "case": "wrong-owner",
+            "rejected": true
+          },
+          {
+            "case": "wrong-source-identity",
+            "rejected": true
+          },
+          {
+            "case": "wrong-upload-image",
+            "rejected": true
+          },
+          {
+            "case": "wrong-count-with-matching-dump-hash",
+            "rejected": true
+          },
+          {
+            "case": "wrong-map-field-1",
+            "rejected": true
+          },
+          {
+            "case": "wrong-map-field-2",
+            "rejected": true
+          },
+          {
+            "case": "wrong-map-field-3",
+            "rejected": true
+          },
+          {
+            "case": "wrong-source-note",
+            "rejected": true
+          },
+          {
+            "case": "wrong-owner-size",
+            "rejected": true
+          },
+          {
+            "case": "wrong-owner-isa",
+            "rejected": true
+          },
+          {
+            "case": "missing-owner-name",
+            "rejected": true
+          },
+          {
+            "case": "unsupported-indirect-metadata",
+            "rejected": true
+          },
+          {
+            "case": "out-of-range-metadata-location",
+            "rejected": true
+          },
+          {
+            "case": "late-dump-change",
+            "rejected": true
+          },
+          {
+            "case": "arm-arm-conservative",
+            "admitted": true,
+            "counts": 3,
+            "original_sha256": "f2320114e8d5dea309e25d07fdc21f246101206e53f9d5e54bcc3b23140948a5",
+            "instrumented_sha256": "7613287ab09c758cfc5471c58cc96b16196b89a22e22fed31f3c6bea88670e7a",
+            "profile_sha256": "2a7b004701dbfb7b97bc816c609c5b021258148637e8ca8d31c23ff669e895cb"
+          },
+          {
+            "case": "wrong-original",
+            "rejected": true
+          },
+          {
+            "case": "wrong-instrumented",
+            "rejected": true
+          },
+          {
+            "case": "wrong-map",
+            "rejected": true
+          },
+          {
+            "case": "wrong-dump",
+            "rejected": true
+          },
+          {
+            "case": "unbound",
+            "rejected": true
+          },
+          {
+            "case": "wrong-range",
+            "rejected": true
+          },
+          {
+            "case": "wrong-tool",
+            "rejected": true
+          },
+          {
+            "case": "missing-tools",
+            "rejected": true
+          },
+          {
+            "case": "missing-image-identity",
+            "rejected": true
+          },
+          {
+            "case": "wrong-patch",
+            "rejected": true
+          },
+          {
+            "case": "wrong-owner",
+            "rejected": true
+          },
+          {
+            "case": "wrong-source-identity",
+            "rejected": true
+          },
+          {
+            "case": "wrong-upload-image",
+            "rejected": true
+          },
+          {
+            "case": "wrong-count-with-matching-dump-hash",
+            "rejected": true
+          },
+          {
+            "case": "wrong-map-field-1",
+            "rejected": true
+          },
+          {
+            "case": "wrong-map-field-2",
+            "rejected": true
+          },
+          {
+            "case": "wrong-map-field-3",
+            "rejected": true
+          },
+          {
+            "case": "wrong-source-note",
+            "rejected": true
+          },
+          {
+            "case": "wrong-owner-size",
+            "rejected": true
+          },
+          {
+            "case": "wrong-owner-isa",
+            "rejected": true
+          },
+          {
+            "case": "missing-owner-name",
+            "rejected": true
+          },
+          {
+            "case": "unsupported-indirect-metadata",
+            "rejected": true
+          },
+          {
+            "case": "out-of-range-metadata-location",
+            "rejected": true
+          },
+          {
+            "case": "late-dump-change",
+            "rejected": true
+          },
+          {
+            "case": "thumb-thumb-normal",
+            "admitted": true,
+            "counts": 3,
+            "original_sha256": "643be1b027834efe383de52feffc8ec11d2a2b0f4de930032bbb821f32263bfa",
+            "instrumented_sha256": "283ad2a9ada2453528f91c654d06c1894529de90db17a7bd2ce3607bc60ebde7",
+            "profile_sha256": "25737b2f6a36cfe658cfb9e5f74d7509698ffd9b8048e337d17e5c288d4579e4"
+          },
+          {
+            "case": "wrong-original",
+            "rejected": true
+          },
+          {
+            "case": "wrong-instrumented",
+            "rejected": true
+          },
+          {
+            "case": "wrong-map",
+            "rejected": true
+          },
+          {
+            "case": "wrong-dump",
+            "rejected": true
+          },
+          {
+            "case": "unbound",
+            "rejected": true
+          },
+          {
+            "case": "wrong-range",
+            "rejected": true
+          },
+          {
+            "case": "wrong-tool",
+            "rejected": true
+          },
+          {
+            "case": "missing-tools",
+            "rejected": true
+          },
+          {
+            "case": "missing-image-identity",
+            "rejected": true
+          },
+          {
+            "case": "wrong-patch",
+            "rejected": true
+          },
+          {
+            "case": "wrong-owner",
+            "rejected": true
+          },
+          {
+            "case": "wrong-source-identity",
+            "rejected": true
+          },
+          {
+            "case": "wrong-upload-image",
+            "rejected": true
+          },
+          {
+            "case": "wrong-count-with-matching-dump-hash",
+            "rejected": true
+          },
+          {
+            "case": "wrong-map-field-1",
+            "rejected": true
+          },
+          {
+            "case": "wrong-map-field-2",
+            "rejected": true
+          },
+          {
+            "case": "wrong-map-field-3",
+            "rejected": true
+          },
+          {
+            "case": "wrong-source-note",
+            "rejected": true
+          },
+          {
+            "case": "wrong-owner-size",
+            "rejected": true
+          },
+          {
+            "case": "wrong-owner-isa",
+            "rejected": true
+          },
+          {
+            "case": "missing-owner-name",
+            "rejected": true
+          },
+          {
+            "case": "unsupported-indirect-metadata",
+            "rejected": true
+          },
+          {
+            "case": "out-of-range-metadata-location",
+            "rejected": true
+          },
+          {
+            "case": "late-dump-change",
+            "rejected": true
+          },
+          {
+            "case": "thumb-thumb-reverse",
+            "admitted": true,
+            "counts": 3,
+            "original_sha256": "643be1b027834efe383de52feffc8ec11d2a2b0f4de930032bbb821f32263bfa",
+            "instrumented_sha256": "dc21f7a73616b37d9f317962888d389b9514779dd040278850f694ad7e56c466",
+            "profile_sha256": "25737b2f6a36cfe658cfb9e5f74d7509698ffd9b8048e337d17e5c288d4579e4"
+          },
+          {
+            "case": "wrong-original",
+            "rejected": true
+          },
+          {
+            "case": "wrong-instrumented",
+            "rejected": true
+          },
+          {
+            "case": "wrong-map",
+            "rejected": true
+          },
+          {
+            "case": "wrong-dump",
+            "rejected": true
+          },
+          {
+            "case": "unbound",
+            "rejected": true
+          },
+          {
+            "case": "wrong-range",
+            "rejected": true
+          },
+          {
+            "case": "wrong-tool",
+            "rejected": true
+          },
+          {
+            "case": "missing-tools",
+            "rejected": true
+          },
+          {
+            "case": "missing-image-identity",
+            "rejected": true
+          },
+          {
+            "case": "wrong-patch",
+            "rejected": true
+          },
+          {
+            "case": "wrong-owner",
+            "rejected": true
+          },
+          {
+            "case": "wrong-source-identity",
+            "rejected": true
+          },
+          {
+            "case": "wrong-upload-image",
+            "rejected": true
+          },
+          {
+            "case": "wrong-count-with-matching-dump-hash",
+            "rejected": true
+          },
+          {
+            "case": "wrong-map-field-1",
+            "rejected": true
+          },
+          {
+            "case": "wrong-map-field-2",
+            "rejected": true
+          },
+          {
+            "case": "wrong-map-field-3",
+            "rejected": true
+          },
+          {
+            "case": "wrong-source-note",
+            "rejected": true
+          },
+          {
+            "case": "wrong-owner-size",
+            "rejected": true
+          },
+          {
+            "case": "wrong-owner-isa",
+            "rejected": true
+          },
+          {
+            "case": "missing-owner-name",
+            "rejected": true
+          },
+          {
+            "case": "unsupported-indirect-metadata",
+            "rejected": true
+          },
+          {
+            "case": "out-of-range-metadata-location",
+            "rejected": true
+          },
+          {
+            "case": "late-dump-change",
+            "rejected": true
+          },
+          {
+            "case": "thumb-thumb-conservative",
+            "admitted": true,
+            "counts": 3,
+            "original_sha256": "643be1b027834efe383de52feffc8ec11d2a2b0f4de930032bbb821f32263bfa",
+            "instrumented_sha256": "fd8745e86a462e4f6cb171ef0b694c273e9dfef62b4126b94ad8374eab308071",
+            "profile_sha256": "6cc3479b1a2eade9bf33e25e35d182e896bd61c80316140656a400546602d4e8"
+          },
+          {
+            "case": "wrong-original",
+            "rejected": true
+          },
+          {
+            "case": "wrong-instrumented",
+            "rejected": true
+          },
+          {
+            "case": "wrong-map",
+            "rejected": true
+          },
+          {
+            "case": "wrong-dump",
+            "rejected": true
+          },
+          {
+            "case": "unbound",
+            "rejected": true
+          },
+          {
+            "case": "wrong-range",
+            "rejected": true
+          },
+          {
+            "case": "wrong-tool",
+            "rejected": true
+          },
+          {
+            "case": "missing-tools",
+            "rejected": true
+          },
+          {
+            "case": "missing-image-identity",
+            "rejected": true
+          },
+          {
+            "case": "wrong-patch",
+            "rejected": true
+          },
+          {
+            "case": "wrong-owner",
+            "rejected": true
+          },
+          {
+            "case": "wrong-source-identity",
+            "rejected": true
+          },
+          {
+            "case": "wrong-upload-image",
+            "rejected": true
+          },
+          {
+            "case": "wrong-count-with-matching-dump-hash",
+            "rejected": true
+          },
+          {
+            "case": "wrong-map-field-1",
+            "rejected": true
+          },
+          {
+            "case": "wrong-map-field-2",
+            "rejected": true
+          },
+          {
+            "case": "wrong-map-field-3",
+            "rejected": true
+          },
+          {
+            "case": "wrong-source-note",
+            "rejected": true
+          },
+          {
+            "case": "wrong-owner-size",
+            "rejected": true
+          },
+          {
+            "case": "wrong-owner-isa",
+            "rejected": true
+          },
+          {
+            "case": "missing-owner-name",
+            "rejected": true
+          },
+          {
+            "case": "unsupported-indirect-metadata",
+            "rejected": true
+          },
+          {
+            "case": "out-of-range-metadata-location",
+            "rejected": true
+          },
+          {
+            "case": "late-dump-change",
+            "rejected": true
+          },
+          {
+            "case": "arm-thumb-normal",
+            "admitted": true,
+            "counts": 3,
+            "original_sha256": "e6322a28af9ef6bbc5898fafdff8c78f538e5baed093497b0856f4b20cd77be3",
+            "instrumented_sha256": "6b0ace2095f63e2d06acad736d08c2530a2f48d14b53d9c5b3ddaf7c6c3dc451",
+            "profile_sha256": "25737b2f6a36cfe658cfb9e5f74d7509698ffd9b8048e337d17e5c288d4579e4"
+          },
+          {
+            "case": "wrong-original",
+            "rejected": true
+          },
+          {
+            "case": "wrong-instrumented",
+            "rejected": true
+          },
+          {
+            "case": "wrong-map",
+            "rejected": true
+          },
+          {
+            "case": "wrong-dump",
+            "rejected": true
+          },
+          {
+            "case": "unbound",
+            "rejected": true
+          },
+          {
+            "case": "wrong-range",
+            "rejected": true
+          },
+          {
+            "case": "wrong-tool",
+            "rejected": true
+          },
+          {
+            "case": "missing-tools",
+            "rejected": true
+          },
+          {
+            "case": "missing-image-identity",
+            "rejected": true
+          },
+          {
+            "case": "wrong-patch",
+            "rejected": true
+          },
+          {
+            "case": "wrong-owner",
+            "rejected": true
+          },
+          {
+            "case": "wrong-source-identity",
+            "rejected": true
+          },
+          {
+            "case": "wrong-upload-image",
+            "rejected": true
+          },
+          {
+            "case": "wrong-count-with-matching-dump-hash",
+            "rejected": true
+          },
+          {
+            "case": "wrong-map-field-1",
+            "rejected": true
+          },
+          {
+            "case": "wrong-map-field-2",
+            "rejected": true
+          },
+          {
+            "case": "wrong-map-field-3",
+            "rejected": true
+          },
+          {
+            "case": "wrong-source-note",
+            "rejected": true
+          },
+          {
+            "case": "wrong-owner-size",
+            "rejected": true
+          },
+          {
+            "case": "wrong-owner-isa",
+            "rejected": true
+          },
+          {
+            "case": "missing-owner-name",
+            "rejected": true
+          },
+          {
+            "case": "unsupported-indirect-metadata",
+            "rejected": true
+          },
+          {
+            "case": "out-of-range-metadata-location",
+            "rejected": true
+          },
+          {
+            "case": "late-dump-change",
+            "rejected": true
+          },
+          {
+            "case": "arm-thumb-reverse",
+            "admitted": true,
+            "counts": 3,
+            "original_sha256": "e6322a28af9ef6bbc5898fafdff8c78f538e5baed093497b0856f4b20cd77be3",
+            "instrumented_sha256": "9ff2babba3ff24272ae66df4296447a61996390bb704330e8a3ee9c63a0b264f",
+            "profile_sha256": "25737b2f6a36cfe658cfb9e5f74d7509698ffd9b8048e337d17e5c288d4579e4"
+          },
+          {
+            "case": "wrong-original",
+            "rejected": true
+          },
+          {
+            "case": "wrong-instrumented",
+            "rejected": true
+          },
+          {
+            "case": "wrong-map",
+            "rejected": true
+          },
+          {
+            "case": "wrong-dump",
+            "rejected": true
+          },
+          {
+            "case": "unbound",
+            "rejected": true
+          },
+          {
+            "case": "wrong-range",
+            "rejected": true
+          },
+          {
+            "case": "wrong-tool",
+            "rejected": true
+          },
+          {
+            "case": "missing-tools",
+            "rejected": true
+          },
+          {
+            "case": "missing-image-identity",
+            "rejected": true
+          },
+          {
+            "case": "wrong-patch",
+            "rejected": true
+          },
+          {
+            "case": "wrong-owner",
+            "rejected": true
+          },
+          {
+            "case": "wrong-source-identity",
+            "rejected": true
+          },
+          {
+            "case": "wrong-upload-image",
+            "rejected": true
+          },
+          {
+            "case": "wrong-count-with-matching-dump-hash",
+            "rejected": true
+          },
+          {
+            "case": "wrong-map-field-1",
+            "rejected": true
+          },
+          {
+            "case": "wrong-map-field-2",
+            "rejected": true
+          },
+          {
+            "case": "wrong-map-field-3",
+            "rejected": true
+          },
+          {
+            "case": "wrong-source-note",
+            "rejected": true
+          },
+          {
+            "case": "wrong-owner-size",
+            "rejected": true
+          },
+          {
+            "case": "wrong-owner-isa",
+            "rejected": true
+          },
+          {
+            "case": "missing-owner-name",
+            "rejected": true
+          },
+          {
+            "case": "unsupported-indirect-metadata",
+            "rejected": true
+          },
+          {
+            "case": "out-of-range-metadata-location",
+            "rejected": true
+          },
+          {
+            "case": "late-dump-change",
+            "rejected": true
+          },
+          {
+            "case": "arm-thumb-conservative",
+            "admitted": true,
+            "counts": 3,
+            "original_sha256": "e6322a28af9ef6bbc5898fafdff8c78f538e5baed093497b0856f4b20cd77be3",
+            "instrumented_sha256": "17131d1c73f73fd55ad216481bc490f2bc79b751ab8f592009ca3211ccf2d34a",
+            "profile_sha256": "6cc3479b1a2eade9bf33e25e35d182e896bd61c80316140656a400546602d4e8"
+          },
+          {
+            "case": "wrong-original",
+            "rejected": true
+          },
+          {
+            "case": "wrong-instrumented",
+            "rejected": true
+          },
+          {
+            "case": "wrong-map",
+            "rejected": true
+          },
+          {
+            "case": "wrong-dump",
+            "rejected": true
+          },
+          {
+            "case": "unbound",
+            "rejected": true
+          },
+          {
+            "case": "wrong-range",
+            "rejected": true
+          },
+          {
+            "case": "wrong-tool",
+            "rejected": true
+          },
+          {
+            "case": "missing-tools",
+            "rejected": true
+          },
+          {
+            "case": "missing-image-identity",
+            "rejected": true
+          },
+          {
+            "case": "wrong-patch",
+            "rejected": true
+          },
+          {
+            "case": "wrong-owner",
+            "rejected": true
+          },
+          {
+            "case": "wrong-source-identity",
+            "rejected": true
+          },
+          {
+            "case": "wrong-upload-image",
+            "rejected": true
+          },
+          {
+            "case": "wrong-count-with-matching-dump-hash",
+            "rejected": true
+          },
+          {
+            "case": "wrong-map-field-1",
+            "rejected": true
+          },
+          {
+            "case": "wrong-map-field-2",
+            "rejected": true
+          },
+          {
+            "case": "wrong-map-field-3",
+            "rejected": true
+          },
+          {
+            "case": "wrong-source-note",
+            "rejected": true
+          },
+          {
+            "case": "wrong-owner-size",
+            "rejected": true
+          },
+          {
+            "case": "wrong-owner-isa",
+            "rejected": true
+          },
+          {
+            "case": "missing-owner-name",
+            "rejected": true
+          },
+          {
+            "case": "unsupported-indirect-metadata",
+            "rejected": true
+          },
+          {
+            "case": "out-of-range-metadata-location",
+            "rejected": true
+          },
+          {
+            "case": "late-dump-change",
+            "rejected": true
+          },
+          {
+            "case": "thumb-arm-normal",
+            "admitted": true,
+            "counts": 3,
+            "original_sha256": "89c719120527372eb7286bf7da3214776199cddede2d08568b7afc0e78e021cf",
+            "instrumented_sha256": "1e4c382346e0db372eb19f99e3ca33e484421bac142663b87269fb917ecf8933",
+            "profile_sha256": "8915f51c704a48d7881a502e2373389f71e26d597b5468d3fcd7e34382a2c304"
+          },
+          {
+            "case": "wrong-original",
+            "rejected": true
+          },
+          {
+            "case": "wrong-instrumented",
+            "rejected": true
+          },
+          {
+            "case": "wrong-map",
+            "rejected": true
+          },
+          {
+            "case": "wrong-dump",
+            "rejected": true
+          },
+          {
+            "case": "unbound",
+            "rejected": true
+          },
+          {
+            "case": "wrong-range",
+            "rejected": true
+          },
+          {
+            "case": "wrong-tool",
+            "rejected": true
+          },
+          {
+            "case": "missing-tools",
+            "rejected": true
+          },
+          {
+            "case": "missing-image-identity",
+            "rejected": true
+          },
+          {
+            "case": "wrong-patch",
+            "rejected": true
+          },
+          {
+            "case": "wrong-owner",
+            "rejected": true
+          },
+          {
+            "case": "wrong-source-identity",
+            "rejected": true
+          },
+          {
+            "case": "wrong-upload-image",
+            "rejected": true
+          },
+          {
+            "case": "wrong-count-with-matching-dump-hash",
+            "rejected": true
+          },
+          {
+            "case": "wrong-map-field-1",
+            "rejected": true
+          },
+          {
+            "case": "wrong-map-field-2",
+            "rejected": true
+          },
+          {
+            "case": "wrong-map-field-3",
+            "rejected": true
+          },
+          {
+            "case": "wrong-source-note",
+            "rejected": true
+          },
+          {
+            "case": "wrong-owner-size",
+            "rejected": true
+          },
+          {
+            "case": "wrong-owner-isa",
+            "rejected": true
+          },
+          {
+            "case": "missing-owner-name",
+            "rejected": true
+          },
+          {
+            "case": "unsupported-indirect-metadata",
+            "rejected": true
+          },
+          {
+            "case": "out-of-range-metadata-location",
+            "rejected": true
+          },
+          {
+            "case": "late-dump-change",
+            "rejected": true
+          },
+          {
+            "case": "thumb-arm-reverse",
+            "admitted": true,
+            "counts": 3,
+            "original_sha256": "89c719120527372eb7286bf7da3214776199cddede2d08568b7afc0e78e021cf",
+            "instrumented_sha256": "cf0f03e58ad504c049ef7250d5671185034fecea0db3191041e4079720cf0ecd",
+            "profile_sha256": "8915f51c704a48d7881a502e2373389f71e26d597b5468d3fcd7e34382a2c304"
+          },
+          {
+            "case": "wrong-original",
+            "rejected": true
+          },
+          {
+            "case": "wrong-instrumented",
+            "rejected": true
+          },
+          {
+            "case": "wrong-map",
+            "rejected": true
+          },
+          {
+            "case": "wrong-dump",
+            "rejected": true
+          },
+          {
+            "case": "unbound",
+            "rejected": true
+          },
+          {
+            "case": "wrong-range",
+            "rejected": true
+          },
+          {
+            "case": "wrong-tool",
+            "rejected": true
+          },
+          {
+            "case": "missing-tools",
+            "rejected": true
+          },
+          {
+            "case": "missing-image-identity",
+            "rejected": true
+          },
+          {
+            "case": "wrong-patch",
+            "rejected": true
+          },
+          {
+            "case": "wrong-owner",
+            "rejected": true
+          },
+          {
+            "case": "wrong-source-identity",
+            "rejected": true
+          },
+          {
+            "case": "wrong-upload-image",
+            "rejected": true
+          },
+          {
+            "case": "wrong-count-with-matching-dump-hash",
+            "rejected": true
+          },
+          {
+            "case": "wrong-map-field-1",
+            "rejected": true
+          },
+          {
+            "case": "wrong-map-field-2",
+            "rejected": true
+          },
+          {
+            "case": "wrong-map-field-3",
+            "rejected": true
+          },
+          {
+            "case": "wrong-source-note",
+            "rejected": true
+          },
+          {
+            "case": "wrong-owner-size",
+            "rejected": true
+          },
+          {
+            "case": "wrong-owner-isa",
+            "rejected": true
+          },
+          {
+            "case": "missing-owner-name",
+            "rejected": true
+          },
+          {
+            "case": "unsupported-indirect-metadata",
+            "rejected": true
+          },
+          {
+            "case": "out-of-range-metadata-location",
+            "rejected": true
+          },
+          {
+            "case": "late-dump-change",
+            "rejected": true
+          },
+          {
+            "case": "thumb-arm-conservative",
+            "admitted": true,
+            "counts": 3,
+            "original_sha256": "89c719120527372eb7286bf7da3214776199cddede2d08568b7afc0e78e021cf",
+            "instrumented_sha256": "2a8b0012bc36241bd8bbed97f2e6aeec687b6f2c70eadaf91c37a0682a061362",
+            "profile_sha256": "2a7b004701dbfb7b97bc816c609c5b021258148637e8ca8d31c23ff669e895cb"
+          },
+          {
+            "case": "wrong-original",
+            "rejected": true
+          },
+          {
+            "case": "wrong-instrumented",
+            "rejected": true
+          },
+          {
+            "case": "wrong-map",
+            "rejected": true
+          },
+          {
+            "case": "wrong-dump",
+            "rejected": true
+          },
+          {
+            "case": "unbound",
+            "rejected": true
+          },
+          {
+            "case": "wrong-range",
+            "rejected": true
+          },
+          {
+            "case": "wrong-tool",
+            "rejected": true
+          },
+          {
+            "case": "missing-tools",
+            "rejected": true
+          },
+          {
+            "case": "missing-image-identity",
+            "rejected": true
+          },
+          {
+            "case": "wrong-patch",
+            "rejected": true
+          },
+          {
+            "case": "wrong-owner",
+            "rejected": true
+          },
+          {
+            "case": "wrong-source-identity",
+            "rejected": true
+          },
+          {
+            "case": "wrong-upload-image",
+            "rejected": true
+          },
+          {
+            "case": "wrong-count-with-matching-dump-hash",
+            "rejected": true
+          },
+          {
+            "case": "wrong-map-field-1",
+            "rejected": true
+          },
+          {
+            "case": "wrong-map-field-2",
+            "rejected": true
+          },
+          {
+            "case": "wrong-map-field-3",
+            "rejected": true
+          },
+          {
+            "case": "wrong-source-note",
+            "rejected": true
+          },
+          {
+            "case": "wrong-owner-size",
+            "rejected": true
+          },
+          {
+            "case": "wrong-owner-isa",
+            "rejected": true
+          },
+          {
+            "case": "missing-owner-name",
+            "rejected": true
+          },
+          {
+            "case": "unsupported-indirect-metadata",
+            "rejected": true
+          },
+          {
+            "case": "out-of-range-metadata-location",
+            "rejected": true
+          },
+          {
+            "case": "late-dump-change",
+            "rejected": true
+          }
+        ]
+      },
+      "counter_identity_results_sha256": "f07f9226f6c37d4750ce6a5a94c393438c1ca1de4e3b36a4163c84569870e91d",
+      "focused_passed": 50,
+      "focused_expected_skips": 1,
+      "core_passed": 58,
+      "core_skipped": 31,
+      "boundary_cases": 17,
+      "boundary_results_sha256": "769a94e8e39c3039d437427f0a17ebb4d03af4aa5a9d92bbd7563efeff1c3a38",
+      "lit_log_sha256": "d968c6f7fefff45423fe1faed225308cd8f9d7bde6800769ea0ad8e3aacc4d63",
+      "core_log_sha256": "4b9518b4c10e94d1521b7cea476ca94f34f68ccec7ad2a919747696a6c8b708e"
+    }
+  },
+  "python_tests": {
+    "passed": 65,
+    "log_sha256": "00358d2fe4064f43fd3ed47d665802b76a61f1e17ee6e327b987e0c73d402017",
+    "final_consumer_tests": 3,
+    "final_consumer_log_sha256": "debc2566d65da29ffefdd78b77a8d96e02c8fe41e996d496e7bf1002484c4f22"
+  },
+  "wrappers": {
+    "schema": 1,
+    "cases": 4,
+    "verified": true,
+    "syntax_checks": 3,
+    "rows": [
+      {
+        "profile_type": "arm-counters",
+        "optimize_rejected_before_tool": true,
+        "variant_rejected_before_copy": true
+      },
+      {
+        "profile_type": "pc-samples",
+        "optimize_rejected_before_tool": true,
+        "variant_rejected_before_copy": true
+      }
+    ]
+  },
+  "payload_parity": {
+    "on": {
+      "pi": {
+        "build": "out/correctness/profile-identity-20261003/pi-final-on/build-9ez6570r",
+        "matches_executed_build": "out/correctness/isa-contract-20261003/pi-on/build-7olit0q4",
+        "executed_verification": "out/correctness/isa-contract-20261003/pi-on/build-7olit0q4/pi-verify-4ymmj_i3/verification.json",
+        "executed_verification_sha256": "fe13cd17af3e401e25cc45f86e5e6465748d34de7ea38901668e182e793a8a67",
+        "payload_sha256": {
+          "baseline": "9f5723971ed70a2cc9041ef9168bc139ebc771ce950fbbbb45d31ea184d68620",
+          "normal": "3498e161518cff0526c5b1936431d311518cacfb3970aa63afe5112d1f82d819",
+          "reverse": "3498e161518cff0526c5b1936431d311518cacfb3970aa63afe5112d1f82d819"
+        },
+        "build_manifest_sha256": "ff482780368c33c6de2d6e430a81213182d0e4a003ca5de6d8d5b8bd03251c27",
+        "scope": "Fresh supported payload bytes equal the exact verified 0041 payloads; no new Pi execution."
+      },
+      "it": {
+        "build": "out/correctness/profile-identity-20261003/it-final-on/build-c_0tl1sx",
+        "matches_executed_build": "out/correctness/isa-contract-20261003/it-on/build-kx6_s5mi",
+        "executed_verification": "out/correctness/isa-contract-20261003/it-on/build-kx6_s5mi/pi-verify-hayupx_c/verification.json",
+        "executed_verification_sha256": "3ebec2ec74105b2e3b0feb116fbbc1df0cc7b1cff4bd8813a0362066daae77bc",
+        "payload_sha256": {
+          "bad-reset": "34117521051f329c0913389f4d071507f8e6ee75fb0e07ed247376ddbc30ecdc",
+          "baseline": "2c9f4d72d1589206834bce3bd9d0ede63c6364a31e8cab09de570d7055c272a7",
+          "conservative": "07994e0eb220838b95ee55b290347908ff83564097e7d71ab56d92ef753da7b9",
+          "normal": "22c77ac73eb09f99b662b9062bfe74629f83b52c77544210fb97baf2231fb6d3",
+          "reverse": "b6022ad61d56dd4201fcdfadb8c0a61e797b35cee4aa40fd522f828decad00ef"
+        },
+        "build_manifest_sha256": "6f80d0055ffc8fa6a11204426c3e989c43f2234488372292ba363271f591fda7",
+        "scope": "Fresh supported payload bytes equal the exact verified 0041 payloads; no new Pi execution."
+      }
+    },
+    "off": {
+      "pi": {
+        "build": "out/correctness/profile-identity-20261003/pi-final-off/build-dj08qzex",
+        "matches_executed_build": "out/correctness/isa-contract-20261003/pi-off/build-l2y1fucf",
+        "executed_verification": "out/correctness/isa-contract-20261003/pi-off/build-l2y1fucf/pi-verify-1l_b_cyc/verification.json",
+        "executed_verification_sha256": "c8098dd5b4765cbd57d3342bb0e30f78757143743c83c495ff8bb069c185e282",
+        "payload_sha256": {
+          "baseline": "9f5723971ed70a2cc9041ef9168bc139ebc771ce950fbbbb45d31ea184d68620",
+          "normal": "3498e161518cff0526c5b1936431d311518cacfb3970aa63afe5112d1f82d819",
+          "reverse": "3498e161518cff0526c5b1936431d311518cacfb3970aa63afe5112d1f82d819"
+        },
+        "build_manifest_sha256": "cbc7f49f72ed89180b1129a423868966196c4860e52272ba9a23f265422b78f3",
+        "scope": "Fresh supported payload bytes equal the exact verified 0041 payloads; no new Pi execution."
+      },
+      "it": {
+        "build": "out/correctness/profile-identity-20261003/it-final-off/build-s366rkfd",
+        "matches_executed_build": "out/correctness/isa-contract-20261003/it-off/build-6nttpglj",
+        "executed_verification": "out/correctness/isa-contract-20261003/it-off/build-6nttpglj/pi-verify-z7os9lx5/verification.json",
+        "executed_verification_sha256": "f609b985ea738e4bb196c9ab789679c8c4bfe0833354b8740654cd46b494ac89",
+        "payload_sha256": {
+          "bad-reset": "34117521051f329c0913389f4d071507f8e6ee75fb0e07ed247376ddbc30ecdc",
+          "baseline": "2c9f4d72d1589206834bce3bd9d0ede63c6364a31e8cab09de570d7055c272a7",
+          "conservative": "07994e0eb220838b95ee55b290347908ff83564097e7d71ab56d92ef753da7b9",
+          "normal": "22c77ac73eb09f99b662b9062bfe74629f83b52c77544210fb97baf2231fb6d3",
+          "reverse": "b6022ad61d56dd4201fcdfadb8c0a61e797b35cee4aa40fd522f828decad00ef"
+        },
+        "build_manifest_sha256": "972f7a4394229ebc84d323bc9fedf835640264a7bd77ce9ba9a62546cfcb55ff",
+        "scope": "Fresh supported payload bytes equal the exact verified 0041 payloads; no new Pi execution."
+      }
+    }
+  },
+  "fresh_hardware_execution": false,
+  "pi_liveness": {
+    "port": "COM5",
+    "baud": 115200,
+    "observed": "SBOOT?",
+    "log_sha256": "9a2dd1842e0920569fd2289886577ea0741f69fd8b0a07d83a61da8efa782ebb"
+  },
+  "limitations": [
+    "Manifests detect mixing, not forgery.",
+    "Synthetic host captures do not prove hardware execution or workload semantics.",
+    "Source replay is not clean full-build/binary provenance.",
+    "Unsealed/legacy/manual/QEMU capture paths remain excluded from verified optimization.",
+    "Separate file replacements are not a crash/power-loss transaction.",
+    "Call/entry-node/indirect-call counter metadata is excluded.",
+    "Range checks do not prove instruction boundaries or CFG semantics.",
+    "Automatic v7 thunk recognition/retained-target routes remain open in queue items 7/11.",
+    "Counter wraparound and concurrent/torn snapshots are not certified; queue item 9 retains quiescence work."
+  ],
+  "scripts_sha256": {
+    "scripts\\counter_identity.py": "05a416f3c3af59100b96febbb537e173c8a302221903db2d7e1598dec80dd504",
+    "scripts\\profile_identity.py": "7e6fedf6de313a6029525f381e3d1c571656e922bd32bb14daa097c71ab79689",
+    "scripts\\ram-dump-to-fdata.py": "730bc6504ef4e3e21b13d59147d200fdeb2492cf4fcfa8fffe9ac15084569dcd",
+    "scripts\\verify_counter_identity.py": "71ddc0af2de723bde25ed57bea0f26783ea5725dcecadf5cbc1248652221bea9",
+    "scripts\\samples_to_fdata.py": "c6d5351a23706488a8e69393b504c9264c33bded346047035fe3ba3b52902665",
+    "scripts\\pi4\\pi4_bolt_profile.py": "e24415e80f430d2d409f7671b4a58af58a281f6b3e67569a7c6a9af82efd48e6",
+    "scripts\\pi4\\pi4_sample_profile.py": "1bf7309dabe046bef0f500d2d5e3a710fb636f21872604060419a09874a3fcd6",
+    "scripts\\optimize-lk-bolt.sh": "ca406efd8542f6323cb56209adabf96e638a1238933f101fd857fed5478aeecb",
+    "scripts\\bolt-variant.sh": "cbaa203700a699339f72d9bd72c9308fd5c1f6efaa58e93cb413d10e9ef68341",
+    "scripts\\ram-dump-to-fdata.sh": "2cdb788bc2e0ad2a9a6378f8e50df002c2841bbdbedca3102714cb06aaa6c3d3"
+  },
+  "final_consumer_checks": {
+    "schema": 1,
+    "verified": true,
+    "admissions": 24,
+    "rejections": 120,
+    "rows": [
+      {
+        "profile": "out/correctness/profile-identity-20261003/checked-host-on/arm-arm/conservative/profile.fdata",
+        "admitted": true,
+        "receipt_rejections": 5
+      },
+      {
+        "profile": "out/correctness/profile-identity-20261003/checked-host-on/arm-arm/normal/profile.fdata",
+        "admitted": true,
+        "receipt_rejections": 5
+      },
+      {
+        "profile": "out/correctness/profile-identity-20261003/checked-host-on/arm-arm/reverse/profile.fdata",
+        "admitted": true,
+        "receipt_rejections": 5
+      },
+      {
+        "profile": "out/correctness/profile-identity-20261003/checked-host-on/arm-thumb/conservative/profile.fdata",
+        "admitted": true,
+        "receipt_rejections": 5
+      },
+      {
+        "profile": "out/correctness/profile-identity-20261003/checked-host-on/arm-thumb/normal/profile.fdata",
+        "admitted": true,
+        "receipt_rejections": 5
+      },
+      {
+        "profile": "out/correctness/profile-identity-20261003/checked-host-on/arm-thumb/reverse/profile.fdata",
+        "admitted": true,
+        "receipt_rejections": 5
+      },
+      {
+        "profile": "out/correctness/profile-identity-20261003/checked-host-on/thumb-arm/conservative/profile.fdata",
+        "admitted": true,
+        "receipt_rejections": 5
+      },
+      {
+        "profile": "out/correctness/profile-identity-20261003/checked-host-on/thumb-arm/normal/profile.fdata",
+        "admitted": true,
+        "receipt_rejections": 5
+      },
+      {
+        "profile": "out/correctness/profile-identity-20261003/checked-host-on/thumb-arm/reverse/profile.fdata",
+        "admitted": true,
+        "receipt_rejections": 5
+      },
+      {
+        "profile": "out/correctness/profile-identity-20261003/checked-host-on/thumb-thumb/conservative/profile.fdata",
+        "admitted": true,
+        "receipt_rejections": 5
+      },
+      {
+        "profile": "out/correctness/profile-identity-20261003/checked-host-on/thumb-thumb/normal/profile.fdata",
+        "admitted": true,
+        "receipt_rejections": 5
+      },
+      {
+        "profile": "out/correctness/profile-identity-20261003/checked-host-on/thumb-thumb/reverse/profile.fdata",
+        "admitted": true,
+        "receipt_rejections": 5
+      },
+      {
+        "profile": "out/correctness/profile-identity-20261003/checked-host-off/arm-arm/conservative/profile.fdata",
+        "admitted": true,
+        "receipt_rejections": 5
+      },
+      {
+        "profile": "out/correctness/profile-identity-20261003/checked-host-off/arm-arm/normal/profile.fdata",
+        "admitted": true,
+        "receipt_rejections": 5
+      },
+      {
+        "profile": "out/correctness/profile-identity-20261003/checked-host-off/arm-arm/reverse/profile.fdata",
+        "admitted": true,
+        "receipt_rejections": 5
+      },
+      {
+        "profile": "out/correctness/profile-identity-20261003/checked-host-off/arm-thumb/conservative/profile.fdata",
+        "admitted": true,
+        "receipt_rejections": 5
+      },
+      {
+        "profile": "out/correctness/profile-identity-20261003/checked-host-off/arm-thumb/normal/profile.fdata",
+        "admitted": true,
+        "receipt_rejections": 5
+      },
+      {
+        "profile": "out/correctness/profile-identity-20261003/checked-host-off/arm-thumb/reverse/profile.fdata",
+        "admitted": true,
+        "receipt_rejections": 5
+      },
+      {
+        "profile": "out/correctness/profile-identity-20261003/checked-host-off/thumb-arm/conservative/profile.fdata",
+        "admitted": true,
+        "receipt_rejections": 5
+      },
+      {
+        "profile": "out/correctness/profile-identity-20261003/checked-host-off/thumb-arm/normal/profile.fdata",
+        "admitted": true,
+        "receipt_rejections": 5
+      },
+      {
+        "profile": "out/correctness/profile-identity-20261003/checked-host-off/thumb-arm/reverse/profile.fdata",
+        "admitted": true,
+        "receipt_rejections": 5
+      },
+      {
+        "profile": "out/correctness/profile-identity-20261003/checked-host-off/thumb-thumb/conservative/profile.fdata",
+        "admitted": true,
+        "receipt_rejections": 5
+      },
+      {
+        "profile": "out/correctness/profile-identity-20261003/checked-host-off/thumb-thumb/normal/profile.fdata",
+        "admitted": true,
+        "receipt_rejections": 5
+      },
+      {
+        "profile": "out/correctness/profile-identity-20261003/checked-host-off/thumb-thumb/reverse/profile.fdata",
+        "admitted": true,
+        "receipt_rejections": 5
+      }
+    ]
+  }
+}

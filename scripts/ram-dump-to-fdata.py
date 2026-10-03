@@ -17,6 +17,8 @@ import struct
 import subprocess
 import sys
 import tempfile
+import json
+from pathlib import Path
 from dataclasses import dataclass
 
 SECTION_RE = re.compile(
@@ -240,7 +242,7 @@ def serialize_loc(strings: bytes, loc: Location) -> str:
     return f"1 {name} {loc.offset:x} "
 
 
-def validate_function(ctx, func, counters):
+def validate_function(ctx, func, counters, owner_name=None):
     if (func.num_leaf_nodes, func.num_edges, func.num_calls, func.num_entry_nodes) != (
             len(func.leaf_nodes), len(func.edges), len(func.calls), len(func.entry_nodes)):
         raise ValueError('descriptor counts do not match records')
@@ -264,7 +266,9 @@ def validate_function(ctx, func, counters):
     owners |= {serialize_loc(ctx.strings, c.from_loc).split()[1] for c in func.calls}
     if len(owners) > 1:
         raise ValueError('one descriptor has multiple source functions')
-    if func.leaf_nodes and not owners:
+    if owner_name is not None and owners and owners != {owner_name}:
+        raise ValueError('descriptor locations disagree with explicit owner')
+    if func.leaf_nodes and not owners and owner_name is None:
         raise ValueError('leaf-only metadata has no verifiable function identity')
     # Validate the graph even if every measured counter is zero.
     Graph(func, counters, {})
@@ -495,6 +499,12 @@ def main() -> int:
         help="directory containing llvm-readelf/llvm-nm/llvm-objdump",
     )
     ap.add_argument("-o", "--output", default="-", help="fdata output (default stdout)")
+    ap.add_argument('--original', help='exact uninstrumented BOLT input ELF')
+    ap.add_argument('--function-map', help='exact map emitted with instrumented ELF')
+    ap.add_argument('--capture-manifest', help='default: DUMP.manifest.json')
+    ap.add_argument('--patch-dir', default=str(Path(__file__).resolve().parents[1] / 'overlay/llvm/patches/atfe'))
+    ap.add_argument('--source-replay', help='successful exact overlay replay report')
+    ap.add_argument('--debug-unbound', action='store_true', help='diagnostic output only; cannot pass identity gate')
     ap.add_argument(
         "--funcs",
         default="",
@@ -502,6 +512,20 @@ def main() -> int:
         "(labels leaf-only descriptors that omit a name string)",
     )
     args = ap.parse_args()
+    from profile_identity import sha256, publish_files, validate_counter_fdata, elf_metadata
+    capture = None
+    owner_names = []
+    manifest_path = args.capture_manifest or args.dump + '.manifest.json'
+    if not args.debug_unbound:
+        if not all((args.original, args.function_map, args.source_replay)) or args.output == '-':
+            ap.error('verified conversion requires --original, --function-map, --source-replay and -o')
+        from counter_identity import check_capture
+        capture, bound_ctx, bound_funcs = check_capture(manifest_path, args.dump, args.original,
+            args.elf, args.function_map, args.toolchain, args.patch_dir, args.source_replay)
+        manifest_hash = sha256(manifest_path)
+        owner_names = [o['name'] for o in capture['build']['metadata']['owners']]
+        if args.funcs and args.funcs.split(',') != owner_names:
+            raise ValueError('--funcs cannot override sealed descriptor owners')
 
     readelf = f"{args.toolchain}/llvm-readelf"
     _, tables_off, tables_size = section_info(readelf, args.elf, ".bolt.instr.tables")
@@ -525,36 +549,48 @@ def main() -> int:
     func_blob = ctx.func_descriptions
     out = io.StringIO()
     seen_counters = set()
+    descriptor_index = 0
     while off < len(func_blob):
         func, next_off = FunctionDescription.parse(func_blob, off)
         if next_off <= off or next_off > len(func_blob):
             raise ValueError("invalid function descriptor length")
-        validate_function(ctx, func, counters)
+        owner = owner_names[descriptor_index] if capture else None
+        validate_function(ctx, func, counters, owner_name=owner)
         references = [n.counter for n in func.leaf_nodes] + [e.counter for e in func.edges] + [c.counter for c in func.calls]
         references = [counter for counter in references if counter != INFERRED]
         if len(references) != len(set(references)) or seen_counters.intersection(references):
             raise ValueError('metadata assigns one counter to multiple records')
         seen_counters.update(references)
         leaf_name = None
-        if func.num_edges == 0 and func.num_calls == 0 and leaf_names:
+        if capture:
+            leaf_name = owner
+        elif func.num_edges == 0 and func.num_calls == 0 and leaf_names:
             leaf_name = leaf_names.pop(0)
         write_function_profile(out, ctx, func, counters, call_flow, leaf_name=leaf_name)
         off = next_off
+        descriptor_index += 1
     if seen_counters != set(range(len(counters))):
         raise ValueError('declared counters do not match descriptor counter coverage')
     if args.output == "-":
         sys.stdout.write(out.getvalue())
     else:
-        destination = os.path.abspath(args.output)
-        temporary = None
-        try:
-            with tempfile.NamedTemporaryFile(mode="w", encoding="utf-8", dir=os.path.dirname(destination), delete=False) as stream:
-                temporary = stream.name
-                stream.write(out.getvalue())
-            os.replace(temporary, destination)
-        finally:
-            if temporary and os.path.exists(temporary):
-                os.unlink(temporary)
+        payload = out.getvalue().encode('utf-8')
+        import hashlib
+        if capture:
+            _, symbols = elf_metadata(Path(args.original).read_bytes())
+            validate_counter_fdata(out.getvalue(), [s for s in symbols if s['kind'] == 2])
+            check_capture(manifest_path, args.dump, args.original, args.elf, args.function_map,
+                          args.toolchain, args.patch_dir, args.source_replay)
+            if sha256(manifest_path) != manifest_hash:
+                raise ValueError('capture manifest changed during conversion')
+        identity = dict(schema=1, kind='bolt-profile', profile_type='arm-counters',
+                        verified_binding=bool(capture), profile_sha256=hashlib.sha256(payload).hexdigest(),
+                        source_elf_sha256=capture['build']['artifacts']['original'] if capture else None,
+                        capture_manifest_sha256=manifest_hash if capture else None,
+                        build=capture['build'] if capture else None, converter_sha256=sha256(__file__),
+                        limitations='identity and byte-range validation only; not a semantic or execution proof')
+        publish_files({args.output: payload, args.output + '.manifest.json':
+                       (json.dumps(identity, indent=2) + '\n').encode('utf-8')})
         print(f"wrote {args.output}", file=sys.stderr)
     return 0
 

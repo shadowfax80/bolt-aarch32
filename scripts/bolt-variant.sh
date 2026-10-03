@@ -81,6 +81,7 @@ case "$cmd" in
     if [[ -n "${BOLT_FDATA:-}" ]]; then
       # A ready profile, e.g. from PC sampling (samples_to_fdata.py): no instrumented
       # image or counter dump involved.
+      python3 "$ROOT/scripts/profile_identity.py" check-profile --elf "$V/$variant.elf" --profile "$BOLT_FDATA"
       cp "$BOLT_FDATA" "$V/$variant.fdata"
       if [[ -f "$BOLT_FDATA.manifest.json" ]]; then
         cp "$BOLT_FDATA.manifest.json" "$V/$variant.fdata.manifest.json"
@@ -90,7 +91,9 @@ case "$cmd" in
     else
       counters="${3:-}"; [[ -f "$counters" ]] || { echo "error: counters file required" >&2; exit 1; }
       python3 "$ROOT/scripts/ram-dump-to-fdata.py" --elf "$V/$variant.instr.elf" \
-        --dump "$counters" --toolchain "$TOOLCHAIN" -o "$V/$variant.fdata"
+        --dump "$counters" --toolchain "$TOOLCHAIN" --original "$V/$variant.elf" \
+        --function-map "$V/$variant.instr.funcmap" --source-replay "${SOURCE_REPLAY:?set SOURCE_REPLAY to the exact successful overlay replay report}" \
+        -o "$V/$variant.fdata"
     fi
     BASE="$BASE" ARCH=arm32 ELF="$V/$variant.elf" FDATA="$V/$variant.fdata" \
       OUT="$V/${variant}${OSUF}.elf" OPTIMIZE_FUNCS="${BOLT_OPTIMIZE_FUNCS:-$FUNC}" \
