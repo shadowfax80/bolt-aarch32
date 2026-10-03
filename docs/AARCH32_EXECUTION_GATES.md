@@ -1,5 +1,9 @@
 # AArch32 execution gates — item 6, first checkpoint
 
+The later [A32 far-call checkpoint](AARCH32_FAR_EXECUTION.md) verifies a bounded
+QEMU route. The no-far-call statements below describe this earlier first stage.
+Item 6 remains active.
+
 The execution/result gate hardening stage is verified. Consolidated item 6
 remains active; this checkpoint does not close the wider execution work or
 original workstream #12. LLVM source remains at overlay 0043.

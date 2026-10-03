@@ -1,5 +1,30 @@
 # ATFE correctness checkpoint - 2026-10-03
 
+## Latest: item 6 A32 far-call execution stage verified
+
+The legacy P5 gate now requires QEMU execution, an independent five-input
+result/memory/NZCV/SP oracle, and exactly five observed veneer/callee visits.
+Both assertion modes pass normal and reverse layouts: 20 transformed input
+cases, ten baseline input cases and 28 rejected executable faults overall.
+All 86 Python tests pass. A preserved bypass reproduction still exits 42 under
+the former result-only oracle; the new gate rejects bypass and shortened-loop
+cases, and missing QEMU cannot PASS. Fresh durable receipts bind options,
+selected/emitted/eliminated/executed routes, tool/image/script/QEMU hashes and logs.
+LLVM source remains at 0043. Item 6 and original #12 remain active: Pi,
+Thumb/mixed far-call routes, the automatic v7 thunk caveat and remaining
+verification paths are not closed. See [scope](AARCH32_FAR_EXECUTION.md) and
+[evidence](results/correctness_far_execution_20261003.json).
+
+Evidence: `out/correctness/far-execution-20261003` contains the preserved
+legacy bypass reproduction, release-on/run-d_n1lrar and release-off/run-nltzaehx
+receipts and traces, python-tests-release.log (86 pass), and source preimages/afterimages.
+One-time reproduction/publication helpers already ran; do not overwrite evidence.
+No Pi work or LLVM rebuild was done in this stage. Preserve dirty ATFE/LK and
+unrelated Microsoft/. Stop at this verified milestone under the standing user
+instruction. On resume continue item 6 with Thumb/mixed/hardware far-call
+witnesses and the remaining verifier audit. Do not advance to item 7 or weaken
+the whole-LK arm_reset admission guard; original #12 remains active.
+
 ## Latest: item 6 gate hardening verified; item 6 remains active
 
 Item 6's first execution/result gate hardening stage is verified; item 6

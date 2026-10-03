@@ -1,0 +1,1255 @@
+{
+  "schema": 1,
+  "date": "2026-10-03",
+  "queue_item": 6,
+  "status": "A32 far-call gate stage verified; item 6 remains active",
+  "original_workstream_12": "active",
+  "backend_overlay": "0043; no LLVM source changes",
+  "base_repository_revision": "9dd4cc079ffc48f03e6baec0a26ded6ca7253e90",
+  "source_changes": {
+    "scripts/verify-bolt-arm32-veneer.sh": {
+      "before_sha256": "52f266fb424c3d65889d2b07f5468919a6b3c89a046086264da1b6b54933e8ba",
+      "after_sha256": "f7b67a72788bb59b34878b40ff1e8c284a77f8bf366530e27ea4c88afbce1418"
+    },
+    "scripts/verify_far_execution.py": {
+      "before_sha256": null,
+      "after_sha256": "d4785553d6ee67b43c2a6f989799a68a4aa775c9b7270158bd14620db70db8be"
+    },
+    "scripts/tests/test_far_execution.py": {
+      "before_sha256": null,
+      "after_sha256": "e70600d4d8c27a93e4ff35fc86c066edafd61b09750fa976cf1c65e3b20b4cd4"
+    }
+  },
+  "tests": {
+    "schema": 1,
+    "tests": 86,
+    "successful": true,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "test_log_sha256": "d34dfe8dabf80b338f4913959642065f5590a67d828caa482bc46c6b185e1e45",
+  "independent_expected_table": [
+    {
+      "input": 0,
+      "return_and_memory": 7
+    },
+    {
+      "input": 1,
+      "return_and_memory": 8
+    },
+    {
+      "input": 17,
+      "return_and_memory": 24
+    },
+    {
+      "input": 2147483647,
+      "return_and_memory": 2147483654
+    },
+    {
+      "input": 4294967295,
+      "return_and_memory": 6
+    }
+  ],
+  "transformed_input_cases": 20,
+  "baseline_input_cases": 10,
+  "rejected_executable_faults": 28,
+  "missing_qemu_wrapper_rejected": true,
+  "missing_qemu_log_sha256": "be49bdb59e9a869108b43044c5fcb5aedb0ab02aa482b4149ab72b2d363ecfa0",
+  "legacy_reproduction": {
+    "schema": 1,
+    "legacy_exit_only_would_accept": true,
+    "original": {
+      "returncode": 42,
+      "timed_out": false,
+      "image_sha256": "14d2669e8d3b378461e8cac16a9aa580a342d0c7e69713c0c833b2c41a7a681f",
+      "command": [
+        "/usr/bin/qemu-arm",
+        "-cpu",
+        "cortex-a15",
+        "-d",
+        "exec,nochain",
+        "-D",
+        "/mnt/c/Users/User/CURSOR/CodexProjects/BOLT_AARCH32/out/correctness/far-execution-20261003/legacy-reproduction/original-run.trace",
+        "/mnt/c/Users/User/CURSOR/CodexProjects/BOLT_AARCH32/out/correctness/far-execution-20261003/legacy-reproduction/rewritten.elf"
+      ],
+      "pcs": [
+        37748736,
+        37748740,
+        37748756,
+        72351780
+      ]
+    },
+    "bypass": {
+      "returncode": 42,
+      "timed_out": false,
+      "image_sha256": "03f87eeccd030af0e4e4c2e97f7db30c708649ffd451c4919f8a6aa5d67267be",
+      "command": [
+        "/usr/bin/qemu-arm",
+        "-cpu",
+        "cortex-a15",
+        "-d",
+        "exec,nochain",
+        "-D",
+        "/mnt/c/Users/User/CURSOR/CodexProjects/BOLT_AARCH32/out/correctness/far-execution-20261003/legacy-reproduction/bypass-run.trace",
+        "/mnt/c/Users/User/CURSOR/CodexProjects/BOLT_AARCH32/out/correctness/far-execution-20261003/legacy-reproduction/bypassed.elf"
+      ],
+      "pcs": [
+        37748736
+      ]
+    },
+    "emitted_callee": 72351780,
+    "bypass_executed_callee": false,
+    "scope": "host QEMU reproduction; output-byte mutation bypasses far call while retained generated veneer remains; legacy exit-only oracle still accepts 42",
+    "files": {
+      "arm32-far-bl.s": "40820face8d4ecf21338881752ea47797d92ef54371b286beb3c10d1a33f9b1d",
+      "arm32-far.ld": "9ad308952c5f63e489be993bb4ef844334a950230c93abaa1f65144d23184144",
+      "bolt.log": "4f909c2bfe91c4350d5a621f0cd3d0de661fdf4a0952db61e874c533fa0b1dbc",
+      "bypass-run.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bypass-run.trace": "4137396a6310d374359d5285510562637a3cced4a177738687955de5a8bbda37",
+      "bypassed.elf": "03f87eeccd030af0e4e4c2e97f7db30c708649ffd451c4919f8a6aa5d67267be",
+      "input.elf": "ed217020dce6d7151a4b36edf8f7d01eb3fb3c251fdcba701498d3e768f8841f",
+      "input.o": "88ed5e5578efb255492494ef68b5e98d4c01b6b996c3cc713c5321891835c805",
+      "ld.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "legacy-gate.sh": "52f266fb424c3d65889d2b07f5468919a6b3c89a046086264da1b6b54933e8ba",
+      "mc.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "original-run.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "original-run.trace": "4d2ddcf4539125c1af8e13a5f48103979033a7e34f643cec6690014eb04b6ee0",
+      "rewritten.elf": "14d2669e8d3b378461e8cac16a9aa580a342d0c7e69713c0c833b2c41a7a681f"
+    }
+  },
+  "builds": {
+    "on": {
+      "evidence_directory": "out/correctness/far-execution-20261003/release-on/run-d_n1lrar",
+      "verification_sha256": "982aed3be11a4fe173f18fffa8c3498f30e770b50be5cdb0032912c8b014925c",
+      "report": {
+        "schema": 1,
+        "verified": true,
+        "kind": "a32-far-execution",
+        "seeds": [
+          0,
+          1,
+          17,
+          2147483647,
+          4294967295
+        ],
+        "baseline": {
+          "returncode": 42,
+          "timed_out": false,
+          "image_sha256": "01fbbc70745d819c063e9371247e4a89877913a88c57d8b98179698c6d9ad2b7",
+          "command": [
+            "/usr/bin/qemu-arm",
+            "-cpu",
+            "cortex-a15",
+            "-d",
+            "exec,nochain",
+            "-D",
+            "/mnt/c/Users/User/CURSOR/CodexProjects/BOLT_AARCH32/out/correctness/far-execution-20261003/release-on/run-d_n1lrar/baseline.trace",
+            "/mnt/c/Users/User/CURSOR/CodexProjects/BOLT_AARCH32/out/correctness/far-execution-20261003/release-on/run-d_n1lrar/baseline.elf"
+          ],
+          "pcs": [
+            65536,
+            65560,
+            65584,
+            65600,
+            65608,
+            65620,
+            65632,
+            65640,
+            65676,
+            65688,
+            34668704
+          ],
+          "visits": {
+            "0x10000": 1,
+            "0x10018": 4,
+            "0x10030": 5,
+            "0x10040": 5,
+            "0x10048": 5,
+            "0x10054": 5,
+            "0x10060": 5,
+            "0x10068": 1,
+            "0x1008c": 1,
+            "0x10098": 5,
+            "0x21100a0": 5
+          }
+        },
+        "scope": "QEMU cortex-a15 Linux user-mode; A32 explicit legacy literal veneer removed and MOVW/MOVT/BX emitted; result, memory, NZCV and SP; no Pi/Thumb/automatic-v7-thunk or whole-kernel claim",
+        "repository_revision": "9dd4cc079ffc48f03e6baec0a26ded6ca7253e90",
+        "tools": {
+          "llvm-mc": "0419ed87fde9fa95b827a58cc1e6d2817c0970304c9fb0bd7779e7188122dbed",
+          "ld.lld": "21f3d1e800b8de414efc347ed4630126d22996cddf663d92004af5e089b51be9",
+          "llvm-bolt": "b34b3b6cfa6b760b023e3985f36238d1a679e510a73deb8d90988efa3c3f680c"
+        },
+        "scripts": {
+          "scripts/verify_far_execution.py": "d4785553d6ee67b43c2a6f989799a68a4aa775c9b7270158bd14620db70db8be",
+          "scripts/profile_identity.py": "7e6fedf6de313a6029525f381e3d1c571656e922bd32bb14daa097c71ab79689",
+          "scripts/verify-bolt-arm32-veneer.sh": "f7b67a72788bb59b34878b40ff1e8c284a77f8bf366530e27ea4c88afbce1418"
+        },
+        "qemu_sha256": "97a55d84e8e12bd7c0b494d36fe2165cdc3c13f8efd4bceb13c69c14dc2edab4",
+        "qemu_version": "qemu-arm version 10.2.1 (Debian 1:10.2.1+ds-1ubuntu3.2)",
+        "results": {
+          "normal": {
+            "selected": [
+              "_start",
+              "far_away",
+              "__ARMv5LongLdrPcThunk_far_away"
+            ],
+            "eliminated": [
+              "__ARMv5LongLdrPcThunk_far_away"
+            ],
+            "emitted": {
+              "_start": [
+                65536,
+                34807808,
+                168
+              ],
+              "far_away": [
+                34668704,
+                69410984,
+                12
+              ]
+            },
+            "entry_selected": [
+              "_start"
+            ],
+            "route": {
+              "call": 34807852,
+              "veneer": 34807876,
+              "caller": 34807808,
+              "callee": 69410984,
+              "original_caller": 65536,
+              "original_callee": 34668704
+            },
+            "executed": [
+              34807808,
+              34807876,
+              69410984
+            ],
+            "expected_exit": 42,
+            "observed": {
+              "returncode": 42,
+              "timed_out": false,
+              "image_sha256": "b49854187e82003c4bfd6634fa4bdfdcad3fae2ee7a3310485237edaf1873fb3",
+              "command": [
+                "/usr/bin/qemu-arm",
+                "-cpu",
+                "cortex-a15",
+                "-d",
+                "exec,nochain",
+                "-D",
+                "/mnt/c/Users/User/CURSOR/CodexProjects/BOLT_AARCH32/out/correctness/far-execution-20261003/release-on/run-d_n1lrar/normal.trace",
+                "/mnt/c/Users/User/CURSOR/CodexProjects/BOLT_AARCH32/out/correctness/far-execution-20261003/release-on/run-d_n1lrar/normal.elf"
+              ],
+              "pcs": [
+                34807808,
+                34807832,
+                34807856,
+                34807872,
+                34807876,
+                34807888,
+                34807896,
+                34807908,
+                34807920,
+                34807928,
+                34807964,
+                69410984
+              ],
+              "visits": {
+                "0x2132000": 1,
+                "0x2132018": 4,
+                "0x2132030": 5,
+                "0x2132040": 5,
+                "0x2132044": 5,
+                "0x2132050": 5,
+                "0x2132058": 5,
+                "0x2132064": 5,
+                "0x2132070": 5,
+                "0x2132078": 1,
+                "0x213209c": 1,
+                "0x42320a8": 5
+              }
+            },
+            "options": [
+              "--no-huge-pages",
+              "-lite=0",
+              "--pad-funcs-before=far_away:0x2100000",
+              "--emit-function-map=/mnt/c/Users/User/CURSOR/CodexProjects/BOLT_AARCH32/out/correctness/far-execution-20261003/release-on/run-d_n1lrar/normal.map"
+            ],
+            "faults": {
+              "result": {
+                "returncode": 71,
+                "timed_out": false,
+                "image_sha256": "fe78dfc6bb4e2174cdf43a7d751cc6d808546943030b77868deab2a75c7bc8dc",
+                "command": [
+                  "/usr/bin/qemu-arm",
+                  "-cpu",
+                  "cortex-a15",
+                  "/mnt/c/Users/User/CURSOR/CodexProjects/BOLT_AARCH32/out/correctness/far-execution-20261003/release-on/run-d_n1lrar/normal-result.elf"
+                ],
+                "pcs": [],
+                "visits": {}
+              },
+              "memory": {
+                "returncode": 72,
+                "timed_out": false,
+                "image_sha256": "5e47284fafe3c62381824cd0b5c8aeb16d3d1d7e33a63e58ef5fcf1baf979ac1",
+                "command": [
+                  "/usr/bin/qemu-arm",
+                  "-cpu",
+                  "cortex-a15",
+                  "/mnt/c/Users/User/CURSOR/CodexProjects/BOLT_AARCH32/out/correctness/far-execution-20261003/release-on/run-d_n1lrar/normal-memory.elf"
+                ],
+                "pcs": [],
+                "visits": {}
+              },
+              "flags": {
+                "returncode": 73,
+                "timed_out": false,
+                "image_sha256": "69b2274d92c32fb73ce5469ca8a7f43876ab90183ee803e49511b7bd1c366e1f",
+                "command": [
+                  "/usr/bin/qemu-arm",
+                  "-cpu",
+                  "cortex-a15",
+                  "/mnt/c/Users/User/CURSOR/CodexProjects/BOLT_AARCH32/out/correctness/far-execution-20261003/release-on/run-d_n1lrar/normal-flags.elf"
+                ],
+                "pcs": [],
+                "visits": {}
+              },
+              "stack": {
+                "returncode": 74,
+                "timed_out": false,
+                "image_sha256": "3bc1440674d2d76f983859bafd55fd6977ddc6e15a1ff0c8f6d2cb6fce20b68d",
+                "command": [
+                  "/usr/bin/qemu-arm",
+                  "-cpu",
+                  "cortex-a15",
+                  "/mnt/c/Users/User/CURSOR/CodexProjects/BOLT_AARCH32/out/correctness/far-execution-20261003/release-on/run-d_n1lrar/normal-stack.elf"
+                ],
+                "pcs": [],
+                "visits": {}
+              },
+              "bypass": {
+                "returncode": 71,
+                "timed_out": false,
+                "image_sha256": "f260174b2f3f40b11a53445c2d348faa2d3d1e8fd8ad341a5555ac3154c263f0",
+                "command": [
+                  "/usr/bin/qemu-arm",
+                  "-cpu",
+                  "cortex-a15",
+                  "/mnt/c/Users/User/CURSOR/CodexProjects/BOLT_AARCH32/out/correctness/far-execution-20261003/release-on/run-d_n1lrar/normal-bypass.elf"
+                ],
+                "pcs": [],
+                "visits": {}
+              },
+              "truncated-repetitions": {
+                "returncode": 42,
+                "timed_out": false,
+                "image_sha256": "7e27480cc6a52a0ffeee5ac398b66858a2761d407de056bc63310bff5c5d760f",
+                "command": [
+                  "/usr/bin/qemu-arm",
+                  "-cpu",
+                  "cortex-a15",
+                  "-d",
+                  "exec,nochain",
+                  "-D",
+                  "/mnt/c/Users/User/CURSOR/CodexProjects/BOLT_AARCH32/out/correctness/far-execution-20261003/release-on/run-d_n1lrar/normal-truncated-repetitions.trace",
+                  "/mnt/c/Users/User/CURSOR/CodexProjects/BOLT_AARCH32/out/correctness/far-execution-20261003/release-on/run-d_n1lrar/normal-truncated-repetitions.elf"
+                ],
+                "pcs": [
+                  34807808,
+                  34807856,
+                  34807872,
+                  34807876,
+                  34807888,
+                  34807896,
+                  34807908,
+                  34807920,
+                  34807928,
+                  34807964,
+                  69410984
+                ],
+                "visits": {
+                  "0x2132000": 1,
+                  "0x2132030": 1,
+                  "0x2132040": 1,
+                  "0x2132044": 1,
+                  "0x2132050": 1,
+                  "0x2132058": 1,
+                  "0x2132064": 1,
+                  "0x2132070": 1,
+                  "0x2132078": 1,
+                  "0x213209c": 1,
+                  "0x42320a8": 1
+                }
+              },
+              "timeout": {
+                "returncode": null,
+                "timed_out": true,
+                "image_sha256": "c0543ef7a73e5bda402f79830becc79198477f0c261756e83712cc1e687929cc",
+                "command": [
+                  "/usr/bin/qemu-arm",
+                  "-cpu",
+                  "cortex-a15",
+                  "/mnt/c/Users/User/CURSOR/CodexProjects/BOLT_AARCH32/out/correctness/far-execution-20261003/release-on/run-d_n1lrar/normal-timeout.elf"
+                ],
+                "pcs": [],
+                "visits": {}
+              }
+            }
+          },
+          "reverse": {
+            "selected": [
+              "_start",
+              "far_away",
+              "__ARMv5LongLdrPcThunk_far_away"
+            ],
+            "eliminated": [
+              "__ARMv5LongLdrPcThunk_far_away"
+            ],
+            "emitted": {
+              "_start": [
+                65536,
+                34807808,
+                196
+              ],
+              "far_away": [
+                34668704,
+                69411012,
+                12
+              ]
+            },
+            "entry_selected": [
+              "_start"
+            ],
+            "route": {
+              "call": 34807968,
+              "veneer": 34807992,
+              "caller": 34807808,
+              "callee": 69411012,
+              "original_caller": 65536,
+              "original_callee": 34668704
+            },
+            "executed": [
+              34807808,
+              34807992,
+              69411012
+            ],
+            "expected_exit": 42,
+            "observed": {
+              "returncode": 42,
+              "timed_out": false,
+              "image_sha256": "c78f09d754b204dc414cc654b72260458ab0fd908b0f4d499491ceb68c632f7b",
+              "command": [
+                "/usr/bin/qemu-arm",
+                "-cpu",
+                "cortex-a15",
+                "-d",
+                "exec,nochain",
+                "-D",
+                "/mnt/c/Users/User/CURSOR/CodexProjects/BOLT_AARCH32/out/correctness/far-execution-20261003/release-on/run-d_n1lrar/reverse.trace",
+                "/mnt/c/Users/User/CURSOR/CodexProjects/BOLT_AARCH32/out/correctness/far-execution-20261003/release-on/run-d_n1lrar/reverse.elf"
+              ],
+              "pcs": [
+                34807808,
+                34807840,
+                34807884,
+                34807892,
+                34807900,
+                34807904,
+                34807916,
+                34807920,
+                34807932,
+                34807936,
+                34807944,
+                34807948,
+                34807972,
+                34807988,
+                34807992,
+                69411012
+              ],
+              "visits": {
+                "0x2132000": 1,
+                "0x2132020": 1,
+                "0x213204c": 1,
+                "0x2132054": 5,
+                "0x213205c": 1,
+                "0x2132060": 5,
+                "0x213206c": 5,
+                "0x2132070": 5,
+                "0x213207c": 5,
+                "0x2132080": 5,
+                "0x2132088": 5,
+                "0x213208c": 5,
+                "0x21320a4": 5,
+                "0x21320b4": 5,
+                "0x21320b8": 5,
+                "0x42320c4": 5
+              }
+            },
+            "options": [
+              "--no-huge-pages",
+              "-lite=0",
+              "--pad-funcs-before=far_away:0x2100000",
+              "--emit-function-map=/mnt/c/Users/User/CURSOR/CodexProjects/BOLT_AARCH32/out/correctness/far-execution-20261003/release-on/run-d_n1lrar/reverse.map",
+              "--reorder-blocks=reverse"
+            ],
+            "faults": {
+              "result": {
+                "returncode": 71,
+                "timed_out": false,
+                "image_sha256": "abf3b915788150ed218eecb9cee438bf06bd538ec221af85645ca66eaab5bcae",
+                "command": [
+                  "/usr/bin/qemu-arm",
+                  "-cpu",
+                  "cortex-a15",
+                  "/mnt/c/Users/User/CURSOR/CodexProjects/BOLT_AARCH32/out/correctness/far-execution-20261003/release-on/run-d_n1lrar/reverse-result.elf"
+                ],
+                "pcs": [],
+                "visits": {}
+              },
+              "memory": {
+                "returncode": 72,
+                "timed_out": false,
+                "image_sha256": "b32bde62e3daee2242ff5c171479cf74d27563f7a026d1d305a60ad0ea4699b6",
+                "command": [
+                  "/usr/bin/qemu-arm",
+                  "-cpu",
+                  "cortex-a15",
+                  "/mnt/c/Users/User/CURSOR/CodexProjects/BOLT_AARCH32/out/correctness/far-execution-20261003/release-on/run-d_n1lrar/reverse-memory.elf"
+                ],
+                "pcs": [],
+                "visits": {}
+              },
+              "flags": {
+                "returncode": 73,
+                "timed_out": false,
+                "image_sha256": "ae1fcc409cfdf3aa67a49b92270ccb7121421427467028e6c256c79e5a7e5c80",
+                "command": [
+                  "/usr/bin/qemu-arm",
+                  "-cpu",
+                  "cortex-a15",
+                  "/mnt/c/Users/User/CURSOR/CodexProjects/BOLT_AARCH32/out/correctness/far-execution-20261003/release-on/run-d_n1lrar/reverse-flags.elf"
+                ],
+                "pcs": [],
+                "visits": {}
+              },
+              "stack": {
+                "returncode": 74,
+                "timed_out": false,
+                "image_sha256": "b372c698bcd1a14f5848acc48289b841f3c3ff74e1fb8ae26ec97486a9576947",
+                "command": [
+                  "/usr/bin/qemu-arm",
+                  "-cpu",
+                  "cortex-a15",
+                  "/mnt/c/Users/User/CURSOR/CodexProjects/BOLT_AARCH32/out/correctness/far-execution-20261003/release-on/run-d_n1lrar/reverse-stack.elf"
+                ],
+                "pcs": [],
+                "visits": {}
+              },
+              "bypass": {
+                "returncode": 71,
+                "timed_out": false,
+                "image_sha256": "da75dc7ca06ac7d2289926dad919fd5c28c2a5cb3a0c11b03043fbfcb4a82e10",
+                "command": [
+                  "/usr/bin/qemu-arm",
+                  "-cpu",
+                  "cortex-a15",
+                  "/mnt/c/Users/User/CURSOR/CodexProjects/BOLT_AARCH32/out/correctness/far-execution-20261003/release-on/run-d_n1lrar/reverse-bypass.elf"
+                ],
+                "pcs": [],
+                "visits": {}
+              },
+              "truncated-repetitions": {
+                "returncode": 42,
+                "timed_out": false,
+                "image_sha256": "b283e39d582a46646eba66c2ad4c47df25fd0d242ab541e44fe31880e3df4042",
+                "command": [
+                  "/usr/bin/qemu-arm",
+                  "-cpu",
+                  "cortex-a15",
+                  "-d",
+                  "exec,nochain",
+                  "-D",
+                  "/mnt/c/Users/User/CURSOR/CodexProjects/BOLT_AARCH32/out/correctness/far-execution-20261003/release-on/run-d_n1lrar/reverse-truncated-repetitions.trace",
+                  "/mnt/c/Users/User/CURSOR/CodexProjects/BOLT_AARCH32/out/correctness/far-execution-20261003/release-on/run-d_n1lrar/reverse-truncated-repetitions.elf"
+                ],
+                "pcs": [
+                  34807808,
+                  34807840,
+                  34807884,
+                  34807892,
+                  34807900,
+                  34807904,
+                  34807916,
+                  34807920,
+                  34807932,
+                  34807936,
+                  34807944,
+                  34807948,
+                  34807972,
+                  34807988,
+                  34807992,
+                  69411012
+                ],
+                "visits": {
+                  "0x2132000": 1,
+                  "0x2132020": 1,
+                  "0x213204c": 1,
+                  "0x2132054": 1,
+                  "0x213205c": 1,
+                  "0x2132060": 1,
+                  "0x213206c": 1,
+                  "0x2132070": 1,
+                  "0x213207c": 1,
+                  "0x2132080": 1,
+                  "0x2132088": 1,
+                  "0x213208c": 1,
+                  "0x21320a4": 1,
+                  "0x21320b4": 1,
+                  "0x21320b8": 1,
+                  "0x42320c4": 1
+                }
+              },
+              "timeout": {
+                "returncode": null,
+                "timed_out": true,
+                "image_sha256": "c9f5a2134ff70ba5aeddd3d6d6d2dfc913b21c9dc62a80f6785b4b41be8b725c",
+                "command": [
+                  "/usr/bin/qemu-arm",
+                  "-cpu",
+                  "cortex-a15",
+                  "/mnt/c/Users/User/CURSOR/CodexProjects/BOLT_AARCH32/out/correctness/far-execution-20261003/release-on/run-d_n1lrar/reverse-timeout.elf"
+                ],
+                "pcs": [],
+                "visits": {}
+              }
+            }
+          }
+        },
+        "files": {
+          "assemble.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "baseline.elf": "01fbbc70745d819c063e9371247e4a89877913a88c57d8b98179698c6d9ad2b7",
+          "baseline.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "baseline.trace": "5ae91156b5428486600ed859f9bd6f560ee04d694494d50eba77cb9202894792",
+          "fixture.o": "9dc9ce73c8353765ad4ba71cec0999a7e8ec3ef076ce17b0074645c915ca246b",
+          "fixture.s": "59a5c4062b283113250e6dddc87a432d364bfb6bcadf97c707476c1a9e0701ff",
+          "link.ld": "d35a7c68c0fed38c2a536d2043a467e8fa2b0b235666c57c586640336d7c1625",
+          "link.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "normal-bolt.log": "79061e66d30ae609800a4c665349b826c048e9505b868a11c22dfa6d9e938537",
+          "normal-bypass.elf": "f260174b2f3f40b11a53445c2d348faa2d3d1e8fd8ad341a5555ac3154c263f0",
+          "normal-bypass.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "normal-flags.elf": "69b2274d92c32fb73ce5469ca8a7f43876ab90183ee803e49511b7bd1c366e1f",
+          "normal-flags.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "normal-memory.elf": "5e47284fafe3c62381824cd0b5c8aeb16d3d1d7e33a63e58ef5fcf1baf979ac1",
+          "normal-memory.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "normal-result.elf": "fe78dfc6bb4e2174cdf43a7d751cc6d808546943030b77868deab2a75c7bc8dc",
+          "normal-result.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "normal-stack.elf": "3bc1440674d2d76f983859bafd55fd6977ddc6e15a1ff0c8f6d2cb6fce20b68d",
+          "normal-stack.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "normal-timeout.elf": "c0543ef7a73e5bda402f79830becc79198477f0c261756e83712cc1e687929cc",
+          "normal-timeout.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "normal-truncated-repetitions.elf": "7e27480cc6a52a0ffeee5ac398b66858a2761d407de056bc63310bff5c5d760f",
+          "normal-truncated-repetitions.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "normal-truncated-repetitions.trace": "6f0fb7a8280546eb6de29379d5b5c4b3d21264c1a92b042dc5141b51ee63d55b",
+          "normal.elf": "b49854187e82003c4bfd6634fa4bdfdcad3fae2ee7a3310485237edaf1873fb3",
+          "normal.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "normal.map": "1e96cdcceb186581733358726ca8e0d13c80e4a214f886383317f4f62d5175d3",
+          "normal.trace": "138039b3a9c58d769c651797c988e8facd4a97af007b88364f2519051105de32",
+          "reverse-bolt.log": "ed56be303091bd3743de6aa312abdd5e86462a106a420c11d495e0ad96d297bd",
+          "reverse-bypass.elf": "da75dc7ca06ac7d2289926dad919fd5c28c2a5cb3a0c11b03043fbfcb4a82e10",
+          "reverse-bypass.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "reverse-flags.elf": "ae1fcc409cfdf3aa67a49b92270ccb7121421427467028e6c256c79e5a7e5c80",
+          "reverse-flags.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "reverse-memory.elf": "b32bde62e3daee2242ff5c171479cf74d27563f7a026d1d305a60ad0ea4699b6",
+          "reverse-memory.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "reverse-result.elf": "abf3b915788150ed218eecb9cee438bf06bd538ec221af85645ca66eaab5bcae",
+          "reverse-result.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "reverse-stack.elf": "b372c698bcd1a14f5848acc48289b841f3c3ff74e1fb8ae26ec97486a9576947",
+          "reverse-stack.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "reverse-timeout.elf": "c9f5a2134ff70ba5aeddd3d6d6d2dfc913b21c9dc62a80f6785b4b41be8b725c",
+          "reverse-timeout.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "reverse-truncated-repetitions.elf": "b283e39d582a46646eba66c2ad4c47df25fd0d242ab541e44fe31880e3df4042",
+          "reverse-truncated-repetitions.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "reverse-truncated-repetitions.trace": "2938475478a911997f62862022961739085a651bfe46c5eb6b1e75676df9555a",
+          "reverse.elf": "c78f09d754b204dc414cc654b72260458ab0fd908b0f4d499491ceb68c632f7b",
+          "reverse.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "reverse.map": "7ee61fc13d24c1f8a7177e2c2178c56d491cb522fe2b9657961806e5cfcae7d3",
+          "reverse.trace": "6cb7994342bafccc80087b7ee3bef695557150710a65f3ff1a3cdc8fef446ccc"
+        }
+      }
+    },
+    "off": {
+      "evidence_directory": "out/correctness/far-execution-20261003/release-off/run-nltzaehx",
+      "verification_sha256": "5e4ca70a950c23fbdc1abd9e0fb2dc976bd68c729021ba87977b0252dcfcebcf",
+      "report": {
+        "schema": 1,
+        "verified": true,
+        "kind": "a32-far-execution",
+        "seeds": [
+          0,
+          1,
+          17,
+          2147483647,
+          4294967295
+        ],
+        "baseline": {
+          "returncode": 42,
+          "timed_out": false,
+          "image_sha256": "01fbbc70745d819c063e9371247e4a89877913a88c57d8b98179698c6d9ad2b7",
+          "command": [
+            "/usr/bin/qemu-arm",
+            "-cpu",
+            "cortex-a15",
+            "-d",
+            "exec,nochain",
+            "-D",
+            "/mnt/c/Users/User/CURSOR/CodexProjects/BOLT_AARCH32/out/correctness/far-execution-20261003/release-off/run-nltzaehx/baseline.trace",
+            "/mnt/c/Users/User/CURSOR/CodexProjects/BOLT_AARCH32/out/correctness/far-execution-20261003/release-off/run-nltzaehx/baseline.elf"
+          ],
+          "pcs": [
+            65536,
+            65560,
+            65584,
+            65600,
+            65608,
+            65620,
+            65632,
+            65640,
+            65676,
+            65688,
+            34668704
+          ],
+          "visits": {
+            "0x10000": 1,
+            "0x10018": 4,
+            "0x10030": 5,
+            "0x10040": 5,
+            "0x10048": 5,
+            "0x10054": 5,
+            "0x10060": 5,
+            "0x10068": 1,
+            "0x1008c": 1,
+            "0x10098": 5,
+            "0x21100a0": 5
+          }
+        },
+        "scope": "QEMU cortex-a15 Linux user-mode; A32 explicit legacy literal veneer removed and MOVW/MOVT/BX emitted; result, memory, NZCV and SP; no Pi/Thumb/automatic-v7-thunk or whole-kernel claim",
+        "repository_revision": "9dd4cc079ffc48f03e6baec0a26ded6ca7253e90",
+        "tools": {
+          "llvm-mc": "0419ed87fde9fa95b827a58cc1e6d2817c0970304c9fb0bd7779e7188122dbed",
+          "ld.lld": "21f3d1e800b8de414efc347ed4630126d22996cddf663d92004af5e089b51be9",
+          "llvm-bolt": "886d3143edd3a1d8d1a67393630348de395ec07d235aae06ed8f57cefa6a6773"
+        },
+        "scripts": {
+          "scripts/verify_far_execution.py": "d4785553d6ee67b43c2a6f989799a68a4aa775c9b7270158bd14620db70db8be",
+          "scripts/profile_identity.py": "7e6fedf6de313a6029525f381e3d1c571656e922bd32bb14daa097c71ab79689",
+          "scripts/verify-bolt-arm32-veneer.sh": "f7b67a72788bb59b34878b40ff1e8c284a77f8bf366530e27ea4c88afbce1418"
+        },
+        "qemu_sha256": "97a55d84e8e12bd7c0b494d36fe2165cdc3c13f8efd4bceb13c69c14dc2edab4",
+        "qemu_version": "qemu-arm version 10.2.1 (Debian 1:10.2.1+ds-1ubuntu3.2)",
+        "results": {
+          "normal": {
+            "selected": [
+              "_start",
+              "far_away",
+              "__ARMv5LongLdrPcThunk_far_away"
+            ],
+            "eliminated": [
+              "__ARMv5LongLdrPcThunk_far_away"
+            ],
+            "emitted": {
+              "_start": [
+                65536,
+                34807808,
+                168
+              ],
+              "far_away": [
+                34668704,
+                69410984,
+                12
+              ]
+            },
+            "entry_selected": [
+              "_start"
+            ],
+            "route": {
+              "call": 34807852,
+              "veneer": 34807876,
+              "caller": 34807808,
+              "callee": 69410984,
+              "original_caller": 65536,
+              "original_callee": 34668704
+            },
+            "executed": [
+              34807808,
+              34807876,
+              69410984
+            ],
+            "expected_exit": 42,
+            "observed": {
+              "returncode": 42,
+              "timed_out": false,
+              "image_sha256": "aa37b44a2ab1deb86e095010563b36913bf773a74af5e8ce2ca8362a31ecb4e3",
+              "command": [
+                "/usr/bin/qemu-arm",
+                "-cpu",
+                "cortex-a15",
+                "-d",
+                "exec,nochain",
+                "-D",
+                "/mnt/c/Users/User/CURSOR/CodexProjects/BOLT_AARCH32/out/correctness/far-execution-20261003/release-off/run-nltzaehx/normal.trace",
+                "/mnt/c/Users/User/CURSOR/CodexProjects/BOLT_AARCH32/out/correctness/far-execution-20261003/release-off/run-nltzaehx/normal.elf"
+              ],
+              "pcs": [
+                34807808,
+                34807832,
+                34807856,
+                34807872,
+                34807876,
+                34807888,
+                34807896,
+                34807908,
+                34807920,
+                34807928,
+                34807964,
+                69410984
+              ],
+              "visits": {
+                "0x2132000": 1,
+                "0x2132018": 4,
+                "0x2132030": 5,
+                "0x2132040": 5,
+                "0x2132044": 5,
+                "0x2132050": 5,
+                "0x2132058": 5,
+                "0x2132064": 5,
+                "0x2132070": 5,
+                "0x2132078": 1,
+                "0x213209c": 1,
+                "0x42320a8": 5
+              }
+            },
+            "options": [
+              "--no-huge-pages",
+              "-lite=0",
+              "--pad-funcs-before=far_away:0x2100000",
+              "--emit-function-map=/mnt/c/Users/User/CURSOR/CodexProjects/BOLT_AARCH32/out/correctness/far-execution-20261003/release-off/run-nltzaehx/normal.map"
+            ],
+            "faults": {
+              "result": {
+                "returncode": 71,
+                "timed_out": false,
+                "image_sha256": "904b4f4d188b20179b79a53b04875341753eea50e1ec79ee0e3e5fa8ee1e925a",
+                "command": [
+                  "/usr/bin/qemu-arm",
+                  "-cpu",
+                  "cortex-a15",
+                  "/mnt/c/Users/User/CURSOR/CodexProjects/BOLT_AARCH32/out/correctness/far-execution-20261003/release-off/run-nltzaehx/normal-result.elf"
+                ],
+                "pcs": [],
+                "visits": {}
+              },
+              "memory": {
+                "returncode": 72,
+                "timed_out": false,
+                "image_sha256": "bf8b686ca7b345a29d9bc7661cbdc7f00c79abca0a19d8bff5c17e27346a6cad",
+                "command": [
+                  "/usr/bin/qemu-arm",
+                  "-cpu",
+                  "cortex-a15",
+                  "/mnt/c/Users/User/CURSOR/CodexProjects/BOLT_AARCH32/out/correctness/far-execution-20261003/release-off/run-nltzaehx/normal-memory.elf"
+                ],
+                "pcs": [],
+                "visits": {}
+              },
+              "flags": {
+                "returncode": 73,
+                "timed_out": false,
+                "image_sha256": "20f76ae09caa34ce8ba6941c3cf74e32bef7065f6b816bcb2615330b8c9c62e8",
+                "command": [
+                  "/usr/bin/qemu-arm",
+                  "-cpu",
+                  "cortex-a15",
+                  "/mnt/c/Users/User/CURSOR/CodexProjects/BOLT_AARCH32/out/correctness/far-execution-20261003/release-off/run-nltzaehx/normal-flags.elf"
+                ],
+                "pcs": [],
+                "visits": {}
+              },
+              "stack": {
+                "returncode": 74,
+                "timed_out": false,
+                "image_sha256": "5212062ed4e7b0b58c7d0d157836233a107a6e2602bf46e755d4002617792bc1",
+                "command": [
+                  "/usr/bin/qemu-arm",
+                  "-cpu",
+                  "cortex-a15",
+                  "/mnt/c/Users/User/CURSOR/CodexProjects/BOLT_AARCH32/out/correctness/far-execution-20261003/release-off/run-nltzaehx/normal-stack.elf"
+                ],
+                "pcs": [],
+                "visits": {}
+              },
+              "bypass": {
+                "returncode": 71,
+                "timed_out": false,
+                "image_sha256": "8ae821d7cfbdea2f525e25c3758e2539ce190ff22a190bedde847b4c914ada1b",
+                "command": [
+                  "/usr/bin/qemu-arm",
+                  "-cpu",
+                  "cortex-a15",
+                  "/mnt/c/Users/User/CURSOR/CodexProjects/BOLT_AARCH32/out/correctness/far-execution-20261003/release-off/run-nltzaehx/normal-bypass.elf"
+                ],
+                "pcs": [],
+                "visits": {}
+              },
+              "truncated-repetitions": {
+                "returncode": 42,
+                "timed_out": false,
+                "image_sha256": "3eb01c789a58d0e199e39c62827321099f805a19e93b30288221ebe5aa3f2e07",
+                "command": [
+                  "/usr/bin/qemu-arm",
+                  "-cpu",
+                  "cortex-a15",
+                  "-d",
+                  "exec,nochain",
+                  "-D",
+                  "/mnt/c/Users/User/CURSOR/CodexProjects/BOLT_AARCH32/out/correctness/far-execution-20261003/release-off/run-nltzaehx/normal-truncated-repetitions.trace",
+                  "/mnt/c/Users/User/CURSOR/CodexProjects/BOLT_AARCH32/out/correctness/far-execution-20261003/release-off/run-nltzaehx/normal-truncated-repetitions.elf"
+                ],
+                "pcs": [
+                  34807808,
+                  34807856,
+                  34807872,
+                  34807876,
+                  34807888,
+                  34807896,
+                  34807908,
+                  34807920,
+                  34807928,
+                  34807964,
+                  69410984
+                ],
+                "visits": {
+                  "0x2132000": 1,
+                  "0x2132030": 1,
+                  "0x2132040": 1,
+                  "0x2132044": 1,
+                  "0x2132050": 1,
+                  "0x2132058": 1,
+                  "0x2132064": 1,
+                  "0x2132070": 1,
+                  "0x2132078": 1,
+                  "0x213209c": 1,
+                  "0x42320a8": 1
+                }
+              },
+              "timeout": {
+                "returncode": null,
+                "timed_out": true,
+                "image_sha256": "3394ad814cc08d6a444a63a1c1093394e2783cb372d92cfd2d6bef7549d41ae5",
+                "command": [
+                  "/usr/bin/qemu-arm",
+                  "-cpu",
+                  "cortex-a15",
+                  "/mnt/c/Users/User/CURSOR/CodexProjects/BOLT_AARCH32/out/correctness/far-execution-20261003/release-off/run-nltzaehx/normal-timeout.elf"
+                ],
+                "pcs": [],
+                "visits": {}
+              }
+            }
+          },
+          "reverse": {
+            "selected": [
+              "_start",
+              "far_away",
+              "__ARMv5LongLdrPcThunk_far_away"
+            ],
+            "eliminated": [
+              "__ARMv5LongLdrPcThunk_far_away"
+            ],
+            "emitted": {
+              "_start": [
+                65536,
+                34807808,
+                196
+              ],
+              "far_away": [
+                34668704,
+                69411012,
+                12
+              ]
+            },
+            "entry_selected": [
+              "_start"
+            ],
+            "route": {
+              "call": 34807968,
+              "veneer": 34807992,
+              "caller": 34807808,
+              "callee": 69411012,
+              "original_caller": 65536,
+              "original_callee": 34668704
+            },
+            "executed": [
+              34807808,
+              34807992,
+              69411012
+            ],
+            "expected_exit": 42,
+            "observed": {
+              "returncode": 42,
+              "timed_out": false,
+              "image_sha256": "5ce08414eb034b57c3a26ad9474cdda97166d572847a6418acff4bb7029864f3",
+              "command": [
+                "/usr/bin/qemu-arm",
+                "-cpu",
+                "cortex-a15",
+                "-d",
+                "exec,nochain",
+                "-D",
+                "/mnt/c/Users/User/CURSOR/CodexProjects/BOLT_AARCH32/out/correctness/far-execution-20261003/release-off/run-nltzaehx/reverse.trace",
+                "/mnt/c/Users/User/CURSOR/CodexProjects/BOLT_AARCH32/out/correctness/far-execution-20261003/release-off/run-nltzaehx/reverse.elf"
+              ],
+              "pcs": [
+                34807808,
+                34807840,
+                34807884,
+                34807892,
+                34807900,
+                34807904,
+                34807916,
+                34807920,
+                34807932,
+                34807936,
+                34807944,
+                34807948,
+                34807972,
+                34807988,
+                34807992,
+                69411012
+              ],
+              "visits": {
+                "0x2132000": 1,
+                "0x2132020": 1,
+                "0x213204c": 1,
+                "0x2132054": 5,
+                "0x213205c": 1,
+                "0x2132060": 5,
+                "0x213206c": 5,
+                "0x2132070": 5,
+                "0x213207c": 5,
+                "0x2132080": 5,
+                "0x2132088": 5,
+                "0x213208c": 5,
+                "0x21320a4": 5,
+                "0x21320b4": 5,
+                "0x21320b8": 5,
+                "0x42320c4": 5
+              }
+            },
+            "options": [
+              "--no-huge-pages",
+              "-lite=0",
+              "--pad-funcs-before=far_away:0x2100000",
+              "--emit-function-map=/mnt/c/Users/User/CURSOR/CodexProjects/BOLT_AARCH32/out/correctness/far-execution-20261003/release-off/run-nltzaehx/reverse.map",
+              "--reorder-blocks=reverse"
+            ],
+            "faults": {
+              "result": {
+                "returncode": 71,
+                "timed_out": false,
+                "image_sha256": "2f6f3e177dcdbc68ab4e07e138d5d708df8a053d9679e33aacd9931eb9ef5fce",
+                "command": [
+                  "/usr/bin/qemu-arm",
+                  "-cpu",
+                  "cortex-a15",
+                  "/mnt/c/Users/User/CURSOR/CodexProjects/BOLT_AARCH32/out/correctness/far-execution-20261003/release-off/run-nltzaehx/reverse-result.elf"
+                ],
+                "pcs": [],
+                "visits": {}
+              },
+              "memory": {
+                "returncode": 72,
+                "timed_out": false,
+                "image_sha256": "0cb01fe002cf719d90d6a39a15dbba656f074ed13451458a00b852942795ffb7",
+                "command": [
+                  "/usr/bin/qemu-arm",
+                  "-cpu",
+                  "cortex-a15",
+                  "/mnt/c/Users/User/CURSOR/CodexProjects/BOLT_AARCH32/out/correctness/far-execution-20261003/release-off/run-nltzaehx/reverse-memory.elf"
+                ],
+                "pcs": [],
+                "visits": {}
+              },
+              "flags": {
+                "returncode": 73,
+                "timed_out": false,
+                "image_sha256": "273751b78ac6c9807cb515137652b36a845daf1ec85753d4c1123a5ea43d0092",
+                "command": [
+                  "/usr/bin/qemu-arm",
+                  "-cpu",
+                  "cortex-a15",
+                  "/mnt/c/Users/User/CURSOR/CodexProjects/BOLT_AARCH32/out/correctness/far-execution-20261003/release-off/run-nltzaehx/reverse-flags.elf"
+                ],
+                "pcs": [],
+                "visits": {}
+              },
+              "stack": {
+                "returncode": 74,
+                "timed_out": false,
+                "image_sha256": "a8d7f143574e0ce9d2e87c579c4ff937e6f391693e50a4fc74d9037b14fc6dd0",
+                "command": [
+                  "/usr/bin/qemu-arm",
+                  "-cpu",
+                  "cortex-a15",
+                  "/mnt/c/Users/User/CURSOR/CodexProjects/BOLT_AARCH32/out/correctness/far-execution-20261003/release-off/run-nltzaehx/reverse-stack.elf"
+                ],
+                "pcs": [],
+                "visits": {}
+              },
+              "bypass": {
+                "returncode": 71,
+                "timed_out": false,
+                "image_sha256": "cb163ee447044c40e1b4f57dfbb1bd4bae14825e1f881956af203e3619e5aa2f",
+                "command": [
+                  "/usr/bin/qemu-arm",
+                  "-cpu",
+                  "cortex-a15",
+                  "/mnt/c/Users/User/CURSOR/CodexProjects/BOLT_AARCH32/out/correctness/far-execution-20261003/release-off/run-nltzaehx/reverse-bypass.elf"
+                ],
+                "pcs": [],
+                "visits": {}
+              },
+              "truncated-repetitions": {
+                "returncode": 42,
+                "timed_out": false,
+                "image_sha256": "e187d23d3397d5594fab80dda27f66213d14039dd979bcead1b0a628dae21a5e",
+                "command": [
+                  "/usr/bin/qemu-arm",
+                  "-cpu",
+                  "cortex-a15",
+                  "-d",
+                  "exec,nochain",
+                  "-D",
+                  "/mnt/c/Users/User/CURSOR/CodexProjects/BOLT_AARCH32/out/correctness/far-execution-20261003/release-off/run-nltzaehx/reverse-truncated-repetitions.trace",
+                  "/mnt/c/Users/User/CURSOR/CodexProjects/BOLT_AARCH32/out/correctness/far-execution-20261003/release-off/run-nltzaehx/reverse-truncated-repetitions.elf"
+                ],
+                "pcs": [
+                  34807808,
+                  34807840,
+                  34807884,
+                  34807892,
+                  34807900,
+                  34807904,
+                  34807916,
+                  34807920,
+                  34807932,
+                  34807936,
+                  34807944,
+                  34807948,
+                  34807972,
+                  34807988,
+                  34807992,
+                  69411012
+                ],
+                "visits": {
+                  "0x2132000": 1,
+                  "0x2132020": 1,
+                  "0x213204c": 1,
+                  "0x2132054": 1,
+                  "0x213205c": 1,
+                  "0x2132060": 1,
+                  "0x213206c": 1,
+                  "0x2132070": 1,
+                  "0x213207c": 1,
+                  "0x2132080": 1,
+                  "0x2132088": 1,
+                  "0x213208c": 1,
+                  "0x21320a4": 1,
+                  "0x21320b4": 1,
+                  "0x21320b8": 1,
+                  "0x42320c4": 1
+                }
+              },
+              "timeout": {
+                "returncode": null,
+                "timed_out": true,
+                "image_sha256": "b77d197c46183588e9eb98d44752002dcd95bea3ffcb562b9f380423f824ffb3",
+                "command": [
+                  "/usr/bin/qemu-arm",
+                  "-cpu",
+                  "cortex-a15",
+                  "/mnt/c/Users/User/CURSOR/CodexProjects/BOLT_AARCH32/out/correctness/far-execution-20261003/release-off/run-nltzaehx/reverse-timeout.elf"
+                ],
+                "pcs": [],
+                "visits": {}
+              }
+            }
+          }
+        },
+        "files": {
+          "assemble.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "baseline.elf": "01fbbc70745d819c063e9371247e4a89877913a88c57d8b98179698c6d9ad2b7",
+          "baseline.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "baseline.trace": "30dd9de9742ecfdc95b258740dcbb3311d3fa94cdc47c0f9af94bccbee9534b7",
+          "fixture.o": "9dc9ce73c8353765ad4ba71cec0999a7e8ec3ef076ce17b0074645c915ca246b",
+          "fixture.s": "59a5c4062b283113250e6dddc87a432d364bfb6bcadf97c707476c1a9e0701ff",
+          "link.ld": "d35a7c68c0fed38c2a536d2043a467e8fa2b0b235666c57c586640336d7c1625",
+          "link.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "normal-bolt.log": "79061e66d30ae609800a4c665349b826c048e9505b868a11c22dfa6d9e938537",
+          "normal-bypass.elf": "8ae821d7cfbdea2f525e25c3758e2539ce190ff22a190bedde847b4c914ada1b",
+          "normal-bypass.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "normal-flags.elf": "20f76ae09caa34ce8ba6941c3cf74e32bef7065f6b816bcb2615330b8c9c62e8",
+          "normal-flags.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "normal-memory.elf": "bf8b686ca7b345a29d9bc7661cbdc7f00c79abca0a19d8bff5c17e27346a6cad",
+          "normal-memory.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "normal-result.elf": "904b4f4d188b20179b79a53b04875341753eea50e1ec79ee0e3e5fa8ee1e925a",
+          "normal-result.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "normal-stack.elf": "5212062ed4e7b0b58c7d0d157836233a107a6e2602bf46e755d4002617792bc1",
+          "normal-stack.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "normal-timeout.elf": "3394ad814cc08d6a444a63a1c1093394e2783cb372d92cfd2d6bef7549d41ae5",
+          "normal-timeout.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "normal-truncated-repetitions.elf": "3eb01c789a58d0e199e39c62827321099f805a19e93b30288221ebe5aa3f2e07",
+          "normal-truncated-repetitions.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "normal-truncated-repetitions.trace": "c28d75437ce66cfde3afa270b45a262ceb29c6cf97e35128f8bbd8b8fc1ce5ba",
+          "normal.elf": "aa37b44a2ab1deb86e095010563b36913bf773a74af5e8ce2ca8362a31ecb4e3",
+          "normal.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "normal.map": "1e96cdcceb186581733358726ca8e0d13c80e4a214f886383317f4f62d5175d3",
+          "normal.trace": "05997c7e42dc98408f49ac598625541e6dd503f6d78f2c0ccfb4097f70493d4d",
+          "reverse-bolt.log": "ed56be303091bd3743de6aa312abdd5e86462a106a420c11d495e0ad96d297bd",
+          "reverse-bypass.elf": "cb163ee447044c40e1b4f57dfbb1bd4bae14825e1f881956af203e3619e5aa2f",
+          "reverse-bypass.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "reverse-flags.elf": "273751b78ac6c9807cb515137652b36a845daf1ec85753d4c1123a5ea43d0092",
+          "reverse-flags.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "reverse-memory.elf": "0cb01fe002cf719d90d6a39a15dbba656f074ed13451458a00b852942795ffb7",
+          "reverse-memory.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "reverse-result.elf": "2f6f3e177dcdbc68ab4e07e138d5d708df8a053d9679e33aacd9931eb9ef5fce",
+          "reverse-result.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "reverse-stack.elf": "a8d7f143574e0ce9d2e87c579c4ff937e6f391693e50a4fc74d9037b14fc6dd0",
+          "reverse-stack.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "reverse-timeout.elf": "b77d197c46183588e9eb98d44752002dcd95bea3ffcb562b9f380423f824ffb3",
+          "reverse-timeout.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "reverse-truncated-repetitions.elf": "e187d23d3397d5594fab80dda27f66213d14039dd979bcead1b0a628dae21a5e",
+          "reverse-truncated-repetitions.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "reverse-truncated-repetitions.trace": "994ba082124addf49abc8c55d296fbb325842aec6f27b2804af8c770ab674fdb",
+          "reverse.elf": "5ce08414eb034b57c3a26ad9474cdda97166d572847a6418acff4bb7029864f3",
+          "reverse.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "reverse.map": "7ee61fc13d24c1f8a7177e2c2178c56d491cb522fe2b9657961806e5cfcae7d3",
+          "reverse.trace": "ba42c3f1c78f4d62fa04fbb252fa7866c85f68a105c3752f569a54f22e3bda78"
+        }
+      }
+    }
+  },
+  "remaining": [
+    "Pi far-call execution",
+    "Thumb/mixed far-call routes",
+    "automatic v7 thunk caveat under 7/11",
+    "remaining raw-grep/comparison/legacy gates",
+    "full independent-oracle and coverage receipts for all supported gates",
+    "whole-LK arm_reset boundary",
+    "PMU ownership",
+    "clean-build provenance"
+  ],
+  "scope": "QEMU cortex-a15 Linux user-mode A32 explicit legacy literal veneer removed and generated MOVW/MOVT/BX route; independently computed expected table; fixture checker is itself rewritten and tested with seven executable faults per layout; no whole-backend correctness claim",
+  "direct_BL_signed_endpoint_checked": true
+}

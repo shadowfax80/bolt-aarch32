@@ -1,5 +1,20 @@
 # ATFE correctness TODO
 
+## Latest: item 6 A32 far-call execution stage verified
+
+The legacy P5 gate now requires QEMU execution, an independent five-input
+result/memory/NZCV/SP oracle, and exactly five observed veneer/callee visits.
+Both assertion modes pass normal and reverse layouts: 20 transformed input
+cases, ten baseline input cases and 28 rejected executable faults overall.
+All 86 Python tests pass. A preserved bypass reproduction still exits 42 under
+the former result-only oracle; the new gate rejects bypass and shortened-loop
+cases, and missing QEMU cannot PASS. Fresh durable receipts bind options,
+selected/emitted/eliminated/executed routes, tool/image/script/QEMU hashes and logs.
+LLVM source remains at 0043. Item 6 and original #12 remain active: Pi,
+Thumb/mixed far-call routes, the automatic v7 thunk caveat and remaining
+verification paths are not closed. See [scope](AARCH32_FAR_EXECUTION.md) and
+[evidence](results/correctness_far_execution_20261003.json).
+
 ## Follow-up: execution gate hardening, item 6 active (2026-10-03)
 
 Item 6's first execution/result gate hardening stage is verified; item 6

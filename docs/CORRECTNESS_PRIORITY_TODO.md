@@ -6,7 +6,7 @@ Queue positions below are new priorities; the original twelve workstream IDs
 remain stable in [CORRECTNESS_TODO.md](CORRECTNESS_TODO.md).
 
 ATFE only. Items 1-5 have verified scoped fixes in overlays 0039-0043.
-Item 6 is active; its first gate-hardening stage is verified. The user
+Item 6 is active; its gate-hardening and bounded A32 far-call stages are verified. The user
 reactivated #12 on 2026-10-02; all its remaining work is included below. Nothing
 is paused in this correctness queue. Three original
 items are complete in their bounded scope (#2/#8/#10); nine remain open.
@@ -20,7 +20,7 @@ items are complete in their bounded scope (#2/#8/#10); nine remain open.
 | 3 · P0 | ISA/profile/ABI admission | Verified conservative contract; 0041 + Pi |
 | 4 · P0 | Fixed-load ELF/PIE boundary | Verified fixed-load admission; 0042 |
 | 5 · P0 | Exact profile/artifact identity | Verified sealed pipeline scope; 0043; #12 active |
-| 6 · P0 | Execution/result gate integrity | Active; gate-hardening stage verified; wider proof pending |
+| 6 · P0 | Execution/result gate integrity | Active; gate hardening + A32 QEMU far-call stages verified; wider proof pending |
 | 7 · P1 | Relocation/literal matrix | Partial; remaining work pending |
 | 8 · P1 | Control-flow/mutation invariants | Partial; remaining work pending |
 | 9 · P1 | Interrupt/reentrancy boundaries | Partial; remaining work pending |
@@ -73,7 +73,10 @@ Item 6: first gate-hardening stage verified. All five reproduced admissions now
 reject; 80 Python tests and 7 valid/80 malformed transport cases pass. Fresh Pi
 checks pass 420 positive cases and two expected faults per build. Whole-LK
 rewriting still rejects arm_reset; wider independent execution coverage and
-rewritten far-call witnesses remain open. See [scope](AARCH32_EXECUTION_GATES.md)
+Pi/Thumb/mixed far-call witnesses remain open. The second item 6 stage verifies
+A32 QEMU far-call execution in both modes/layouts: 20 transformed inputs, ten
+baseline inputs, 28 rejected faults and 86 Python tests. See [far-call scope](AARCH32_FAR_EXECUTION.md)
+and [far-call evidence](results/correctness_far_execution_20261003.json). See [scope](AARCH32_EXECUTION_GATES.md)
 and [evidence](results/correctness_execution_integrity_20261003.json). Item 6
 and original #12 remain active; stop at this verified stage.
 
@@ -143,10 +146,15 @@ and original #12 remain active; stop at this verified stage.
      redirect, stable upload/manifest/loader identities and cleanup failure
      propagation. Reject unsafe ARM/Thumb entry-bump hooks; enforce exact
      section restoration. Publish the bounded host/Pi stage and its limits.
+   - [x] Replace the legacy P5 exit-only/optional-QEMU gate with bounded A32
+     result/memory/NZCV/SP checks, exact veneer/callee visit counts, executable
+     faults and durable tool/artifact/route receipts in both modes/layouts.
+     Pi/Thumb/mixed routes and automatic v7 thunk scope remain open.
    - [ ] Require selected/emitted/redirected/executed coverage and independent
      results in every optimization gate, not only the scoped full-image gate.
    - [ ] Extend ARM/Thumb/mixed inputs, flags, memory and return-value checks over
-     multiple seeds, faults and timeouts; add observed rewritten far-call coverage.
+     multiple seeds, faults and timeouts; extend the verified A32 QEMU far-call
+     route to Thumb/mixed routes and Pi hardware.
    - [ ] Validate legacy/manual section hooks: bounded scratch, whole instructions,
      PC-relative prologues, exact restoration sizes and hard failure propagation.
    - [ ] Record durable Pi manifests with revisions/options, tool/image/profile
