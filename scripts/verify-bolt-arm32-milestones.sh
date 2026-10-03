@@ -45,12 +45,10 @@ grep -q "Successors:" /tmp/p23-arm32.log || fail "P2/P3 missing successors"
 grep -qE 'BOLT-ERROR|UNREACHABLE executed' /tmp/p23-arm32.log && fail "P2/P3 fatal in log"
 pass "P2/P3"
 
-echo "=== P4: identity rewrite + QEMU ==="
-"$TOOLCHAIN/llvm-bolt" "$ELF" -o "$OUT" --funcs-file="$FUNCS_FILE" \
-  > /tmp/p4-arm32.log 2>&1 || fail "P4 llvm-bolt exited $?"
-grep -qE 'BOLT: [1-9][0-9]* out of .* functions were overwritten' /tmp/p4-arm32.log \
-  || fail "P4 overwrite count is 0"
-python3 "$ROOT/scripts/qemu_workload_gate.py" --elf "$ELF" --candidate "$OUT" --qemu "$QEMU" \
-  --append "$CMDLINE" --out "${OUT_DIR:-$ROOT/out/arm32-milestones}/p4" --timeout 120
- echo "P4 OUTPUT CONSISTENCY (selected rewritten execution not certified)"
- echo "P0/P4 complete workloads; P1/P2/P3 artifact diagnostics complete"
+echo "=== P4: selected identity rewrite + QEMU execution ==="
+[[ "$CMDLINE" == lk.bolt_bench=all ]] || fail "P4 requires the complete workload"
+python3 "$ROOT/scripts/qemu_rewrite_build.py" --elf "$ELF" --toolchain "$TOOLCHAIN" \
+  --funcs "$BOLT_BENCH_FUNCS" --qemu "$QEMU" \
+  --out "${OUT_DIR:-$ROOT/out/arm32-milestones}/p4" --timeout 120
+ echo "P4 selected-entry execution / output consistency verified"
+ echo "P0/P4 complete workloads; P1/P2/P3 remain artifact diagnostics"

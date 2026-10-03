@@ -1,0 +1,846 @@
+{
+  "schema": 1,
+  "date": "2026-10-04",
+  "queue_item": 6,
+  "status": "protected-reservation three-entry QEMU execution stage verified; item 6 and original #12 active",
+  "scope": "three selected ARM entry TB/ISA/input-state witnesses and complete baseline output consistency; no independent whole-LK oracle",
+  "llvm_overlay_count": 44,
+  "llvm_source_changed": false,
+  "new_pi_execution": false,
+  "base_repository_revision": "b06d581935daa779fe6d68ebd2f9a4f75450dd37",
+  "totals": {
+    "selected_emitted_redirected_executed_entries": 6,
+    "candidate_results": 36,
+    "baseline_results": 36,
+    "before_boot_rejections": 6
+  },
+  "tests": {
+    "wsl": {
+      "tests": 130,
+      "skipped": 0,
+      "successful": true,
+      "log_sha256": "58832134e109ebd1681fdf3f3f63706a7b97bdc617553460675392690fa507e4"
+    },
+    "windows": {
+      "tests": 130,
+      "skipped": 4,
+      "successful": true,
+      "log_sha256": "7f4228533be20f3466434e00334978455bf94ca7e97c00e61d859bb664fb573c"
+    }
+  },
+  "scripts": {
+    "qemu_rewrite_build.py": "7d9f1da646dc3014c185703621963fcb3f75ca1d35e5ec77cbac790beb8fd464",
+    "qemu_rewrite_gate.py": "dade3b47d47433e74ba04126470f093fbf553a294fbdce4c5a1b8209200f095b",
+    "qemu_workload_gate.py": "bcbd667c4f394ff8213357da940e5d1595c4faa68f26c92be19e997c21f52178",
+    "verify-bolt-arm32-identity.sh": "0602a80dea3e3a19c2817f6bef663b202de55965b911b65925be187e807b201e",
+    "verify-bolt-arm32-milestones.sh": "5a528c04c4e4e30b60f133d21346e2b41ec47c0fc9043268b2ec044ba541f60c",
+    "tests/test_qemu_rewrite_gate.py": "93eb2a9c9b7832aa166acb773f8cc49fa8a4f63331e92c5bf03663f3d170ecc5",
+    "tests/test_qemu_workload_gate.py": "a6e62f0295d1605c0af0b1b5a16891287d91b0b9152ad7a05cd0e24284851cab"
+  },
+  "isolated_lk_build": {
+    "stage": "/home/user/qemu-reserved-v3-5453vbyf",
+    "elf": "/home/user/qemu-reserved-v3-5453vbyf/lk/build-qemu-virt-arm32-test/lk.elf",
+    "reserve": {
+      "name": ".bolt.reserve",
+      "kind": 1,
+      "flags": 6,
+      "address": 2149158912,
+      "offset": 643072,
+      "size": 65536,
+      "physical": 1075417088
+    },
+    "elf_sha256": "743ef67e453b6e71df41870db061b8f2cc8fbf092681b3c9dc49b8290c2dd729",
+    "scope": "isolated dirty LK copy with explicit linked 64KiB executable reservation; no clean provenance"
+  },
+  "builds": {
+    "on": {
+      "receipt": "out/correctness/rewrite-coverage-20261004/release/final-on/build-gq7hp3s9/build.json",
+      "receipt_sha256": "f78d49c03f9cc692527d101d34ac01378f54e884f917e0aa4a75fcaeb3f6d689",
+      "build": {
+        "schema": 1,
+        "scope": "scoped selected-entry QEMU execution/output consistency; dirty source and compiler provenance not certified",
+        "selected": [
+          "bolt_bench_hot_loop",
+          "bolt_bench_hot_cold",
+          "bolt_bench_branch_chain"
+        ],
+        "commands": [
+          [
+            "/home/user/bolt-aarch32/build-atfe/bin/llvm-bolt",
+            "/mnt/c/Users/User/CURSOR/CodexProjects/BOLT_AARCH32/out/correctness/rewrite-coverage-20261004/release/final-on/build-gq7hp3s9/original.elf",
+            "--funcs=bolt_bench_hot_loop,bolt_bench_hot_cold,bolt_bench_branch_chain",
+            "--no-huge-pages",
+            "--emit-function-map=/mnt/c/Users/User/CURSOR/CodexProjects/BOLT_AARCH32/out/correctness/rewrite-coverage-20261004/release/final-on/build-gq7hp3s9/functions.map",
+            "-o",
+            "/mnt/c/Users/User/CURSOR/CodexProjects/BOLT_AARCH32/out/correctness/rewrite-coverage-20261004/release/final-on/build-gq7hp3s9/candidate.elf"
+          ],
+          [
+            "/usr/bin/python3",
+            "/mnt/c/Users/User/CURSOR/CodexProjects/BOLT_AARCH32/scripts/fix-kernel-elf-sections.py",
+            "/mnt/c/Users/User/CURSOR/CodexProjects/BOLT_AARCH32/out/correctness/rewrite-coverage-20261004/release/final-on/build-gq7hp3s9/candidate.elf",
+            "--original",
+            "/mnt/c/Users/User/CURSOR/CodexProjects/BOLT_AARCH32/out/correctness/rewrite-coverage-20261004/release/final-on/build-gq7hp3s9/original.elf",
+            "--readelf",
+            "/home/user/bolt-aarch32/build-atfe/bin/llvm-readelf"
+          ],
+          [
+            "/usr/bin/python3",
+            "/mnt/c/Users/User/CURSOR/CodexProjects/BOLT_AARCH32/scripts/redirect-bolt-entries.py",
+            "/mnt/c/Users/User/CURSOR/CodexProjects/BOLT_AARCH32/out/correctness/rewrite-coverage-20261004/release/final-on/build-gq7hp3s9/candidate.elf",
+            "--original",
+            "/mnt/c/Users/User/CURSOR/CodexProjects/BOLT_AARCH32/out/correctness/rewrite-coverage-20261004/release/final-on/build-gq7hp3s9/original.elf",
+            "--map",
+            "/mnt/c/Users/User/CURSOR/CodexProjects/BOLT_AARCH32/out/correctness/rewrite-coverage-20261004/release/final-on/build-gq7hp3s9/functions.map",
+            "--func",
+            "bolt_bench_hot_loop,bolt_bench_hot_cold,bolt_bench_branch_chain",
+            "--toolchain",
+            "/home/user/bolt-aarch32/build-atfe/bin",
+            "--report",
+            "/mnt/c/Users/User/CURSOR/CodexProjects/BOLT_AARCH32/out/correctness/rewrite-coverage-20261004/release/final-on/build-gq7hp3s9/redirect.json"
+          ],
+          [
+            "/usr/bin/python3",
+            "/mnt/c/Users/User/CURSOR/CodexProjects/BOLT_AARCH32/scripts/qemu_rewrite_gate.py",
+            "--elf",
+            "/mnt/c/Users/User/CURSOR/CodexProjects/BOLT_AARCH32/out/correctness/rewrite-coverage-20261004/release/final-on/build-gq7hp3s9/original.elf",
+            "--candidate",
+            "/mnt/c/Users/User/CURSOR/CodexProjects/BOLT_AARCH32/out/correctness/rewrite-coverage-20261004/release/final-on/build-gq7hp3s9/candidate.elf",
+            "--map",
+            "/mnt/c/Users/User/CURSOR/CodexProjects/BOLT_AARCH32/out/correctness/rewrite-coverage-20261004/release/final-on/build-gq7hp3s9/functions.map",
+            "--funcs",
+            "bolt_bench_hot_loop,bolt_bench_hot_cold,bolt_bench_branch_chain",
+            "--out",
+            "/mnt/c/Users/User/CURSOR/CodexProjects/BOLT_AARCH32/out/correctness/rewrite-coverage-20261004/release/final-on/build-gq7hp3s9/verification",
+            "--qemu",
+            "qemu-system-arm",
+            "--timeout",
+            "45.0"
+          ]
+        ],
+        "tools": {
+          "llvm-bolt": "2f15093338c0950e9ff696fa18fcaad37febbdff04ac5af6bc67da293f130e31",
+          "llvm-nm": "3bf529fd49cf73c6eb8c0049fd15b85933195cdfedcd0084451fffa1f2ceafe5",
+          "llvm-readelf": "34ffb11d9ed81366c93817f462483e1d76b341c90d35f85895d5b768b0b974ac"
+        },
+        "scripts": {
+          "qemu_rewrite_build.py": "7d9f1da646dc3014c185703621963fcb3f75ca1d35e5ec77cbac790beb8fd464",
+          "qemu_rewrite_gate.py": "dade3b47d47433e74ba04126470f093fbf553a294fbdce4c5a1b8209200f095b",
+          "qemu_workload_gate.py": "bcbd667c4f394ff8213357da940e5d1595c4faa68f26c92be19e997c21f52178",
+          "profile_identity.py": "7e6fedf6de313a6029525f381e3d1c571656e922bd32bb14daa097c71ab79689",
+          "pi4/passes_check.py": "f590ab943cbadf8c6918f88bcabd873dd2c96256a13f40de9abe02d855737bff",
+          "redirect-bolt-entries.py": "553b902ef0690ddbc8a81a46754000344c935249658bfdb5297411cf3ebfb79e",
+          "fix-kernel-elf-sections.py": "ac234f4fd1fafe97ffbea75df4532cd3abd959ed6bbd14f7964eaed865187934"
+        },
+        "verification": "verification/rewrite-cw_d7snh/rewrite.json",
+        "artifacts": {
+          "original.elf": "743ef67e453b6e71df41870db061b8f2cc8fbf092681b3c9dc49b8290c2dd729",
+          "candidate.elf": "5ac1b94de848c6a37fc0a43f4d7f58a0acb300e92565ff284f25bec5f9e67db2",
+          "functions.map": "322c9ace7fbff4001783f8bbecb3f10d12f73b40ded62c814ebd8a9f444ddb46",
+          "redirect.json": "9a128e778e0b740325377604b20b00a11c0545da543bc72af3fb5daa4480393d",
+          "step-0.log": "171d1fff0e32d0a0df622d44d3d12bdc02dd5834f887b19e2aff8544d8d764d3",
+          "step-1.log": "0d337be5911f88a3edde82062b611882552311365e529fee640a5cce8eee67f2",
+          "step-2.log": "2584d391bd2e091a935c3959db056ed165bb37ea3732867879da34ca09b0dc0e",
+          "step-3.log": "f6617279cf06fe5f116499dc4f6fe5f7207dd096ac9d22e121e5d6f90b29f3f9"
+        },
+        "verification_sha256": "8734c4b52703e4bb9905b87f8e1cb7a9463191b7e0425ff4693def4b6bfd3da2"
+      },
+      "execution": {
+        "schema": 1,
+        "scope": "selected entry TB execution/ISA witnesses and complete output consistency; no independent whole-LK oracle, hardware or clean-build proof",
+        "selected": [
+          "bolt_bench_hot_loop",
+          "bolt_bench_hot_cold",
+          "bolt_bench_branch_chain"
+        ],
+        "emitted_redirected": {
+          "start": 2149158912,
+          "end": 2149224448,
+          "rows": [
+            {
+              "name": "bolt_bench_hot_loop",
+              "input": 2148545116,
+              "output": 2149158912,
+              "output_size": 64,
+              "thumb": false,
+              "branch_hex": "675702ea"
+            },
+            {
+              "name": "bolt_bench_hot_cold",
+              "input": 2148545180,
+              "output": 2149158976,
+              "output_size": 60,
+              "thumb": false,
+              "branch_hex": "675702ea"
+            },
+            {
+              "name": "bolt_bench_branch_chain",
+              "input": 2148545248,
+              "output": 2149159040,
+              "output_size": 544,
+              "thumb": false,
+              "branch_hex": "665702ea"
+            }
+          ]
+        },
+        "executed": [
+          {
+            "name": "bolt_bench_hot_loop",
+            "pairs": 1,
+            "input": 2148545116,
+            "output": 2149158912,
+            "thumb": false
+          },
+          {
+            "name": "bolt_bench_hot_cold",
+            "pairs": 1,
+            "input": 2148545180,
+            "output": 2149158976,
+            "thumb": false
+          },
+          {
+            "name": "bolt_bench_branch_chain",
+            "pairs": 1,
+            "input": 2148545248,
+            "output": 2149159040,
+            "thumb": false
+          }
+        ],
+        "results": {
+          "baseline": {
+            "results": {
+              "hot_loop": "0x6a4ae6e0",
+              "hot_cold": "0x00000000",
+              "branch_chain": "0x007a5100",
+              "memcpy": "0x5acd3dc5",
+              "far_call": "0xb7082fa9",
+              "it_cond": "0x021e8480",
+              "interwork": "0x2fb21555",
+              "switch": "0xa953bbf0",
+              "spill_ret": "0x504980a0",
+              "litpool": "0x16b596e0",
+              "indirect_call": "0x0e6aac80",
+              "interwork_tail": "0xda3416f0",
+              "regpressure": "0xc5da3550",
+              "hotcold_split": "0xd4751003",
+              "icf": "0xdc7c3be0",
+              "shrinkwrap": "0x6a1b87d4",
+              "composite": "0x939f4ea0",
+              "stair": "0x9fef2a18"
+            },
+            "stop": "completed-then-stopped",
+            "returncode": 0
+          },
+          "candidate": {
+            "results": {
+              "hot_loop": "0x6a4ae6e0",
+              "hot_cold": "0x00000000",
+              "branch_chain": "0x007a5100",
+              "memcpy": "0x5acd3dc5",
+              "far_call": "0xb7082fa9",
+              "it_cond": "0x021e8480",
+              "interwork": "0x2fb21555",
+              "switch": "0xa953bbf0",
+              "spill_ret": "0x504980a0",
+              "litpool": "0x16b596e0",
+              "indirect_call": "0x0e6aac80",
+              "interwork_tail": "0xda3416f0",
+              "regpressure": "0xc5da3550",
+              "hotcold_split": "0xd4751003",
+              "icf": "0xdc7c3be0",
+              "shrinkwrap": "0x6a1b87d4",
+              "composite": "0x939f4ea0",
+              "stair": "0x9fef2a18"
+            },
+            "stop": "completed-then-stopped",
+            "returncode": 0
+          }
+        },
+        "commands": {
+          "baseline": [
+            "/usr/bin/qemu-system-arm",
+            "-machine",
+            "virt",
+            "-cpu",
+            "cortex-a15",
+            "-m",
+            "512",
+            "-smp",
+            "1",
+            "-display",
+            "none",
+            "-monitor",
+            "none",
+            "-serial",
+            "stdio",
+            "-append",
+            "lk.bolt_bench=all",
+            "-kernel",
+            "/mnt/c/Users/User/CURSOR/CodexProjects/BOLT_AARCH32/out/correctness/rewrite-coverage-20261004/release/final-on/build-gq7hp3s9/verification/rewrite-cw_d7snh/baseline.elf"
+          ],
+          "candidate": [
+            "/usr/bin/qemu-system-arm",
+            "-machine",
+            "virt",
+            "-cpu",
+            "cortex-a15",
+            "-m",
+            "512",
+            "-smp",
+            "1",
+            "-display",
+            "none",
+            "-monitor",
+            "none",
+            "-serial",
+            "stdio",
+            "-append",
+            "lk.bolt_bench=all",
+            "-kernel",
+            "/mnt/c/Users/User/CURSOR/CodexProjects/BOLT_AARCH32/out/correctness/rewrite-coverage-20261004/release/final-on/build-gq7hp3s9/verification/rewrite-cw_d7snh/candidate.elf",
+            "-d",
+            "exec,cpu,nochain",
+            "-dfilter",
+            "0x8010325c+1,0x80199000+1,0x8010329c+1,0x80199040+1,0x801032e0+1,0x80199080+1",
+            "-D",
+            "/tmp/qemu-entry-oe6qbgth/entries.trace"
+          ]
+        },
+        "artifacts": {
+          "baseline.elf": "743ef67e453b6e71df41870db061b8f2cc8fbf092681b3c9dc49b8290c2dd729",
+          "candidate.elf": "5ac1b94de848c6a37fc0a43f4d7f58a0acb300e92565ff284f25bec5f9e67db2",
+          "functions.map": "322c9ace7fbff4001783f8bbecb3f10d12f73b40ded62c814ebd8a9f444ddb46"
+        },
+        "scripts": {
+          "scripts/qemu_rewrite_gate.py": "dade3b47d47433e74ba04126470f093fbf553a294fbdce4c5a1b8209200f095b",
+          "scripts/qemu_workload_gate.py": "bcbd667c4f394ff8213357da940e5d1595c4faa68f26c92be19e997c21f52178",
+          "scripts/profile_identity.py": "7e6fedf6de313a6029525f381e3d1c571656e922bd32bb14daa097c71ab79689",
+          "scripts/pi4/passes_check.py": "f590ab943cbadf8c6918f88bcabd873dd2c96256a13f40de9abe02d855737bff"
+        },
+        "repository_revision": "b06d581935daa779fe6d68ebd2f9a4f75450dd37",
+        "qemu_sha256": "ce90caa842f56f4220766cbce0b6bebc43a449dc740cc79cb64b91d6828cf4be",
+        "logs": {
+          "baseline.log": "ea101deca51f8e6f31c9ac1f41a80d4a162b5e73a6e8928c8132a3d3b9d071de",
+          "candidate.log": "e19bd75813c0818e44d7d15a4fdc49b54a9856cb7b658d76824ff43107caba9b",
+          "entries.trace": "b4659bdf529a5a57101765e80e3a4b5c3312794840c39e65d117fe791cdd8f08"
+        }
+      }
+    },
+    "off": {
+      "receipt": "out/correctness/rewrite-coverage-20261004/release/final-off/build-uc8kcwrj/build.json",
+      "receipt_sha256": "eff6e4c112da89ac74a6d71bf52cdb7a601708c8b6ff59bb906fb995317529dc",
+      "build": {
+        "schema": 1,
+        "scope": "scoped selected-entry QEMU execution/output consistency; dirty source and compiler provenance not certified",
+        "selected": [
+          "bolt_bench_hot_loop",
+          "bolt_bench_hot_cold",
+          "bolt_bench_branch_chain"
+        ],
+        "commands": [
+          [
+            "/home/user/bolt-aarch32/out/correctness/build-atfe-noasserts-20261002/bin/llvm-bolt",
+            "/mnt/c/Users/User/CURSOR/CodexProjects/BOLT_AARCH32/out/correctness/rewrite-coverage-20261004/release/final-off/build-uc8kcwrj/original.elf",
+            "--funcs=bolt_bench_hot_loop,bolt_bench_hot_cold,bolt_bench_branch_chain",
+            "--no-huge-pages",
+            "--emit-function-map=/mnt/c/Users/User/CURSOR/CodexProjects/BOLT_AARCH32/out/correctness/rewrite-coverage-20261004/release/final-off/build-uc8kcwrj/functions.map",
+            "-o",
+            "/mnt/c/Users/User/CURSOR/CodexProjects/BOLT_AARCH32/out/correctness/rewrite-coverage-20261004/release/final-off/build-uc8kcwrj/candidate.elf"
+          ],
+          [
+            "/usr/bin/python3",
+            "/mnt/c/Users/User/CURSOR/CodexProjects/BOLT_AARCH32/scripts/fix-kernel-elf-sections.py",
+            "/mnt/c/Users/User/CURSOR/CodexProjects/BOLT_AARCH32/out/correctness/rewrite-coverage-20261004/release/final-off/build-uc8kcwrj/candidate.elf",
+            "--original",
+            "/mnt/c/Users/User/CURSOR/CodexProjects/BOLT_AARCH32/out/correctness/rewrite-coverage-20261004/release/final-off/build-uc8kcwrj/original.elf",
+            "--readelf",
+            "/home/user/bolt-aarch32/out/correctness/build-atfe-noasserts-20261002/bin/llvm-readelf"
+          ],
+          [
+            "/usr/bin/python3",
+            "/mnt/c/Users/User/CURSOR/CodexProjects/BOLT_AARCH32/scripts/redirect-bolt-entries.py",
+            "/mnt/c/Users/User/CURSOR/CodexProjects/BOLT_AARCH32/out/correctness/rewrite-coverage-20261004/release/final-off/build-uc8kcwrj/candidate.elf",
+            "--original",
+            "/mnt/c/Users/User/CURSOR/CodexProjects/BOLT_AARCH32/out/correctness/rewrite-coverage-20261004/release/final-off/build-uc8kcwrj/original.elf",
+            "--map",
+            "/mnt/c/Users/User/CURSOR/CodexProjects/BOLT_AARCH32/out/correctness/rewrite-coverage-20261004/release/final-off/build-uc8kcwrj/functions.map",
+            "--func",
+            "bolt_bench_hot_loop,bolt_bench_hot_cold,bolt_bench_branch_chain",
+            "--toolchain",
+            "/home/user/bolt-aarch32/out/correctness/build-atfe-noasserts-20261002/bin",
+            "--report",
+            "/mnt/c/Users/User/CURSOR/CodexProjects/BOLT_AARCH32/out/correctness/rewrite-coverage-20261004/release/final-off/build-uc8kcwrj/redirect.json"
+          ],
+          [
+            "/usr/bin/python3",
+            "/mnt/c/Users/User/CURSOR/CodexProjects/BOLT_AARCH32/scripts/qemu_rewrite_gate.py",
+            "--elf",
+            "/mnt/c/Users/User/CURSOR/CodexProjects/BOLT_AARCH32/out/correctness/rewrite-coverage-20261004/release/final-off/build-uc8kcwrj/original.elf",
+            "--candidate",
+            "/mnt/c/Users/User/CURSOR/CodexProjects/BOLT_AARCH32/out/correctness/rewrite-coverage-20261004/release/final-off/build-uc8kcwrj/candidate.elf",
+            "--map",
+            "/mnt/c/Users/User/CURSOR/CodexProjects/BOLT_AARCH32/out/correctness/rewrite-coverage-20261004/release/final-off/build-uc8kcwrj/functions.map",
+            "--funcs",
+            "bolt_bench_hot_loop,bolt_bench_hot_cold,bolt_bench_branch_chain",
+            "--out",
+            "/mnt/c/Users/User/CURSOR/CodexProjects/BOLT_AARCH32/out/correctness/rewrite-coverage-20261004/release/final-off/build-uc8kcwrj/verification",
+            "--qemu",
+            "qemu-system-arm",
+            "--timeout",
+            "45.0"
+          ]
+        ],
+        "tools": {
+          "llvm-bolt": "218a23999cce557fcaf979d0cb228d556d1f63c2b5fed72b441fa33767af6e2b",
+          "llvm-nm": "3bf529fd49cf73c6eb8c0049fd15b85933195cdfedcd0084451fffa1f2ceafe5",
+          "llvm-readelf": "34ffb11d9ed81366c93817f462483e1d76b341c90d35f85895d5b768b0b974ac"
+        },
+        "scripts": {
+          "qemu_rewrite_build.py": "7d9f1da646dc3014c185703621963fcb3f75ca1d35e5ec77cbac790beb8fd464",
+          "qemu_rewrite_gate.py": "dade3b47d47433e74ba04126470f093fbf553a294fbdce4c5a1b8209200f095b",
+          "qemu_workload_gate.py": "bcbd667c4f394ff8213357da940e5d1595c4faa68f26c92be19e997c21f52178",
+          "profile_identity.py": "7e6fedf6de313a6029525f381e3d1c571656e922bd32bb14daa097c71ab79689",
+          "pi4/passes_check.py": "f590ab943cbadf8c6918f88bcabd873dd2c96256a13f40de9abe02d855737bff",
+          "redirect-bolt-entries.py": "553b902ef0690ddbc8a81a46754000344c935249658bfdb5297411cf3ebfb79e",
+          "fix-kernel-elf-sections.py": "ac234f4fd1fafe97ffbea75df4532cd3abd959ed6bbd14f7964eaed865187934"
+        },
+        "verification": "verification/rewrite-ej9f4u8w/rewrite.json",
+        "artifacts": {
+          "original.elf": "743ef67e453b6e71df41870db061b8f2cc8fbf092681b3c9dc49b8290c2dd729",
+          "candidate.elf": "19d9c78830e95f359dc1e7e82486f1fc80b4b7ee6e859b10c35a82dbc6e91170",
+          "functions.map": "322c9ace7fbff4001783f8bbecb3f10d12f73b40ded62c814ebd8a9f444ddb46",
+          "redirect.json": "5b38c3d4c79cc62022dae19680c9287f56095671db5c5e659faaae6a162a7a89",
+          "step-0.log": "171d1fff0e32d0a0df622d44d3d12bdc02dd5834f887b19e2aff8544d8d764d3",
+          "step-1.log": "3c9f5aa6458c3c536743aa3c66f3dbd44a9a55c78e4cc2785f4776707de76053",
+          "step-2.log": "2584d391bd2e091a935c3959db056ed165bb37ea3732867879da34ca09b0dc0e",
+          "step-3.log": "30b42b207bcf672a0388a1864af8651f4b3f48dcc7347a5dea4a4798ca14ad08"
+        },
+        "verification_sha256": "fe06e1303a205006908745ca0c346b8230d7d1a633f68247948a00d6e9b96c83"
+      },
+      "execution": {
+        "schema": 1,
+        "scope": "selected entry TB execution/ISA witnesses and complete output consistency; no independent whole-LK oracle, hardware or clean-build proof",
+        "selected": [
+          "bolt_bench_hot_loop",
+          "bolt_bench_hot_cold",
+          "bolt_bench_branch_chain"
+        ],
+        "emitted_redirected": {
+          "start": 2149158912,
+          "end": 2149224448,
+          "rows": [
+            {
+              "name": "bolt_bench_hot_loop",
+              "input": 2148545116,
+              "output": 2149158912,
+              "output_size": 64,
+              "thumb": false,
+              "branch_hex": "675702ea"
+            },
+            {
+              "name": "bolt_bench_hot_cold",
+              "input": 2148545180,
+              "output": 2149158976,
+              "output_size": 60,
+              "thumb": false,
+              "branch_hex": "675702ea"
+            },
+            {
+              "name": "bolt_bench_branch_chain",
+              "input": 2148545248,
+              "output": 2149159040,
+              "output_size": 544,
+              "thumb": false,
+              "branch_hex": "665702ea"
+            }
+          ]
+        },
+        "executed": [
+          {
+            "name": "bolt_bench_hot_loop",
+            "pairs": 1,
+            "input": 2148545116,
+            "output": 2149158912,
+            "thumb": false
+          },
+          {
+            "name": "bolt_bench_hot_cold",
+            "pairs": 1,
+            "input": 2148545180,
+            "output": 2149158976,
+            "thumb": false
+          },
+          {
+            "name": "bolt_bench_branch_chain",
+            "pairs": 1,
+            "input": 2148545248,
+            "output": 2149159040,
+            "thumb": false
+          }
+        ],
+        "results": {
+          "baseline": {
+            "results": {
+              "hot_loop": "0x6a4ae6e0",
+              "hot_cold": "0x00000000",
+              "branch_chain": "0x007a5100",
+              "memcpy": "0x5acd3dc5",
+              "far_call": "0xb7082fa9",
+              "it_cond": "0x021e8480",
+              "interwork": "0x2fb21555",
+              "switch": "0xa953bbf0",
+              "spill_ret": "0x504980a0",
+              "litpool": "0x16b596e0",
+              "indirect_call": "0x0e6aac80",
+              "interwork_tail": "0xda3416f0",
+              "regpressure": "0xc5da3550",
+              "hotcold_split": "0xd4751003",
+              "icf": "0xdc7c3be0",
+              "shrinkwrap": "0x6a1b87d4",
+              "composite": "0x939f4ea0",
+              "stair": "0x9fef2a18"
+            },
+            "stop": "completed-then-stopped",
+            "returncode": 0
+          },
+          "candidate": {
+            "results": {
+              "hot_loop": "0x6a4ae6e0",
+              "hot_cold": "0x00000000",
+              "branch_chain": "0x007a5100",
+              "memcpy": "0x5acd3dc5",
+              "far_call": "0xb7082fa9",
+              "it_cond": "0x021e8480",
+              "interwork": "0x2fb21555",
+              "switch": "0xa953bbf0",
+              "spill_ret": "0x504980a0",
+              "litpool": "0x16b596e0",
+              "indirect_call": "0x0e6aac80",
+              "interwork_tail": "0xda3416f0",
+              "regpressure": "0xc5da3550",
+              "hotcold_split": "0xd4751003",
+              "icf": "0xdc7c3be0",
+              "shrinkwrap": "0x6a1b87d4",
+              "composite": "0x939f4ea0",
+              "stair": "0x9fef2a18"
+            },
+            "stop": "completed-then-stopped",
+            "returncode": 0
+          }
+        },
+        "commands": {
+          "baseline": [
+            "/usr/bin/qemu-system-arm",
+            "-machine",
+            "virt",
+            "-cpu",
+            "cortex-a15",
+            "-m",
+            "512",
+            "-smp",
+            "1",
+            "-display",
+            "none",
+            "-monitor",
+            "none",
+            "-serial",
+            "stdio",
+            "-append",
+            "lk.bolt_bench=all",
+            "-kernel",
+            "/mnt/c/Users/User/CURSOR/CodexProjects/BOLT_AARCH32/out/correctness/rewrite-coverage-20261004/release/final-off/build-uc8kcwrj/verification/rewrite-ej9f4u8w/baseline.elf"
+          ],
+          "candidate": [
+            "/usr/bin/qemu-system-arm",
+            "-machine",
+            "virt",
+            "-cpu",
+            "cortex-a15",
+            "-m",
+            "512",
+            "-smp",
+            "1",
+            "-display",
+            "none",
+            "-monitor",
+            "none",
+            "-serial",
+            "stdio",
+            "-append",
+            "lk.bolt_bench=all",
+            "-kernel",
+            "/mnt/c/Users/User/CURSOR/CodexProjects/BOLT_AARCH32/out/correctness/rewrite-coverage-20261004/release/final-off/build-uc8kcwrj/verification/rewrite-ej9f4u8w/candidate.elf",
+            "-d",
+            "exec,cpu,nochain",
+            "-dfilter",
+            "0x8010325c+1,0x80199000+1,0x8010329c+1,0x80199040+1,0x801032e0+1,0x80199080+1",
+            "-D",
+            "/tmp/qemu-entry-iio64wqo/entries.trace"
+          ]
+        },
+        "artifacts": {
+          "baseline.elf": "743ef67e453b6e71df41870db061b8f2cc8fbf092681b3c9dc49b8290c2dd729",
+          "candidate.elf": "19d9c78830e95f359dc1e7e82486f1fc80b4b7ee6e859b10c35a82dbc6e91170",
+          "functions.map": "322c9ace7fbff4001783f8bbecb3f10d12f73b40ded62c814ebd8a9f444ddb46"
+        },
+        "scripts": {
+          "scripts/qemu_rewrite_gate.py": "dade3b47d47433e74ba04126470f093fbf553a294fbdce4c5a1b8209200f095b",
+          "scripts/qemu_workload_gate.py": "bcbd667c4f394ff8213357da940e5d1595c4faa68f26c92be19e997c21f52178",
+          "scripts/profile_identity.py": "7e6fedf6de313a6029525f381e3d1c571656e922bd32bb14daa097c71ab79689",
+          "scripts/pi4/passes_check.py": "f590ab943cbadf8c6918f88bcabd873dd2c96256a13f40de9abe02d855737bff"
+        },
+        "repository_revision": "b06d581935daa779fe6d68ebd2f9a4f75450dd37",
+        "qemu_sha256": "ce90caa842f56f4220766cbce0b6bebc43a449dc740cc79cb64b91d6828cf4be",
+        "logs": {
+          "baseline.log": "5a7a537e3d9307dd1f3d71423393963f8cdf9dc73bffa99df291f5e747326f7f",
+          "candidate.log": "ac05cad33db18db7f935731d60fbd026d1b5b7edacf57d3f8756a1e5e9b3da52",
+          "entries.trace": "122164cf576bd6a14030e7821c4718abac9c0f43d7d54ee34d9e2a9edd110f13"
+        }
+      }
+    }
+  },
+  "artifact_rejections": [
+    {
+      "name": "retained",
+      "returncode": 1,
+      "success_receipt": false,
+      "boot_started": false,
+      "log_sha256": "24677448f5f3eca79bc6daa7e17f1d40b5613fa0dca50c8bf9f3d3d6e24e3ce6"
+    },
+    {
+      "name": "wrong-target",
+      "returncode": 1,
+      "success_receipt": false,
+      "boot_started": false,
+      "log_sha256": "676c32e14b9c92e88cb423e9b4964e04e8ec07906d5d37669d04ac0ed53f8ef0"
+    },
+    {
+      "name": "changed-data",
+      "returncode": 1,
+      "success_receipt": false,
+      "boot_started": false,
+      "log_sha256": "bb99e1d7ae2f16603bec2c6078f57775f74bda628329f2f3275b1012afc03031"
+    },
+    {
+      "name": "missing-map",
+      "returncode": 1,
+      "success_receipt": false,
+      "boot_started": false,
+      "log_sha256": "124c43c11a2fd954049eb6819e33a2e404ea2ae852cf83975f8aa8d5e4be8e1d"
+    },
+    {
+      "name": "unreserved",
+      "returncode": 1,
+      "success_receipt": false,
+      "boot_started": false,
+      "log_sha256": "6a8d34ef664fb715e2e431ac5089e7b1e53a04a084456f47a7e86859cdef1bc4"
+    },
+    {
+      "name": "missing-memcpy-emission",
+      "returncode": 1,
+      "success_receipt": false,
+      "boot_started": false,
+      "log_sha256": "beb186b6fde9c12b2a6814905791fb9a515ae3bdd0d01a109b2ef817594e4bb9"
+    }
+  ],
+  "wrappers": [
+    {
+      "name": "identity-three",
+      "returncode": 0,
+      "success_receipt": true
+    },
+    {
+      "name": "identity-four",
+      "returncode": 1,
+      "success_receipt": false
+    },
+    {
+      "name": "identity-unreserved",
+      "returncode": 1,
+      "success_receipt": false
+    },
+    {
+      "name": "identity-disabled-boot",
+      "returncode": 1,
+      "success_receipt": false
+    }
+  ],
+  "observations": {
+    "retained_candidate": "original entry executed; emitted entry absent; old receipt claims output consistency only",
+    "retained_trace_sha256": "90734e955d25e7020077b64cc17d1c786dd8486f564ce4d6ae5fa3ecfa22f05f",
+    "retained_log_sha256": "9aa98b1733003850ef703af58dc6cb345fd82e351e0d285fddd1069946f8265b",
+    "unreserved_redirect": "emitted entry observed, followed by guest undefined abort; no successful execution certificate",
+    "unreserved_trace_sha256": "fbc5c237cb6e969ba6f041b7651d61dca3934842d37dc823cf98fac65584b271",
+    "unreserved_log_sha256": "e7884135ff096e52f865f74f2e6b87bea6d00880279fa054042a9a32d1df1537",
+    "unreserved_original_end": "0x801f6ca0",
+    "unreserved_emitted_entry": "0x801f8000",
+    "retained_boot_allocator_boundary": "0x801f6ca0",
+    "missing_emission": "four-function request emits hot_loop/hot_cold/branch_chain; memcpy missing and request rejects",
+    "diagnostic_attempts": [
+      "v1 reservation missing end symbol",
+      "v2 sized reservation symbol becomes section-relative invalid metadata after shrink",
+      "first Windows suite used Python without pyserial; final release uses existing serial-enabled venv"
+    ]
+  },
+  "remaining": [
+    "missing memcpy emission/selected route",
+    "wider selected functions, Thumb/mixed kernel entries and pass/input matrix",
+    "independent eighteen-output oracles",
+    "legacy/manual hooks and P1/P2/P3 artifact diagnostics",
+    "automatic v7 retained-thunk/reference routes",
+    "interrupt/reentrancy and PMU ownership",
+    "clean build/content provenance and original #12"
+  ],
+  "evidence_files": {
+    "base-git-preimages/qemu_workload_gate.py": "64640d44f7632311e1a224cfb5a40494ad0d7085ba2387a9ff68623be39c97f2",
+    "base-git-preimages/test_qemu_workload_gate.py": "0a0299f9dcfffaa54e202c6a2f9f44dbcd596805560b59c1f48a5b1f6f5a2c5d",
+    "base-git-preimages/verify-bolt-arm32-identity.sh": "c0bf93a777ca0bf70f7613b2de4bb27f953e6370c5f18111999d199257343a4f",
+    "base-git-preimages/verify-bolt-arm32-milestones.sh": "13e0a30565d69ea8ba02ebf374a7cc645d4804373fca7c666824cb268b688eab",
+    "build-reserved-v2.py": "231c1a5ab41402c09a453b65ad2375723e8a777291f33de89901c97ab2aa493b",
+    "build-reserved-v3.py": "a2ea1e50cfeb7084a0b8ed85a30ac7603522f96441164c777054540f75d65bde",
+    "build-reserved.py": "80a482f132f6e67a12fd7ad9c7e467e4f8e9f7ed55373c9d118fe7fd80b68fa0",
+    "check-wrappers.py": "f0792e294d141260cd2e3a7b0319fe366be034a3b9c40cc662602fd4c177ff35",
+    "final-check.json": "59eec99ca8cdd4e9534896ff85d2a414df1cba50d4329d49fd1f4609f1267e6b",
+    "final-check.py": "0bd93669547765ddd69c80aa207a15cc774ebf5eee82e87d66a07817a1e383a8",
+    "final-off/build-189iapp0/build.json": "ac3d52054715312c98add7e8518763fe77a5afb52e2e243218868337d371e83c",
+    "final-off/build-189iapp0/functions.map": "322c9ace7fbff4001783f8bbecb3f10d12f73b40ded62c814ebd8a9f444ddb46",
+    "final-off/build-189iapp0/redirect.json": "6f6f759a87395e4eef73994a932b7389842529415571cc6ae6c9f94efc12e551",
+    "final-off/build-189iapp0/step-0.log": "171d1fff0e32d0a0df622d44d3d12bdc02dd5834f887b19e2aff8544d8d764d3",
+    "final-off/build-189iapp0/step-1.log": "8b7bc94802d5321cc68b2a1b7e3ee6bf41d2b678448135591c250f205f42eaef",
+    "final-off/build-189iapp0/step-2.log": "2584d391bd2e091a935c3959db056ed165bb37ea3732867879da34ca09b0dc0e",
+    "final-off/build-189iapp0/step-3.log": "0fae5313397e8d41485cb6646982df028dea30d779a6ee3f841cf0f27658130c",
+    "final-off/build-189iapp0/verification/rewrite-0sw2_8c7/baseline.log": "3ad7af2e1b94f9a2d86d3fb45d576019799516b03343f1fff9c5c06820237edd",
+    "final-off/build-189iapp0/verification/rewrite-0sw2_8c7/candidate.log": "65303e9e50a03c38238b47835cad86482a56fba59ba62b06a2ff10b4fbafbbcc",
+    "final-off/build-189iapp0/verification/rewrite-0sw2_8c7/entries.trace": "3532609613918a01c2651a239ddcd8001f59f4c4247cc646ea5bec8976f01a16",
+    "final-off/build-189iapp0/verification/rewrite-0sw2_8c7/functions.map": "322c9ace7fbff4001783f8bbecb3f10d12f73b40ded62c814ebd8a9f444ddb46",
+    "final-off/build-189iapp0/verification/rewrite-0sw2_8c7/rewrite.json": "542d438ea3e151d04c4adc087aadba3549dab612f52c0b11ff17c0408ab7c1c8",
+    "final-off.log": "d71ba0882868469d0c564e08881a4a701d57bb14282864526fe497cf4f62ffea",
+    "final-on/build-v1xcft8g/build.json": "912dc556f2566d3eb5e65da511bfc10459a57517fed61db9949d515d2e09b640",
+    "final-on/build-v1xcft8g/functions.map": "322c9ace7fbff4001783f8bbecb3f10d12f73b40ded62c814ebd8a9f444ddb46",
+    "final-on/build-v1xcft8g/redirect.json": "0826074975c846b76f85ca7d9ce9285258a0f356d32b3d8dd855349589dbaca8",
+    "final-on/build-v1xcft8g/step-0.log": "171d1fff0e32d0a0df622d44d3d12bdc02dd5834f887b19e2aff8544d8d764d3",
+    "final-on/build-v1xcft8g/step-1.log": "92c5583d05c2c28ea1132a9d3d18096f7bbebe11a0d7d6fb60faaaa3ac5eeb94",
+    "final-on/build-v1xcft8g/step-2.log": "2584d391bd2e091a935c3959db056ed165bb37ea3732867879da34ca09b0dc0e",
+    "final-on/build-v1xcft8g/step-3.log": "cc3940ba439083ca6356897214619e4b9ec7b5935eba6610a7edd98d55ae68a1",
+    "final-on/build-v1xcft8g/verification/rewrite-kqp9_k7a/baseline.log": "72e09b5f81d617dd7da53445ab49b9a6debea3bdc2b1149481e559590ac3d7f0",
+    "final-on/build-v1xcft8g/verification/rewrite-kqp9_k7a/candidate.log": "d68646e74b1d32913a5c6e068eaea88a4e759d82c5a40d99574265c3aaf1d94b",
+    "final-on/build-v1xcft8g/verification/rewrite-kqp9_k7a/entries.trace": "49d52e1a08b4e2699be0608639d68d28a1d32a17a0ceec6bbe62891cff39b5fd",
+    "final-on/build-v1xcft8g/verification/rewrite-kqp9_k7a/functions.map": "322c9ace7fbff4001783f8bbecb3f10d12f73b40ded62c814ebd8a9f444ddb46",
+    "final-on/build-v1xcft8g/verification/rewrite-kqp9_k7a/rewrite.json": "5582049412b9436ed6899a859c0620cdb0cbdf791878d0a42f3a286786b3c6f1",
+    "final-on.log": "6da94913ac3221ffedb304f6bff5aa3e47616663b2e6c726ecbda0be3c6806e5",
+    "final-release.py": "8498860ff2fb106902c04feaddf8e8328929c849484bcf36e865938a9ed78351",
+    "identity-disabled-boot.log": "f6cacdcc36e468cedf5374e2b7a63416eecae01f9baf3b880dd421044377a99e",
+    "identity-four/build-vs8bgd82/functions.map": "322c9ace7fbff4001783f8bbecb3f10d12f73b40ded62c814ebd8a9f444ddb46",
+    "identity-four/build-vs8bgd82/step-0.log": "171d1fff0e32d0a0df622d44d3d12bdc02dd5834f887b19e2aff8544d8d764d3",
+    "identity-four.log": "e55ba7b70267bf640cb4807b6c1998e48d7f98ead7806eaf971ccfe33d1ca03d",
+    "identity-three/build-_pius6lm/build.json": "e4c43ae5d025f68c93b04a9bf035f23f3fea5e0b3d8043e938920c94781c20dc",
+    "identity-three/build-_pius6lm/functions.map": "322c9ace7fbff4001783f8bbecb3f10d12f73b40ded62c814ebd8a9f444ddb46",
+    "identity-three/build-_pius6lm/redirect.json": "4b9bcc158ec6844d32670ce9ea9b9b20d878681f6c52b33cf2203d96c340fa7b",
+    "identity-three/build-_pius6lm/step-0.log": "171d1fff0e32d0a0df622d44d3d12bdc02dd5834f887b19e2aff8544d8d764d3",
+    "identity-three/build-_pius6lm/step-1.log": "408b578c12bd5be246e4cd2455f1c72868a7b7397d6dceed106045961a43a011",
+    "identity-three/build-_pius6lm/step-2.log": "2584d391bd2e091a935c3959db056ed165bb37ea3732867879da34ca09b0dc0e",
+    "identity-three/build-_pius6lm/step-3.log": "8ee89d2c3844952afa65ddc5b38bef311a60a4e76fe1a5eea67b27d304124482",
+    "identity-three/build-_pius6lm/verification/rewrite-sap8r_h7/baseline.log": "ee24cdeaa69d8d896ee2f5fdf495282e7de8e8d3042fa4b348aef49d150e59c7",
+    "identity-three/build-_pius6lm/verification/rewrite-sap8r_h7/candidate.log": "52be9f6eccbfebaba6637d27023e9db4745574e968ea12d3e4eb83d3d6e89b66",
+    "identity-three/build-_pius6lm/verification/rewrite-sap8r_h7/entries.trace": "ee81c7cfd1cb7b7d32360372b8f5e80897bfce15eca3ae8c65571d066bd2ee0c",
+    "identity-three/build-_pius6lm/verification/rewrite-sap8r_h7/functions.map": "322c9ace7fbff4001783f8bbecb3f10d12f73b40ded62c814ebd8a9f444ddb46",
+    "identity-three/build-_pius6lm/verification/rewrite-sap8r_h7/rewrite.json": "6b96388d310c0f995ac753cb702d580323a02fd461428680ec6fece19c39d710",
+    "identity-three.log": "b2f72aa58b1c5781dcf67418b162acbc0dd4fb576ef079ae38273ec5d88acfc0",
+    "identity-unreserved.log": "af70009f2c49f149001f65134106ffe3fa42491412ab395320bda6d9c7eb51d8",
+    "initial-build/build-r4qcsb_1/build.json": "3fc11f9c4b8cccdfa3920a08bcc6a2332e7f934569381bdca2de0cac33b9b607",
+    "initial-build/build-r4qcsb_1/functions.map": "322c9ace7fbff4001783f8bbecb3f10d12f73b40ded62c814ebd8a9f444ddb46",
+    "initial-build/build-r4qcsb_1/redirect.json": "940e4887d6dd59db644b16ec4b7fccc22dd4121fdd55eb8eebf685d8b437fcd6",
+    "initial-build/build-r4qcsb_1/step-0.log": "171d1fff0e32d0a0df622d44d3d12bdc02dd5834f887b19e2aff8544d8d764d3",
+    "initial-build/build-r4qcsb_1/step-1.log": "7fb6bd394c8a3025eab759e49fd9c0fb6a21fb5563a6420ff9e2a3a27e35b1c6",
+    "initial-build/build-r4qcsb_1/step-2.log": "2584d391bd2e091a935c3959db056ed165bb37ea3732867879da34ca09b0dc0e",
+    "initial-build/build-r4qcsb_1/step-3.log": "16372216abbb4849a336ba69b033cbf4ddbeea5bd612b51d7c220dc56a212b97",
+    "initial-build/build-r4qcsb_1/verification/rewrite-q_9obk0m/baseline.log": "6932406a123fad9b6325d29dca5754e6dc5c86ac9e7545bbb756f4e720dbc134",
+    "initial-build/build-r4qcsb_1/verification/rewrite-q_9obk0m/candidate.log": "5e365f56f56debb4c1fa48c35a29c4a23ab8d6b6553733123d377e40200ed99c",
+    "initial-build/build-r4qcsb_1/verification/rewrite-q_9obk0m/entries.trace": "2f7aaf6f80eaecde8405370625a377f6c5d026a78c606dcb3f9855db37d157ea",
+    "initial-build/build-r4qcsb_1/verification/rewrite-q_9obk0m/functions.map": "322c9ace7fbff4001783f8bbecb3f10d12f73b40ded62c814ebd8a9f444ddb46",
+    "initial-build/build-r4qcsb_1/verification/rewrite-q_9obk0m/rewrite.json": "3af223729c06678b06c14b6f1a56ac82ba13131de2b92af4c400a9ce1b06860f",
+    "initial-on/rewrite-ha2hg04m/baseline.log": "e38f29e2ce4d15edc4c3db5c0788eb3d5400b76d363d6f22528b9ef5f4c0159a",
+    "initial-on/rewrite-ha2hg04m/candidate.log": "55bdf0ca776b6cfa5ed7a76594cc6c48a82a198c2d18fd9c947846f97f723e2e",
+    "initial-on/rewrite-ha2hg04m/entries.trace": "e6244b4a6ca77316e30aba97cd891de649a8e9999ba562bd0a560ad6dc7e9b01",
+    "initial-on/rewrite-ha2hg04m/functions.map": "322c9ace7fbff4001783f8bbecb3f10d12f73b40ded62c814ebd8a9f444ddb46",
+    "initial-on/rewrite-ha2hg04m/rewrite.json": "c069dea51940c2e4486c9776643273f16b869571b15c34c751793019facfef97",
+    "probe-reserved.py": "b875e18ea80fbd11d3bf4248932e903f7ef64ec7c379880c959fe9acecd69cdd",
+    "probe.py": "5e76282d728ed44a85e5acc66533e1a5292a75580041d244c78dc019d1d9a9dc",
+    "publish.py": "37aaa64b9fbab2306db0d8574dfe99051e89d18f1e7cc79328dd03bbb9572dfd",
+    "redirect.json": "2402b44017f7c2ab7eeb751844b56964515c838742c68e4f9b6d6e1c7a44043c",
+    "redirected.log": "e7884135ff096e52f865f74f2e6b87bea6d00880279fa054042a9a32d1df1537",
+    "redirected.trace": "fbc5c237cb6e969ba6f041b7651d61dca3934842d37dc823cf98fac65584b271",
+    "reject-changed-data/rewrite-u1cemd74/functions.map": "322c9ace7fbff4001783f8bbecb3f10d12f73b40ded62c814ebd8a9f444ddb46",
+    "reject-changed-data.log": "5bf3aaa7eab299dcf85604e5b497632069496b4058470aa128c824754dd1a106",
+    "reject-four-selection/build-3f28tbmj/functions.map": "322c9ace7fbff4001783f8bbecb3f10d12f73b40ded62c814ebd8a9f444ddb46",
+    "reject-four-selection/build-3f28tbmj/step-0.log": "171d1fff0e32d0a0df622d44d3d12bdc02dd5834f887b19e2aff8544d8d764d3",
+    "reject-four-selection.log": "6cb4646b2fda272f9e3538f99972108bb0dbb500726ab1a4af1b5e92392fddd0",
+    "reject-missing-map/rewrite-4sybytrc/functions.map": "0c3be2536602fdcda24cf6b0df9ef8b93d6ac41d5dbc55eef3e39e274d7578ab",
+    "reject-missing-map.log": "3232f3e283d1f86e8825923720d3b3cba11c4e22aba2426004d863ae8e242969",
+    "reject-retained/rewrite-vi9ffimr/functions.map": "322c9ace7fbff4001783f8bbecb3f10d12f73b40ded62c814ebd8a9f444ddb46",
+    "reject-retained.log": "baa0aa14819eafbc7ea6e4d083cc8ab0eb4de00a73b9c2d2d144a9a5f6cf27db",
+    "reject-unreserved/rewrite-j1fgej8i/functions.map": "0b2c0ee20fc4c961f2a1006d03b259c1740f383ee70d8cd3c3c0638c0370f07d",
+    "reject-unreserved.log": "5da0cd2db5d46ac61d25eb9cddc1b71396ead4df28a1514acd8194eec0a90102",
+    "reject-wrong-target/rewrite-uu9ww7vb/functions.map": "322c9ace7fbff4001783f8bbecb3f10d12f73b40ded62c814ebd8a9f444ddb46",
+    "reject-wrong-target.log": "cf704b6ed9fe42aa9a73b5883177ee19806c36e6e2baba0268b87e939e124998",
+    "release/final-check.json": "6c1a9ffdc1fef3d3e69fe3e4492be6f43331992881de3552ec7b3fb9b1471eb4",
+    "release/final-off/build-uc8kcwrj/build.json": "eff6e4c112da89ac74a6d71bf52cdb7a601708c8b6ff59bb906fb995317529dc",
+    "release/final-off/build-uc8kcwrj/functions.map": "322c9ace7fbff4001783f8bbecb3f10d12f73b40ded62c814ebd8a9f444ddb46",
+    "release/final-off/build-uc8kcwrj/redirect.json": "5b38c3d4c79cc62022dae19680c9287f56095671db5c5e659faaae6a162a7a89",
+    "release/final-off/build-uc8kcwrj/step-0.log": "171d1fff0e32d0a0df622d44d3d12bdc02dd5834f887b19e2aff8544d8d764d3",
+    "release/final-off/build-uc8kcwrj/step-1.log": "3c9f5aa6458c3c536743aa3c66f3dbd44a9a55c78e4cc2785f4776707de76053",
+    "release/final-off/build-uc8kcwrj/step-2.log": "2584d391bd2e091a935c3959db056ed165bb37ea3732867879da34ca09b0dc0e",
+    "release/final-off/build-uc8kcwrj/step-3.log": "30b42b207bcf672a0388a1864af8651f4b3f48dcc7347a5dea4a4798ca14ad08",
+    "release/final-off/build-uc8kcwrj/verification/rewrite-ej9f4u8w/baseline.log": "5a7a537e3d9307dd1f3d71423393963f8cdf9dc73bffa99df291f5e747326f7f",
+    "release/final-off/build-uc8kcwrj/verification/rewrite-ej9f4u8w/candidate.log": "ac05cad33db18db7f935731d60fbd026d1b5b7edacf57d3f8756a1e5e9b3da52",
+    "release/final-off/build-uc8kcwrj/verification/rewrite-ej9f4u8w/entries.trace": "122164cf576bd6a14030e7821c4718abac9c0f43d7d54ee34d9e2a9edd110f13",
+    "release/final-off/build-uc8kcwrj/verification/rewrite-ej9f4u8w/functions.map": "322c9ace7fbff4001783f8bbecb3f10d12f73b40ded62c814ebd8a9f444ddb46",
+    "release/final-off/build-uc8kcwrj/verification/rewrite-ej9f4u8w/rewrite.json": "fe06e1303a205006908745ca0c346b8230d7d1a633f68247948a00d6e9b96c83",
+    "release/final-off.log": "3dc5d414bc0819050d668cc5f061b9bfc863cd4718311705f6b490976432843b",
+    "release/final-on/build-gq7hp3s9/build.json": "f78d49c03f9cc692527d101d34ac01378f54e884f917e0aa4a75fcaeb3f6d689",
+    "release/final-on/build-gq7hp3s9/functions.map": "322c9ace7fbff4001783f8bbecb3f10d12f73b40ded62c814ebd8a9f444ddb46",
+    "release/final-on/build-gq7hp3s9/redirect.json": "9a128e778e0b740325377604b20b00a11c0545da543bc72af3fb5daa4480393d",
+    "release/final-on/build-gq7hp3s9/step-0.log": "171d1fff0e32d0a0df622d44d3d12bdc02dd5834f887b19e2aff8544d8d764d3",
+    "release/final-on/build-gq7hp3s9/step-1.log": "0d337be5911f88a3edde82062b611882552311365e529fee640a5cce8eee67f2",
+    "release/final-on/build-gq7hp3s9/step-2.log": "2584d391bd2e091a935c3959db056ed165bb37ea3732867879da34ca09b0dc0e",
+    "release/final-on/build-gq7hp3s9/step-3.log": "f6617279cf06fe5f116499dc4f6fe5f7207dd096ac9d22e121e5d6f90b29f3f9",
+    "release/final-on/build-gq7hp3s9/verification/rewrite-cw_d7snh/baseline.log": "ea101deca51f8e6f31c9ac1f41a80d4a162b5e73a6e8928c8132a3d3b9d071de",
+    "release/final-on/build-gq7hp3s9/verification/rewrite-cw_d7snh/candidate.log": "e19bd75813c0818e44d7d15a4fdc49b54a9856cb7b658d76824ff43107caba9b",
+    "release/final-on/build-gq7hp3s9/verification/rewrite-cw_d7snh/entries.trace": "b4659bdf529a5a57101765e80e3a4b5c3312794840c39e65d117fe791cdd8f08",
+    "release/final-on/build-gq7hp3s9/verification/rewrite-cw_d7snh/functions.map": "322c9ace7fbff4001783f8bbecb3f10d12f73b40ded62c814ebd8a9f444ddb46",
+    "release/final-on/build-gq7hp3s9/verification/rewrite-cw_d7snh/rewrite.json": "8734c4b52703e4bb9905b87f8e1cb7a9463191b7e0425ff4693def4b6bfd3da2",
+    "release/final-on.log": "4a5727a039c6519ff3a378915a876413949bd60e3989bdd55b640160373364df",
+    "release/reject-changed-data/rewrite-ffna43bm/functions.map": "322c9ace7fbff4001783f8bbecb3f10d12f73b40ded62c814ebd8a9f444ddb46",
+    "release/reject-changed-data.log": "bb99e1d7ae2f16603bec2c6078f57775f74bda628329f2f3275b1012afc03031",
+    "release/reject-four-selection/build-tcd8km4z/functions.map": "322c9ace7fbff4001783f8bbecb3f10d12f73b40ded62c814ebd8a9f444ddb46",
+    "release/reject-four-selection/build-tcd8km4z/step-0.log": "171d1fff0e32d0a0df622d44d3d12bdc02dd5834f887b19e2aff8544d8d764d3",
+    "release/reject-four-selection.log": "beb186b6fde9c12b2a6814905791fb9a515ae3bdd0d01a109b2ef817594e4bb9",
+    "release/reject-missing-map/rewrite-jik04x25/functions.map": "0c3be2536602fdcda24cf6b0df9ef8b93d6ac41d5dbc55eef3e39e274d7578ab",
+    "release/reject-missing-map.log": "124c43c11a2fd954049eb6819e33a2e404ea2ae852cf83975f8aa8d5e4be8e1d",
+    "release/reject-retained/rewrite-4djgp62c/functions.map": "322c9ace7fbff4001783f8bbecb3f10d12f73b40ded62c814ebd8a9f444ddb46",
+    "release/reject-retained.log": "24677448f5f3eca79bc6daa7e17f1d40b5613fa0dca50c8bf9f3d3d6e24e3ce6",
+    "release/reject-unreserved/rewrite-9fiiuxq2/functions.map": "0b2c0ee20fc4c961f2a1006d03b259c1740f383ee70d8cd3c3c0638c0370f07d",
+    "release/reject-unreserved.log": "6a8d34ef664fb715e2e431ac5089e7b1e53a04a084456f47a7e86859cdef1bc4",
+    "release/reject-wrong-target/rewrite-s_648suk/functions.map": "322c9ace7fbff4001783f8bbecb3f10d12f73b40ded62c814ebd8a9f444ddb46",
+    "release/reject-wrong-target.log": "676c32e14b9c92e88cb423e9b4964e04e8ec07906d5d37669d04ac0ed53f8ef0",
+    "reserved-build.json": "77f67edb3e75037db3a2dfdadfb125ab7594000acc64366eae334216fe671913",
+    "reserved-build.log": "f1f469671333ef05cd0c893873cb8c366c7abf0e40ea2790c95c6f2c608d28df",
+    "reserved-on.log": "5cee2a0100f4acd945780639a7073bbdf9599712e745e63e88c8ae7e7ca26871",
+    "reserved-probe-driver.log": "3bff1bd1985650968610060705f227d733dbe2069a2152847e1f966feec413af",
+    "reserved-probe.json": "29ae818ff0fe580640aa2eb94a490eb12f9e87e2e522d2c2edb1670a9f562ff6",
+    "reserved-v2-build.json": "dbac1a74d0b1d8f055ee04d72f723e0a462734284d274995707a934267127ae1",
+    "reserved-v2-build.log": "c33ef59391757fb0900550ce6a486aa38703d2d8edd701b14036dab82e5d4ae7",
+    "reserved-v2-on.log": "171d1fff0e32d0a0df622d44d3d12bdc02dd5834f887b19e2aff8544d8d764d3",
+    "reserved-v3-build.json": "de7eacc6176cf398391dac23c60e8a50e003550a8068505345a2de65c6bc7842",
+    "reserved-v3-build.log": "0884e8c12d1f4689da5830e5020f5d6ca1f759c80196955fbf48e3dc3225ca96",
+    "reserved-v3-off.log": "171d1fff0e32d0a0df622d44d3d12bdc02dd5834f887b19e2aff8544d8d764d3",
+    "reserved-v3-on.log": "171d1fff0e32d0a0df622d44d3d12bdc02dd5834f887b19e2aff8544d8d764d3",
+    "retained.log": "9aa98b1733003850ef703af58dc6cb345fd82e351e0d285fddd1069946f8265b",
+    "retained.trace": "90734e955d25e7020077b64cc17d1c786dd8486f564ce4d6ae5fa3ecfa22f05f",
+    "tests-windows-release.log": "7f4228533be20f3466434e00334978455bf94ca7e97c00e61d859bb664fb573c",
+    "tests-windows-venv.log": "bdf4338daf6ba6f9cbec2f3f42a181ddc0fcad469e5d461aa8a009fa5c8a3822",
+    "tests-windows.log": "be174e17d626040699f12fd27f28c0996823c812d28bb203a8f77ffefdf72d35",
+    "tests-wsl-release.log": "58832134e109ebd1681fdf3f3f63706a7b97bdc617553460675392690fa507e4",
+    "tests-wsl.log": "9e070c9e754b0ca8818ed0f94e16fb0296f7ac76fbfe409ec3a35475a8ae3eab",
+    "wrappers.json": "378b0a19c11a21b4ddc5a64753e8752c2c9fdb7d9fa0c602bd4ec89a7d7c89f6"
+  }
+}

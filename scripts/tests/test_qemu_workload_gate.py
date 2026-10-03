@@ -29,6 +29,19 @@ class QemuGateTests(unittest.TestCase):
         for bad in [text+'bolt_bench: hot_loop FAIL bad\n',text+'bolt_bench: composite acc=0x8\n',text+'bolt_bench: running all from cmdline\n',text+'entering main console loop\n',text+'bolt_bench: composite acc=0x7\nbolt_bench: composite acc=0x7\n']:
             with self.assertRaises(ValueError): gate.parse_boot(bad)
 
+    def test_guest_crash_rejects_even_after_complete_results(self):
+        for failure in ('undefined abort, halting','CRASH: software panic','prefetch abort','data abort','unhandled exception'):
+            with self.subTest(failure=failure),self.assertRaisesRegex(ValueError,'fatal guest'):
+                gate.parse_boot(complete()+failure+'\n')
+
+    @unittest.skipIf(os.name=='nt','process ownership is a WSL/Linux contract')
+    def test_guest_crash_rejects_without_waiting_for_deadline(self):
+        with tempfile.TemporaryDirectory() as d:
+            log=Path(d)/'serial.log'
+            cmd=[getattr(sys,'_base_executable',sys.executable),'-c','import time; print("undefined abort, halting",flush=True); time.sleep(30)']
+            with self.assertRaisesRegex(ValueError,'fatal guest'): gate.boot(cmd,log,3)
+            self.assertIn('undefined abort',log.read_text())
+
     @unittest.skipIf(os.name=='nt','process ownership is a WSL/Linux contract')
     def test_successful_live_child_is_deliberately_stopped(self):
         with tempfile.TemporaryDirectory() as d:

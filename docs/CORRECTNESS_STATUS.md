@@ -1,5 +1,27 @@
 # Twelve-item correctness work
 
+## Latest: item 6 scoped QEMU rewrite execution verified
+
+Both assertion-mode builds emit, redirect and execute three explicitly selected
+ARM benchmark entries inside a linked 64 KiB kernel reservation. Live CPU frames
+check original/emitted PCs, ISA, SVC mode and unchanged redirect input state.
+All eighteen candidate outputs match fresh baselines in each build. Six artifact/
+selection faults reject before boot without receipts. The identity wrapper passes
+the valid three-function scope and rejects the default skipped-memcpy selection,
+unreserved input and disabled boot. All 130 WSL tests pass; Windows passes with
+four Linux process-ownership skips. Identity/P4 use strict artifacts and execution
+instead of an overwrite banner.
+
+The caveat is published: retained original entries can match outputs without
+executing emitted code. The explicitly redirected unreserved image reaches its
+emitted entry then aborts; its code is beyond the retained kernel allocation
+boundary. This stage supports protected linked reservations only. The fourth
+requested function, memcpy, is not emitted in this fixture and cannot be certified.
+No independent eighteen-output oracle, whole-LK, Thumb kernel fixture, interrupts,
+new Pi run or clean provenance is claimed. LLVM remains at 0044; item 6 and
+original #12 remain active. See [contract](AARCH32_QEMU_REWRITE_COVERAGE.md) and
+[evidence](results/correctness_rewrite_coverage_20261004.json).
+
 ## Latest: item 6 QEMU workload/output consistency stage verified
 
 Legacy runtime banner checks now require all eighteen ordered sink results and

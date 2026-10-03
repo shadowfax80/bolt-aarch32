@@ -51,3 +51,9 @@ independent outputs, manual hooks, remaining artifact admissions, PMU ownership
 and clean-build provenance remain open. LLVM source remains at 0044. Item 6
 and original #12 stay active. See [evidence](results/correctness_qemu_gates_20261004.json)
 and the [queue](CORRECTNESS_PRIORITY_TODO.md).
+
+The later [selected-entry stage](AARCH32_QEMU_REWRITE_COVERAGE.md) supersedes
+identity/P4's conditional boot and overwrite-banner handling with an exact scoped
+build and live execution verifier. Other workload gates retain the output-only
+scope above. Guest panic/abort records now reject immediately and also invalidate
+complete output. No earlier output-consistency receipt is upgraded retroactively.

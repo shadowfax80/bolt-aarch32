@@ -17,8 +17,16 @@ from profile_identity import sha256,write_json
 from passes_check import EXPECTED_WORKLOADS
 
 
+def check_guest_failure(text):
+    if re.search(r'(?im)\b(?:panic|undefined (?:instruction|abort)|prefetch abort|data abort|unhandled exception)\b',text):
+        raise ValueError('fatal guest exception/panic')
+    if re.search(r'bolt_bench: \w+ FAIL\b',text):
+        raise ValueError('workload correctness failure')
+
+
 def parse_boot(text):
     text=text.replace('\r\n','\n').replace('\r','\n')
+    check_guest_failure(text)
     if text.count('bolt_bench: running all from cmdline')!=1 or text.count('entering main console loop')!=1:
         raise ValueError('missing/duplicate workload start or console completion')
     results={}; completed=[]; accs=set()
@@ -43,7 +51,7 @@ def parse_boot(text):
     return results
 
 
-def boot(command,log,timeout):
+def boot(command,log,timeout,observe=None):
     """Own the QEMU lifetime; deliberate stop after complete output is recorded."""
     if os.name=='nt':
         raise ValueError('QEMU capture requires WSL/Linux for direct process ownership')
@@ -57,8 +65,10 @@ def boot(command,log,timeout):
             process=subprocess.Popen(command,stdin=subprocess.DEVNULL,stdout=output,stderr=subprocess.STDOUT)
             deadline=time.monotonic()+timeout
             while time.monotonic()<deadline:
+                if observe is not None: observe()
                 if spool.stat().st_size>32*1024*1024: raise ValueError('serial output exceeds bound')
                 text=spool.read_bytes().decode('utf-8','replace')
+                check_guest_failure(text)
                 rc=process.poll()
                 if rc is not None and rc!=0: raise ValueError(f'QEMU exited unsuccessfully ({rc})')
                 try: results=parse_boot(text)

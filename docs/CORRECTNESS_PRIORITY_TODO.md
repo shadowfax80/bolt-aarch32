@@ -20,7 +20,7 @@ items are complete in their bounded scope (#2/#8/#10); nine remain open.
 | 3 · P0 | ISA/profile/ABI admission | Verified conservative contract; 0041 + Pi |
 | 4 · P0 | Fixed-load ELF/PIE boundary | Verified fixed-load admission; 0042 |
 | 5 · P0 | Exact profile/artifact identity | Verified sealed pipeline scope; 0043; #12 active |
-| 6 · P0 | Execution/result gate integrity | Active; gate hardening, four-ISA QEMU/Pi, measurement association and complete QEMU workloads verified; execution/oracle/wider proof pending |
+| 6 · P0 | Execution/result gate integrity | Active; gate hardening, four-ISA QEMU/Pi, measurement association, complete workloads and three reserved ARM entries verified; memcpy/oracle/wider proof pending |
 | 7 · P1 | Relocation/literal matrix | Partial; remaining work pending |
 | 8 · P1 | Control-flow/mutation invariants | Partial; remaining work pending |
 | 9 · P1 | Interrupt/reentrancy boundaries | Partial; remaining work pending |
@@ -81,6 +81,16 @@ baseline inputs, 28 rejected faults and 86 Python tests. See [far-call scope](AA
 and [far-call evidence](results/correctness_far_execution_20261003.json). See [scope](AARCH32_EXECUTION_GATES.md)
 and [evidence](results/correctness_execution_integrity_20261003.json). Item 6
 and original #12 remain active; stop at this verified stage.
+
+Item 6: protected-reservation QEMU execution now verifies three selected ARM
+entries in both builds, exact branches/live PC/ISA/state witnesses and eighteen
+outputs per baseline/candidate. The default fourth requested function, memcpy,
+is not emitted and rejects. Unreserved redirected code aborts after reaching the
+emitted entry; retained-original output consistency does not prove a rewrite.
+See [contract](AARCH32_QEMU_REWRITE_COVERAGE.md) and
+[evidence](results/correctness_rewrite_coverage_20261004.json). This is a bounded
+entry-execution stage, not a whole-LK or independent-output oracle. Item 6 and
+original #12 remain active; stop at this verified milestone.
 
 ## P0: confirmed defects and unsafe admission
 
@@ -165,6 +175,11 @@ and original #12 remain active; stop at this verified stage.
      QEMU workload/output consistency and strict child/error/timeout handling.
      Fresh snapshots/receipts and five simulated rejections verified; 118 WSL
      tests pass. Selected rewritten execution is not certified by this stage.
+   - [x] Require exact selected maps, protected kernel reservation/layout,
+     scoped branches and live original/emitted PC/ISA/input-state witnesses for
+     identity/P4. Both builds pass three ARM entries and eighteen-output baseline
+     comparisons; missing memcpy emission and unreserved layouts reject. General
+     gates, wider functions/ISA/pass coverage and independent oracles stay open.
    - [ ] Require selected/emitted/redirected/executed coverage and independent
      results in every optimization gate, not only the scoped full-image gate.
    - [ ] Extend ARM/Thumb/mixed inputs, flags, memory and return-value checks over
