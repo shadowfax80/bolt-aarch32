@@ -45,8 +45,8 @@ matrices pass in both builds, including the deliberate reset fault.
 Attributes cannot prove the truth of an instruction stream or the actual CPU,
 privilege, quiescence or core ownership. These checks establish a conservative
 admission boundary and selected generated-code verification, not general ELF or
-whole-firmware correctness. Static PIE is still admitted; fixed-load policy is
-next in queue item 4. Active interrupt/reentrancy, arbitrary FP/SIMD/pass
+whole-firmware correctness. Overlay 0042 now enforces the
+[fixed-load contract](AARCH32_FIXED_LOAD_CONTRACT.md) and rejects PIE. Active interrupt/reentrancy, arbitrary FP/SIMD/pass
 combinations, dynamic finalization and clean-build provenance remain open.
 
 A separate automatic ARMv7 linker-thunk probe removes zero veneers in both
@@ -58,7 +58,7 @@ The legacy literal-veneer regression now uses an explicit legacy veneer with
 valid v7-A attributes; it does not certify automatic v7 thunk handling.
 
 Evidence: [0041 results](results/correctness_isa_contract_20261003.json) and
-[current queue](CORRECTNESS_PRIORITY_TODO.md). All 41 overlays replay exactly to
+[current queue](CORRECTNESS_PRIORITY_TODO.md). All 42 overlays replay exactly to
 live source; this is source identity, not clean full-build certification.
 
 ABI references: [ARM build attributes](https://github.com/ARM-software/abi-aa/blob/main/addenda32/addenda32.rst)

@@ -5,8 +5,8 @@ Updated 2026-10-03 from [the fresh review](CORRECTNESS_REVIEW_0038.md) and
 Queue positions below are new priorities; the original twelve workstream IDs
 remain stable in [CORRECTNESS_TODO.md](CORRECTNESS_TODO.md).
 
-ATFE only. Items 1-3 have verified scoped fixes in overlays 0039-0041.
-Next is item 4, fixed-load ELF/PIE admission. The user
+ATFE only. Items 1-4 have verified scoped fixes in overlays 0039-0042.
+Next is item 5, exact profile/artifact identity. The user
 reactivated #12 on 2026-10-02; all its remaining work is included below. Nothing
 is paused in this correctness queue. Three original
 items are complete in their bounded scope (#2/#8/#10); nine remain open.
@@ -18,8 +18,8 @@ items are complete in their bounded scope (#2/#8/#10); nine remain open.
 | 1 · P0 | Skipped interior-entry reservation bypass | Verified for decoded original function code; 0039 |
 | 2 · P0 | Thumb instrumentation startup crash | Verified for static entry and dummy-fini scope; 0040 + Pi |
 | 3 · P0 | ISA/profile/ABI admission | Verified conservative contract; 0041 + Pi |
-| 4 · P0 | Fixed-load ELF/PIE boundary | Pending; next |
-| 5 · P0 | Exact profile/artifact identity | Remaining work pending |
+| 4 · P0 | Fixed-load ELF/PIE boundary | Verified fixed-load admission; 0042 |
+| 5 · P0 | Exact profile/artifact identity | Next; original #12 active |
 | 6 · P0 | Execution/result gate integrity | Remaining work pending |
 | 7 · P1 | Relocation/literal matrix | Partial; remaining work pending |
 | 8 · P1 | Control-flow/mutation invariants | Partial; remaining work pending |
@@ -43,7 +43,7 @@ runtime entry to emitted Thumb entry and an exact counter of one. Only the boot
 entry-pointer and counter metadata words change after BOLT; emitted code and ELF
 entry are retained. See [0040 evidence](results/correctness_thumb_startup_20261003.json).
 Static finalization remains a dummy return: DT_FINI variants are not invoked.
-Dynamic hooks and PIE admission remain open under item 4; general entry/symbol
+Dynamic hooks remain unsupported; item 4 now rejects PIE admission below; general entry/symbol
 scope remains in item 11; item 3 is now scoped verified below. Work stops at
 this verified milestone under the
 user's previous instruction; nothing in the queue is marked paused.
@@ -52,8 +52,14 @@ Item 3: scoped ISA/ABI admission verified in 0041. Both builds pass 358 cases
 (32 admissions, 326 rejections), focused suites 50/49 and CoreTests 58/31 skips.
 Fresh Pi startup and 372-case IT/nested/reset checks pass per build; deliberate
 reset faults are detected. See [contract](AARCH32_ISA_ABI_CONTRACT.md) and
-[evidence](results/correctness_isa_contract_20261003.json). Static PIE remains
-admitted; item 4 is next. Stop at this milestone; no remaining item is paused.
+[evidence](results/correctness_isa_contract_20261003.json). Static PIE admission from that checkpoint is superseded by 0042 below. Stop at this milestone; no remaining item is paused.
+
+Item 4: scoped fixed-load boundary verified in 0042. Both builds pass 192 cases,
+focused suites 51/50 and CoreTests 58/31 skips. Original static PIE now rejects
+before output; prior PIE/DT_FINI admissions are superseded. Supported Pi bytes
+match the executed 0041 fixtures. See [contract](AARCH32_FIXED_LOAD_CONTRACT.md)
+and [evidence](results/correctness_fixed_load_20261003.json). Next is item 5;
+all remaining #12 work stays active. Work stops at this verified milestone.
 
 ## P0: confirmed defects and unsafe admission
 
@@ -95,15 +101,18 @@ admitted; item 4 is next. Stop at this milestone; no remaining item is paused.
      attributes/BE8 findings. Conservative exclusions and limits are published in
      [the contract](AARCH32_ISA_ABI_CONTRACT.md); broader code/FP/pass proof stays open.
 
-4. **Enforce fixed-load ELF admission or implement rebasing — F4, #7/#11/#6.**
-   - [ ] Close static PIE's `IsStaticExecutable` exception for unsupported
-     instrumentation; define ELF type, interpreter and dynamic-tag policy.
-   - [ ] Reject ET_DYN/PIC where generated code/runtime uses unrelocated absolute
-     pointers, or implement the required relocation model.
-   - [ ] Test fixed-address and nonzero load bias, including counter/runtime
-     pointers, entry routes and output dynamic relocations in both builds.
-   - [ ] Distinguish genuine shared-object rejection from static-PIE admission in
-     documentation and tests; do not treat them as one case.
+4. **Enforce fixed-load ELF admission or implement rebasing - F4, #7/#11/#6.**
+   - [x] Require fixed-address ET_EXEC before transformation in both ordinary and
+     instrumented modes; do not use static-PIE's IsStaticExecutable exception.
+   - [x] Reject PIE/shared/relocatable inputs, INTERP/DYNAMIC/TLS and unsupported
+     dynamic tags/sections, loaded relocation tables and GOT/PLT machinery.
+   - [x] Validate LOAD/section extents and file mappings; reject nonempty loaded
+     sections at zero before the reproduced assertion. Both builds pass 192 cases.
+   - [x] Check runtime/entry/counter pointers at three fixed VMAs, demonstrate that
+     simulated nonzero bias is unsupported, and preserve existing artifacts on
+     rejection. Fresh supported Pi bytes match executed 0041 payloads.
+   - [x] Publish [the enforced contract](AARCH32_FIXED_LOAD_CONTRACT.md). No rebasing
+     or dynamic finalization support is claimed; broader code/reference proof stays open.
 
 5. **Bind counter profiles and every artifact to exact inputs — #12.**
    - [ ] Validate every named counter location/offset against the exact original

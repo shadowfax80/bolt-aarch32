@@ -1,5 +1,36 @@
 # ATFE correctness checkpoint - 2026-10-03
 
+## Latest: consolidated queue item 4 verified in 0042; milestone stop
+
+Consolidated queue item 4 is scoped verified in overlay 0042. Both ordinary
+rewriting and instrumentation now reject PIE/shared inputs and unsupported
+dynamic/TLS/GOT/PLT machinery, validate fixed LOAD/section mappings, and exclude
+nonempty loaded sections at zero before the reproduced relocation assertion.
+Both builds pass 192 cases (12 admissions, 180 rejections), focused suites 51/50
+(one expected skip off) and CoreTests 58/31 skips. The 358-case ISA matrix remains
+green. Runtime and counter pointers are checked at three fixed VMAs; nonzero
+bias is unsupported. Fresh supported Pi payloads equal the exact executed 0041
+bytes; no new Pi execution is claimed. All 42 overlays replay exactly.
+Next is queue item 5, profile/artifact identity. Original #12 remains active;
+no additional whole original workstream closes. See the
+[fixed-load contract](AARCH32_FIXED_LOAD_CONTRACT.md),
+[evidence](results/correctness_fixed_load_20261003.json) and
+[status table](CORRECTNESS_PRIORITY_TODO.md).
+
+Source identity: `528e9c72c362adef2700a093f11e026ccb2fe86a86f4643f673eea49ecb8ea93`.
+
+Evidence, preimages/afterimages, initial zero-address assertion and final host
+logs are in `out/correctness/fixed-load-20261003`. Final full-suite reviews use
+`checked-review-on/off`; final replay is `replay-checked`. One-time source
+mutation/export helpers already ran; do not rerun them blindly. The final export
+helper is `export-fixed-load-checked.py`. Fresh byte-parity manifests use
+`pi-final-on/off` and `it-final-on/off`, bound to the executed 0041 verifications.
+
+Stop at this verified milestone under the user's previous instruction. When
+resumed, proceed to item 5: exact profile/artifact identity, including all
+remaining original #12 tasks. ATFE only. Preserve dirty ATFE/LK, Microsoft/ and
+all evidence. Dynamic finalization and nonzero load bias remain unsupported.
+
 ## Latest: consolidated queue item 3 verified in 0041; milestone stop
 
 Consolidated queue item 3 is verified within the initial conservative ISA/ABI

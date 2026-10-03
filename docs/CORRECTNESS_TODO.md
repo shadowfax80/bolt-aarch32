@@ -1,5 +1,22 @@
 # ATFE correctness TODO
 
+## Follow-up: fixed-load ELF boundary (2026-10-03)
+
+Consolidated queue item 4 is scoped verified in overlay 0042. Both ordinary
+rewriting and instrumentation now reject PIE/shared inputs and unsupported
+dynamic/TLS/GOT/PLT machinery, validate fixed LOAD/section mappings, and exclude
+nonempty loaded sections at zero before the reproduced relocation assertion.
+Both builds pass 192 cases (12 admissions, 180 rejections), focused suites 51/50
+(one expected skip off) and CoreTests 58/31 skips. The 358-case ISA matrix remains
+green. Runtime and counter pointers are checked at three fixed VMAs; nonzero
+bias is unsupported. Fresh supported Pi payloads equal the exact executed 0041
+bytes; no new Pi execution is claimed. All 42 overlays replay exactly.
+Next is queue item 5, profile/artifact identity. Original #12 remains active;
+no additional whole original workstream closes. See the
+[fixed-load contract](AARCH32_FIXED_LOAD_CONTRACT.md),
+[evidence](results/correctness_fixed_load_20261003.json) and
+[status table](CORRECTNESS_PRIORITY_TODO.md).
+
 ## Follow-up: ISA/ABI boundary (2026-10-03)
 
 Consolidated queue item 3 is verified within the initial conservative ISA/ABI

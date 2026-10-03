@@ -1,0 +1,3303 @@
+{
+  "schema": 1,
+  "date": "2026-10-03",
+  "kind": "arm-fixed-load-admission",
+  "base": "atfe",
+  "patch": "overlay/llvm/patches/atfe/0042-bolt-arm-fixed-load-contract.patch",
+  "source_change": {
+    "bolt/lib/Rewrite/RewriteInstance.cpp": {
+      "before": "028b33dbb5282e801c482e1afda725013be14676a1efc3b7b1efd70378e5cd3d",
+      "after": "c7df1df42f25637835b82a73db1a7fbcb82a16a0992a846a272b9f22a018db5a"
+    },
+    "bolt/test/ARM/Inputs/check-arm-fixed-load.py": {
+      "before": null,
+      "after": "fa7ca67983fbc7f093f1a9b33d3077270345688357cac48db7b30f2d44da0398"
+    },
+    "bolt/test/ARM/Inputs/check-arm-instrumentation-scope.py": {
+      "before": "a4bc24d8b1b6760663e47534f6817f7781f82ace67bbbb262bcc6910f82d37fd",
+      "after": "3508ede2ea8281ff594f99eab11039557047401321b858fae3afaf9945809293"
+    },
+    "bolt/test/ARM/Inputs/check-arm-instrumentation-startup.py": {
+      "before": "d19af006267ca34dcf7ab10a92d3647011f33c7c8d08543c8848ac89cf71ff5f",
+      "after": "04e5b457d0e653a5b1ec64c7e2e614cf2d30a52f5b995a7406f8aaa0bed0f585"
+    },
+    "bolt/test/ARM/arm-fixed-load.test": {
+      "before": null,
+      "after": "f7cbe17f79bd6d7802c729b56f53c506894774775856dd4f5c8368e3d5e438fd"
+    }
+  },
+  "host": {
+    "on": {
+      "cases": 192,
+      "admissions": 12,
+      "rejections": 180,
+      "admitted_vmas": [
+        4096,
+        32768,
+        1048576
+      ],
+      "isa": [
+        "arm",
+        "thumb"
+      ],
+      "modes": [
+        "optimize",
+        "instrument"
+      ],
+      "counter_pointer_checks": 6,
+      "simulated_unsupported_biases": [
+        4096,
+        65536
+      ],
+      "existing_artifact_preservation_cases": 4,
+      "focused_passed": 51,
+      "focused_expected_skips": 0,
+      "core_passed": 58,
+      "core_expected_skips": 31,
+      "prior_isa_matrix_passed": 358,
+      "startup_cases": 40,
+      "startup_admissions": 4,
+      "startup_rejections": 36,
+      "tool_sha256": "357e78908719a4c3c7ce19b11b8064741c561f2e3186c3afbd3b0dbfc59939b9",
+      "case_results": [
+        {
+          "isa": "arm",
+          "case": "exec-0",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "exec-0",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "exec-1000",
+          "mode": "optimize",
+          "admitted": true,
+          "returncode": 0
+        },
+        {
+          "isa": "arm",
+          "case": "exec-1000",
+          "mode": "instrument",
+          "admitted": true,
+          "returncode": 0,
+          "runtime_entry": 32772,
+          "trampoline": 12688,
+          "target": 12288,
+          "counter_address": 20480,
+          "simulated_biases": [
+            4096,
+            65536
+          ],
+          "counter_pointer_bytes_checked": true,
+          "nonzero_bias_supported": false
+        },
+        {
+          "isa": "arm",
+          "case": "exec-8000",
+          "mode": "optimize",
+          "admitted": true,
+          "returncode": 0
+        },
+        {
+          "isa": "arm",
+          "case": "exec-8000",
+          "mode": "instrument",
+          "admitted": true,
+          "returncode": 0,
+          "runtime_entry": 61444,
+          "trampoline": 41360,
+          "target": 40960,
+          "counter_address": 49152,
+          "simulated_biases": [
+            4096,
+            65536
+          ],
+          "counter_pointer_bytes_checked": true,
+          "nonzero_bias_supported": false
+        },
+        {
+          "isa": "arm",
+          "case": "exec-100000",
+          "mode": "optimize",
+          "admitted": true,
+          "returncode": 0
+        },
+        {
+          "isa": "arm",
+          "case": "exec-100000",
+          "mode": "instrument",
+          "admitted": true,
+          "returncode": 0,
+          "runtime_entry": 1142788,
+          "trampoline": 1122704,
+          "target": 1122304,
+          "counter_address": 1130496,
+          "simulated_biases": [
+            4096,
+            65536
+          ],
+          "counter_pointer_bytes_checked": true,
+          "nonzero_bias_supported": false
+        },
+        {
+          "isa": "arm",
+          "case": "pie-0",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "pie-0",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "shared-0",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "shared-0",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "pie-1000",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "pie-1000",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "shared-1000",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "shared-1000",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "pie-8000",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "pie-8000",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "shared-8000",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "shared-8000",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "pie-100000",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "pie-100000",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "shared-100000",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "shared-100000",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "etype-none",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "etype-none",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "etype-rel",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "etype-rel",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "etype-core",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "etype-core",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "interp-segment",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "interp-segment",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "dynamic-segment",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "dynamic-segment",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "tls-segment",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "tls-segment",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "no-program-headers",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "no-program-headers",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "no-load-segment",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "no-load-segment",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "filesz-over-memsz",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "filesz-over-memsz",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "load-offset-outside",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "load-offset-outside",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "load-vma-overflow",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "load-vma-overflow",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "load-tail-outside",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "load-tail-outside",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "typed-dynamic",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "typed-dynamic",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "typed-dynsym",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "typed-dynsym",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "tls-section",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "tls-section",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "loaded-rel",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "loaded-rel",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "loaded-rela",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "loaded-rela",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "loaded-relr",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "loaded-relr",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "named-dynamic",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "named-dynamic",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "named-dynsym",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "named-dynsym",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "named-rel-dyn",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "named-rel-dyn",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "named-rela-dyn",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "named-rela-dyn",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "named-rel-plt",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "named-rel-plt",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "named-rela-plt",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "named-rela-plt",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "named-relr-dyn",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "named-relr-dyn",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "got",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "got",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "got.plt",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "got.plt",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "igot.plt",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "igot.plt",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "plt",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "plt",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "iplt",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "iplt",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "section-not-loaded",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "section-not-loaded",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "section-file-map",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "section-file-map",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "section-end-overflow",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "section-end-overflow",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "pie-as-exec",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "pie-as-exec",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "pie-as-exec-no-dynamic-segment",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "pie-as-exec-no-dynamic-segment",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "pie-existing-artifacts",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1,
+          "existing_artifacts_preserved": true
+        },
+        {
+          "isa": "arm",
+          "case": "pie-existing-artifacts",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1,
+          "existing_artifacts_preserved": true
+        },
+        {
+          "isa": "thumb",
+          "case": "exec-0",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "exec-0",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "exec-1000",
+          "mode": "optimize",
+          "admitted": true,
+          "returncode": 0
+        },
+        {
+          "isa": "thumb",
+          "case": "exec-1000",
+          "mode": "instrument",
+          "admitted": true,
+          "returncode": 0,
+          "runtime_entry": 32772,
+          "trampoline": 12688,
+          "target": 12289,
+          "counter_address": 20480,
+          "simulated_biases": [
+            4096,
+            65536
+          ],
+          "counter_pointer_bytes_checked": true,
+          "nonzero_bias_supported": false
+        },
+        {
+          "isa": "thumb",
+          "case": "exec-8000",
+          "mode": "optimize",
+          "admitted": true,
+          "returncode": 0
+        },
+        {
+          "isa": "thumb",
+          "case": "exec-8000",
+          "mode": "instrument",
+          "admitted": true,
+          "returncode": 0,
+          "runtime_entry": 61444,
+          "trampoline": 41360,
+          "target": 40961,
+          "counter_address": 49152,
+          "simulated_biases": [
+            4096,
+            65536
+          ],
+          "counter_pointer_bytes_checked": true,
+          "nonzero_bias_supported": false
+        },
+        {
+          "isa": "thumb",
+          "case": "exec-100000",
+          "mode": "optimize",
+          "admitted": true,
+          "returncode": 0
+        },
+        {
+          "isa": "thumb",
+          "case": "exec-100000",
+          "mode": "instrument",
+          "admitted": true,
+          "returncode": 0,
+          "runtime_entry": 1142788,
+          "trampoline": 1122704,
+          "target": 1122305,
+          "counter_address": 1130496,
+          "simulated_biases": [
+            4096,
+            65536
+          ],
+          "counter_pointer_bytes_checked": true,
+          "nonzero_bias_supported": false
+        },
+        {
+          "isa": "thumb",
+          "case": "pie-0",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "pie-0",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "shared-0",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "shared-0",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "pie-1000",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "pie-1000",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "shared-1000",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "shared-1000",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "pie-8000",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "pie-8000",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "shared-8000",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "shared-8000",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "pie-100000",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "pie-100000",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "shared-100000",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "shared-100000",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "etype-none",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "etype-none",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "etype-rel",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "etype-rel",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "etype-core",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "etype-core",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "interp-segment",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "interp-segment",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "dynamic-segment",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "dynamic-segment",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "tls-segment",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "tls-segment",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "no-program-headers",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "no-program-headers",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "no-load-segment",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "no-load-segment",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "filesz-over-memsz",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "filesz-over-memsz",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "load-offset-outside",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "load-offset-outside",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "load-vma-overflow",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "load-vma-overflow",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "load-tail-outside",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "load-tail-outside",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "typed-dynamic",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "typed-dynamic",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "typed-dynsym",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "typed-dynsym",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "tls-section",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "tls-section",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "loaded-rel",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "loaded-rel",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "loaded-rela",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "loaded-rela",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "loaded-relr",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "loaded-relr",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "named-dynamic",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "named-dynamic",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "named-dynsym",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "named-dynsym",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "named-rel-dyn",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "named-rel-dyn",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "named-rela-dyn",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "named-rela-dyn",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "named-rel-plt",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "named-rel-plt",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "named-rela-plt",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "named-rela-plt",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "named-relr-dyn",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "named-relr-dyn",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "got",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "got",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "got.plt",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "got.plt",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "igot.plt",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "igot.plt",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "plt",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "plt",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "iplt",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "iplt",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "section-not-loaded",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "section-not-loaded",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "section-file-map",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "section-file-map",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "section-end-overflow",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "section-end-overflow",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "pie-as-exec",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "pie-as-exec",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "pie-as-exec-no-dynamic-segment",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "pie-as-exec-no-dynamic-segment",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "pie-existing-artifacts",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1,
+          "existing_artifacts_preserved": true
+        },
+        {
+          "isa": "thumb",
+          "case": "pie-existing-artifacts",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1,
+          "existing_artifacts_preserved": true
+        }
+      ],
+      "review_rows": [
+        {
+          "case": "armv7-control",
+          "mode": "optimize",
+          "selection": "all",
+          "returncode": 0,
+          "output": true,
+          "input_sha256": "3fe32e728142a7c56561e66b3db89940562a7815a253c15c06a57b6063d6e2d3",
+          "output_sha256": "a02bb02c2d062b1233eb7b41d5cc3561f4fd4a850a20cfc490e464fe4d51afa5"
+        },
+        {
+          "case": "armv7-control",
+          "mode": "instrument",
+          "selection": "all",
+          "returncode": 0,
+          "output": true,
+          "input_sha256": "3fe32e728142a7c56561e66b3db89940562a7815a253c15c06a57b6063d6e2d3",
+          "output_sha256": "9bca7beed58ee640d9374dee3e9be2a7e5d59b39390ab1f982b28fcbd4a4e9a8"
+        },
+        {
+          "case": "thumb-entry",
+          "mode": "optimize",
+          "selection": "all",
+          "returncode": 0,
+          "output": true,
+          "input_sha256": "4b24c6e183919064fb08fc06c48cf608d167f8205dcd2273a5d7175a31f44b30",
+          "output_sha256": "b3ce0becc3d36b853d575ec9f0cd6e69daac3436538eb35048697f51a85be8d0"
+        },
+        {
+          "case": "thumb-entry",
+          "mode": "instrument",
+          "selection": "all",
+          "returncode": 0,
+          "output": true,
+          "input_sha256": "4b24c6e183919064fb08fc06c48cf608d167f8205dcd2273a5d7175a31f44b30",
+          "output_sha256": "c508a9c4f4c6b5de921fd746923af42778a62c1fb7af176694b7dba23114d203"
+        },
+        {
+          "case": "armv6",
+          "mode": "optimize",
+          "selection": "all",
+          "returncode": 1,
+          "output": false,
+          "input_sha256": "80e325e8e6ad7373e7657b6d0f7797642e4a17e950df1bb781f3c52b1ef6349a"
+        },
+        {
+          "case": "armv6",
+          "mode": "instrument",
+          "selection": "all",
+          "returncode": 1,
+          "output": false,
+          "input_sha256": "80e325e8e6ad7373e7657b6d0f7797642e4a17e950df1bb781f3c52b1ef6349a"
+        },
+        {
+          "case": "missing-attributes",
+          "mode": "optimize",
+          "selection": "all",
+          "returncode": 1,
+          "output": false,
+          "input_sha256": "20a5a7b3f0a9322b5ec260c4580eb7440351b0165be877167953cca702615c67"
+        },
+        {
+          "case": "missing-attributes",
+          "mode": "instrument",
+          "selection": "all",
+          "returncode": 1,
+          "output": false,
+          "input_sha256": "20a5a7b3f0a9322b5ec260c4580eb7440351b0165be877167953cca702615c67"
+        },
+        {
+          "case": "be8-flag",
+          "mode": "optimize",
+          "selection": "all",
+          "returncode": 1,
+          "output": false,
+          "input_sha256": "1a499db7d0b1bdc05ba1b0396f4f35be8525adb3c67209b64bbc9ddd30eda3ac"
+        },
+        {
+          "case": "be8-flag",
+          "mode": "instrument",
+          "selection": "all",
+          "returncode": 1,
+          "output": false,
+          "input_sha256": "1a499db7d0b1bdc05ba1b0396f4f35be8525adb3c67209b64bbc9ddd30eda3ac"
+        },
+        {
+          "case": "static-pie",
+          "mode": "optimize",
+          "selection": "all",
+          "returncode": 1,
+          "output": false,
+          "input_sha256": "067136dd25a3f7da026f541eab3eb794498ba8243fd7fab4a5fa2746a4bff0ca"
+        },
+        {
+          "case": "static-pie",
+          "mode": "instrument",
+          "selection": "all",
+          "returncode": 1,
+          "output": false,
+          "input_sha256": "067136dd25a3f7da026f541eab3eb794498ba8243fd7fab4a5fa2746a4bff0ca"
+        },
+        {
+          "case": "interior-direct",
+          "mode": "instrument",
+          "selection": "unselected",
+          "returncode": 1,
+          "output": false,
+          "input_sha256": "07aebc973bbc66bb7c0473e79a317a2cafe6202be01896f48e9771bc3eb0c168"
+        },
+        {
+          "case": "interior-direct",
+          "mode": "instrument",
+          "selection": "explicit-skip",
+          "returncode": 1,
+          "output": false,
+          "input_sha256": "07aebc973bbc66bb7c0473e79a317a2cafe6202be01896f48e9771bc3eb0c168"
+        },
+        {
+          "case": "interior-pointer",
+          "mode": "instrument",
+          "selection": "unselected",
+          "returncode": 1,
+          "output": false,
+          "input_sha256": "76fc7d290aedefa42aa21bed9c4de1dd112c4dad065bf88658b3f1192c9c098e"
+        },
+        {
+          "case": "interior-pointer",
+          "mode": "instrument",
+          "selection": "explicit-skip",
+          "returncode": 1,
+          "output": false,
+          "input_sha256": "76fc7d290aedefa42aa21bed9c4de1dd112c4dad065bf88658b3f1192c9c098e"
+        },
+        {
+          "case": "svc-exclusive",
+          "mode": "instrument",
+          "selection": "unselected",
+          "returncode": 1,
+          "output": false,
+          "input_sha256": "b8cafaa28149ac05dd080a4906152c8aac91d647e396484717352796ac828a71"
+        }
+      ],
+      "logs_sha256": {
+        "build": "eca8447cd0824cc4f8db23a8202ab60ae00c1222fdab4b1cbc19c23369974ffb",
+        "lit": "3d1470567fa48ceb6a7eff3929d7ad9604f115c361521e454faa78bc1bcb5b34",
+        "units": "9a6648fcd6ee056355794b814e73dde80896e8952caabc6651ec8b1db5d9238e",
+        "review": "f76c5e819ac1e5819652fd062b7d10c3f9261b09e06e03430720692bbd0d5c5f"
+      },
+      "loaded_negative_markers_have_consistent_load_mapping": true
+    },
+    "off": {
+      "cases": 192,
+      "admissions": 12,
+      "rejections": 180,
+      "admitted_vmas": [
+        4096,
+        32768,
+        1048576
+      ],
+      "isa": [
+        "arm",
+        "thumb"
+      ],
+      "modes": [
+        "optimize",
+        "instrument"
+      ],
+      "counter_pointer_checks": 6,
+      "simulated_unsupported_biases": [
+        4096,
+        65536
+      ],
+      "existing_artifact_preservation_cases": 4,
+      "focused_passed": 50,
+      "focused_expected_skips": 1,
+      "core_passed": 58,
+      "core_expected_skips": 31,
+      "prior_isa_matrix_passed": 358,
+      "startup_cases": 40,
+      "startup_admissions": 4,
+      "startup_rejections": 36,
+      "tool_sha256": "b317b41ce52e2515d7239aaa5f147e9c876742a91fe985760eb9655564d97ef8",
+      "case_results": [
+        {
+          "isa": "arm",
+          "case": "exec-0",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "exec-0",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "exec-1000",
+          "mode": "optimize",
+          "admitted": true,
+          "returncode": 0
+        },
+        {
+          "isa": "arm",
+          "case": "exec-1000",
+          "mode": "instrument",
+          "admitted": true,
+          "returncode": 0,
+          "runtime_entry": 32772,
+          "trampoline": 12688,
+          "target": 12288,
+          "counter_address": 20480,
+          "simulated_biases": [
+            4096,
+            65536
+          ],
+          "counter_pointer_bytes_checked": true,
+          "nonzero_bias_supported": false
+        },
+        {
+          "isa": "arm",
+          "case": "exec-8000",
+          "mode": "optimize",
+          "admitted": true,
+          "returncode": 0
+        },
+        {
+          "isa": "arm",
+          "case": "exec-8000",
+          "mode": "instrument",
+          "admitted": true,
+          "returncode": 0,
+          "runtime_entry": 61444,
+          "trampoline": 41360,
+          "target": 40960,
+          "counter_address": 49152,
+          "simulated_biases": [
+            4096,
+            65536
+          ],
+          "counter_pointer_bytes_checked": true,
+          "nonzero_bias_supported": false
+        },
+        {
+          "isa": "arm",
+          "case": "exec-100000",
+          "mode": "optimize",
+          "admitted": true,
+          "returncode": 0
+        },
+        {
+          "isa": "arm",
+          "case": "exec-100000",
+          "mode": "instrument",
+          "admitted": true,
+          "returncode": 0,
+          "runtime_entry": 1142788,
+          "trampoline": 1122704,
+          "target": 1122304,
+          "counter_address": 1130496,
+          "simulated_biases": [
+            4096,
+            65536
+          ],
+          "counter_pointer_bytes_checked": true,
+          "nonzero_bias_supported": false
+        },
+        {
+          "isa": "arm",
+          "case": "pie-0",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "pie-0",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "shared-0",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "shared-0",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "pie-1000",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "pie-1000",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "shared-1000",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "shared-1000",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "pie-8000",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "pie-8000",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "shared-8000",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "shared-8000",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "pie-100000",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "pie-100000",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "shared-100000",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "shared-100000",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "etype-none",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "etype-none",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "etype-rel",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "etype-rel",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "etype-core",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "etype-core",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "interp-segment",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "interp-segment",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "dynamic-segment",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "dynamic-segment",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "tls-segment",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "tls-segment",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "no-program-headers",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "no-program-headers",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "no-load-segment",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "no-load-segment",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "filesz-over-memsz",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "filesz-over-memsz",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "load-offset-outside",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "load-offset-outside",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "load-vma-overflow",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "load-vma-overflow",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "load-tail-outside",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "load-tail-outside",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "typed-dynamic",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "typed-dynamic",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "typed-dynsym",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "typed-dynsym",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "tls-section",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "tls-section",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "loaded-rel",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "loaded-rel",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "loaded-rela",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "loaded-rela",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "loaded-relr",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "loaded-relr",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "named-dynamic",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "named-dynamic",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "named-dynsym",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "named-dynsym",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "named-rel-dyn",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "named-rel-dyn",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "named-rela-dyn",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "named-rela-dyn",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "named-rel-plt",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "named-rel-plt",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "named-rela-plt",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "named-rela-plt",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "named-relr-dyn",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "named-relr-dyn",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "got",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "got",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "got.plt",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "got.plt",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "igot.plt",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "igot.plt",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "plt",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "plt",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "iplt",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "iplt",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "section-not-loaded",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "section-not-loaded",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "section-file-map",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "section-file-map",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "section-end-overflow",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "section-end-overflow",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "pie-as-exec",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "pie-as-exec",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "pie-as-exec-no-dynamic-segment",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "pie-as-exec-no-dynamic-segment",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "pie-existing-artifacts",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1,
+          "existing_artifacts_preserved": true
+        },
+        {
+          "isa": "arm",
+          "case": "pie-existing-artifacts",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1,
+          "existing_artifacts_preserved": true
+        },
+        {
+          "isa": "thumb",
+          "case": "exec-0",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "exec-0",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "exec-1000",
+          "mode": "optimize",
+          "admitted": true,
+          "returncode": 0
+        },
+        {
+          "isa": "thumb",
+          "case": "exec-1000",
+          "mode": "instrument",
+          "admitted": true,
+          "returncode": 0,
+          "runtime_entry": 32772,
+          "trampoline": 12688,
+          "target": 12289,
+          "counter_address": 20480,
+          "simulated_biases": [
+            4096,
+            65536
+          ],
+          "counter_pointer_bytes_checked": true,
+          "nonzero_bias_supported": false
+        },
+        {
+          "isa": "thumb",
+          "case": "exec-8000",
+          "mode": "optimize",
+          "admitted": true,
+          "returncode": 0
+        },
+        {
+          "isa": "thumb",
+          "case": "exec-8000",
+          "mode": "instrument",
+          "admitted": true,
+          "returncode": 0,
+          "runtime_entry": 61444,
+          "trampoline": 41360,
+          "target": 40961,
+          "counter_address": 49152,
+          "simulated_biases": [
+            4096,
+            65536
+          ],
+          "counter_pointer_bytes_checked": true,
+          "nonzero_bias_supported": false
+        },
+        {
+          "isa": "thumb",
+          "case": "exec-100000",
+          "mode": "optimize",
+          "admitted": true,
+          "returncode": 0
+        },
+        {
+          "isa": "thumb",
+          "case": "exec-100000",
+          "mode": "instrument",
+          "admitted": true,
+          "returncode": 0,
+          "runtime_entry": 1142788,
+          "trampoline": 1122704,
+          "target": 1122305,
+          "counter_address": 1130496,
+          "simulated_biases": [
+            4096,
+            65536
+          ],
+          "counter_pointer_bytes_checked": true,
+          "nonzero_bias_supported": false
+        },
+        {
+          "isa": "thumb",
+          "case": "pie-0",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "pie-0",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "shared-0",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "shared-0",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "pie-1000",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "pie-1000",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "shared-1000",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "shared-1000",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "pie-8000",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "pie-8000",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "shared-8000",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "shared-8000",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "pie-100000",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "pie-100000",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "shared-100000",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "shared-100000",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "etype-none",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "etype-none",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "etype-rel",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "etype-rel",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "etype-core",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "etype-core",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "interp-segment",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "interp-segment",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "dynamic-segment",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "dynamic-segment",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "tls-segment",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "tls-segment",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "no-program-headers",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "no-program-headers",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "no-load-segment",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "no-load-segment",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "filesz-over-memsz",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "filesz-over-memsz",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "load-offset-outside",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "load-offset-outside",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "load-vma-overflow",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "load-vma-overflow",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "load-tail-outside",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "load-tail-outside",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "typed-dynamic",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "typed-dynamic",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "typed-dynsym",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "typed-dynsym",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "tls-section",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "tls-section",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "loaded-rel",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "loaded-rel",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "loaded-rela",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "loaded-rela",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "loaded-relr",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "loaded-relr",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "named-dynamic",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "named-dynamic",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "named-dynsym",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "named-dynsym",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "named-rel-dyn",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "named-rel-dyn",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "named-rela-dyn",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "named-rela-dyn",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "named-rel-plt",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "named-rel-plt",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "named-rela-plt",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "named-rela-plt",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "named-relr-dyn",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "named-relr-dyn",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "got",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "got",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "got.plt",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "got.plt",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "igot.plt",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "igot.plt",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "plt",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "plt",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "iplt",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "iplt",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "section-not-loaded",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "section-not-loaded",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "section-file-map",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "section-file-map",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "section-end-overflow",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "section-end-overflow",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "pie-as-exec",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "pie-as-exec",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "pie-as-exec-no-dynamic-segment",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "pie-as-exec-no-dynamic-segment",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "pie-existing-artifacts",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1,
+          "existing_artifacts_preserved": true
+        },
+        {
+          "isa": "thumb",
+          "case": "pie-existing-artifacts",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1,
+          "existing_artifacts_preserved": true
+        }
+      ],
+      "review_rows": [
+        {
+          "case": "armv7-control",
+          "mode": "optimize",
+          "selection": "all",
+          "returncode": 0,
+          "output": true,
+          "input_sha256": "3fe32e728142a7c56561e66b3db89940562a7815a253c15c06a57b6063d6e2d3",
+          "output_sha256": "21e84bf717cdf656c62ee69b5fe68d5b3ac56406b045bffedd2caf91bce0b6d3"
+        },
+        {
+          "case": "armv7-control",
+          "mode": "instrument",
+          "selection": "all",
+          "returncode": 0,
+          "output": true,
+          "input_sha256": "3fe32e728142a7c56561e66b3db89940562a7815a253c15c06a57b6063d6e2d3",
+          "output_sha256": "7b70b18661f4da3b8d8c11513fcdf90c54aca8b21742bf7532d0d59ca93931b8"
+        },
+        {
+          "case": "thumb-entry",
+          "mode": "optimize",
+          "selection": "all",
+          "returncode": 0,
+          "output": true,
+          "input_sha256": "4b24c6e183919064fb08fc06c48cf608d167f8205dcd2273a5d7175a31f44b30",
+          "output_sha256": "0cc82caf50c474cce58ed2df084435c17542e8d9ea0555152425c48b4fc125f4"
+        },
+        {
+          "case": "thumb-entry",
+          "mode": "instrument",
+          "selection": "all",
+          "returncode": 0,
+          "output": true,
+          "input_sha256": "4b24c6e183919064fb08fc06c48cf608d167f8205dcd2273a5d7175a31f44b30",
+          "output_sha256": "79a0c25cae0fd8fc3ce3c1b0fa32b04f06b276207f82093c9abd3ff6c2f130a3"
+        },
+        {
+          "case": "armv6",
+          "mode": "optimize",
+          "selection": "all",
+          "returncode": 1,
+          "output": false,
+          "input_sha256": "80e325e8e6ad7373e7657b6d0f7797642e4a17e950df1bb781f3c52b1ef6349a"
+        },
+        {
+          "case": "armv6",
+          "mode": "instrument",
+          "selection": "all",
+          "returncode": 1,
+          "output": false,
+          "input_sha256": "80e325e8e6ad7373e7657b6d0f7797642e4a17e950df1bb781f3c52b1ef6349a"
+        },
+        {
+          "case": "missing-attributes",
+          "mode": "optimize",
+          "selection": "all",
+          "returncode": 1,
+          "output": false,
+          "input_sha256": "20a5a7b3f0a9322b5ec260c4580eb7440351b0165be877167953cca702615c67"
+        },
+        {
+          "case": "missing-attributes",
+          "mode": "instrument",
+          "selection": "all",
+          "returncode": 1,
+          "output": false,
+          "input_sha256": "20a5a7b3f0a9322b5ec260c4580eb7440351b0165be877167953cca702615c67"
+        },
+        {
+          "case": "be8-flag",
+          "mode": "optimize",
+          "selection": "all",
+          "returncode": 1,
+          "output": false,
+          "input_sha256": "1a499db7d0b1bdc05ba1b0396f4f35be8525adb3c67209b64bbc9ddd30eda3ac"
+        },
+        {
+          "case": "be8-flag",
+          "mode": "instrument",
+          "selection": "all",
+          "returncode": 1,
+          "output": false,
+          "input_sha256": "1a499db7d0b1bdc05ba1b0396f4f35be8525adb3c67209b64bbc9ddd30eda3ac"
+        },
+        {
+          "case": "static-pie",
+          "mode": "optimize",
+          "selection": "all",
+          "returncode": 1,
+          "output": false,
+          "input_sha256": "067136dd25a3f7da026f541eab3eb794498ba8243fd7fab4a5fa2746a4bff0ca"
+        },
+        {
+          "case": "static-pie",
+          "mode": "instrument",
+          "selection": "all",
+          "returncode": 1,
+          "output": false,
+          "input_sha256": "067136dd25a3f7da026f541eab3eb794498ba8243fd7fab4a5fa2746a4bff0ca"
+        },
+        {
+          "case": "interior-direct",
+          "mode": "instrument",
+          "selection": "unselected",
+          "returncode": 1,
+          "output": false,
+          "input_sha256": "07aebc973bbc66bb7c0473e79a317a2cafe6202be01896f48e9771bc3eb0c168"
+        },
+        {
+          "case": "interior-direct",
+          "mode": "instrument",
+          "selection": "explicit-skip",
+          "returncode": 1,
+          "output": false,
+          "input_sha256": "07aebc973bbc66bb7c0473e79a317a2cafe6202be01896f48e9771bc3eb0c168"
+        },
+        {
+          "case": "interior-pointer",
+          "mode": "instrument",
+          "selection": "unselected",
+          "returncode": 1,
+          "output": false,
+          "input_sha256": "76fc7d290aedefa42aa21bed9c4de1dd112c4dad065bf88658b3f1192c9c098e"
+        },
+        {
+          "case": "interior-pointer",
+          "mode": "instrument",
+          "selection": "explicit-skip",
+          "returncode": 1,
+          "output": false,
+          "input_sha256": "76fc7d290aedefa42aa21bed9c4de1dd112c4dad065bf88658b3f1192c9c098e"
+        },
+        {
+          "case": "svc-exclusive",
+          "mode": "instrument",
+          "selection": "unselected",
+          "returncode": 1,
+          "output": false,
+          "input_sha256": "b8cafaa28149ac05dd080a4906152c8aac91d647e396484717352796ac828a71"
+        }
+      ],
+      "logs_sha256": {
+        "build": "be6d6c71212b238c4386e7bff1dd25869bd062326bfe6de8f74a3caaa8092a32",
+        "lit": "7d015d820d057ea66107b12243927dd92cb0cb6108ba831bab70c9a73d666b12",
+        "units": "7d09e93b1fa1800ec686d910d0d58831cee47703c3cd4aff3863fa8588ea26d7",
+        "review": "3a392f3ebad5b7abea5efbc4e53670274cac188fa789a941c23f701f6150babf"
+      },
+      "loaded_negative_markers_have_consistent_load_mapping": true
+    }
+  },
+  "supported_payload_parity": {
+    "on": {
+      "pi": {
+        "build": "out/correctness/fixed-load-20261003/pi-final-on/build-_pni0jw8",
+        "matches_executed_build": "out/correctness/isa-contract-20261003/pi-on/build-7olit0q4",
+        "executed_verification": "out/correctness/isa-contract-20261003/pi-on/build-7olit0q4/pi-verify-4ymmj_i3/verification.json",
+        "executed_verification_sha256": "fe13cd17af3e401e25cc45f86e5e6465748d34de7ea38901668e182e793a8a67",
+        "payload_sha256": {
+          "baseline": "9f5723971ed70a2cc9041ef9168bc139ebc771ce950fbbbb45d31ea184d68620",
+          "normal": "3498e161518cff0526c5b1936431d311518cacfb3970aa63afe5112d1f82d819",
+          "reverse": "3498e161518cff0526c5b1936431d311518cacfb3970aa63afe5112d1f82d819"
+        },
+        "build_manifest_sha256": "d38bd5353d309e49d1e3a2fc6b518f06d357a1bb8d587f1fe11760d53621a52a",
+        "scope": "Fresh supported payload bytes equal the exact verified 0041 payloads; no new Pi execution."
+      },
+      "it": {
+        "build": "out/correctness/fixed-load-20261003/it-final-on/build-2o4vjt94",
+        "matches_executed_build": "out/correctness/isa-contract-20261003/it-on/build-kx6_s5mi",
+        "executed_verification": "out/correctness/isa-contract-20261003/it-on/build-kx6_s5mi/pi-verify-hayupx_c/verification.json",
+        "executed_verification_sha256": "3ebec2ec74105b2e3b0feb116fbbc1df0cc7b1cff4bd8813a0362066daae77bc",
+        "payload_sha256": {
+          "bad-reset": "34117521051f329c0913389f4d071507f8e6ee75fb0e07ed247376ddbc30ecdc",
+          "baseline": "2c9f4d72d1589206834bce3bd9d0ede63c6364a31e8cab09de570d7055c272a7",
+          "conservative": "07994e0eb220838b95ee55b290347908ff83564097e7d71ab56d92ef753da7b9",
+          "normal": "22c77ac73eb09f99b662b9062bfe74629f83b52c77544210fb97baf2231fb6d3",
+          "reverse": "b6022ad61d56dd4201fcdfadb8c0a61e797b35cee4aa40fd522f828decad00ef"
+        },
+        "build_manifest_sha256": "fd496164b95dc7aad4a1fd77aa342ef07524776ea7036a55d193a9f9745592cd",
+        "scope": "Fresh supported payload bytes equal the exact verified 0041 payloads; no new Pi execution."
+      }
+    },
+    "off": {
+      "pi": {
+        "build": "out/correctness/fixed-load-20261003/pi-final-off/build-qam5srzv",
+        "matches_executed_build": "out/correctness/isa-contract-20261003/pi-off/build-l2y1fucf",
+        "executed_verification": "out/correctness/isa-contract-20261003/pi-off/build-l2y1fucf/pi-verify-1l_b_cyc/verification.json",
+        "executed_verification_sha256": "c8098dd5b4765cbd57d3342bb0e30f78757143743c83c495ff8bb069c185e282",
+        "payload_sha256": {
+          "baseline": "9f5723971ed70a2cc9041ef9168bc139ebc771ce950fbbbb45d31ea184d68620",
+          "normal": "3498e161518cff0526c5b1936431d311518cacfb3970aa63afe5112d1f82d819",
+          "reverse": "3498e161518cff0526c5b1936431d311518cacfb3970aa63afe5112d1f82d819"
+        },
+        "build_manifest_sha256": "a223b1f56833c14723aea0d1f5b2d3a95e3202a0908e6d0c187f89cd3b3d0a7f",
+        "scope": "Fresh supported payload bytes equal the exact verified 0041 payloads; no new Pi execution."
+      },
+      "it": {
+        "build": "out/correctness/fixed-load-20261003/it-final-off/build-qw6wo3do",
+        "matches_executed_build": "out/correctness/isa-contract-20261003/it-off/build-6nttpglj",
+        "executed_verification": "out/correctness/isa-contract-20261003/it-off/build-6nttpglj/pi-verify-z7os9lx5/verification.json",
+        "executed_verification_sha256": "f609b985ea738e4bb196c9ab789679c8c4bfe0833354b8740654cd46b494ac89",
+        "payload_sha256": {
+          "bad-reset": "34117521051f329c0913389f4d071507f8e6ee75fb0e07ed247376ddbc30ecdc",
+          "baseline": "2c9f4d72d1589206834bce3bd9d0ede63c6364a31e8cab09de570d7055c272a7",
+          "conservative": "07994e0eb220838b95ee55b290347908ff83564097e7d71ab56d92ef753da7b9",
+          "normal": "22c77ac73eb09f99b662b9062bfe74629f83b52c77544210fb97baf2231fb6d3",
+          "reverse": "b6022ad61d56dd4201fcdfadb8c0a61e797b35cee4aa40fd522f828decad00ef"
+        },
+        "build_manifest_sha256": "2226358e374d556cc109ee8201b525ec2778c17c63b1dab58237f74b59290a6c",
+        "scope": "Fresh supported payload bytes equal the exact verified 0041 payloads; no new Pi execution."
+      }
+    }
+  },
+  "source_replay": {
+    "schema": 1,
+    "success": true,
+    "live_source_preserved": true,
+    "live_head": "bcc08884995ff3cbee70749524621803b9bd258a",
+    "base_commit": "bcc08884995ff3cbee70749524621803b9bd258a",
+    "uncovered_source_changes": [],
+    "mismatched_source_files": [],
+    "source_identity_sha256": "528e9c72c362adef2700a093f11e026ccb2fe86a86f4643f673eea49ecb8ea93",
+    "scope": "pinned base plus complete patch series; source contents only, not clean full build/binary provenance"
+  },
+  "caveats": [
+    "Initial contract requires declared fixed virtual addresses and zero load bias; no rebasing implemented.",
+    "Nonempty loaded sections at virtual address zero are conservatively rejected after a reproduced relocation-analysis assertion.",
+    "PT_INTERP/PT_DYNAMIC/PT_TLS, dynamic symbol/relocation machinery and loaded GOT/PLT sections are unsupported even in ET_EXEC.",
+    "PIE DT_FINI startup cases that were admitted in 0040 now reject; dynamic finalization is not supported.",
+    "ELF admission does not prove actual loader placement, hardware or all code/reference routes.",
+    "Supported Pi bytes match exact executed 0041 payloads; no fresh Pi execution or nonzero-bias execution is claimed.",
+    "Source replay is not clean full-build provenance; original workstream #12 remains active."
+  ],
+  "initial_zero_address_failure": {
+    "scope": "Assertions-on relocation-analysis crash before adding zero-address rejection; not a hardware failure.",
+    "path": "out/correctness/fixed-load-20261003/initial-zero-address-crash/arm/exec-0/optimize.log",
+    "log_sha256": "ad59041b220b387b5660e219e3b8d15d9a35c9668719a0b3f9b0c14c0f270026"
+  },
+  "patch_sha256": "3b1308b69c9d775dd1f12deaa7a090ed07bdbed9645399e7c1d0cf43e19c416b"
+}
