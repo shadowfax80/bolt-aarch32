@@ -11,7 +11,10 @@ provenance work is included in the consolidated priority queue.
 
 Follow-up 2026-10-03: overlay 0039 closes F1 for decoded original function code
 without relying on discovered entry roots. The original eight bypass inputs now
-reject in both builds; expanded tests pass. Other findings below remain open.
+reject in both builds; expanded tests pass. Overlay 0040 also fixes F2's Thumb
+startup crash, with 40 cases and fresh runtime-to-Thumb Pi checks in both builds.
+Static finalization remains a dummy return; dynamic hooks/PIE policy and F3-F5
+remain open. See [0040 evidence](results/correctness_thumb_startup_20261003.json).
 See [follow-up evidence](results/correctness_interior_reservations_20261003.json)
 and [current status table](CORRECTNESS_PRIORITY_TODO.md). Findings below retain
 their original 0038 observations.

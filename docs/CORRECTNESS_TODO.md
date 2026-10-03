@@ -9,8 +9,10 @@ See [current review](CORRECTNESS_REVIEW_0038.md),
 Follow-up 2026-10-03: consolidated item 1 has a scoped fix in overlay 0039.
 Every decoded exclusive acquisition is analyzed independently of entry metadata;
 unmatched/unanalyzed stores reject. The eight F1 bypasses now reject; both builds
-pass 171 expanded cases. Next is Thumb instrumentation startup. General
-ISA/entry/symbol scope and active ISR remain open; #12 stays active. See the
+pass 171 expanded cases. Overlay 0040 also fixes Thumb startup and passes 40 host
+cases plus actual Pi runtime-to-Thumb execution in both builds. Static finalization is a dummy return;
+dynamic hooks remain open. Next is ISA/profile/ABI admission. General entry/symbol
+scope and active ISR remain open; #12 stays active. See the
 [status table](CORRECTNESS_PRIORITY_TODO.md).
 
 The user requested a new review and publication of prioritized work items. The

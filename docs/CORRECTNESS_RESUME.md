@@ -1,5 +1,34 @@
 # ATFE correctness checkpoint - 2026-10-03
 
+## Latest: consolidated queue item 2 verified in 0040; milestone stop
+
+Overlay 0040 fixes odd Thumb startup lookup and assertion/null handling. Both
+builds pass 40 startup/static-finalization cases, focused suites pass 49/48 (one
+expected skip off), and CoreTests pass 58/31 skips. The original F2 reproducer
+instruments successfully in both modes. All 40 overlays replay exactly to live
+source; identity fd6b513512ee07800b563b39542dca70e98f94c357cbcdc5a509e2981807409b.
+
+Fresh final Pi baseline/normal/reverse runs pass per build. Actual ELF entry is
+retained and followed by the shim into ARM runtime/trampoline/rewritten Thumb.
+Checks include bounded odd return link, NZCV/R4/SP, quiet core zero, exact counter
+one and watchdog return to the resident loader. Static finalization remains a
+dummy return; dynamic user hooks and static-PIE admission are not certified.
+
+Evidence/preimages/afterimages/failed fixture logs are in
+out/correctness/thumb-startup-20261003; compact
+[evidence](results/correctness_thumb_startup_20261003.json) and
+[updated table](CORRECTNESS_PRIORITY_TODO.md) are tracked. One-time mutation/export
+helpers already ran: fix-thumb-startup.py, refine-startup-test.py,
+scope-startup-test.py, final-startup-test.py and export-startup-final.py. Do not
+rerun blindly. verify-startup-suites.py needs fresh review output on another run;
+its repeated review call hit the existing-directory guard after tests passed.
+Final review runs have separate final-review-on/off directories.
+
+Stop at this verified milestone under the user's previous instruction. Next,
+when resumed: queue item 3, ISA/profile/ABI admission. All remaining original #12
+work stays active; original #2/#8/#10 remain the only wholly scoped completions.
+ATFE only. Preserve dirty ATFE/LK, durable evidence and unrelated Microsoft/.
+
 ## Latest: consolidated queue item 1 verified in 0039; milestone stop
 
 Resumed per the consolidated queue. Overlay 0039 closes F1 for decoded original

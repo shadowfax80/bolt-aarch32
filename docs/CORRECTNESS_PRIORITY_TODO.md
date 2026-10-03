@@ -5,8 +5,8 @@ Updated 2026-10-03 from [the fresh review](CORRECTNESS_REVIEW_0038.md) and
 Queue positions below are new priorities; the original twelve workstream IDs
 remain stable in [CORRECTNESS_TODO.md](CORRECTNESS_TODO.md).
 
-ATFE only. Item 1 now has a verified scoped fix in overlay 0039; the remaining
-queue is not yet started in this resumed session. The user
+ATFE only. Items 1 and 2 have verified scoped fixes in overlays 0039/0040.
+Next is item 3, ISA/profile/ABI admission. The user
 reactivated #12 on 2026-10-02; all its remaining work is included below. Nothing
 is paused in this correctness queue. Three original
 items are complete in their bounded scope (#2/#8/#10); nine remain open.
@@ -16,8 +16,8 @@ items are complete in their bounded scope (#2/#8/#10); nine remain open.
 | Queue priority | Work item | Current status |
 |---|---|---|
 | 1 · P0 | Skipped interior-entry reservation bypass | Verified for decoded original function code; 0039 |
-| 2 · P0 | Thumb instrumentation startup crash | Pending; next |
-| 3 · P0 | ISA/profile/ABI admission | Pending |
+| 2 · P0 | Thumb instrumentation startup crash | Verified for static entry and dummy-fini scope; 0040 + Pi |
+| 3 · P0 | ISA/profile/ABI admission | Pending; next |
 | 4 · P0 | Fixed-load ELF/PIE boundary | Pending |
 | 5 · P0 | Exact profile/artifact identity | Remaining work pending |
 | 6 · P0 | Execution/result gate integrity | Remaining work pending |
@@ -35,9 +35,17 @@ including ARM/Thumb/mixed pairs and direct/addend, pointer, alias and data-point
 routes. All eight original review bypasses now reject before output. Fresh
 supported Pi payloads match previously executed bytes; no new runtime reservation
 outcome is claimed. See [0039 evidence](results/correctness_interior_reservations_20261003.json).
-General ISA/entry/symbol discovery remains in items 3/11. Work stopped at this
-milestone under the user's previous next-milestone instruction; nothing in the
-queue is marked paused.
+
+Item 2: both builds pass 40 startup/static-finalization cases; focused suites
+pass 49/48 (one expected skip off), and CoreTests pass 58/31 skips. Fresh Pi
+baseline, normal and reverse variants pass per build, including actual ARM
+runtime entry to emitted Thumb entry and an exact counter of one. Only the boot
+entry-pointer and counter metadata words change after BOLT; emitted code and ELF
+entry are retained. See [0040 evidence](results/correctness_thumb_startup_20261003.json).
+Static finalization remains a dummy return: DT_FINI variants are not invoked.
+Dynamic hooks and PIE admission remain open under item 4; general ISA/entry/symbol
+scope remains in items 3/11. Work stops at this verified milestone under the
+user's previous instruction; nothing in the queue is marked paused.
 
 ## P0: confirmed defects and unsafe admission
 
@@ -55,12 +63,16 @@ queue is marked paused.
      hardware reservation-failure reproduction.
 
 2. **Fix Thumb instrumentation startup lookup and release crash — F2, #9/#3.**
-   - [ ] Normalize the entry lookup and preserve Thumb state in the trampoline.
-   - [ ] Replace assertion-only/null-dereference handling with diagnostics.
-   - [ ] Test valid ARM/Thumb entry, missing/zero/interior entry and finalization
-     variants in both builds, including the reproduced SIGABRT/SIGSEGV fixture.
-   - [ ] Execute the corrected Thumb startup/instrumented route on Pi and verify
-     state, counters and return/loader behavior.
+   - [x] Normalize ELF ARM entry lookup and preserve the Thumb target bit.
+   - [x] Diagnose missing entry and mismatched ISA bit instead of asserting or
+     dereferencing null; resolved ELF finalization lookup also returns errors.
+   - [x] Both builds pass valid moved/skipped ARM/Thumb entry and zero/missing/
+     interior/ISA-mismatch cases. The original SIGABRT/SIGSEGV input succeeds.
+     Static DT_FINI valid/zero/missing/interior/ISA-mismatch variants retain the
+     runtime's dummy return; dynamic user-finalization hooks are not certified.
+   - [x] Fresh Pi checks execute actual runtime/trampoline/rewritten Thumb entry,
+     bounded odd return link, NZCV/R4/SP, exact one counter and watchdog return.
+     General dynamic-hook/PIE policy remains in item 4.
 
 3. **Enforce the ISA/profile/ABI contract for generated instructions — F3/F5, #7/#6.**
    - [ ] Define the initial LE ARMv7-A/Thumb-2 contract separately for ordinary

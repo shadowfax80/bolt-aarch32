@@ -2,18 +2,19 @@
 
 Last updated: 2026-10-03. Verification details: [CORRECTNESS_FIXES.md](CORRECTNESS_FIXES.md).
 
-Queue item 1 is now verified for decoded original function code in overlay 0039:
-all eight F1 bypasses reject before output; both builds pass 171 expanded cases
-(132 rejections/39 admissions), 48/47 focused tests and 58 CoreTests/31 skips.
-Fresh supported Pi payloads match executed 0036 bytes; no new Pi runtime result
-is claimed. See [evidence](results/correctness_interior_reservations_20261003.json)
-and the [14-item status table](CORRECTNESS_PRIORITY_TODO.md). Next is queue item 2,
-Thumb instrumentation startup. General ISA/entry scope remains open; #12 is active.
+Consolidated queue items 1/2 have scoped fixes in 0039/0040. Item 2 fixes Thumb
+startup crashes: both builds pass 40 cases, 49/48 focused tests and 58 CoreTests
+with 31 skips. Fresh Pi baseline/normal/reverse runs pass per build, following
+actual runtime/trampoline/rewritten Thumb entry and checking exact count/state.
+Static finalization remains a dummy return; dynamic hooks and PIE policy stay
+open. See [0040 evidence](results/correctness_thumb_startup_20261003.json) and
+[14-item status table](CORRECTNESS_PRIORITY_TODO.md). Next is queue item 3,
+ISA/profile/ABI admission. #12 remains active; no whole original item newly closes.
 
-Current assessment: [review through 0038](CORRECTNESS_REVIEW_0038.md) and
-[fresh priority queue](CORRECTNESS_PRIORITY_TODO.md). Both focused suites still
-pass (48/47), both CoreTests runs pass 58/31 skips, and the complete 38-overlay
-source replay matches. The review nevertheless reproduces skipped unnamed
+Earlier review evidence: [review through 0038](CORRECTNESS_REVIEW_0038.md) and
+[fresh priority queue](CORRECTNESS_PRIORITY_TODO.md). At that checkpoint focused suites
+passed (48/47), both CoreTests runs pass 58/31 skips, and the complete 38-overlay
+source replay matches. The review reproduced skipped unnamed
 interior-entry reservation admission, Thumb instrumentation SIGABRT/SIGSEGV,
 ARMv6 inputs receiving unsupported synthesized instructions and static PIE with
 unrelocated absolute counter pointers. General backend correctness is not

@@ -1,5 +1,33 @@
 # Correctness fixes
 
+## Thumb instrumentation startup (2026-10-03)
+
+Overlay 0040 canonicalizes odd ARM Thumb entry pointers for function lookup,
+checks the ISA bit against the function, and returns explicit errors for invalid
+entry/finalization lookup before creating auxiliary functions. The trampoline
+remains ARM code and materializes the destination's Thumb bit for BX. Both the
+assertions-on abort and assertions-off null dereference in F2 are fixed.
+
+Both builds pass 40 cases: 20 entry cases (four admissions, 16 clean rejections)
+and 20 static DT_FINI cases retaining the dummy return. Focused suites pass 49/48
+(one expected skip off); CoreTests pass 58/31 skips. The reproduced review input
+now instruments successfully. All 40 overlays replay to exact live source bytes;
+this does not certify a clean full build.
+
+Fresh Pi runs pass baseline/normal/reverse per build. The boot shim follows the
+actual ELF entry into the ARM runtime, ARM trampoline and rewritten Thumb entry.
+The loaded code/ELF entry remain unchanged after BOLT; only the boot-pointer and
+counter metadata words change. Checks cover a bounded odd Thumb return link,
+NZCV/R4/SP, quiet core zero, one exact 64-bit counter and watchdog loader return.
+Thumb MRS masks T; the ISA check uses the return link and successful emitted-code
+execution. Initial failed fixture logs are retained, including its incorrect T
+expectation and an unaligned metadata word in the diagnostic build.
+
+Caveat: the supported static bare-metal runtime does not invoke DT_FINI hooks;
+these tests certify its dummy return only. Dynamic finalization, ISA/ABI admission
+and fixed-load/PIE policy remain open. No additional original workstream is closed.
+See [evidence](results/correctness_thumb_startup_20261003.json).
+
 ## Unnamed interior-entry reservation boundary (2026-10-03)
 
 Overlay 0039 closes the reproduced F1 admission gap for decoded original function

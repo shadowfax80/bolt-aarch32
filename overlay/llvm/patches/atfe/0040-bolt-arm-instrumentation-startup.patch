@@ -1,0 +1,161 @@
+--- a/bolt/lib/Passes/Instrumentation.cpp
++++ b/bolt/lib/Passes/Instrumentation.cpp
+@@ -658,7 +658,8 @@
+   Summary->IndTailCallCounterFuncPtr =
+       BC.Ctx->getOrCreateSymbol("__bolt_ind_tailcall_counter_func_pointer");
+ 
+-  createAuxiliaryFunctions(BC);
++  if (Error E = createAuxiliaryFunctions(BC))
++    return E;
+ 
+   ParallelUtilities::PredicateTy SkipPredicate = [&](const BinaryFunction &BF) {
+     return (!BF.isSimple() || BF.isIgnored() ||
+@@ -744,7 +745,31 @@
+   return Error::success();
+ }
+ 
+-void Instrumentation::createAuxiliaryFunctions(BinaryContext &BC) {
++Error Instrumentation::createAuxiliaryFunctions(BinaryContext &BC) {
++  // ELF ARM function addresses are canonical even addresses; entry and fini
++  // pointers retain the ISA bit. Validate before creating any trampolines.
++  BinaryFunction *Start = nullptr;
++  BinaryFunction *Fini = nullptr;
++  if (BC.isELF()) {
++    auto resolve = [&](uint64_t Address, StringRef Kind,
++                       BinaryFunction *&Function) -> Error {
++      const uint64_t Canonical = BC.isARM() ? Address & ~uint64_t(1) : Address;
++      Function = BC.getBinaryFunctionAtAddress(Canonical);
++      if (!Function)
++        return createFatalBOLTError(Kind.str() +
++                                    " function not found for instrumentation");
++      if (BC.isARM() && Function->isARMThumb() != bool(Address & 1))
++        return createFatalBOLTError(
++            Kind.str() + " ISA bit does not match function for instrumentation");
++      return Error::success();
++    };
++    if (BC.StartFunctionAddress)
++      if (Error E = resolve(*BC.StartFunctionAddress, "Entry point", Start))
++        return E;
++    if (BC.FiniFunctionAddress)
++      if (Error E = resolve(*BC.FiniFunctionAddress, "Finalization", Fini))
++        return E;
++  }
+   auto createSimpleFunction =
+       [&](StringRef Title, InstructionListType Instrs) -> BinaryFunction * {
+     BinaryFunction *Func = BC.createInjectedBinaryFunction(std::string(Title));
+@@ -798,18 +823,12 @@
+ 
+   if (BC.isELF()) {
+     if (BC.StartFunctionAddress) {
+-      BinaryFunction *Start =
+-          BC.getBinaryFunctionAtAddress(*BC.StartFunctionAddress);
+-      assert(Start && "Entry point function not found");
+       const MCSymbol *StartSym = Start->getSymbol();
+       createSimpleFunction(
+           "__bolt_start_trampoline",
+           BC.MIB->createSymbolTrampoline(StartSym, BC.Ctx.get()));
+     }
+     if (BC.FiniFunctionAddress) {
+-      BinaryFunction *Fini =
+-          BC.getBinaryFunctionAtAddress(*BC.FiniFunctionAddress);
+-      assert(Fini && "Finalization function not found");
+       const MCSymbol *FiniSym = Fini->getSymbol();
+       createSimpleFunction(
+           "__bolt_fini_trampoline",
+@@ -824,6 +843,7 @@
+     if (BC.isAArch64())
+       BC.MIB->createInstrCounterIncrFunc(BC);
+   }
++  return Error::success();
+ }
+ 
+ void Instrumentation::setupRuntimeLibrary(BinaryContext &BC) {
+--- a/bolt/include/bolt/Passes/Instrumentation.h
++++ b/bolt/include/bolt/Passes/Instrumentation.h
+@@ -105,7 +105,7 @@
+                                 BinaryBasicBlock::iterator &Iter,
+                                 BinaryFunction &FromFunction, uint32_t From);
+ 
+-  void createAuxiliaryFunctions(BinaryContext &BC);
++  Error createAuxiliaryFunctions(BinaryContext &BC);
+ 
+   uint32_t getFDSize() const;
+ 
+--- /dev/null
++++ b/bolt/test/ARM/arm-instrumentation-startup.test
+@@ -0,0 +1 @@
++RUN: %python %p/Inputs/check-arm-instrumentation-startup.py %t.dir
+--- /dev/null
++++ b/bolt/test/ARM/Inputs/check-arm-instrumentation-startup.py
+@@ -0,0 +1,71 @@
++from pathlib import Path
++import json, shutil, struct, subprocess, sys, tempfile
++parent=Path(sys.argv[1]);parent.mkdir(parents=True,exist_ok=True)
++out=Path(tempfile.mkdtemp(prefix='startup-',dir=parent))
++tc=Path(shutil.which('llvm-bolt')).parent
++runtime=tc.parent/'bolt-rt-baremetal-arm/libbolt_rt_baremetal.a'
++def run(d,label,cmd):
++ p=subprocess.run([str(x) for x in cmd],capture_output=True,text=True)
++ (d/(label+'.log')).write_text(p.stdout+p.stderr);return p
++def elf(data):
++ shoff=struct.unpack_from('<I',data,32)[0]; shsize,shnum,ni=struct.unpack_from('<HHH',data,46)
++ headers=[struct.unpack_from('<10I',data,shoff+i*shsize) for i in range(shnum)]
++ names=data[headers[ni][4]:headers[ni][4]+headers[ni][5]]
++ sections={names[h[0]:].split(b'\0',1)[0].decode():h for h in headers}
++ symbols={}
++ for h in headers:
++  if h[1]!=2:continue
++  st=headers[h[6]];strings=data[st[4]:st[4]+st[5]]
++  for off in range(h[4],h[4]+h[5],16):
++   n,v,sz,info,other,idx=struct.unpack_from('<IIIBBH',data,off)
++   symbols[strings[n:].split(b'\0',1)[0].decode()]=v
++ return sections,symbols
++def word(data,sections,address):
++ for h in sections.values():
++  if h[1]!=8 and h[3]<=address and address+4<=h[3]+h[5]:return struct.unpack_from('<I',data,h[4]+address-h[3])[0]
++ raise AssertionError('address not file backed')
++def trampoline(data,sections,address):
++ a,b,c=[word(data,sections,address+i) for i in (0,4,8)]
++ assert a&0xfff0f000==0xe300c000 and b&0xfff0f000==0xe340c000 and c==0xe12fff1c,(hex(a),hex(b),hex(c))
++ imm=lambda x:((x>>4)&0xf000)|(x&0xfff)
++ return imm(a)|(imm(b)<<16)
++rows=[]
++for isa in ('arm','thumb'):
++ for route in ('move','skip'):
++  for kind in ('valid','zero','absent','interior','wrong-isa','fini-valid','fini-zero','fini-absent','fini-interior','fini-wrong-isa'):
++   d=out/(isa+'-'+route+'-'+kind);d.mkdir()
++   asm='.syntax unified\n.arch armv7-a\n.text\n.'+isa+'\n'
++   for name in ('_start','cleanup'):
++    asm+='.balign 4\n.global '+name+'\n.type '+name+',%function\n'+('.thumb_func\n' if isa=='thumb' else '')+name+':\n'+('push {r4,lr}\nbl cleanup\npop {r4,pc}\n' if name=='_start' else 'mov r0,#7\nbx lr\n')+'.size '+name+',.-'+name+'\n'
++   (d/'in.s').write_text(asm)
++   (d/'layout.ld').write_text('ENTRY(_start)\nSECTIONS { . = 0x8000; .text : { *(.text*) } }\n')
++   for label,cmd in [('mc',[tc/'llvm-mc','-triple=armv7-none-eabi','-arm-add-build-attributes','-filetype=obj',d/'in.s','-o',d/'in.o']),('link',[tc/'ld.lld','--emit-relocs','-T',d/'layout.ld',*(['-pie','-fini=cleanup'] if kind.startswith('fini-') else []),d/'in.o','-o',d/'in.elf'])]:
++    p=run(d,label,cmd);assert p.returncode==0,p.stdout+p.stderr
++   data=bytearray((d/'in.elf').read_bytes());sections,symbols=elf(data)
++   bad={'zero':0,'absent':0xdead0000,'interior':symbols['_start']+4,'wrong-isa':symbols['_start']^1}
++   if kind in bad:struct.pack_into('<I',data,24,bad[kind])
++   if kind.startswith('fini-') and kind!='fini-valid':
++    h=sections['.dynamic'];hit=[]
++    for off in range(h[4],h[4]+h[5],8):
++     if struct.unpack_from('<I',data,off)[0]==13:hit.append(off+4)
++    assert len(hit)==1
++    value={'fini-zero':0,'fini-absent':0xdead0000,'fini-interior':symbols['cleanup']+4,'fini-wrong-isa':symbols['cleanup']^1}[kind]
++    struct.pack_into('<I',data,hit[0],value)
++   (d/'in.elf').write_bytes(data)
++   cmd=[tc/'llvm-bolt',d/'in.elf','-o',d/'out.elf','--no-huge-pages','-lite=0','--instrument','--instrument-calls=false','--arm-instrumentation-contract=privileged-single-core-no-fiq','--instrumentation-sleep-time=1','--runtime-instrumentation-lib='+str(runtime),*(['--skip-funcs=_start,cleanup'] if route=='skip' else ['--funcs=.*'])]
++   p=run(d,'bolt',cmd);valid=kind=='valid' or kind.startswith('fini-')
++   if valid:
++    assert p.returncode==0,p.stdout+p.stderr
++    output=(d/'out.elf').read_bytes();sec,sym=elf(output)
++    assert trampoline(output,sec,sym['__bolt_start_trampoline'])==sym['_start']
++    # ARM's bare-metal static runtime ignores dynamic finalization hooks.
++    # All static PIE DT_FINI variants keep a dummy ARM return, not a user hook.
++    assert word(output,sec,sym['__bolt_fini_trampoline'])==0xe12fff1e
++    assert struct.unpack_from('<I',output,24)[0]==sym['__bolt_runtime_start'] and sym['__bolt_runtime_start']%4==0
++    assert trampoline(output,sec,sym['__bolt_runtime_start'])==sym['__bolt_start_trampoline']
++   else:
++    reason='ISA bit does not match' if kind.endswith('wrong-isa') else 'function not found'
++    assert p.returncode==1 and not (d/'out.elf').exists() and reason in p.stdout+p.stderr,(isa,route,kind,p.returncode,p.stdout+p.stderr)
++   rows.append(dict(isa=isa,route=route,kind=kind,admitted=valid,returncode=p.returncode))
++(out/'results.json').write_text(json.dumps(rows,indent=2)+'\n')
++print('Instrumentation startup: '+str(len(rows))+' passed; runtime/trampoline ISA routes checked')
