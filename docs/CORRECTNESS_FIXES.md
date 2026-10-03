@@ -1,5 +1,19 @@
 # Correctness fixes
 
+## Follow-up: ISA/ABI boundary (2026-10-03)
+
+Consolidated queue item 3 is verified within the initial conservative ISA/ABI
+contract in overlay 0041. Both builds pass 358 admission cases (32 admitted,
+326 rejected), focused suites 50/49 (one expected skip off) and CoreTests 58/31
+skips. Generic ARMv7-A integer-only runtime, generated-form minimum-profile checks,
+fresh Pi startup and 372-case IT/nested/reset matrices pass in both builds.
+Static PIE remains admitted; queue item 4 is next. Automatic v7 thunk recognition
+and retained-target routes remain open in items 7/11. #12 remains active;
+no additional whole original workstream is closed. See the
+[contract](AARCH32_ISA_ABI_CONTRACT.md),
+[evidence](results/correctness_isa_contract_20261003.json) and
+[status table](CORRECTNESS_PRIORITY_TODO.md).
+
 ## Thumb instrumentation startup (2026-10-03)
 
 Overlay 0040 canonicalizes odd ARM Thumb entry pointers for function lookup,

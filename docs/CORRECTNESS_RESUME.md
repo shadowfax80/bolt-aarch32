@@ -1,5 +1,36 @@
 # ATFE correctness checkpoint - 2026-10-03
 
+## Latest: consolidated queue item 3 verified in 0041; milestone stop
+
+Consolidated queue item 3 is verified within the initial conservative ISA/ABI
+contract in overlay 0041. Both builds pass 358 admission cases (32 admitted,
+326 rejected), focused suites 50/49 (one expected skip off) and CoreTests 58/31
+skips. Generic ARMv7-A integer-only runtime, generated-form minimum-profile checks,
+fresh Pi startup and 372-case IT/nested/reset matrices pass in both builds.
+Static PIE remains admitted; queue item 4 is next. Automatic v7 thunk recognition
+and retained-target routes remain open in items 7/11. #12 remains active;
+no additional whole original workstream is closed. See the
+[contract](AARCH32_ISA_ABI_CONTRACT.md),
+[evidence](results/correctness_isa_contract_20261003.json) and
+[status table](CORRECTNESS_PRIORITY_TODO.md).
+
+All 41 overlays replay to exact live source. Identity:
+`e8880ef1a0c90c4f027d898fc1c59fcf50b18e0b880d70eacd4d478c142f317c`.
+Raw evidence/preimages/afterimages/build logs and Pi verification manifests are
+in `out/correctness/isa-contract-20261003`. The runtime archives changed and all
+fresh nested/IT payloads were executed, rather than relying on old byte parity.
+Both deliberate reset faults were detected; all payloads returned to the loader.
+
+One-time source mutation/export helpers for this milestone already ran. Do not
+rerun them blindly. `export-isa-contract.py` produced 0041 and replayed the entire
+series. `verify-isa-suites.py` passed both modes after fixing the integer-only
+runtime symbol fixture; its review directories now exist, so choose fresh output
+if repeating. Initial failed fixture/build logs are diagnostic only.
+
+Stop at this verified milestone under the user's previous instruction. Next,
+when resumed: item 4, fixed-load ELF/PIE admission. Preserve dirty ATFE/LK,
+unrelated Microsoft/ and durable evidence. ATFE only; original #12 stays active.
+
 ## Latest: consolidated queue item 2 verified in 0040; milestone stop
 
 Overlay 0040 fixes odd Thumb startup lookup and assertion/null handling. Both

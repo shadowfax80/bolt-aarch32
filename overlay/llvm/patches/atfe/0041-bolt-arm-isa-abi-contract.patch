@@ -1,0 +1,883 @@
+--- a/bolt/include/bolt/RuntimeLibs/RuntimeLibrary.h
++++ b/bolt/include/bolt/RuntimeLibs/RuntimeLibrary.h
+@@ -17,11 +17,14 @@
+ 
+ #include "bolt/Core/Linker.h"
+ #include "llvm/ADT/StringRef.h"
++#include "llvm/Support/Error.h"
+ #include <vector>
+ 
+ namespace llvm {
+ 
+ class MCStreamer;
++class ARMAttributeParser;
++namespace object { class ELFObjectFileBase; }
+ 
+ namespace bolt {
+ 
+@@ -33,6 +36,10 @@
+ 
+ public:
+   virtual ~RuntimeLibrary() = default;
++
++  /// Shared ARM input/runtime metadata admission boundary.
++  static Error validateARMInputContract(const object::ELFObjectFileBase &File,
++                                        ARMAttributeParser &Attributes);
+ 
+   uint64_t getRuntimeFiniAddress() const { return RuntimeFiniAddress; }
+ 
+@@ -72,7 +79,8 @@
+ 
+   /// Load a static runtime library specified by \p LibPath.
+   static void loadLibrary(StringRef LibPath, BOLTLinker &Linker,
+-                          BOLTLinker::SectionsMapper MapSections);
++                          BOLTLinker::SectionsMapper MapSections,
++                          const BinaryContext *BC = nullptr);
+ };
+ 
+ } // namespace bolt
+--- a/bolt/lib/Rewrite/RewriteInstance.cpp
++++ b/bolt/lib/Rewrite/RewriteInstance.cpp
+@@ -473,50 +473,36 @@
+       Features.reset(new SubtargetFeatures(*FeaturesOrErr));
+     }
+   } else if (TheTriple.getArch() == Triple::arm) {
+-    // AArch32: decode what the input was built for (.ARM.attributes), not a
+-    // generic armv7. getARMFeatures() covers the profile, Thumb-2 and the
+-    // integer divide (UDIV/SDIV); add the MP, TrustZone and Virtualization
+-    // extensions it leaves out (e.g. ERET, MSR ELR_hyp in kernel entry code).
++    if (opts::Hugify) {
++      Err = createFatalBOLTError("AArch32 hugify runtime is unsupported");
++      return;
++    }
++    ARMAttributeParser Attributes;
++    if (Error E = RuntimeLibrary::validateARMInputContract(*File, Attributes)) {
++      Err = std::move(E);
++      return;
++    }
++    // Admission is separate from decoding: generated integer instructions
++    // require v7-A/Thumb-2 even when the original code uses only an older subset.
+     Expected<SubtargetFeatures> FeaturesOrErr = File->getFeatures();
+     if (auto E = FeaturesOrErr.takeError()) {
+       Err = std::move(E);
+       return;
+     }
+     Features.reset(new SubtargetFeatures(*FeaturesOrErr));
+-    ARMAttributeParser Attributes;
+-    bool HaveAttributes = false;
+-    for (const SectionRef &Sec : File->sections()) {
+-      Expected<StringRef> Name = Sec.getName();
+-      if (!Name || *Name != ".ARM.attributes") {
+-        if (!Name)
+-          consumeError(Name.takeError());
+-        continue;
+-      }
+-      Expected<StringRef> Contents = Sec.getContents();
+-      if (!Contents) {
+-        consumeError(Contents.takeError());
+-        break;
+-      }
+-      if (Error E = Attributes.parse(arrayRefFromStringRef(*Contents),
+-                                     llvm::endianness::little))
+-        consumeError(std::move(E));
+-      else
+-        HaveAttributes = true;
+-      break;
+-    }
+-    if (HaveAttributes) {
+-      if (std::optional<unsigned> V =
+-              Attributes.getAttributeValue(ARMBuildAttrs::Virtualization_use)) {
+-        if (*V & 1)
+-          Features->AddFeature("trustzone");
+-        if (*V & 2)
+-          Features->AddFeature("virtualization");
+-      }
+-      if (std::optional<unsigned> MP =
+-              Attributes.getAttributeValue(ARMBuildAttrs::MPextension_use);
+-          MP && *MP)
+-        Features->AddFeature("mp");
+-    }
++    Features->AddFeature("v7");
++    Features->AddFeature("aclass");
++    Features->AddFeature("thumb2");
++    if (std::optional<unsigned> V =
++            Attributes.getAttributeValue(ARMBuildAttrs::Virtualization_use)) {
++      if (*V & 1)
++        Features->AddFeature("trustzone");
++      if (*V & 2)
++        Features->AddFeature("virtualization");
++    }
++    if (Attributes.getAttributeValue(ARMBuildAttrs::MPextension_use).value_or(0) ||
++        Attributes.getAttributeValue(ARMBuildAttrs::MPextension_use_old).value_or(0))
++      Features->AddFeature("mp");
+   }
+ 
+   Relocation::Arch = TheTriple.getArch();
+--- a/bolt/lib/RuntimeLibs/InstrumentationRuntimeLibrary.cpp
++++ b/bolt/lib/RuntimeLibs/InstrumentationRuntimeLibrary.cpp
+@@ -247,7 +247,7 @@
+     BinaryContext &BC, StringRef ToolPath, BOLTLinker &Linker,
+     BOLTLinker::SectionsMapper MapSections) {
+   std::string LibPath = getLibPath(ToolPath, opts::RuntimeInstrumentationLib);
+-  loadLibrary(LibPath, Linker, MapSections);
++  loadLibrary(LibPath, Linker, MapSections, &BC);
+ 
+   if (BC.isMachO())
+     return;
+--- a/bolt/lib/RuntimeLibs/RuntimeLibrary.cpp
++++ b/bolt/lib/RuntimeLibs/RuntimeLibrary.cpp
+@@ -12,11 +12,17 @@
+ 
+ #include "bolt/RuntimeLibs/RuntimeLibrary.h"
+ #include "bolt/Core/Linker.h"
++#include "bolt/Core/BinaryContext.h"
+ #include "bolt/RuntimeLibs/RuntimeLibraryVariables.inc"
+ #include "bolt/Utils/Utils.h"
+ #include "llvm/BinaryFormat/Magic.h"
+ #include "llvm/Object/Archive.h"
+ #include "llvm/Object/ObjectFile.h"
++#include "llvm/Object/ELFObjectFile.h"
++#include "llvm/Support/ARMAttributeParser.h"
++#include "llvm/Support/ARMBuildAttributes.h"
++#include "llvm/Support/DataExtractor.h"
++#include <set>
+ #include "llvm/Support/Path.h"
+ #include "llvm/Support/Program.h"
+ 
+@@ -24,6 +30,167 @@
+ 
+ using namespace llvm;
+ using namespace bolt;
++using namespace llvm::object;
++
++namespace {
++
++// Reject ambiguous attribute scopes and repeated tags before using LLVM's
++// first-value attribute map. The initial contract uses one AEABI file scope.
++Error validateARMAttributeLayout(StringRef Contents) {
++  DataExtractor DE(Contents, /*IsLittleEndian=*/true);
++  DataExtractor::Cursor C(0);
++  struct ClearCursorError {
++    DataExtractor::Cursor &C;
++    ~ClearCursorError() { consumeError(C.takeError()); }
++  } Clear{C};
++  auto fail = [](StringRef Reason) {
++    return createFatalBOLTError("AArch32 ISA/ABI contract: " + Reason);
++  };
++  if (DE.getU8(C) != ELFAttrs::Format_Version)
++    return fail("invalid ARM attribute format");
++  bool HaveFile = false;
++  while (C.tell() < Contents.size()) {
++    const uint64_t Begin = C.tell();
++    const uint32_t Length = DE.getU32(C);
++    if (!C || Length < 5 || Length > Contents.size() - Begin)
++      return fail("invalid ARM vendor subsection length");
++    const uint64_t End = Begin + Length;
++    const StringRef Vendor = DE.getCStrRef(C);
++    if (!C || C.tell() > End)
++      return fail("unterminated ARM attribute vendor");
++    if (Vendor != "aeabi") {
++      C.seek(End);
++      continue;
++    }
++    if (HaveFile)
++      return fail("multiple AEABI attribute scopes");
++    const uint64_t ScopeBegin = C.tell();
++    const uint64_t Scope = DE.getULEB128(C);
++    const uint32_t Size = DE.getU32(C);
++    if (!C || Scope != ELFAttrs::File)
++      return fail("only AEABI file attributes are supported");
++    if (Size < C.tell() - ScopeBegin || Size != End - ScopeBegin)
++      return fail("invalid or multiple ARM attribute scopes");
++    HaveFile = true;
++    std::set<uint64_t> Tags;
++    while (C.tell() < End) {
++      const uint64_t Tag = DE.getULEB128(C);
++      if (!C || C.tell() > End)
++        return fail("truncated ARM attribute tag");
++      if (!Tags.insert(Tag).second)
++        return fail("duplicate ARM attribute tag");
++      if (!llvm::any_of(ARMBuildAttrs::getARMAttributeTags(),
++                        [Tag](const TagNameItem &Item) {
++                          return Item.attr == Tag;
++                        }))
++        return fail("unknown ARM attribute tag");
++      if (Tag == ARMBuildAttrs::compatibility) {
++        if (DE.getULEB128(C) != 0)
++          return fail("toolchain-specific ABI compatibility is unsupported");
++        DE.getCStrRef(C);
++      } else if (Tag == ARMBuildAttrs::CPU_raw_name ||
++                 Tag == ARMBuildAttrs::CPU_name ||
++                 Tag == ARMBuildAttrs::also_compatible_with ||
++                 Tag == ARMBuildAttrs::conformance || (Tag >= 32 && (Tag & 1))) {
++        DE.getCStrRef(C);
++      } else {
++        const uint64_t Value = DE.getULEB128(C);
++        if (Value > UINT32_MAX)
++          return fail("ARM attribute value exceeds 32 bits");
++      }
++      if (!C || C.tell() > End)
++        return fail("truncated ARM attribute value");
++    }
++  }
++  if (!HaveFile)
++    return fail("missing AEABI file attributes");
++  return Error::success();
++}
++
++} // namespace
++
++Error RuntimeLibrary::validateARMInputContract(const ELFObjectFileBase &File,
++                               ARMAttributeParser &Attributes) {
++  auto fail = [](StringRef Reason) {
++    return createFatalBOLTError("AArch32 ISA/ABI contract: " + Reason);
++  };
++  const auto *ELF = dyn_cast<ELF32LEObjectFile>(&File);
++  if (!ELF)
++    return fail("requires little-endian ELF32");
++  const auto &Header = ELF->getELFFile().getHeader();
++  if (Header.e_ident[ELF::EI_OSABI] != ELF::ELFOSABI_NONE ||
++      Header.e_ident[ELF::EI_ABIVERSION] != 0)
++    return fail("unsupported ELF OS/ABI identification");
++  const unsigned Flags = File.getPlatformFlags();
++  if ((Flags & ELF::EF_ARM_EABIMASK) != ELF::EF_ARM_EABI_VER5)
++    return fail("requires EABI version 5");
++  if (Flags & ~(ELF::EF_ARM_EABI_VER5 | ELF::EF_ARM_ABI_FLOAT_SOFT))
++    return fail("unsupported ARM ELF flags (including hard-float or BE8)");
++  bool HaveAttributes = false;
++  for (const SectionRef &Sec : File.sections()) {
++    Expected<StringRef> Name = Sec.getName();
++    if (!Name)
++      return Name.takeError();
++    const bool IsAttributes =
++        ELFSectionRef(Sec).getType() == ELF::SHT_ARM_ATTRIBUTES;
++    if (*Name != ".ARM.attributes" && !IsAttributes)
++      continue;
++    if (HaveAttributes || *Name != ".ARM.attributes" || !IsAttributes)
++      return fail("ambiguous ARM attribute sections");
++    HaveAttributes = true;
++    Expected<StringRef> Contents = Sec.getContents();
++    if (!Contents)
++      return Contents.takeError();
++    if (Error E = validateARMAttributeLayout(*Contents))
++      return E;
++    if (Error E = Attributes.parse(arrayRefFromStringRef(*Contents),
++                                   llvm::endianness::little))
++      return createFatalBOLTError("AArch32 ISA/ABI contract: malformed attributes: " +
++                                  toString(std::move(E)));
++  }
++  if (!HaveAttributes)
++    return fail("requires .ARM.attributes");
++  auto value = [&](unsigned Tag) {
++    return Attributes.getAttributeValue(Tag).value_or(0);
++  };
++  if (value(ARMBuildAttrs::CPU_arch) != ARMBuildAttrs::v7 ||
++      value(ARMBuildAttrs::CPU_arch_profile) !=
++          ARMBuildAttrs::ApplicationProfile)
++    return fail("requires explicit ARMv7-A architecture/profile");
++  if (value(ARMBuildAttrs::ARM_ISA_use) != ARMBuildAttrs::Allowed ||
++      (value(ARMBuildAttrs::THUMB_ISA_use) != ARMBuildAttrs::AllowThumb32 &&
++       value(ARMBuildAttrs::THUMB_ISA_use) != ARMBuildAttrs::AllowThumbDerived))
++    return fail("requires ARM and Thumb-2 ISA permissions");
++  if (value(ARMBuildAttrs::ABI_VFP_args) != ARMBuildAttrs::BaseAAPCS ||
++      value(ARMBuildAttrs::ABI_WMMX_args) ||
++      value(ARMBuildAttrs::WMMX_arch) || value(ARMBuildAttrs::PCS_config))
++    return fail("requires base AAPCS without WMMX or custom PCS");
++  if (Attributes.getAttributeValue(ARMBuildAttrs::nodefaults) ||
++      Attributes.getAttributeString(ARMBuildAttrs::also_compatible_with))
++    return fail("alternate/default-free attribute contracts are unsupported");
++  if (value(ARMBuildAttrs::MVE_arch) || value(ARMBuildAttrs::T2EE_use) ||
++      value(ARMBuildAttrs::DSP_extension) ||
++      value(ARMBuildAttrs::PAC_extension) || value(ARMBuildAttrs::BTI_extension) ||
++      value(ARMBuildAttrs::PACRET_use) || value(ARMBuildAttrs::BTI_use))
++    return fail("unsupported ISA extension attributes");
++  if (value(ARMBuildAttrs::FP_arch) > ARMBuildAttrs::AllowFPv4B ||
++      value(ARMBuildAttrs::Advanced_SIMD_arch) > ARMBuildAttrs::AllowNeon2 ||
++      value(ARMBuildAttrs::DIV_use) > ARMBuildAttrs::AllowDIVExt ||
++      value(ARMBuildAttrs::Virtualization_use) >
++          ARMBuildAttrs::AllowTZVirtualization ||
++      value(ARMBuildAttrs::MPextension_use) > ARMBuildAttrs::AllowMP ||
++      value(ARMBuildAttrs::MPextension_use_old) > ARMBuildAttrs::AllowMP)
++    return fail("unsupported optional ISA extension values");
++  if (Attributes.getAttributeValue(ARMBuildAttrs::MPextension_use_old) &&
++      Attributes.getAttributeValue(ARMBuildAttrs::MPextension_use) &&
++      value(ARMBuildAttrs::MPextension_use_old) !=
++          value(ARMBuildAttrs::MPextension_use))
++    return fail("conflicting MP extension attributes");
++  if (value(ARMBuildAttrs::Advanced_SIMD_arch) &&
++      value(ARMBuildAttrs::FP_arch) < ARMBuildAttrs::AllowFPv3A)
++    return fail("SIMD permission conflicts with FP architecture");
++  return Error::success();
++}
+ 
+ void RuntimeLibrary::anchor() {}
+ 
+@@ -87,28 +254,70 @@
+ }
+ 
+ void RuntimeLibrary::loadLibrary(StringRef LibPath, BOLTLinker &Linker,
+-                                 BOLTLinker::SectionsMapper MapSections) {
++                                 BOLTLinker::SectionsMapper MapSections,
++                                 const BinaryContext *BC) {
+   ErrorOr<std::unique_ptr<MemoryBuffer>> MaybeBuf =
+       MemoryBuffer::getFile(LibPath, false, false);
+   check_error(MaybeBuf.getError(), LibPath);
+   std::unique_ptr<MemoryBuffer> B = std::move(MaybeBuf.get());
+   file_magic Magic = identify_magic(B->getBuffer());
++  auto validateObject = [&](const object::ObjectFile &Obj) {
++    if (!BC || !BC->isARM())
++      return;
++    const auto *ELF = dyn_cast<object::ELFObjectFileBase>(&Obj);
++    if (!ELF || ELF->getEMachine() != ELF::EM_ARM ||
++        ELF->getEType() != ELF::ET_REL)
++      check_error(createFatalBOLTError("AArch32 runtime requires a relocatable ARM ELF object"),
++                  LibPath);
++    ARMAttributeParser Attributes;
++    check_error(validateARMInputContract(*ELF, Attributes), LibPath);
++    auto value = [&](unsigned Tag) {
++      return Attributes.getAttributeValue(Tag).value_or(0);
++    };
++    // Runtime callbacks can run where FP/SIMD state is not saved. Keep their
++    // contract integer-only even when the input permits FP instructions.
++    if (value(ARMBuildAttrs::FP_arch) ||
++        value(ARMBuildAttrs::Advanced_SIMD_arch) ||
++        value(ARMBuildAttrs::FP_HP_extension))
++      check_error(createFatalBOLTError("AArch32 runtime requires an integer-only ISA"),
++                  LibPath);
++    auto requireFeature = [&](bool Required, StringRef Feature) {
++      if (Required && !BC->STI->checkFeatures(Feature))
++        check_error(createFatalBOLTError("AArch32 runtime ISA exceeds input: " +
++                                         Feature), LibPath);
++    };
++    requireFeature(value(ARMBuildAttrs::DIV_use) == ARMBuildAttrs::AllowDIVExt,
++                   "+hwdiv,+hwdiv-arm");
++    requireFeature(value(ARMBuildAttrs::MPextension_use) ||
++                       value(ARMBuildAttrs::MPextension_use_old), "+mp");
++    requireFeature(value(ARMBuildAttrs::Virtualization_use) & 1, "+trustzone");
++    requireFeature(value(ARMBuildAttrs::Virtualization_use) & 2,
++                   "+virtualization");
++  };
++
+ 
+   if (Magic == file_magic::archive) {
+     std::unique_ptr<object::Archive> Archive;
+     Error Err = object::Archive::create(B->getMemBufferRef()).moveInto(Archive);
+     check_error(std::move(Err), B->getBufferIdentifier());
+     for (const object::Archive::Child &C : Archive->children(Err)) {
+-      std::unique_ptr<object::Binary> Bin = cantFail(C.getAsBinary());
+-      if (object::ObjectFile *Obj = dyn_cast<object::ObjectFile>(&*Bin))
++      auto BinOrErr = C.getAsBinary();
++      check_error(BinOrErr.takeError(), LibPath);
++      std::unique_ptr<object::Binary> Bin = std::move(*BinOrErr);
++      if (object::ObjectFile *Obj = dyn_cast<object::ObjectFile>(&*Bin)) {
++        validateObject(*Obj);
+         Linker.loadObject(Obj->getMemoryBufferRef(), MapSections);
++      } else if (BC && BC->isARM()) {
++        check_error(createFatalBOLTError("AArch32 runtime archive contains a non-object member"), LibPath);
++      }
+     }
+     check_error(std::move(Err), B->getBufferIdentifier());
+   } else if (Magic == file_magic::elf_relocatable ||
+              Magic == file_magic::elf_shared_object) {
+-    std::unique_ptr<object::ObjectFile> Obj =
+-        cantFail(object::ObjectFile::createObjectFile(B->getMemBufferRef()),
+-                 "error creating in-memory object");
++    auto ObjOrErr = object::ObjectFile::createObjectFile(B->getMemBufferRef());
++    check_error(ObjOrErr.takeError(), LibPath);
++    std::unique_ptr<object::ObjectFile> Obj = std::move(*ObjOrErr);
++    validateObject(*Obj);
+     Linker.loadObject(Obj->getMemoryBufferRef(), MapSections);
+   } else {
+     errs() << "BOLT-ERROR: unrecognized library format: " << LibPath << "\n";
+--- a/bolt/test/ARM/Inputs/arm-counter-runtime.s
++++ b/bolt/test/ARM/Inputs/arm-counter-runtime.s
+@@ -1,3 +1,5 @@
++.arch armv7-a
++.fpu softvfp
+ ## Host-only runtime symbol fixture; no runtime execution claim.
+ .syntax unified
+ .text
+--- a/bolt/test/ARM/Inputs/arm32-add-bl.s
++++ b/bolt/test/ARM/Inputs/arm32-add-bl.s
+@@ -1,3 +1,4 @@
++.arch armv7-a
+ 	.syntax unified
+ 	.arm
+ 	.text
+--- a/bolt/test/ARM/Inputs/arm32-far-bl.s
++++ b/bolt/test/ARM/Inputs/arm32-far-bl.s
+@@ -1,15 +1,25 @@
++.arch armv7-a
+ 	.syntax unified
+ 	.arm
+ 	.section .text.start,"ax",%progbits
+ 	.globl _start
+ 	.type _start, %function
+ _start:
+-	bl	far_away
++	bl	__ARMv5LongLdrPcThunk_far_away
+ 	mov	r0, #42
+ 	mov	r7, #1
+ 	svc	#0
+ 1:	b	1b
+ 	.size	_start, .-_start
++
++// Keep the legacy literal veneer shape explicit under ARMv7-A attributes.
++// LLD otherwise chooses a MOVW/MOVT thunk, a different relocation work item.
++	.globl __ARMv5LongLdrPcThunk_far_away
++	.type __ARMv5LongLdrPcThunk_far_away, %function
++__ARMv5LongLdrPcThunk_far_away:
++	ldr pc, [pc, #-4]
++	.word far_away
++	.size __ARMv5LongLdrPcThunk_far_away, .-__ARMv5LongLdrPcThunk_far_away
+ 
+ 	.section .text.far,"ax",%progbits
+ 	.globl	far_away
+--- a/bolt/test/ARM/Inputs/arm32-interwork.s
++++ b/bolt/test/ARM/Inputs/arm32-interwork.s
+@@ -1,3 +1,4 @@
++.arch armv7-a
+ 	.syntax unified
+ 	.text
+ 	.global _start
+--- a/bolt/test/ARM/Inputs/arm32-literal-load.s
++++ b/bolt/test/ARM/Inputs/arm32-literal-load.s
+@@ -1,3 +1,4 @@
++.arch armv7-a
+         .syntax unified
+         .arm
+         .text
+--- a/bolt/test/ARM/Inputs/arm32-passes.s
++++ b/bolt/test/ARM/Inputs/arm32-passes.s
+@@ -1,3 +1,4 @@
++.arch armv7-a
+ @ Inputs for arm-passes.test: one function per pass under test.
+ 	.syntax unified
+ 	.text
+--- a/bolt/test/ARM/Inputs/arm32-pop-cfg.s
++++ b/bolt/test/ARM/Inputs/arm32-pop-cfg.s
+@@ -1,3 +1,4 @@
++.arch armv7-a
+  .syntax unified
+  .text
+  .arm
+--- a/bolt/test/ARM/Inputs/arm32-stub-order.s
++++ b/bolt/test/ARM/Inputs/arm32-stub-order.s
+@@ -1,3 +1,4 @@
++.arch armv7-a
+  .syntax unified
+  .text
+  .arm
+--- a/bolt/test/ARM/Inputs/arm32-tbb.s
++++ b/bolt/test/ARM/Inputs/arm32-tbb.s
+@@ -1,3 +1,4 @@
++.arch armv7-a
+ @ TBB switch with an inline byte table (and a TBH one), for arm-inline-table.test.
+ 	.syntax unified
+ 	.thumb
+--- a/bolt/test/ARM/Inputs/arm32-thumb-exit.s
++++ b/bolt/test/ARM/Inputs/arm32-thumb-exit.s
+@@ -1,3 +1,4 @@
++.arch armv7-a
+ 	.syntax unified
+ 	.thumb
+ 	.text
+--- a/bolt/test/ARM/Inputs/arm32-thumb-it.s
++++ b/bolt/test/ARM/Inputs/arm32-thumb-it.s
+@@ -1,3 +1,4 @@
++.arch armv7-a
+ 	.syntax unified
+ 	.thumb
+ 	.text
+--- a/bolt/test/ARM/Inputs/arm32-thumb-loop.s
++++ b/bolt/test/ARM/Inputs/arm32-thumb-loop.s
+@@ -1,3 +1,4 @@
++.arch armv7-a
+ 	.syntax unified
+ 	.thumb
+ 	.text
+--- a/bolt/test/ARM/Inputs/arm32-thumb-pop-return.s
++++ b/bolt/test/ARM/Inputs/arm32-thumb-pop-return.s
+@@ -1,3 +1,4 @@
++.arch armv7-a
+ 	.syntax unified
+ 	.thumb
+ 	.text
+--- a/bolt/test/ARM/Inputs/arm32-thumb-split.s
++++ b/bolt/test/ARM/Inputs/arm32-thumb-split.s
+@@ -1,3 +1,4 @@
++.arch armv7-a
+ # Thumb function with a hot path and a cold path, for -split-functions.
+ 	.syntax unified
+ 	.thumb
+--- a/bolt/test/ARM/Inputs/arm32-thumb-switch.s
++++ b/bolt/test/ARM/Inputs/arm32-thumb-switch.s
+@@ -1,3 +1,4 @@
++.arch armv7-a
+ 	.syntax unified
+ 	.thumb
+ 	.text
+--- a/bolt/test/ARM/Inputs/arm32-unwind.s
++++ b/bolt/test/ARM/Inputs/arm32-unwind.s
+@@ -1,3 +1,4 @@
++.arch armv7-a
+         .syntax unified
+         .arm
+         .text
+--- a/bolt/test/ARM/Inputs/check-arm-counter-bytes.py
++++ b/bolt/test/ARM/Inputs/check-arm-counter-bytes.py
+@@ -49,7 +49,7 @@
+         body=body.replace(' str ',' str.w ').replace(' ldr ',' ldr.w ')
+     asm=out/(mode+'.s');asm.write_text(body,encoding='utf-8')
+     obj=out/(mode+'.o');binary=out/(mode+'.bin')
+-    subprocess.run(['llvm-mc','-triple=armv7-none-eabi','-filetype=obj',str(asm),'-o',str(obj)],check=True)
++    subprocess.run(['llvm-mc','-arm-add-build-attributes','-triple=armv7-none-eabi','-mcpu=generic','-mattr=+v7,+aclass,+thumb2,-neon,-vfp2,-vfp3,-vfp4,-hwdiv,-hwdiv-arm,-mp,-trustzone,-virtualization','-filetype=obj',str(asm),'-o',str(obj)],check=True)
+     subprocess.run(['llvm-objcopy','--dump-section=.text='+str(binary),str(obj)],check=True)
+     _,address,length=rows['counter_'+mode]
+     section=next(h for h in sections.values() if h[1]!=8 and h[3]<=address<address+length<=h[3]+h[5])
+--- a/bolt/test/ARM/Inputs/check-arm-instrumentation-scope.py
++++ b/bolt/test/ARM/Inputs/check-arm-instrumentation-scope.py
+@@ -16,7 +16,7 @@
+ run('mc',['llvm-mc','-triple=armv7-none-eabi','-arm-add-build-attributes','-filetype=obj',inputs/'arm-counter-probes.s','-o',out/'input.o'])
+ run('link',['ld.lld','--emit-relocs','-T',inputs/'arm32.ld',out/'input.o','-o',out/'input.elf'])
+ run('shared',['ld.lld','-shared','--emit-relocs','-T',inputs/'arm32.ld',out/'input.o','-o',out/'shared.elf'])
+-run('rt-mc',['llvm-mc','-triple=armv7-none-eabi','-filetype=obj',inputs/'arm-counter-runtime.s','-o',out/'rt.o'])
++run('rt-mc',['llvm-mc','-arm-add-build-attributes','-triple=armv7-none-eabi','-filetype=obj',inputs/'arm-counter-runtime.s','-o',out/'rt.o'])
+ run('rt-ar',['llvm-ar','rcs',out/'rt.a',out/'rt.o'])
+ contract='--arm-instrumentation-contract=privileged-single-core-no-fiq'
+ base=['--no-huge-pages','-lite=0','--instrument','--instrumentation-sleep-time=1',
+--- /dev/null
++++ b/bolt/test/ARM/Inputs/check-arm-isa-contract.py
+@@ -0,0 +1,128 @@
++"""Exercise ARM ISA/ABI admission independently of backend decoding."""
++from pathlib import Path
++import json,shutil,struct,subprocess,sys,tempfile
++parent=Path(sys.argv[1]);parent.mkdir(parents=True,exist_ok=True)
++out=Path(tempfile.mkdtemp(prefix='isa-contract-',dir=parent));tc=Path(shutil.which('llvm-bolt')).parent
++runtime=tc.parent/'bolt-rt-baremetal-arm/libbolt_rt_baremetal.a'
++def run(d,name,cmd):
++ p=subprocess.run([str(x) for x in cmd],capture_output=True,text=True,timeout=30)
++ (d/(name+'.log')).write_text(p.stdout+p.stderr);return p
++
++def uleb(v):
++ b=bytearray()
++ while v>=128:b.append((v&127)|128);v>>=7
++ b.append(v);return bytes(b)
++
++def attrs(pairs,scope=1,vendor=b'aeabi',extra=b''):
++ payload=b''.join(uleb(k)+(v+b'\0' if isinstance(v,bytes) else uleb(v)) for k,v in pairs)
++ file=uleb(scope)+struct.pack('<I',len(payload)+5)+payload
++ section=vendor+b'\0'+file
++ return b'A'+struct.pack('<I',len(section)+4)+section+extra
++base=[(6,10),(7,65),(8,1),(9,2)]
++cases=[]
++def add(name,pairs=None,valid=False,flags=0x05000200,blob=None,**extra):
++ cases.append(dict(name=name,attributes=attrs(base if pairs is None else pairs) if blob is None else blob,valid=valid,flags=flags,**extra))
++def replace(tag,val):return [(k,val if k==tag else v) for k,v in base]
++for name,pairs in [('base',base),('derived-thumb',replace(9,3)),('extensions',base+[(42,1),(44,2),(68,3)]),('softfp',base+[(10,3),(12,1),(28,0)]),('unspecified-float-flags',base)]:
++ add(name,pairs,True,flags=0x05000000 if name=='unspecified-float-flags' else 0x05000200)
++for name,tag,value in [('armv6',6,6),('armv6t2',6,8),('armv8a',6,14),('armv9a',6,22),('v7r',7,82),('v7m',7,77),('profile-neutral',7,0),('system-profile',7,83),('no-arm',8,0),('invalid-arm',8,2),('no-thumb',9,0),('thumb1',9,1),('invalid-thumb',9,4)]:add(name,replace(tag,value))
++for tag in (6,7,8,9):add('missing-tag-'+str(tag),[(k,v) for k,v in base if k!=tag])
++for name,pairs in [('v6m',replace(6,11)),('v7em',replace(6,13)),('v8m',replace(6,17)),('vfp-args',base+[(28,1)]),('custom-vfp-args',base+[(28,2)]),('compatible-vfp-args',base+[(28,3)]),('wmmx',base+[(11,1)]),('wmmx-args',base+[(29,1)]),('custom-pcs',base+[(13,1)]),('mve',base+[(48,1)]),('thumb-ee',base+[(66,1)]),('pac',base+[(50,1)]),('bti',base+[(52,1)]),('bti-use',base+[(74,1)]),('pac-use',base+[(76,1)]),('dsp-extension',base+[(46,1)]),('nodefaults-zero',base+[(64,0)]),('nodefaults-one',base+[(64,1)]),('alternative-arch',base+[(65,b'\x06\x06')]),('mp-conflict-forward',base+[(42,0),(70,1)]),('mp-conflict-backward',base+[(42,1),(70,0)]),('simd-no-fp',base+[(12,1)]),('new-fp',base+[(10,7)]),('new-simd',base+[(10,5),(12,3)]),('duplicate-same',base+[(6,10)]),('duplicate-conflict',base+[(6,6)]),('unknown-tag',base+[(100,1)]),('large-value',base+[(44,1<<40)])]:add(name,pairs)
++for name,flag in [('hard-float',0x05000400),('both-float-flags',0x05000600),('be8',0x05800200),('le8-reserved',0x05400200),('legacy-flags',0x05000201),('eabi0',0x200),('eabi4',0x04000200),('future-eabi',0x06000200)]:add(name,flags=flag)
++for name,blob in [('bad-format',b'B'+attrs(base)[1:]),('truncated',attrs(base)[:-1]),('bad-vendor-length',b'A'+struct.pack('<I',4)+b'aeabi\0'),('bad-file-length',b'A'+struct.pack('<I',15)+b'aeabi\0\x01\x02\0\0\0'),('no-file',b'A'+struct.pack('<I',10)+b'aeabi\0'),('section-scope',attrs(base,2)),('symbol-scope',attrs(base,3)),('two-vendors',attrs(base)+attrs(replace(6,6))[1:]),('two-scopes',b'A'+struct.pack('<I',len(attrs(base)[5:])+len(attrs(base)[11:])+4)+attrs(base)[5:]+attrs(base)[11:]),('unknown-vendor-only',attrs(base,vendor=b'other')),('unterminated-name',attrs(base)+b'\x05name')]:add(name,blob=blob)
++add('supplementary-vendor',blob=attrs(base)+attrs([],vendor=b'other')[1:],valid=True)
++add('absent-attributes',missing=True)
++add('wrong-section-type',wrong_type=True)
++add('duplicate-sections',duplicate_section=True)
++add('osabi',osabi=3)
++add('abi-version',abi_version=1)
++rows=[]
++for isa in ('arm','thumb'):
++ d=out/isa;d.mkdir()
++ asm='.syntax unified\n.arch armv7-a\n.text\n.'+isa+'\n'
++ for name,body in [('_start','push {r4,lr}\nbl callee\npop {r4,pc}'),('callee','mov r0,#7\nbx lr')]:
++  asm+='.balign 4\n.global '+name+'\n.type '+name+',%function\n'+('.thumb_func\n' if isa=='thumb' else '')+name+':\n'+body+'\n.size '+name+',.-'+name+'\n'
++ (d/'base.s').write_text(asm);(d/'layout.ld').write_text('ENTRY(_start)\nSECTIONS { . = 0x8000; .text : { *(.text*) } }\n')
++ for name,cmd in [('mc',[tc/'llvm-mc','-triple=armv7-none-eabi','-arm-add-build-attributes','-filetype=obj',d/'base.s','-o',d/'base.o']),('link',[tc/'ld.lld','--emit-relocs','-T',d/'layout.ld',d/'base.o','-o',d/'base.elf'])]:
++  p=run(d,name,cmd);assert p.returncode==0,p.stdout+p.stderr
++ original=(d/'base.elf').read_bytes();shoff=struct.unpack_from('<I',original,32)[0];size,num,ni=struct.unpack_from('<HHH',original,46)
++ headers=[struct.unpack_from('<10I',original,shoff+i*size) for i in range(num)]
++ index=next(i for i,h in enumerate(headers) if h[1]==0x70000003)
++ for case in cases:
++  work=d/case['name'];work.mkdir();data=bytearray(original);attr=case['attributes'];offset=len(data);data+=attr
++  struct.pack_into('<II',data,shoff+index*size+16,offset,len(attr));struct.pack_into('<I',data,36,case['flags'])
++  if case.get('missing'):struct.pack_into('<II',data,shoff+index*size,0,1)
++  if case.get('wrong_type'):struct.pack_into('<I',data,shoff+index*size+4,1)
++  if case.get('duplicate_section'):
++   table=bytes(data[shoff:shoff+size*num]);dup=bytes(data[shoff+size*index:shoff+size*(index+1)]);off=len(data);data+=table+dup;struct.pack_into('<I',data,32,off);struct.pack_into('<H',data,48,num+1)
++  if case.get('osabi'):data[7]=case['osabi']
++  if case.get('abi_version'):data[8]=case['abi_version']
++  (work/'in.elf').write_bytes(data)
++  for mode in ('optimize','instrument'):
++   candidate=work/(mode+'.elf');cmd=[tc/'llvm-bolt',work/'in.elf','-o',candidate,'--no-huge-pages','-lite=0','--funcs=.*']
++   if mode=='instrument':cmd+=['--instrument','--instrument-calls=false','--arm-instrumentation-contract=privileged-single-core-no-fiq','--instrumentation-sleep-time=1','--runtime-instrumentation-lib='+str(runtime)]
++   p=run(work,mode,cmd)
++   assert p.returncode==(0 if case['valid'] else 1) and candidate.exists()==case['valid'],(isa,case['name'],mode,p.returncode,p.stdout+p.stderr)
++   if not case['valid']:assert ('AArch32 ISA/ABI contract:' in p.stdout+p.stderr or (case['name'] in ('v6m','v7em','v8m','v7m') and 'Unrecognized machine' in p.stdout+p.stderr)),(case['name'],p.stdout+p.stderr)
++   rows.append(dict(isa=isa,case=case['name'],mode=mode,admitted=case['valid'],returncode=p.returncode))
++# Real big-endian ELF32 inputs are rejected by the existing LE ELF boundary.
++for isa in ('arm','thumb'):
++ d=out/isa;work=d/'be32';work.mkdir()
++ for label,cmd in [('mc',[tc/'llvm-mc','-triple=armebv7-none-eabi','-arm-add-build-attributes','-filetype=obj',d/'base.s','-o',work/'in.o']),('link',[tc/'ld.lld','--emit-relocs','-T',d/'layout.ld',work/'in.o','-o',work/'in.elf'])]:
++  p=run(work,label,cmd);assert p.returncode==0,p.stdout+p.stderr
++ for mode in ('optimize','instrument'):
++  candidate=work/(mode+'.elf');cmd=[tc/'llvm-bolt',work/'in.elf','-o',candidate,'--no-huge-pages','-lite=0']
++  if mode=='instrument':cmd+=['--instrument','--instrument-calls=false','--arm-instrumentation-contract=privileged-single-core-no-fiq','--instrumentation-sleep-time=1','--runtime-instrumentation-lib='+str(runtime)]
++  p=run(work,mode,cmd);assert p.returncode==1 and not candidate.exists() and 'LE ELF binaries' in p.stdout+p.stderr,p.stdout+p.stderr
++  rows.append(dict(isa=isa,case='be32',mode=mode,admitted=False,returncode=p.returncode))
++# Runtime object and archive admission must not bypass the input contract.
++members=subprocess.check_output([str(tc/'llvm-ar'),'t',str(runtime)],text=True).splitlines();assert len(members)==1
++rtbase=subprocess.check_output([str(tc/'llvm-ar'),'p',str(runtime),members[0]])
++rshoff=struct.unpack_from('<I',rtbase,32)[0];rsize,rnum=struct.unpack_from('<HH',rtbase,46)
++rheaders=[struct.unpack_from('<10I',rtbase,rshoff+i*rsize) for i in range(rnum)]
++rindex=next(i for i,h in enumerate(rheaders) if h[1]==0x70000003)
++rtcases=[('baseline',base,True,None),('v6',replace(6,6),False,None),('new-arch',replace(6,14),False,None),('hard-float',base,False,'hard'),('vfp',base+[(10,3)],False,None),('neon',base+[(10,3),(12,1)],False,None),('missing',base,False,'missing'),('duplicate',base+[(6,10)],False,None),('divide',base+[(44,2)],False,None),('mp',base+[(42,1)],False,None),('tz',base+[(68,1)],False,None),('virtualization',base+[(68,2)],False,None),('rich',base+[(42,1),(44,2),(68,3)],True,'rich-input')]
++for isa in ('arm','thumb'):
++ for name,pairs,valid,change in rtcases:
++  for form in ('object','archive'):
++   work=out/isa/('runtime-'+name+'-'+form);work.mkdir()
++   rt=bytearray(rtbase);offset=len(rt);at=attrs(pairs);rt+=at;struct.pack_into('<II',rt,rshoff+rindex*rsize+16,offset,len(at))
++   if change=='hard':struct.pack_into('<I',rt,36,0x05000400)
++   if change=='missing':struct.pack_into('<II',rt,rshoff+rindex*rsize,0,1)
++   obj=work/'runtime.o';obj.write_bytes(rt);lib=obj
++   if form=='archive':
++    lib=work/'runtime.a';p=run(work,'archive',[tc/'llvm-ar','rcs',lib,obj]);assert p.returncode==0,p.stdout+p.stderr
++   image=out/isa/'base.elf'
++   if change=='rich-input':image=out/isa/'extensions/in.elf'
++   candidate=work/'out.elf';cmd=[tc/'llvm-bolt',image,'-o',candidate,'--no-huge-pages','-lite=0','--funcs=.*','--instrument','--instrument-calls=false','--arm-instrumentation-contract=privileged-single-core-no-fiq','--instrumentation-sleep-time=1','--runtime-instrumentation-lib='+str(lib)]
++   p=run(work,'bolt',cmd);assert p.returncode==(0 if valid else 1) and candidate.exists()==valid,(name,form,p.returncode,p.stdout+p.stderr)
++   if not valid:assert 'AArch32' in p.stdout+p.stderr,p.stdout+p.stderr
++   rows.append(dict(isa=isa,case='runtime-'+name,mode=form,admitted=valid,returncode=p.returncode))
++
++# Minimum-profile assembly validation of emitted integer veneer/branch forms
++# and every instruction in the supplied baseline ARM runtime object.
++minimum='-mattr=+v7,+aclass,+thumb2,-neon,-vfp2,-vfp3,-vfp4,-fp16,-hwdiv,-hwdiv-arm,-mp,-trustzone,-virtualization'
++reference=out/'minimum-forms.s'
++reference.write_text('.syntax unified\n.arch armv7-a\n.text\n.arm\nmovw r12,#0x1234\nmovt r12,#0x5678\nbx r12\nbl 0\nb 0\n.thumb\nmovw r12,#0x1234\nmovt r12,#0x5678\nbx r12\nbl 0\nb.w 0\nbeq.w 0\ncbz r0,0\n')
++p=run(out,'minimum-forms',[tc/'llvm-mc','-triple=armv7-none-eabi','-mcpu=generic',minimum,'-filetype=obj',reference,'-o',out/'minimum-forms.o']);assert p.returncode==0,p.stdout+p.stderr
++(out/'baseline-runtime.o').write_bytes(rtbase)
++p=run(out,'runtime-disassemble',[tc/'llvm-objdump','-d','--no-show-raw-insn',out/'baseline-runtime.o']);assert p.returncode==0,p.stdout+p.stderr
++import re
++instructions=[]
++for line in p.stdout.splitlines():
++ m=re.match(r'^\s*[0-9a-f]+:\s+(.+)',line)
++ if not m:continue
++ instruction=re.sub(r'\s*<[^>]*>','',m[1]).split('@',1)[0].strip()
++ if instruction.startswith('.'):continue
++ assert '<unknown>' not in m[1],line
++ instructions.append(instruction)
++assert len(instructions)>20
++reference=out/'minimum-runtime.s';reference.write_text('.syntax unified\n.arch armv7-a\n.text\n.arm\n'+'\n'.join(instructions)+'\n')
++p=run(out,'minimum-runtime',[tc/'llvm-mc','-triple=armv7-none-eabi','-mcpu=generic',minimum,'-filetype=obj',reference,'-o',out/'minimum-runtime.o']);assert p.returncode==0,p.stdout+p.stderr
++(out/'minimum-profile.json').write_text(json.dumps(dict(runtime_instructions=len(instructions),integer_veneer_branch_forms=True),indent=2)+'\n')
++for isa in ('arm','thumb'):
++ work=out/isa/'hugify';work.mkdir();p=run(work,'bolt',[tc/'llvm-bolt',out/isa/'base.elf','-o',work/'out.elf','--hugify']);assert p.returncode==1 and not (work/'out.elf').exists() and 'AArch32 hugify' in p.stdout+p.stderr
++ rows.append(dict(isa=isa,case='hugify',mode='optimize',admitted=False,returncode=p.returncode))
++
++(out/'results.json').write_text(json.dumps(rows,indent=2)+'\n')
++print('ARM ISA/ABI admission:',len(rows),'passed;',sum(r['admitted'] for r in rows),'admissions;',sum(not r['admitted'] for r in rows),'rejections')
+--- a/bolt/test/ARM/Inputs/check-arm-it-boundaries.py
++++ b/bolt/test/ARM/Inputs/check-arm-it-boundaries.py
+@@ -29,7 +29,7 @@
+     return elf
+ 
+ runtime = out/'runtime.a'
+-run('runtime-mc', ['llvm-mc','-triple=armv7-none-eabi','-filetype=obj',inputs/'arm-counter-runtime.s','-o',out/'runtime.o'])
++run('runtime-mc', ['llvm-mc','-arm-add-build-attributes','-triple=armv7-none-eabi','-filetype=obj',inputs/'arm-counter-runtime.s','-o',out/'runtime.o'])
+ run('runtime-ar', ['llvm-ar','rcs',runtime,out/'runtime.o'])
+ start = '.arm\n.global _start\n.type _start,%function\n_start:\nbl helper\nbx lr\n.size _start,.-_start\n.thumb\n'
+ source = start+function('helper','bx lr')
+--- a/bolt/test/ARM/arm-cbz-flags.test
++++ b/bolt/test/ARM/arm-cbz-flags.test
+@@ -1,5 +1,5 @@
+ ## CBZ/CBNZ preserve NZCV across a long-branch expansion.
+-RUN: llvm-mc -triple=thumbv7-none-eabi -filetype=obj %p/Inputs/arm32-cbz-flags.s -o %t.o
++RUN: llvm-mc -arm-add-build-attributes -triple=thumbv7-none-eabi -filetype=obj %p/Inputs/arm32-cbz-flags.s -o %t.o
+ RUN: ld.lld --emit-relocs -T %p/Inputs/arm32-cbz-flags.ld %t.o -o %t.exe
+ RUN: llvm-bolt %t.exe -o %t.bolt --no-huge-pages --emit-function-map=%t.map
+ RUN: %python %p/Inputs/check-cbz-flags.py llvm-mc llvm-readelf %t.bolt %t.map
+--- a/bolt/test/ARM/arm-counter-carry.test
++++ b/bolt/test/ARM/arm-counter-carry.test
+@@ -1,7 +1,7 @@
+ ## Encoding regression for full-width slots; semantic seeded carry runs on Pi.
+ RUN: llvm-mc -triple=armv7-none-eabi -arm-add-build-attributes -filetype=obj %p/Inputs/arm-counter-probes.s -o %t.o
+ RUN: ld.lld --emit-relocs -T %p/Inputs/arm32.ld %t.o -o %t.exe
+-RUN: llvm-mc -triple=armv7-none-eabi -filetype=obj %p/Inputs/arm-counter-runtime.s -o %t.rt.o
++RUN: llvm-mc -arm-add-build-attributes -triple=armv7-none-eabi -filetype=obj %p/Inputs/arm-counter-runtime.s -o %t.rt.o
+ RUN: llvm-ar rcs %t.rt.a %t.rt.o
+ RUN: llvm-bolt %t.exe -o %t.bolt --no-huge-pages -lite=0 --instrument --instrument-calls=false --arm-instrumentation-contract=privileged-single-core-no-fiq \
+ RUN:   --instrumentation-sleep-time=1 --runtime-instrumentation-lib=%t.rt.a \
+--- a/bolt/test/ARM/arm-inline-table.test
++++ b/bolt/test/ARM/arm-inline-table.test
+@@ -1,7 +1,7 @@
+ ## AArch32 TBB/TBH switch tables (patch 0024): decoded into CFG edges, rewritten
+ ## as TBH with an inline halfword table; case blocks laid out before the table
+ ## are reached through B.W stubs after it.
+-RUN: llvm-mc -triple=thumbv7-none-eabi -filetype=obj %p/Inputs/arm32-tbb.s -o %t.o
++RUN: llvm-mc -arm-add-build-attributes -triple=thumbv7-none-eabi -filetype=obj %p/Inputs/arm32-tbb.s -o %t.o
+ RUN: ld.lld --emit-relocs -T %p/Inputs/arm32.ld %t.o -o %t.exe
+ RUN: llvm-bolt %t.exe -o %t.bolt --no-huge-pages -lite=0 -print-cfg -print-only=sw_tbb \
+ RUN:   2>&1 | FileCheck %s --check-prefix=CFG
+--- a/bolt/test/ARM/arm-interwork.test
++++ b/bolt/test/ARM/arm-interwork.test
+@@ -1,6 +1,6 @@
+ ## ARM↔Thumb interworking calls survive identity rewrite.
+ 
+-# RUN: llvm-mc -filetype=obj -triple=armv7-unknown-linux-gnueabi %p/Inputs/arm32-interwork.s -o %t.o
++# RUN: llvm-mc -arm-add-build-attributes -filetype=obj -triple=armv7-unknown-linux-gnueabi %p/Inputs/arm32-interwork.s -o %t.o
+ # RUN: ld.lld --emit-relocs -T %p/Inputs/arm32.ld %t.o -o %t.exe
+ # RUN: llvm-bolt %t.exe -o %t.bolt --print-cfg 2>&1 | FileCheck %s --check-prefix=CHECK-LOG
+ # RUN: llvm-objdump -d --triple=armv7a-none-eabi %t.bolt | FileCheck %s --check-prefix=CHECK-OUT
+--- /dev/null
++++ b/bolt/test/ARM/arm-isa-contract.test
+@@ -0,0 +1 @@
++RUN: %python %p/Inputs/check-arm-isa-contract.py %t.dir
+--- a/bolt/test/ARM/arm-longjmp-veneer.test
++++ b/bolt/test/ARM/arm-longjmp-veneer.test
+@@ -1,8 +1,9 @@
+-## Out-of-range ARM BL: drop the linker veneer, then LongJmp emits movw/movt/bx.
++## Out-of-range ARM BL: drop an explicit legacy literal veneer under v7-A
++## attributes, then LongJmp emits movw/movt/bx.
+ 
+ # REQUIRES: system-linux
+ 
+-RUN: llvm-mc -filetype=obj -triple=armv7-unknown-linux-gnueabi %p/Inputs/arm32-far-bl.s -o %t.o
++RUN: llvm-mc -arm-add-build-attributes -filetype=obj -triple=armv7-unknown-linux-gnueabi %p/Inputs/arm32-far-bl.s -o %t.o
+ RUN: ld.lld --emit-relocs -T %p/Inputs/arm32-far.ld %t.o -o %t.exe
+ RUN: llvm-bolt %t.exe -o %t.bolt --pad-funcs-before=far_away:0x2100000 2>&1 | FileCheck %s --check-prefix=LOG
+ RUN: llvm-readelf -h %t.bolt | FileCheck %s --check-prefix=HDR
+--- a/bolt/test/ARM/arm-passes.test
++++ b/bolt/test/ARM/arm-passes.test
+@@ -1,5 +1,5 @@
+ ## AArch32 behaviour of BOLT's generic passes (patch 0023).
+-RUN: llvm-mc -triple=thumbv7-none-eabi -filetype=obj %p/Inputs/arm32-passes.s -o %t.o
++RUN: llvm-mc -arm-add-build-attributes -triple=thumbv7-none-eabi -filetype=obj %p/Inputs/arm32-passes.s -o %t.o
+ RUN: ld.lld --emit-relocs -T %p/Inputs/arm32.ld %t.o -o %t.exe
+ 
+ ## ARM-mode Bcc targets are symbolized (operand 0), so a reordered layout keeps
+--- a/bolt/test/ARM/arm-pop-cfg.test
++++ b/bolt/test/ARM/arm-pop-cfg.test
+@@ -1,6 +1,6 @@
+ ## A PC-restoring load terminates a block; ordinary and predicated loads
+ ## retain their live fallthrough instructions.
+-RUN: llvm-mc -triple=armv7-none-eabi -filetype=obj %p/Inputs/arm32-pop-cfg.s -o %t.o
++RUN: llvm-mc -arm-add-build-attributes -triple=armv7-none-eabi -filetype=obj %p/Inputs/arm32-pop-cfg.s -o %t.o
+ RUN: ld.lld --emit-relocs -T %p/Inputs/arm32.ld %t.o -o %t.exe
+ RUN: llvm-bolt %t.exe -o %t.bolt --print-finalized 2>&1 | FileCheck %s
+ CHECK-LABEL: Binary Function "arm_pop" after finalize-functions
+--- a/bolt/test/ARM/arm-stub-determinism.test
++++ b/bolt/test/ARM/arm-stub-determinism.test
+@@ -1,4 +1,4 @@
+ ## Repeated links must allocate interworking stubs in a stable order.
+-RUN: llvm-mc -triple=armv7-none-eabi -filetype=obj %p/Inputs/arm32-stub-order.s -o %t.o
++RUN: llvm-mc -arm-add-build-attributes -triple=armv7-none-eabi -filetype=obj %p/Inputs/arm32-stub-order.s -o %t.o
+ RUN: ld.lld --emit-relocs -T %p/Inputs/arm32.ld %t.o -o %t.exe
+ RUN: %python %p/Inputs/check-stub-determinism.py llvm-bolt llvm-objcopy %t.exe %t
+--- a/bolt/test/ARM/arm-thumb-entry.test
++++ b/bolt/test/ARM/arm-thumb-entry.test
+@@ -1,6 +1,6 @@
+ ## A Thumb entry and STT_FUNC values use bit zero for ISA state. Mapping symbols
+ ## use the actual even code address after a function moves.
+-RUN: llvm-mc -triple=thumbv7-none-eabi -filetype=obj -defsym THUMB_ENTRY=1 %p/Inputs/arm32-cbz-flags.s -o %t.o
++RUN: llvm-mc -arm-add-build-attributes -triple=thumbv7-none-eabi -filetype=obj -defsym THUMB_ENTRY=1 %p/Inputs/arm32-cbz-flags.s -o %t.o
+ RUN: ld.lld --emit-relocs -T %p/Inputs/arm32-cbz-flags.ld %t.o -o %t.exe
+ RUN: llvm-bolt %t.exe -o %t.bolt --no-huge-pages --emit-function-map=%t.map
+ RUN: %python %p/Inputs/check-thumb-entry.py llvm-readelf %t.bolt %t.map
+--- a/bolt/test/ARM/arm-thumb-split.test
++++ b/bolt/test/ARM/arm-thumb-split.test
+@@ -3,7 +3,7 @@
+ ## directly. Before the fix JITLink rejected relocation 51, and then routed the
+ ## branch through an ARM-state interworking stub because the fragment symbol
+ ## ("kernel.cold.0") was not known to be Thumb.
+-RUN: llvm-mc -triple=thumbv7-none-eabi -filetype=obj %p/Inputs/arm32-thumb-split.s -o %t.o
++RUN: llvm-mc -arm-add-build-attributes -triple=thumbv7-none-eabi -filetype=obj %p/Inputs/arm32-thumb-split.s -o %t.o
+ RUN: ld.lld --emit-relocs -T %p/Inputs/arm32.ld %t.o -o %t.exe
+ RUN: llvm-bolt %t.exe -o %t.bolt --no-huge-pages --data %p/Inputs/arm32-thumb-split.fdata \
+ RUN:   -split-functions -split-all-cold -reorder-blocks=ext-tsp
+--- a/bolt/test/ARM/arm-unwind-rejection.test
++++ b/bolt/test/ARM/arm-unwind-rejection.test
+@@ -1,9 +1,9 @@
+ ## Reject genuine EHABI unwind descriptors before code can be reordered.
+ ## All-CANTUNWIND tables (the bare-metal harness) remain supported.
+-RUN: llvm-mc -triple=armv7-none-eabi -filetype=obj %p/Inputs/arm32-unwind.s -o %t.o
++RUN: llvm-mc -arm-add-build-attributes -triple=armv7-none-eabi -filetype=obj %p/Inputs/arm32-unwind.s -o %t.o
+ RUN: ld.lld --emit-relocs --unresolved-symbols=ignore-all -T %p/Inputs/arm32.ld %t.o -o %t.exe
+ RUN: not llvm-bolt %t.exe -o %t.bolt 2>&1 | FileCheck %s --check-prefix=UNWIND
+-RUN: llvm-mc -triple=armv7-none-eabi -defsym CANTUNWIND=1 -filetype=obj %p/Inputs/arm32-unwind.s -o %t.cant.o
++RUN: llvm-mc -arm-add-build-attributes -triple=armv7-none-eabi -defsym CANTUNWIND=1 -filetype=obj %p/Inputs/arm32-unwind.s -o %t.cant.o
+ RUN: ld.lld --emit-relocs -T %p/Inputs/arm32.ld %t.cant.o -o %t.cant.exe
+ RUN: llvm-bolt %t.cant.exe -o %t.cant.bolt
+ RUN: %python -c "open('%t.bad', 'wb').write(bytes(4))"
+--- a/bolt/test/ARM/arm32-thumb-pop-return.test
++++ b/bolt/test/ARM/arm32-thumb-pop-return.test
+@@ -4,7 +4,7 @@
+ ## BOLT treats the function as IsSimple and is willing to overwrite it,
+ ## rather than conservatively bailing out on unrecognized control flow.
+ 
+-# RUN: llvm-mc -filetype=obj -triple=thumbv7-unknown-linux-gnueabi %p/Inputs/arm32-thumb-pop-return.s -o %t.o
++# RUN: llvm-mc -arm-add-build-attributes -filetype=obj -triple=thumbv7-unknown-linux-gnueabi %p/Inputs/arm32-thumb-pop-return.s -o %t.o
+ # RUN: ld.lld --emit-relocs -T %p/Inputs/arm32.ld %t.o -o %t.exe
+ # RUN: llvm-objdump -d --triple=thumbv7a-none-eabi %t.exe | FileCheck %s --check-prefix=CHECK-IN
+ # RUN: llvm-bolt %t.exe -o %t.bolt --print-cfg 2>&1 | FileCheck %s --check-prefix=CHECK-LOG
+--- a/bolt/test/ARM/arm32-thumb-switch.test
++++ b/bolt/test/ARM/arm32-thumb-switch.test
+@@ -5,7 +5,7 @@
+ ## decoded into CFG edges and the function is rewritten: TBB becomes TBH with
+ ## a halfword table emitted right after it (see arm-inline-table.test).
+ 
+-# RUN: llvm-mc -filetype=obj -triple=thumbv7-unknown-linux-gnueabi %p/Inputs/arm32-thumb-switch.s -o %t.o
++# RUN: llvm-mc -arm-add-build-attributes -filetype=obj -triple=thumbv7-unknown-linux-gnueabi %p/Inputs/arm32-thumb-switch.s -o %t.o
+ # RUN: ld.lld --emit-relocs -T %p/Inputs/arm32.ld %t.o -o %t.exe
+ # RUN: llvm-objdump -d --triple=thumbv7a-none-eabi %t.exe | FileCheck %s --check-prefix=CHECK-IN
+ # RUN: llvm-bolt %t.exe -o %t.bolt --print-cfg 2>&1 | FileCheck %s --check-prefix=CHECK-LOG
+--- a/bolt/test/ARM/elf32-parse.test
++++ b/bolt/test/ARM/elf32-parse.test
+@@ -1,6 +1,6 @@
+ ## Verify that BOLT accepts ARM32 ELF executables and lists sections.
+ 
+-RUN: llvm-mc -filetype=obj -triple=armv7-unknown-linux-gnueabi %p/Inputs/arm32-add-bl.s -o %t.o
++RUN: llvm-mc -arm-add-build-attributes -filetype=obj -triple=armv7-unknown-linux-gnueabi %p/Inputs/arm32-add-bl.s -o %t.o
+ RUN: ld.lld --emit-relocs -T %p/Inputs/arm32.ld %t.o -o %t.exe
+ RUN: llvm-bolt --print-sections -o %t.out %t.exe 2>&1 | FileCheck %s
+ 
+--- a/bolt/test/ARM/thumb-cfg.test
++++ b/bolt/test/ARM/thumb-cfg.test
+@@ -1,6 +1,6 @@
+ ## CFG for Thumb-2 loop (no IT).
+ 
+-RUN: llvm-mc -filetype=obj -triple=thumbv7-unknown-linux-gnueabi %p/Inputs/arm32-thumb-loop.s -o %t.o
++RUN: llvm-mc -arm-add-build-attributes -filetype=obj -triple=thumbv7-unknown-linux-gnueabi %p/Inputs/arm32-thumb-loop.s -o %t.o
+ RUN: ld.lld --emit-relocs -T %p/Inputs/arm32.ld %t.o -o %t.exe
+ RUN: llvm-bolt --print-cfg -o %t.out %t.exe 2>&1 | FileCheck %s
+ 
+--- a/bolt/test/ARM/thumb-disasm.test
++++ b/bolt/test/ARM/thumb-disasm.test
+@@ -1,6 +1,6 @@
+ ## Disassemble a tiny Thumb-2 function (no IT).
+ 
+-RUN: llvm-mc -filetype=obj -triple=thumbv7-unknown-linux-gnueabi %p/Inputs/arm32-thumb-loop.s -o %t.o
++RUN: llvm-mc -arm-add-build-attributes -filetype=obj -triple=thumbv7-unknown-linux-gnueabi %p/Inputs/arm32-thumb-loop.s -o %t.o
+ RUN: ld.lld --emit-relocs -T %p/Inputs/arm32.ld %t.o -o %t.exe
+ RUN: llvm-bolt --print-disasm -o %t.out %t.exe 2>&1 | FileCheck %s
+ 
+--- a/bolt/test/ARM/thumb-it.test
++++ b/bolt/test/ARM/thumb-it.test
+@@ -1,6 +1,6 @@
+ ## Thumb-2 IT / ITE bundles stay atomic across identity rewrite.
+ 
+-# RUN: llvm-mc -filetype=obj -triple=thumbv7-unknown-linux-gnueabi %p/Inputs/arm32-thumb-it.s -o %t.o
++# RUN: llvm-mc -arm-add-build-attributes -filetype=obj -triple=thumbv7-unknown-linux-gnueabi %p/Inputs/arm32-thumb-it.s -o %t.o
+ # RUN: ld.lld --emit-relocs -T %p/Inputs/arm32.ld %t.o -o %t.exe
+ # RUN: llvm-objdump -d --triple=thumbv7a-none-eabi %t.exe | FileCheck %s --check-prefix=CHECK-IN
+ # RUN: llvm-bolt %t.exe -o %t.bolt --print-cfg 2>&1 | FileCheck %s --check-prefix=CHECK-LOG
+--- a/bolt/test/ARM/thumb-rewrite.test
++++ b/bolt/test/ARM/thumb-rewrite.test
+@@ -1,6 +1,6 @@
+ ## Identity rewrite of Thumb-2 ET_EXEC (no IT).
+ 
+-RUN: llvm-mc -filetype=obj -triple=thumbv7-unknown-linux-gnueabi %p/Inputs/arm32-thumb-loop.s -o %t.o
++RUN: llvm-mc -arm-add-build-attributes -filetype=obj -triple=thumbv7-unknown-linux-gnueabi %p/Inputs/arm32-thumb-loop.s -o %t.o
+ RUN: ld.lld --emit-relocs -T %p/Inputs/arm32.ld %t.o -o %t.exe
+ RUN: llvm-bolt %t.exe -o %t.bolt 2>&1 | FileCheck %s --check-prefix=CHECK-LOG
+ RUN: llvm-readelf -h %t.bolt | FileCheck %s --check-prefix=CHECK-ELF

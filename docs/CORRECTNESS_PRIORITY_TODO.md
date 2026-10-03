@@ -5,8 +5,8 @@ Updated 2026-10-03 from [the fresh review](CORRECTNESS_REVIEW_0038.md) and
 Queue positions below are new priorities; the original twelve workstream IDs
 remain stable in [CORRECTNESS_TODO.md](CORRECTNESS_TODO.md).
 
-ATFE only. Items 1 and 2 have verified scoped fixes in overlays 0039/0040.
-Next is item 3, ISA/profile/ABI admission. The user
+ATFE only. Items 1-3 have verified scoped fixes in overlays 0039-0041.
+Next is item 4, fixed-load ELF/PIE admission. The user
 reactivated #12 on 2026-10-02; all its remaining work is included below. Nothing
 is paused in this correctness queue. Three original
 items are complete in their bounded scope (#2/#8/#10); nine remain open.
@@ -17,8 +17,8 @@ items are complete in their bounded scope (#2/#8/#10); nine remain open.
 |---|---|---|
 | 1 · P0 | Skipped interior-entry reservation bypass | Verified for decoded original function code; 0039 |
 | 2 · P0 | Thumb instrumentation startup crash | Verified for static entry and dummy-fini scope; 0040 + Pi |
-| 3 · P0 | ISA/profile/ABI admission | Pending; next |
-| 4 · P0 | Fixed-load ELF/PIE boundary | Pending |
+| 3 · P0 | ISA/profile/ABI admission | Verified conservative contract; 0041 + Pi |
+| 4 · P0 | Fixed-load ELF/PIE boundary | Pending; next |
 | 5 · P0 | Exact profile/artifact identity | Remaining work pending |
 | 6 · P0 | Execution/result gate integrity | Remaining work pending |
 | 7 · P1 | Relocation/literal matrix | Partial; remaining work pending |
@@ -43,9 +43,17 @@ runtime entry to emitted Thumb entry and an exact counter of one. Only the boot
 entry-pointer and counter metadata words change after BOLT; emitted code and ELF
 entry are retained. See [0040 evidence](results/correctness_thumb_startup_20261003.json).
 Static finalization remains a dummy return: DT_FINI variants are not invoked.
-Dynamic hooks and PIE admission remain open under item 4; general ISA/entry/symbol
-scope remains in items 3/11. Work stops at this verified milestone under the
+Dynamic hooks and PIE admission remain open under item 4; general entry/symbol
+scope remains in item 11; item 3 is now scoped verified below. Work stops at
+this verified milestone under the
 user's previous instruction; nothing in the queue is marked paused.
+
+Item 3: scoped ISA/ABI admission verified in 0041. Both builds pass 358 cases
+(32 admissions, 326 rejections), focused suites 50/49 and CoreTests 58/31 skips.
+Fresh Pi startup and 372-case IT/nested/reset checks pass per build; deliberate
+reset faults are detected. See [contract](AARCH32_ISA_ABI_CONTRACT.md) and
+[evidence](results/correctness_isa_contract_20261003.json). Static PIE remains
+admitted; item 4 is next. Stop at this milestone; no remaining item is paused.
 
 ## P0: confirmed defects and unsafe admission
 
@@ -74,15 +82,18 @@ user's previous instruction; nothing in the queue is marked paused.
      bounded odd return link, NZCV/R4/SP, exact one counter and watchdog return.
      General dynamic-hook/PIE policy remains in item 4.
 
-3. **Enforce the ISA/profile/ABI contract for generated instructions — F3/F5, #7/#6.**
-   - [ ] Define the initial LE ARMv7-A/Thumb-2 contract separately for ordinary
-     rewriting and privileged instrumentation.
-   - [ ] Reject or separately support ARMv6, M-profile, missing/conflicting
-     attributes, BE8/BE32 and other excluded features/ABI variants.
-   - [ ] Validate generated MOVW/MOVT, branches, counter bodies and stubs against
-     admitted features. Attribute-guided decoding alone is insufficient.
-   - [ ] Add the ARMv6 feature violation and missing-attribute/BE8 admissions as
-     explicit negative or supported-contract cases in both builds.
+3. **Enforce the ISA/profile/ABI contract for generated instructions - F3/F5, #7/#6.**
+   - [x] Define/enforce the initial LE ARMv7-A/Thumb-2, EABI5/base-AAPCS contract;
+     instrumented inputs additionally require the existing quiet privilege contract.
+   - [x] Reject excluded architectures/profiles, malformed/missing/conflicting
+     attributes, BE8/BE32 and ABI variants. Validate supplied runtime objects and
+     archive members; reject FP/SIMD runtime or optional features exceeding input.
+   - [x] Check generated veneer/branch forms, complete counter-body bytes and all
+     baseline runtime instructions against minimum ARMv7-A. Rebuild the default
+     runtime for generic ARMv7-A; fresh Pi startup and IT/nested/reset pass both modes.
+   - [x] Both builds pass 358 admission cases, including original ARMv6/missing-
+     attributes/BE8 findings. Conservative exclusions and limits are published in
+     [the contract](AARCH32_ISA_ABI_CONTRACT.md); broader code/FP/pass proof stays open.
 
 4. **Enforce fixed-load ELF admission or implement rebasing — F4, #7/#11/#6.**
    - [ ] Close static PIE's `IsStaticExecutable` exception for unsupported

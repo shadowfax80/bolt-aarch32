@@ -22,9 +22,14 @@ case "$ARCH" in
   arm|arm32|aarch32)
     OUT_DIR="${OUT_DIR:-$ROOT/build-${BASE:-upstream}/bolt-rt-baremetal-arm}"
     TARGET="${TARGET:-arm-none-eabi}"
-    CPU="${QEMU_CPU:-cortex-a15}"
+    # Keep the default runtime at the admitted ARMv7-A baseline. Named CPUs can
+    # advertise optional divide/MP/TrustZone/virtualization requirements.
+    CPU="${QEMU_CPU:-generic}"
     # ARM-state entry stubs (e_entry). Do not compile as Thumb.
     EXTRA_FLAGS=(-marm)
+    if [[ -z "${QEMU_CPU:-}" ]]; then
+      EXTRA_FLAGS+=(-march=armv7-a)
+    fi
     ;;
   *)
     echo "error: ARCH must be aarch64 or arm32 (got: $ARCH)" >&2

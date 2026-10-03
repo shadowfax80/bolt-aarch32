@@ -1,0 +1,5973 @@
+{
+  "schema": 1,
+  "date": "2026-10-03",
+  "kind": "arm-isa-abi-admission",
+  "base": "atfe",
+  "patch": "overlay/llvm/patches/atfe/0041-bolt-arm-isa-abi-contract.patch",
+  "source_change": {
+    "bolt/include/bolt/RuntimeLibs/RuntimeLibrary.h": {
+      "before": "8f2571872be71b3e77912eeb981ff6e74a37b42d6e1a67e5358a41870cf33dba",
+      "after": "c34597b4d63923e1340654c4bd134a8d2fd370e3bbd173917aa94e596a870158"
+    },
+    "bolt/lib/Rewrite/RewriteInstance.cpp": {
+      "before": "042ad0aabcb50d0b4b955c2e625138e8e726ce31cf743ccddbae67c582f43d43",
+      "after": "028b33dbb5282e801c482e1afda725013be14676a1efc3b7b1efd70378e5cd3d"
+    },
+    "bolt/lib/RuntimeLibs/InstrumentationRuntimeLibrary.cpp": {
+      "before": "2da9c02dcf139891dba0e39959a91d254f1cd990076adfcbbe3341ee5008c50a",
+      "after": "246f0374f68cc109f8500b25e7a1ec82e661082f953dc80ea0f85c9319e69906"
+    },
+    "bolt/lib/RuntimeLibs/RuntimeLibrary.cpp": {
+      "before": "4e450bb03ef9eadd859f7da8cab21a34eeffd9af4198127ff001bebaaae1eebe",
+      "after": "47565fb401de659ffd54890aee9415be85cd958718bb9a9820e03e37f9f668b6"
+    },
+    "bolt/test/ARM/Inputs/arm-counter-runtime.s": {
+      "before": "e99d0d7d037d5e206343d6dac963cef61512b70f14966d0c6571a3fdaca6571a",
+      "after": "28c8af232d42317db2e5a568789411109906523da9b1d1a0e82d0f922c6e95d2"
+    },
+    "bolt/test/ARM/Inputs/arm32-add-bl.s": {
+      "before": "eb9cc896111a9b24fe157511c59b2d9292cca7d26959763246a66423f17d65a1",
+      "after": "76b0a5558450f11d4cec55360057db7302b650d88e4efa827f26caaf6e94fd1f"
+    },
+    "bolt/test/ARM/Inputs/arm32-far-bl.s": {
+      "before": "7fd43bb8f08b35cf6089ec85d22616f1eeafe5be3cff79239c903f8d713c761b",
+      "after": "40820face8d4ecf21338881752ea47797d92ef54371b286beb3c10d1a33f9b1d"
+    },
+    "bolt/test/ARM/Inputs/arm32-interwork.s": {
+      "before": "baee72a0b0816352ee73c4ae181635c089569cfef3cee229ca44ad0e8e8c0335",
+      "after": "41b5141ada411253f75206db6632aa264114f01215bccc218075e3df3ab460b4"
+    },
+    "bolt/test/ARM/Inputs/arm32-literal-load.s": {
+      "before": "ba278e2d99233610f4486c1a8dcd5f7f400327f9fbbe655d817810c93f10fe8c",
+      "after": "678d841bd9646a237aa89c0cd7589d8b91f92605b108f2decf58f1ed1deba0c5"
+    },
+    "bolt/test/ARM/Inputs/arm32-passes.s": {
+      "before": "249ee40e497b98e531601b48ae4f6dfc3b5086458e50eb325d7859975fa8a2c6",
+      "after": "d8062201359ed7a014cd519abd8e8ff5dbbfdc067bdd659170d608f06ea4a8e6"
+    },
+    "bolt/test/ARM/Inputs/arm32-pop-cfg.s": {
+      "before": "367a3e9afc26985a1a6a1f40a2398c91f89a3a34dd7b1d675995168a3dd61d37",
+      "after": "d86a56bcf1a6fc8aa3a001157e0098cf17bce485b1949a1a98809e8323741147"
+    },
+    "bolt/test/ARM/Inputs/arm32-stub-order.s": {
+      "before": "f2030d90b16fb95354e76d65b6127e30fca2060a3a0466c5d9c5a686483e8472",
+      "after": "65d6daf1b82e0f73915e5559ec7362ba8bde44dda24690e644bf1b9107d94bbf"
+    },
+    "bolt/test/ARM/Inputs/arm32-tbb.s": {
+      "before": "c15809cc284683834bd6a133314beed02ea4e9d89e4515ee975e039f4f212a05",
+      "after": "148395a828c73280edb3ed0ab62dd60b17e54d91fd359bc0b867c9bd3c7a35cc"
+    },
+    "bolt/test/ARM/Inputs/arm32-thumb-exit.s": {
+      "before": "7d978a1d7b1e89c38cc7a3e24cf6cdd0cc1fa6fa6b89b5bb6137e9254782cfa2",
+      "after": "0e5e8e04712795651d3ef3688ecbf902d823ef26fe1a806e497f449d69fa964d"
+    },
+    "bolt/test/ARM/Inputs/arm32-thumb-it.s": {
+      "before": "fb665fff7f0477d1604326b3e16bfc72ab99b1cb48536218cdd56ac24f91117b",
+      "after": "4216efc3f21074d9e7c9214d652b253b6358d05f39663b8b09d7acc068638468"
+    },
+    "bolt/test/ARM/Inputs/arm32-thumb-loop.s": {
+      "before": "ee90882a9d4e3a0855936ed17372b06af33f5c2541e9e6a6fd69ac87ebfc69bb",
+      "after": "6b0bead72c1a680d561692d84d13896594b7a616425cfd0fb741e00e3799850f"
+    },
+    "bolt/test/ARM/Inputs/arm32-thumb-pop-return.s": {
+      "before": "d36a8013741b8886c506a1d6b3577b4fa253487f7240d91cf4c2239d25ca63d2",
+      "after": "9b1b8e555a45832a8b6c5718992feaf2af9c6e228e329c9a7c02d9b03b0935ae"
+    },
+    "bolt/test/ARM/Inputs/arm32-thumb-split.s": {
+      "before": "48a1449998641f207acd50c3ecaf3738f24d549fe59490f07a3d73ac49869bf7",
+      "after": "a48bf48c648fd2652fbb91add6747d2ffccabc157105c1ea955faef49ec2d5b3"
+    },
+    "bolt/test/ARM/Inputs/arm32-thumb-switch.s": {
+      "before": "f6f1140363f02ca26b2c311a905b2b8c0568228be7aed078243ab23970b112df",
+      "after": "e543a84ddcd0a43f2b99334392f1fe5c337c85bf3ce4b60911a4f6f959f0d83d"
+    },
+    "bolt/test/ARM/Inputs/arm32-unwind.s": {
+      "before": "03d9fccf0ec3346be85a60ff2e81a167e31fe48177782492136285247efc3542",
+      "after": "cb80ee1f41e2c569f90026cca1fc1a781a08b2b2c583e3232fc4ec76aed3fe58"
+    },
+    "bolt/test/ARM/Inputs/check-arm-counter-bytes.py": {
+      "before": "7be1d8145e3b843ef4c73ee9596553a99226583e8c5bf3bab59e69429fb5f5ef",
+      "after": "d8f351eb0812493a300a1b695d9251fbc48915a72b7510b6b74416bc77f63176"
+    },
+    "bolt/test/ARM/Inputs/check-arm-instrumentation-scope.py": {
+      "before": "ea959f68ba468b7bf162900c455243a7bb8e8910649af22143e8fb8bec93be4c",
+      "after": "a4bc24d8b1b6760663e47534f6817f7781f82ace67bbbb262bcc6910f82d37fd"
+    },
+    "bolt/test/ARM/Inputs/check-arm-isa-contract.py": {
+      "before": null,
+      "after": "314b33921d2f96f635b8ad860b2d394d6ee1ad6f3009f019166289ec01acbe4b"
+    },
+    "bolt/test/ARM/Inputs/check-arm-it-boundaries.py": {
+      "before": "451611f22fc261dbebde9804bfd7c08e99b680020f41e9c8dec9df0fca915baa",
+      "after": "15aa06afdab92446d49c65e9eae9941d8d16aa28adb2d2c61744b87bb2c71e5b"
+    },
+    "bolt/test/ARM/arm-cbz-flags.test": {
+      "before": "bba0ffcf42c598550973844fe040904a21fe6f56af8e2d59c3426a95f007c554",
+      "after": "10f5db4165e935f12cedb8a5ce9640eb2cd81ddf15fa3351adf3640cb3488316"
+    },
+    "bolt/test/ARM/arm-counter-carry.test": {
+      "before": "ff2abf5876e3705ee7c77e90495a84e9d21baef1badef7d852403a4fd22a0c28",
+      "after": "22e1b8cfef1158ab7745a7d05cfe4364a708bae9632d1eaaffb3d6d6b456ec96"
+    },
+    "bolt/test/ARM/arm-inline-table.test": {
+      "before": "fdf1074c355201919dadbe82fa3972e0c5eeb067660f674b1b3dee33b98130ad",
+      "after": "558b17eaaa8e4aa190ed4c51634c1750603c64b002b62db4a1916b5c6e423876"
+    },
+    "bolt/test/ARM/arm-interwork.test": {
+      "before": "dd847a071264d81e2d69a2b320e4ad1e01fb28dcd751c35103e3fd1b338e19ca",
+      "after": "42bc01edc04d758b0353e372c0d02e329cd849fe63b3723ff6588c5cc311d8a3"
+    },
+    "bolt/test/ARM/arm-isa-contract.test": {
+      "before": null,
+      "after": "107b191d496ee93c7de492462befa1150c34a0098f89b3f340ebceeaca7a2769"
+    },
+    "bolt/test/ARM/arm-longjmp-veneer.test": {
+      "before": "8b152a0962e75a831b7d25c5def8cbe03faecd9cf3e2bc43225a68c857bed597",
+      "after": "5544679a5a67cd4458af867498aba23a4749696be6bd055f72f6c06471b80a87"
+    },
+    "bolt/test/ARM/arm-passes.test": {
+      "before": "78aa18172d8329b1547789c3ad41a1270cf4655456b7ed218f8926ff3f67d651",
+      "after": "235d5761db293ba694198d6b2dac26718557e2291e7040bdb90c2b354e794655"
+    },
+    "bolt/test/ARM/arm-pop-cfg.test": {
+      "before": "0869575dba02887f319e1833ddec0bd2645d3dbc5e92e2686900c6e6b7b4e6d5",
+      "after": "b19cab3fbd0ab98f6afb4de0b10c3bb7843e3d9f414d3502e7d38c615308cacf"
+    },
+    "bolt/test/ARM/arm-stub-determinism.test": {
+      "before": "ffa3e12c1060635049c53125dbd354621758175810b72c326b5ddb7ef51c42d9",
+      "after": "ae73728dfdec95e0af7382d34c54ea42936bb03e00a5619943cb79e3597fcf59"
+    },
+    "bolt/test/ARM/arm-thumb-entry.test": {
+      "before": "0f308321d76a501495c776b7a4076d25ffeaf2869bfce9b9a9f45fba0edb6da5",
+      "after": "601ae384bf6e338f8b197422f5d5b6a1b13fe6a0f740d228baf02683065b400a"
+    },
+    "bolt/test/ARM/arm-thumb-split.test": {
+      "before": "72f864f632e0829b491be9502fee4fb8c10b9ccb905bdb71fa965a67956b10fd",
+      "after": "4a2bf6d0dae350bc26529c1d8a3b328788deee8b61bc96971f365de39031d9bf"
+    },
+    "bolt/test/ARM/arm-unwind-rejection.test": {
+      "before": "58bc0d7dd45185d575dad3f8741509bcfeb413d2c4bdecf010b93f293457e53e",
+      "after": "9e7ff21bd469466911499cded35a4ff7c97c73e7a48e296ce1b851abee8be1bc"
+    },
+    "bolt/test/ARM/arm32-thumb-pop-return.test": {
+      "before": "94b440bf68f98e29dcf661be63db13a4f5c73bb9899338dd8549748aa27bf6f8",
+      "after": "bf7456f2695fa3a9380ad23a7062deff3864f86a6d8bb0e7f9888fa5374f34bf"
+    },
+    "bolt/test/ARM/arm32-thumb-switch.test": {
+      "before": "b48f4b23d7a1a9c10f33e516a85d4d5596accb13455b555a52f9fe496eae4209",
+      "after": "3d96bf1e3a270a3f2d1b8aa995dc5bddbac4d6b3a1d7d22a2515bb5b673c3237"
+    },
+    "bolt/test/ARM/elf32-parse.test": {
+      "before": "554f878d8bbae044919515e1806681f5c9edb301f3ae88f256cf284620e407ef",
+      "after": "a8b2cf573634dbae91e31a8e75aafdf6be1d879bbce7fc763c850f6a17b5583a"
+    },
+    "bolt/test/ARM/thumb-cfg.test": {
+      "before": "020bce38f0031bd69cb5cc4384f8daef96e40b43d5ff8c0110dbe7ac7ac0a6be",
+      "after": "5766d629f79a95a5791edb21076cf73341b74a9a746f2537e159c539b4f787af"
+    },
+    "bolt/test/ARM/thumb-disasm.test": {
+      "before": "5512b15600be460062c93b77a5a581a41924f1227f05f7a15114d57ecb8b41c5",
+      "after": "16f2656ab846472e450139133c45c0a51a3c1bb371a74a4d52aaa4e08647fb6d"
+    },
+    "bolt/test/ARM/thumb-it.test": {
+      "before": "4e36ae900200876834a4cdb9f71e8cf29562a6e90aa949c50257ec618ac683ec",
+      "after": "e5e7396a8f0a2672b0942cb2cf55da54bb4156eff56a5825c50c1f761e9e2a2b"
+    },
+    "bolt/test/ARM/thumb-rewrite.test": {
+      "before": "59916d39328e438c0c3c9807121ba3d2c3136e55bf971f263314da24addcbfd9",
+      "after": "3f13c7ffa1d120ab9da98b9ea431027b5acd27c74605388368bed829fa73afd9"
+    }
+  },
+  "runtime_change": {
+    "on": {
+      "old": "eceba9ea9fcfbda21c13e97c78f9b1795a5051223d4bad07666ee2aea431b24d",
+      "new": "02cd16859e9b73c8f52587a46901b2bcbc06e97c18a1f5b91d3ef3f59e8db62d"
+    },
+    "off": {
+      "old": "1d7312f34d760acf2f4f5ea593305afc592979172ff0328e703bbc0af57bbd42",
+      "new": "02cd16859e9b73c8f52587a46901b2bcbc06e97c18a1f5b91d3ef3f59e8db62d"
+    }
+  },
+  "host": {
+    "on": {
+      "admission_cases": 358,
+      "admissions": 32,
+      "rejections": 326,
+      "metadata_cases": 300,
+      "be32_cases": 4,
+      "runtime_cases": 52,
+      "hugify_rejections": 2,
+      "focused_passed": 50,
+      "focused_expected_skips": 0,
+      "core_passed": 58,
+      "core_expected_skips": 31,
+      "minimum_profile": {
+        "runtime_instructions": 24,
+        "integer_veneer_branch_forms": true
+      },
+      "tool_sha256": "314615e354419e3a7a0d0bd53d438fa531d1542d8a119e32efa9cdad36520353",
+      "review_rows": [
+        {
+          "case": "armv7-control",
+          "mode": "optimize",
+          "selection": "all",
+          "returncode": 0,
+          "output": true,
+          "input_sha256": "3fe32e728142a7c56561e66b3db89940562a7815a253c15c06a57b6063d6e2d3",
+          "output_sha256": "50a466c5cdcda8e5aade9c02b784b300a4fb23b6c0c67650cbba99530e4e4831"
+        },
+        {
+          "case": "armv7-control",
+          "mode": "instrument",
+          "selection": "all",
+          "returncode": 0,
+          "output": true,
+          "input_sha256": "3fe32e728142a7c56561e66b3db89940562a7815a253c15c06a57b6063d6e2d3",
+          "output_sha256": "bfd15a26aff440b3fbe4e85e6414b9de11f5c6a247958b0f47ccbf38af5b9752"
+        },
+        {
+          "case": "thumb-entry",
+          "mode": "optimize",
+          "selection": "all",
+          "returncode": 0,
+          "output": true,
+          "input_sha256": "4b24c6e183919064fb08fc06c48cf608d167f8205dcd2273a5d7175a31f44b30",
+          "output_sha256": "f33fbbdd51aec7d0ca3e8c3e6e91d4d2c486f4fab4163c18ea99d428c0b352db"
+        },
+        {
+          "case": "thumb-entry",
+          "mode": "instrument",
+          "selection": "all",
+          "returncode": 0,
+          "output": true,
+          "input_sha256": "4b24c6e183919064fb08fc06c48cf608d167f8205dcd2273a5d7175a31f44b30",
+          "output_sha256": "7a61bb70eece7b3ff53aa53f51350061575d67ecbff0561918d019374afe15aa"
+        },
+        {
+          "case": "armv6",
+          "mode": "optimize",
+          "selection": "all",
+          "returncode": 1,
+          "output": false,
+          "input_sha256": "80e325e8e6ad7373e7657b6d0f7797642e4a17e950df1bb781f3c52b1ef6349a"
+        },
+        {
+          "case": "armv6",
+          "mode": "instrument",
+          "selection": "all",
+          "returncode": 1,
+          "output": false,
+          "input_sha256": "80e325e8e6ad7373e7657b6d0f7797642e4a17e950df1bb781f3c52b1ef6349a"
+        },
+        {
+          "case": "missing-attributes",
+          "mode": "optimize",
+          "selection": "all",
+          "returncode": 1,
+          "output": false,
+          "input_sha256": "20a5a7b3f0a9322b5ec260c4580eb7440351b0165be877167953cca702615c67"
+        },
+        {
+          "case": "missing-attributes",
+          "mode": "instrument",
+          "selection": "all",
+          "returncode": 1,
+          "output": false,
+          "input_sha256": "20a5a7b3f0a9322b5ec260c4580eb7440351b0165be877167953cca702615c67"
+        },
+        {
+          "case": "be8-flag",
+          "mode": "optimize",
+          "selection": "all",
+          "returncode": 1,
+          "output": false,
+          "input_sha256": "1a499db7d0b1bdc05ba1b0396f4f35be8525adb3c67209b64bbc9ddd30eda3ac"
+        },
+        {
+          "case": "be8-flag",
+          "mode": "instrument",
+          "selection": "all",
+          "returncode": 1,
+          "output": false,
+          "input_sha256": "1a499db7d0b1bdc05ba1b0396f4f35be8525adb3c67209b64bbc9ddd30eda3ac"
+        },
+        {
+          "case": "static-pie",
+          "mode": "optimize",
+          "selection": "all",
+          "returncode": 0,
+          "output": true,
+          "input_sha256": "067136dd25a3f7da026f541eab3eb794498ba8243fd7fab4a5fa2746a4bff0ca",
+          "output_sha256": "f2f01c74cd7921dd06395e2cc1b762c03753cf77040a56555fb4999647a040e9"
+        },
+        {
+          "case": "static-pie",
+          "mode": "instrument",
+          "selection": "all",
+          "returncode": 0,
+          "output": true,
+          "input_sha256": "067136dd25a3f7da026f541eab3eb794498ba8243fd7fab4a5fa2746a4bff0ca",
+          "output_sha256": "6edda359774bd2142d7ceeffab1cc20b9ea963df75e542547db2d3ad9e3a59fb"
+        },
+        {
+          "case": "interior-direct",
+          "mode": "instrument",
+          "selection": "unselected",
+          "returncode": 1,
+          "output": false,
+          "input_sha256": "07aebc973bbc66bb7c0473e79a317a2cafe6202be01896f48e9771bc3eb0c168"
+        },
+        {
+          "case": "interior-direct",
+          "mode": "instrument",
+          "selection": "explicit-skip",
+          "returncode": 1,
+          "output": false,
+          "input_sha256": "07aebc973bbc66bb7c0473e79a317a2cafe6202be01896f48e9771bc3eb0c168"
+        },
+        {
+          "case": "interior-pointer",
+          "mode": "instrument",
+          "selection": "unselected",
+          "returncode": 1,
+          "output": false,
+          "input_sha256": "76fc7d290aedefa42aa21bed9c4de1dd112c4dad065bf88658b3f1192c9c098e"
+        },
+        {
+          "case": "interior-pointer",
+          "mode": "instrument",
+          "selection": "explicit-skip",
+          "returncode": 1,
+          "output": false,
+          "input_sha256": "76fc7d290aedefa42aa21bed9c4de1dd112c4dad065bf88658b3f1192c9c098e"
+        },
+        {
+          "case": "svc-exclusive",
+          "mode": "instrument",
+          "selection": "unselected",
+          "returncode": 1,
+          "output": false,
+          "input_sha256": "b8cafaa28149ac05dd080a4906152c8aac91d647e396484717352796ac828a71"
+        }
+      ],
+      "case_results": [
+        {
+          "isa": "arm",
+          "case": "base",
+          "mode": "optimize",
+          "admitted": true,
+          "returncode": 0
+        },
+        {
+          "isa": "arm",
+          "case": "base",
+          "mode": "instrument",
+          "admitted": true,
+          "returncode": 0
+        },
+        {
+          "isa": "arm",
+          "case": "derived-thumb",
+          "mode": "optimize",
+          "admitted": true,
+          "returncode": 0
+        },
+        {
+          "isa": "arm",
+          "case": "derived-thumb",
+          "mode": "instrument",
+          "admitted": true,
+          "returncode": 0
+        },
+        {
+          "isa": "arm",
+          "case": "extensions",
+          "mode": "optimize",
+          "admitted": true,
+          "returncode": 0
+        },
+        {
+          "isa": "arm",
+          "case": "extensions",
+          "mode": "instrument",
+          "admitted": true,
+          "returncode": 0
+        },
+        {
+          "isa": "arm",
+          "case": "softfp",
+          "mode": "optimize",
+          "admitted": true,
+          "returncode": 0
+        },
+        {
+          "isa": "arm",
+          "case": "softfp",
+          "mode": "instrument",
+          "admitted": true,
+          "returncode": 0
+        },
+        {
+          "isa": "arm",
+          "case": "unspecified-float-flags",
+          "mode": "optimize",
+          "admitted": true,
+          "returncode": 0
+        },
+        {
+          "isa": "arm",
+          "case": "unspecified-float-flags",
+          "mode": "instrument",
+          "admitted": true,
+          "returncode": 0
+        },
+        {
+          "isa": "arm",
+          "case": "armv6",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "armv6",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "armv6t2",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "armv6t2",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "armv8a",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "armv8a",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "armv9a",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "armv9a",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "v7r",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "v7r",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "v7m",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "v7m",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "profile-neutral",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "profile-neutral",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "system-profile",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "system-profile",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "no-arm",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "no-arm",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "invalid-arm",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "invalid-arm",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "no-thumb",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "no-thumb",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "thumb1",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "thumb1",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "invalid-thumb",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "invalid-thumb",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "missing-tag-6",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "missing-tag-6",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "missing-tag-7",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "missing-tag-7",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "missing-tag-8",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "missing-tag-8",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "missing-tag-9",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "missing-tag-9",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "v6m",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "v6m",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "v7em",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "v7em",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "v8m",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "v8m",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "vfp-args",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "vfp-args",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "custom-vfp-args",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "custom-vfp-args",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "compatible-vfp-args",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "compatible-vfp-args",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "wmmx",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "wmmx",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "wmmx-args",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "wmmx-args",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "custom-pcs",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "custom-pcs",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "mve",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "mve",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "thumb-ee",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "thumb-ee",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "pac",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "pac",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "bti",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "bti",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "bti-use",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "bti-use",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "pac-use",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "pac-use",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "dsp-extension",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "dsp-extension",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "nodefaults-zero",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "nodefaults-zero",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "nodefaults-one",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "nodefaults-one",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "alternative-arch",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "alternative-arch",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "mp-conflict-forward",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "mp-conflict-forward",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "mp-conflict-backward",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "mp-conflict-backward",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "simd-no-fp",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "simd-no-fp",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "new-fp",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "new-fp",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "new-simd",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "new-simd",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "duplicate-same",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "duplicate-same",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "duplicate-conflict",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "duplicate-conflict",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "unknown-tag",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "unknown-tag",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "large-value",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "large-value",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "hard-float",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "hard-float",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "both-float-flags",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "both-float-flags",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "be8",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "be8",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "le8-reserved",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "le8-reserved",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "legacy-flags",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "legacy-flags",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "eabi0",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "eabi0",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "eabi4",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "eabi4",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "future-eabi",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "future-eabi",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "bad-format",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "bad-format",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "truncated",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "truncated",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "bad-vendor-length",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "bad-vendor-length",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "bad-file-length",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "bad-file-length",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "no-file",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "no-file",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "section-scope",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "section-scope",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "symbol-scope",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "symbol-scope",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "two-vendors",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "two-vendors",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "two-scopes",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "two-scopes",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "unknown-vendor-only",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "unknown-vendor-only",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "unterminated-name",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "unterminated-name",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "supplementary-vendor",
+          "mode": "optimize",
+          "admitted": true,
+          "returncode": 0
+        },
+        {
+          "isa": "arm",
+          "case": "supplementary-vendor",
+          "mode": "instrument",
+          "admitted": true,
+          "returncode": 0
+        },
+        {
+          "isa": "arm",
+          "case": "absent-attributes",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "absent-attributes",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "wrong-section-type",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "wrong-section-type",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "duplicate-sections",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "duplicate-sections",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "osabi",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "osabi",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "abi-version",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "abi-version",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "base",
+          "mode": "optimize",
+          "admitted": true,
+          "returncode": 0
+        },
+        {
+          "isa": "thumb",
+          "case": "base",
+          "mode": "instrument",
+          "admitted": true,
+          "returncode": 0
+        },
+        {
+          "isa": "thumb",
+          "case": "derived-thumb",
+          "mode": "optimize",
+          "admitted": true,
+          "returncode": 0
+        },
+        {
+          "isa": "thumb",
+          "case": "derived-thumb",
+          "mode": "instrument",
+          "admitted": true,
+          "returncode": 0
+        },
+        {
+          "isa": "thumb",
+          "case": "extensions",
+          "mode": "optimize",
+          "admitted": true,
+          "returncode": 0
+        },
+        {
+          "isa": "thumb",
+          "case": "extensions",
+          "mode": "instrument",
+          "admitted": true,
+          "returncode": 0
+        },
+        {
+          "isa": "thumb",
+          "case": "softfp",
+          "mode": "optimize",
+          "admitted": true,
+          "returncode": 0
+        },
+        {
+          "isa": "thumb",
+          "case": "softfp",
+          "mode": "instrument",
+          "admitted": true,
+          "returncode": 0
+        },
+        {
+          "isa": "thumb",
+          "case": "unspecified-float-flags",
+          "mode": "optimize",
+          "admitted": true,
+          "returncode": 0
+        },
+        {
+          "isa": "thumb",
+          "case": "unspecified-float-flags",
+          "mode": "instrument",
+          "admitted": true,
+          "returncode": 0
+        },
+        {
+          "isa": "thumb",
+          "case": "armv6",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "armv6",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "armv6t2",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "armv6t2",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "armv8a",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "armv8a",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "armv9a",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "armv9a",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "v7r",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "v7r",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "v7m",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "v7m",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "profile-neutral",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "profile-neutral",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "system-profile",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "system-profile",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "no-arm",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "no-arm",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "invalid-arm",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "invalid-arm",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "no-thumb",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "no-thumb",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "thumb1",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "thumb1",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "invalid-thumb",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "invalid-thumb",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "missing-tag-6",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "missing-tag-6",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "missing-tag-7",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "missing-tag-7",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "missing-tag-8",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "missing-tag-8",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "missing-tag-9",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "missing-tag-9",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "v6m",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "v6m",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "v7em",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "v7em",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "v8m",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "v8m",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "vfp-args",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "vfp-args",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "custom-vfp-args",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "custom-vfp-args",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "compatible-vfp-args",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "compatible-vfp-args",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "wmmx",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "wmmx",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "wmmx-args",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "wmmx-args",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "custom-pcs",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "custom-pcs",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "mve",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "mve",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "thumb-ee",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "thumb-ee",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "pac",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "pac",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "bti",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "bti",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "bti-use",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "bti-use",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "pac-use",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "pac-use",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "dsp-extension",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "dsp-extension",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "nodefaults-zero",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "nodefaults-zero",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "nodefaults-one",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "nodefaults-one",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "alternative-arch",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "alternative-arch",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "mp-conflict-forward",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "mp-conflict-forward",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "mp-conflict-backward",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "mp-conflict-backward",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "simd-no-fp",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "simd-no-fp",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "new-fp",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "new-fp",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "new-simd",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "new-simd",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "duplicate-same",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "duplicate-same",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "duplicate-conflict",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "duplicate-conflict",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "unknown-tag",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "unknown-tag",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "large-value",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "large-value",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "hard-float",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "hard-float",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "both-float-flags",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "both-float-flags",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "be8",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "be8",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "le8-reserved",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "le8-reserved",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "legacy-flags",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "legacy-flags",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "eabi0",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "eabi0",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "eabi4",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "eabi4",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "future-eabi",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "future-eabi",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "bad-format",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "bad-format",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "truncated",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "truncated",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "bad-vendor-length",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "bad-vendor-length",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "bad-file-length",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "bad-file-length",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "no-file",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "no-file",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "section-scope",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "section-scope",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "symbol-scope",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "symbol-scope",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "two-vendors",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "two-vendors",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "two-scopes",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "two-scopes",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "unknown-vendor-only",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "unknown-vendor-only",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "unterminated-name",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "unterminated-name",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "supplementary-vendor",
+          "mode": "optimize",
+          "admitted": true,
+          "returncode": 0
+        },
+        {
+          "isa": "thumb",
+          "case": "supplementary-vendor",
+          "mode": "instrument",
+          "admitted": true,
+          "returncode": 0
+        },
+        {
+          "isa": "thumb",
+          "case": "absent-attributes",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "absent-attributes",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "wrong-section-type",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "wrong-section-type",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "duplicate-sections",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "duplicate-sections",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "osabi",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "osabi",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "abi-version",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "abi-version",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "be32",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "be32",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "be32",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "be32",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "runtime-baseline",
+          "mode": "object",
+          "admitted": true,
+          "returncode": 0
+        },
+        {
+          "isa": "arm",
+          "case": "runtime-baseline",
+          "mode": "archive",
+          "admitted": true,
+          "returncode": 0
+        },
+        {
+          "isa": "arm",
+          "case": "runtime-v6",
+          "mode": "object",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "runtime-v6",
+          "mode": "archive",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "runtime-new-arch",
+          "mode": "object",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "runtime-new-arch",
+          "mode": "archive",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "runtime-hard-float",
+          "mode": "object",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "runtime-hard-float",
+          "mode": "archive",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "runtime-vfp",
+          "mode": "object",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "runtime-vfp",
+          "mode": "archive",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "runtime-neon",
+          "mode": "object",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "runtime-neon",
+          "mode": "archive",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "runtime-missing",
+          "mode": "object",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "runtime-missing",
+          "mode": "archive",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "runtime-duplicate",
+          "mode": "object",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "runtime-duplicate",
+          "mode": "archive",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "runtime-divide",
+          "mode": "object",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "runtime-divide",
+          "mode": "archive",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "runtime-mp",
+          "mode": "object",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "runtime-mp",
+          "mode": "archive",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "runtime-tz",
+          "mode": "object",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "runtime-tz",
+          "mode": "archive",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "runtime-virtualization",
+          "mode": "object",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "runtime-virtualization",
+          "mode": "archive",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "runtime-rich",
+          "mode": "object",
+          "admitted": true,
+          "returncode": 0
+        },
+        {
+          "isa": "arm",
+          "case": "runtime-rich",
+          "mode": "archive",
+          "admitted": true,
+          "returncode": 0
+        },
+        {
+          "isa": "thumb",
+          "case": "runtime-baseline",
+          "mode": "object",
+          "admitted": true,
+          "returncode": 0
+        },
+        {
+          "isa": "thumb",
+          "case": "runtime-baseline",
+          "mode": "archive",
+          "admitted": true,
+          "returncode": 0
+        },
+        {
+          "isa": "thumb",
+          "case": "runtime-v6",
+          "mode": "object",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "runtime-v6",
+          "mode": "archive",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "runtime-new-arch",
+          "mode": "object",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "runtime-new-arch",
+          "mode": "archive",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "runtime-hard-float",
+          "mode": "object",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "runtime-hard-float",
+          "mode": "archive",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "runtime-vfp",
+          "mode": "object",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "runtime-vfp",
+          "mode": "archive",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "runtime-neon",
+          "mode": "object",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "runtime-neon",
+          "mode": "archive",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "runtime-missing",
+          "mode": "object",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "runtime-missing",
+          "mode": "archive",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "runtime-duplicate",
+          "mode": "object",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "runtime-duplicate",
+          "mode": "archive",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "runtime-divide",
+          "mode": "object",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "runtime-divide",
+          "mode": "archive",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "runtime-mp",
+          "mode": "object",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "runtime-mp",
+          "mode": "archive",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "runtime-tz",
+          "mode": "object",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "runtime-tz",
+          "mode": "archive",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "runtime-virtualization",
+          "mode": "object",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "runtime-virtualization",
+          "mode": "archive",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "runtime-rich",
+          "mode": "object",
+          "admitted": true,
+          "returncode": 0
+        },
+        {
+          "isa": "thumb",
+          "case": "runtime-rich",
+          "mode": "archive",
+          "admitted": true,
+          "returncode": 0
+        },
+        {
+          "isa": "arm",
+          "case": "hugify",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "hugify",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        }
+      ],
+      "logs_sha256": {
+        "build": "eca8447cd0824cc4f8db23a8202ab60ae00c1222fdab4b1cbc19c23369974ffb",
+        "lit": "c140fcd3c98cfe2ecbf461390a296ce873508f9dabd2247cd4e79ffb4a91f9f1",
+        "units": "50238689b27c2ba808cb74936f3513ae8e71e33a52faaf03dc0777e79c400826",
+        "review": "5f1bd78ffe2462e934bd3b109535d9b2b2185800ce6d382958c57f520287dd36"
+      }
+    },
+    "off": {
+      "admission_cases": 358,
+      "admissions": 32,
+      "rejections": 326,
+      "metadata_cases": 300,
+      "be32_cases": 4,
+      "runtime_cases": 52,
+      "hugify_rejections": 2,
+      "focused_passed": 49,
+      "focused_expected_skips": 1,
+      "core_passed": 58,
+      "core_expected_skips": 31,
+      "minimum_profile": {
+        "runtime_instructions": 24,
+        "integer_veneer_branch_forms": true
+      },
+      "tool_sha256": "090d3f4dbf5dead8966b84850cabe3b92f59fa3b3715951fe420c15fafd00c16",
+      "review_rows": [
+        {
+          "case": "armv7-control",
+          "mode": "optimize",
+          "selection": "all",
+          "returncode": 0,
+          "output": true,
+          "input_sha256": "3fe32e728142a7c56561e66b3db89940562a7815a253c15c06a57b6063d6e2d3",
+          "output_sha256": "3fa86ef3aa165ec9db995cf3d4e0ea53d553b42715da5ac3a1dcf051d3f0d406"
+        },
+        {
+          "case": "armv7-control",
+          "mode": "instrument",
+          "selection": "all",
+          "returncode": 0,
+          "output": true,
+          "input_sha256": "3fe32e728142a7c56561e66b3db89940562a7815a253c15c06a57b6063d6e2d3",
+          "output_sha256": "545cadf4735611cb3d0c6c69ec502f780ac2636160701535f991995178cfd976"
+        },
+        {
+          "case": "thumb-entry",
+          "mode": "optimize",
+          "selection": "all",
+          "returncode": 0,
+          "output": true,
+          "input_sha256": "4b24c6e183919064fb08fc06c48cf608d167f8205dcd2273a5d7175a31f44b30",
+          "output_sha256": "9181356238e327226b3ca5082570ca15dcf7ca8e5b4324645b57e6de999d55f6"
+        },
+        {
+          "case": "thumb-entry",
+          "mode": "instrument",
+          "selection": "all",
+          "returncode": 0,
+          "output": true,
+          "input_sha256": "4b24c6e183919064fb08fc06c48cf608d167f8205dcd2273a5d7175a31f44b30",
+          "output_sha256": "b78f815adfebcf4e4e0033e88fc887e79944160e38e4da3a25d02d75e745362c"
+        },
+        {
+          "case": "armv6",
+          "mode": "optimize",
+          "selection": "all",
+          "returncode": 1,
+          "output": false,
+          "input_sha256": "80e325e8e6ad7373e7657b6d0f7797642e4a17e950df1bb781f3c52b1ef6349a"
+        },
+        {
+          "case": "armv6",
+          "mode": "instrument",
+          "selection": "all",
+          "returncode": 1,
+          "output": false,
+          "input_sha256": "80e325e8e6ad7373e7657b6d0f7797642e4a17e950df1bb781f3c52b1ef6349a"
+        },
+        {
+          "case": "missing-attributes",
+          "mode": "optimize",
+          "selection": "all",
+          "returncode": 1,
+          "output": false,
+          "input_sha256": "20a5a7b3f0a9322b5ec260c4580eb7440351b0165be877167953cca702615c67"
+        },
+        {
+          "case": "missing-attributes",
+          "mode": "instrument",
+          "selection": "all",
+          "returncode": 1,
+          "output": false,
+          "input_sha256": "20a5a7b3f0a9322b5ec260c4580eb7440351b0165be877167953cca702615c67"
+        },
+        {
+          "case": "be8-flag",
+          "mode": "optimize",
+          "selection": "all",
+          "returncode": 1,
+          "output": false,
+          "input_sha256": "1a499db7d0b1bdc05ba1b0396f4f35be8525adb3c67209b64bbc9ddd30eda3ac"
+        },
+        {
+          "case": "be8-flag",
+          "mode": "instrument",
+          "selection": "all",
+          "returncode": 1,
+          "output": false,
+          "input_sha256": "1a499db7d0b1bdc05ba1b0396f4f35be8525adb3c67209b64bbc9ddd30eda3ac"
+        },
+        {
+          "case": "static-pie",
+          "mode": "optimize",
+          "selection": "all",
+          "returncode": 0,
+          "output": true,
+          "input_sha256": "067136dd25a3f7da026f541eab3eb794498ba8243fd7fab4a5fa2746a4bff0ca",
+          "output_sha256": "0dbb424b092dcc20ef6375ddf317cd74e71d67a9c316dd02f7cfd49cf8c35975"
+        },
+        {
+          "case": "static-pie",
+          "mode": "instrument",
+          "selection": "all",
+          "returncode": 0,
+          "output": true,
+          "input_sha256": "067136dd25a3f7da026f541eab3eb794498ba8243fd7fab4a5fa2746a4bff0ca",
+          "output_sha256": "bfb5945d99c0518bbe80ad1342ce07b780f9ef95a4072f71c529a5e31266f470"
+        },
+        {
+          "case": "interior-direct",
+          "mode": "instrument",
+          "selection": "unselected",
+          "returncode": 1,
+          "output": false,
+          "input_sha256": "07aebc973bbc66bb7c0473e79a317a2cafe6202be01896f48e9771bc3eb0c168"
+        },
+        {
+          "case": "interior-direct",
+          "mode": "instrument",
+          "selection": "explicit-skip",
+          "returncode": 1,
+          "output": false,
+          "input_sha256": "07aebc973bbc66bb7c0473e79a317a2cafe6202be01896f48e9771bc3eb0c168"
+        },
+        {
+          "case": "interior-pointer",
+          "mode": "instrument",
+          "selection": "unselected",
+          "returncode": 1,
+          "output": false,
+          "input_sha256": "76fc7d290aedefa42aa21bed9c4de1dd112c4dad065bf88658b3f1192c9c098e"
+        },
+        {
+          "case": "interior-pointer",
+          "mode": "instrument",
+          "selection": "explicit-skip",
+          "returncode": 1,
+          "output": false,
+          "input_sha256": "76fc7d290aedefa42aa21bed9c4de1dd112c4dad065bf88658b3f1192c9c098e"
+        },
+        {
+          "case": "svc-exclusive",
+          "mode": "instrument",
+          "selection": "unselected",
+          "returncode": 1,
+          "output": false,
+          "input_sha256": "b8cafaa28149ac05dd080a4906152c8aac91d647e396484717352796ac828a71"
+        }
+      ],
+      "case_results": [
+        {
+          "isa": "arm",
+          "case": "base",
+          "mode": "optimize",
+          "admitted": true,
+          "returncode": 0
+        },
+        {
+          "isa": "arm",
+          "case": "base",
+          "mode": "instrument",
+          "admitted": true,
+          "returncode": 0
+        },
+        {
+          "isa": "arm",
+          "case": "derived-thumb",
+          "mode": "optimize",
+          "admitted": true,
+          "returncode": 0
+        },
+        {
+          "isa": "arm",
+          "case": "derived-thumb",
+          "mode": "instrument",
+          "admitted": true,
+          "returncode": 0
+        },
+        {
+          "isa": "arm",
+          "case": "extensions",
+          "mode": "optimize",
+          "admitted": true,
+          "returncode": 0
+        },
+        {
+          "isa": "arm",
+          "case": "extensions",
+          "mode": "instrument",
+          "admitted": true,
+          "returncode": 0
+        },
+        {
+          "isa": "arm",
+          "case": "softfp",
+          "mode": "optimize",
+          "admitted": true,
+          "returncode": 0
+        },
+        {
+          "isa": "arm",
+          "case": "softfp",
+          "mode": "instrument",
+          "admitted": true,
+          "returncode": 0
+        },
+        {
+          "isa": "arm",
+          "case": "unspecified-float-flags",
+          "mode": "optimize",
+          "admitted": true,
+          "returncode": 0
+        },
+        {
+          "isa": "arm",
+          "case": "unspecified-float-flags",
+          "mode": "instrument",
+          "admitted": true,
+          "returncode": 0
+        },
+        {
+          "isa": "arm",
+          "case": "armv6",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "armv6",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "armv6t2",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "armv6t2",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "armv8a",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "armv8a",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "armv9a",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "armv9a",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "v7r",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "v7r",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "v7m",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "v7m",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "profile-neutral",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "profile-neutral",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "system-profile",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "system-profile",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "no-arm",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "no-arm",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "invalid-arm",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "invalid-arm",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "no-thumb",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "no-thumb",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "thumb1",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "thumb1",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "invalid-thumb",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "invalid-thumb",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "missing-tag-6",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "missing-tag-6",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "missing-tag-7",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "missing-tag-7",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "missing-tag-8",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "missing-tag-8",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "missing-tag-9",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "missing-tag-9",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "v6m",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "v6m",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "v7em",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "v7em",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "v8m",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "v8m",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "vfp-args",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "vfp-args",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "custom-vfp-args",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "custom-vfp-args",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "compatible-vfp-args",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "compatible-vfp-args",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "wmmx",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "wmmx",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "wmmx-args",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "wmmx-args",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "custom-pcs",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "custom-pcs",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "mve",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "mve",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "thumb-ee",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "thumb-ee",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "pac",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "pac",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "bti",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "bti",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "bti-use",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "bti-use",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "pac-use",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "pac-use",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "dsp-extension",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "dsp-extension",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "nodefaults-zero",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "nodefaults-zero",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "nodefaults-one",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "nodefaults-one",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "alternative-arch",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "alternative-arch",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "mp-conflict-forward",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "mp-conflict-forward",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "mp-conflict-backward",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "mp-conflict-backward",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "simd-no-fp",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "simd-no-fp",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "new-fp",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "new-fp",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "new-simd",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "new-simd",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "duplicate-same",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "duplicate-same",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "duplicate-conflict",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "duplicate-conflict",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "unknown-tag",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "unknown-tag",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "large-value",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "large-value",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "hard-float",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "hard-float",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "both-float-flags",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "both-float-flags",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "be8",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "be8",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "le8-reserved",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "le8-reserved",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "legacy-flags",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "legacy-flags",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "eabi0",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "eabi0",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "eabi4",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "eabi4",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "future-eabi",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "future-eabi",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "bad-format",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "bad-format",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "truncated",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "truncated",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "bad-vendor-length",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "bad-vendor-length",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "bad-file-length",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "bad-file-length",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "no-file",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "no-file",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "section-scope",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "section-scope",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "symbol-scope",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "symbol-scope",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "two-vendors",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "two-vendors",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "two-scopes",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "two-scopes",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "unknown-vendor-only",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "unknown-vendor-only",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "unterminated-name",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "unterminated-name",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "supplementary-vendor",
+          "mode": "optimize",
+          "admitted": true,
+          "returncode": 0
+        },
+        {
+          "isa": "arm",
+          "case": "supplementary-vendor",
+          "mode": "instrument",
+          "admitted": true,
+          "returncode": 0
+        },
+        {
+          "isa": "arm",
+          "case": "absent-attributes",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "absent-attributes",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "wrong-section-type",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "wrong-section-type",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "duplicate-sections",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "duplicate-sections",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "osabi",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "osabi",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "abi-version",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "abi-version",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "base",
+          "mode": "optimize",
+          "admitted": true,
+          "returncode": 0
+        },
+        {
+          "isa": "thumb",
+          "case": "base",
+          "mode": "instrument",
+          "admitted": true,
+          "returncode": 0
+        },
+        {
+          "isa": "thumb",
+          "case": "derived-thumb",
+          "mode": "optimize",
+          "admitted": true,
+          "returncode": 0
+        },
+        {
+          "isa": "thumb",
+          "case": "derived-thumb",
+          "mode": "instrument",
+          "admitted": true,
+          "returncode": 0
+        },
+        {
+          "isa": "thumb",
+          "case": "extensions",
+          "mode": "optimize",
+          "admitted": true,
+          "returncode": 0
+        },
+        {
+          "isa": "thumb",
+          "case": "extensions",
+          "mode": "instrument",
+          "admitted": true,
+          "returncode": 0
+        },
+        {
+          "isa": "thumb",
+          "case": "softfp",
+          "mode": "optimize",
+          "admitted": true,
+          "returncode": 0
+        },
+        {
+          "isa": "thumb",
+          "case": "softfp",
+          "mode": "instrument",
+          "admitted": true,
+          "returncode": 0
+        },
+        {
+          "isa": "thumb",
+          "case": "unspecified-float-flags",
+          "mode": "optimize",
+          "admitted": true,
+          "returncode": 0
+        },
+        {
+          "isa": "thumb",
+          "case": "unspecified-float-flags",
+          "mode": "instrument",
+          "admitted": true,
+          "returncode": 0
+        },
+        {
+          "isa": "thumb",
+          "case": "armv6",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "armv6",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "armv6t2",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "armv6t2",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "armv8a",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "armv8a",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "armv9a",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "armv9a",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "v7r",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "v7r",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "v7m",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "v7m",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "profile-neutral",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "profile-neutral",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "system-profile",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "system-profile",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "no-arm",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "no-arm",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "invalid-arm",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "invalid-arm",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "no-thumb",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "no-thumb",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "thumb1",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "thumb1",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "invalid-thumb",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "invalid-thumb",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "missing-tag-6",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "missing-tag-6",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "missing-tag-7",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "missing-tag-7",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "missing-tag-8",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "missing-tag-8",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "missing-tag-9",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "missing-tag-9",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "v6m",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "v6m",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "v7em",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "v7em",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "v8m",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "v8m",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "vfp-args",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "vfp-args",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "custom-vfp-args",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "custom-vfp-args",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "compatible-vfp-args",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "compatible-vfp-args",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "wmmx",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "wmmx",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "wmmx-args",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "wmmx-args",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "custom-pcs",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "custom-pcs",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "mve",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "mve",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "thumb-ee",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "thumb-ee",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "pac",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "pac",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "bti",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "bti",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "bti-use",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "bti-use",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "pac-use",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "pac-use",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "dsp-extension",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "dsp-extension",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "nodefaults-zero",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "nodefaults-zero",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "nodefaults-one",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "nodefaults-one",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "alternative-arch",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "alternative-arch",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "mp-conflict-forward",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "mp-conflict-forward",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "mp-conflict-backward",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "mp-conflict-backward",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "simd-no-fp",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "simd-no-fp",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "new-fp",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "new-fp",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "new-simd",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "new-simd",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "duplicate-same",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "duplicate-same",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "duplicate-conflict",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "duplicate-conflict",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "unknown-tag",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "unknown-tag",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "large-value",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "large-value",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "hard-float",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "hard-float",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "both-float-flags",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "both-float-flags",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "be8",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "be8",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "le8-reserved",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "le8-reserved",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "legacy-flags",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "legacy-flags",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "eabi0",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "eabi0",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "eabi4",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "eabi4",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "future-eabi",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "future-eabi",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "bad-format",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "bad-format",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "truncated",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "truncated",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "bad-vendor-length",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "bad-vendor-length",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "bad-file-length",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "bad-file-length",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "no-file",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "no-file",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "section-scope",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "section-scope",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "symbol-scope",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "symbol-scope",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "two-vendors",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "two-vendors",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "two-scopes",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "two-scopes",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "unknown-vendor-only",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "unknown-vendor-only",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "unterminated-name",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "unterminated-name",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "supplementary-vendor",
+          "mode": "optimize",
+          "admitted": true,
+          "returncode": 0
+        },
+        {
+          "isa": "thumb",
+          "case": "supplementary-vendor",
+          "mode": "instrument",
+          "admitted": true,
+          "returncode": 0
+        },
+        {
+          "isa": "thumb",
+          "case": "absent-attributes",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "absent-attributes",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "wrong-section-type",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "wrong-section-type",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "duplicate-sections",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "duplicate-sections",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "osabi",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "osabi",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "abi-version",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "abi-version",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "be32",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "be32",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "be32",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "be32",
+          "mode": "instrument",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "runtime-baseline",
+          "mode": "object",
+          "admitted": true,
+          "returncode": 0
+        },
+        {
+          "isa": "arm",
+          "case": "runtime-baseline",
+          "mode": "archive",
+          "admitted": true,
+          "returncode": 0
+        },
+        {
+          "isa": "arm",
+          "case": "runtime-v6",
+          "mode": "object",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "runtime-v6",
+          "mode": "archive",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "runtime-new-arch",
+          "mode": "object",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "runtime-new-arch",
+          "mode": "archive",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "runtime-hard-float",
+          "mode": "object",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "runtime-hard-float",
+          "mode": "archive",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "runtime-vfp",
+          "mode": "object",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "runtime-vfp",
+          "mode": "archive",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "runtime-neon",
+          "mode": "object",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "runtime-neon",
+          "mode": "archive",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "runtime-missing",
+          "mode": "object",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "runtime-missing",
+          "mode": "archive",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "runtime-duplicate",
+          "mode": "object",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "runtime-duplicate",
+          "mode": "archive",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "runtime-divide",
+          "mode": "object",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "runtime-divide",
+          "mode": "archive",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "runtime-mp",
+          "mode": "object",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "runtime-mp",
+          "mode": "archive",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "runtime-tz",
+          "mode": "object",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "runtime-tz",
+          "mode": "archive",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "runtime-virtualization",
+          "mode": "object",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "runtime-virtualization",
+          "mode": "archive",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "arm",
+          "case": "runtime-rich",
+          "mode": "object",
+          "admitted": true,
+          "returncode": 0
+        },
+        {
+          "isa": "arm",
+          "case": "runtime-rich",
+          "mode": "archive",
+          "admitted": true,
+          "returncode": 0
+        },
+        {
+          "isa": "thumb",
+          "case": "runtime-baseline",
+          "mode": "object",
+          "admitted": true,
+          "returncode": 0
+        },
+        {
+          "isa": "thumb",
+          "case": "runtime-baseline",
+          "mode": "archive",
+          "admitted": true,
+          "returncode": 0
+        },
+        {
+          "isa": "thumb",
+          "case": "runtime-v6",
+          "mode": "object",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "runtime-v6",
+          "mode": "archive",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "runtime-new-arch",
+          "mode": "object",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "runtime-new-arch",
+          "mode": "archive",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "runtime-hard-float",
+          "mode": "object",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "runtime-hard-float",
+          "mode": "archive",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "runtime-vfp",
+          "mode": "object",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "runtime-vfp",
+          "mode": "archive",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "runtime-neon",
+          "mode": "object",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "runtime-neon",
+          "mode": "archive",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "runtime-missing",
+          "mode": "object",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "runtime-missing",
+          "mode": "archive",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "runtime-duplicate",
+          "mode": "object",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "runtime-duplicate",
+          "mode": "archive",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "runtime-divide",
+          "mode": "object",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "runtime-divide",
+          "mode": "archive",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "runtime-mp",
+          "mode": "object",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "runtime-mp",
+          "mode": "archive",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "runtime-tz",
+          "mode": "object",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "runtime-tz",
+          "mode": "archive",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "runtime-virtualization",
+          "mode": "object",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "runtime-virtualization",
+          "mode": "archive",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "runtime-rich",
+          "mode": "object",
+          "admitted": true,
+          "returncode": 0
+        },
+        {
+          "isa": "thumb",
+          "case": "runtime-rich",
+          "mode": "archive",
+          "admitted": true,
+          "returncode": 0
+        },
+        {
+          "isa": "arm",
+          "case": "hugify",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        },
+        {
+          "isa": "thumb",
+          "case": "hugify",
+          "mode": "optimize",
+          "admitted": false,
+          "returncode": 1
+        }
+      ],
+      "logs_sha256": {
+        "build": "9ee467075a2705c68d912764e93522edc840be4531fda1de5d553a8af7bf327c",
+        "lit": "2183edae466f6ba6cd0b24d3d5e856b360f78c4b133361f1724663e74dd0c099",
+        "units": "882265e0af5a20649edc2f7cf0bded1c85453fe3b98f88846519c7ee38e23d60",
+        "review": "c854c8ae448a0e86eb8fef44e26b1fc85bc2e53093e8ae9589ed43716537624f"
+      }
+    }
+  },
+  "hardware": {
+    "on": {
+      "pi": {
+        "build": "out/correctness/isa-contract-20261003/pi-on/build-7olit0q4",
+        "verification": "out/correctness/isa-contract-20261003/pi-on/build-7olit0q4/pi-verify-4ymmj_i3/verification.json",
+        "build_sha256": "8965cc83e71a8b3c5e8931d64e794b16546ae3288f44156f33da70028fdfff7d",
+        "verification_sha256": "fe13cd17af3e401e25cc45f86e5e6465748d34de7ea38901668e182e793a8a67",
+        "payload_sha256": {
+          "baseline": "9f5723971ed70a2cc9041ef9168bc139ebc771ce950fbbbb45d31ea184d68620",
+          "normal": "3498e161518cff0526c5b1936431d311518cacfb3970aa63afe5112d1f82d819",
+          "reverse": "3498e161518cff0526c5b1936431d311518cacfb3970aa63afe5112d1f82d819"
+        },
+        "report": {
+          "schema": 1,
+          "verified": true,
+          "scope": "Actual ARM runtime entry and trampoline to rewritten Thumb entry; one exact counter, Thumb return link, NZCV, R4, SP and quiet core-zero contract. Boot shim changes only the entry pointer and counter metadata; ELF entry and emitted code are retained.",
+          "port": "COM5",
+          "results": {
+            "baseline": {
+              "passed": true,
+              "actual_runtime_entry": false,
+              "counter_checked": false,
+              "exact_counter": null,
+              "thumb_return_link": 32869,
+              "state": [
+                305419896,
+                2684355034,
+                8388608,
+                2147483648,
+                1,
+                0,
+                32869
+              ],
+              "thumb_state": true,
+              "sentinels_and_quiet_contract": true
+            },
+            "normal": {
+              "passed": true,
+              "actual_runtime_entry": true,
+              "counter_checked": true,
+              "exact_counter": 1,
+              "thumb_return_link": 41055,
+              "state": [
+                305419896,
+                2684355034,
+                8388608,
+                2147483648,
+                1,
+                0,
+                41055
+              ],
+              "thumb_state": true,
+              "sentinels_and_quiet_contract": true
+            },
+            "reverse": {
+              "passed": true,
+              "actual_runtime_entry": true,
+              "counter_checked": true,
+              "exact_counter": 1,
+              "thumb_return_link": 41055,
+              "state": [
+                305419896,
+                2684355034,
+                8388608,
+                2147483648,
+                1,
+                0,
+                41055
+              ],
+              "thumb_state": true,
+              "sentinels_and_quiet_contract": true
+            }
+          },
+          "build_manifest_sha256": "8965cc83e71a8b3c5e8931d64e794b16546ae3288f44156f33da70028fdfff7d",
+          "verifier_sha256": "2f3edabd7c0241e45bb452e5df75ca7350154deb8b3e17b75095a89ad4caef0e",
+          "artifact_checker_sha256": "c8423520a081191dcb9466ae860fe33f384fe121cb08be476ad0ae5b99bd0c9b",
+          "loader_sha256": "20d8a44f44c62ce001c3cd49007a0b73b9a6890d92bdb37f9d5a573246453ab0",
+          "log_sha256": {
+            "baseline": "a3e36c97ee8e1d0a296ad6ae90389d2e627cfdcb3499f11d8db1ad7732c3124b",
+            "normal": "15d5690c24967c8904884336d4959a92d2349e52a264549c3ae1af43f1fe0b31",
+            "reverse": "efc2e81d627e096c301b18348abc26128508a858a5f210bfb8c352708d6e0d3b"
+          }
+        }
+      },
+      "it": {
+        "build": "out/correctness/isa-contract-20261003/it-on/build-kx6_s5mi",
+        "verification": "out/correctness/isa-contract-20261003/it-on/build-kx6_s5mi/pi-verify-hayupx_c/verification.json",
+        "build_sha256": "ab895b7dc16c44ab49a619fe2f7b70cbbd1fa0501dc50aa29b18a1c7f9060093",
+        "verification_sha256": "3ebec2ec74105b2e3b0feb116fbbc1df0cc7b1cff4bd8813a0362066daae77bc",
+        "payload_sha256": {
+          "bad-reset": "34117521051f329c0913389f4d071507f8e6ee75fb0e07ed247376ddbc30ecdc",
+          "baseline": "2c9f4d72d1589206834bce3bd9d0ede63c6364a31e8cab09de570d7055c272a7",
+          "conservative": "07994e0eb220838b95ee55b290347908ff83564097e7d71ab56d92ef753da7b9",
+          "normal": "22c77ac73eb09f99b662b9062bfe74629f83b52c77544210fb97baf2231fb6d3",
+          "reverse": "b6022ad61d56dd4201fcdfadb8c0a61e797b35cee4aa40fd522f828decad00ef"
+        },
+        "report": {
+          "schema": 1,
+          "verified": true,
+          "scope": "15 IT masks; narrow/wide terminal IT branches and loops; nested calls and recursion; single-core privileged quiet firmware; no active IRQ/FIQ/SMP",
+          "port": "COM5",
+          "results": {
+            "baseline": {
+              "passed": true,
+              "cases": 372,
+              "counters": 1,
+              "instrumented": false,
+              "runtime_clear_checked": true,
+              "operating_contract": {
+                "cpsr": 1610613210,
+                "mpidr": 2147483648,
+                "stack": 8388552
+              }
+            },
+            "normal": {
+              "passed": true,
+              "cases": 372,
+              "counters": 85,
+              "instrumented": true,
+              "runtime_clear_checked": true,
+              "operating_contract": {
+                "cpsr": 1610613210,
+                "mpidr": 2147483648,
+                "stack": 8388552
+              }
+            },
+            "reverse": {
+              "passed": true,
+              "cases": 372,
+              "counters": 85,
+              "instrumented": true,
+              "runtime_clear_checked": true,
+              "operating_contract": {
+                "cpsr": 1610613210,
+                "mpidr": 2147483648,
+                "stack": 8388552
+              }
+            },
+            "conservative": {
+              "passed": true,
+              "cases": 372,
+              "counters": 73,
+              "instrumented": true,
+              "runtime_clear_checked": true,
+              "operating_contract": {
+                "cpsr": 1610613210,
+                "mpidr": 2147483648,
+                "stack": 8388552
+              }
+            },
+            "bad-reset": {
+              "fault_detected": true,
+              "case": 0,
+              "seed": 0,
+              "field": 2000,
+              "actual": 305419896,
+              "operating_contract": {
+                "cpsr": 1610613210,
+                "mpidr": 2147483648,
+                "stack": 8388552
+              }
+            }
+          },
+          "build_manifest_sha256": "ab895b7dc16c44ab49a619fe2f7b70cbbd1fa0501dc50aa29b18a1c7f9060093",
+          "verifier_sha256": "5a3ef90d3749a5ef0d2e69ada398dc7b2fc60147d9d5d8f1035211066e55b374",
+          "loader_sha256": "20d8a44f44c62ce001c3cd49007a0b73b9a6890d92bdb37f9d5a573246453ab0",
+          "log_sha256": {
+            "baseline": "5fa9fa4b6921990928b84c7c375ee6a90ad379faa8e84fc2d8c38ac95793d819",
+            "normal": "4b0fa4f15e24bf8db511f3bbc801651d7e8035a5a2b1d45e84c0053a2bcba75d",
+            "reverse": "4b0fa4f15e24bf8db511f3bbc801651d7e8035a5a2b1d45e84c0053a2bcba75d",
+            "conservative": "5c3c52a5e4dafba118db30240a7b96d40639b7d2f3efd16b130788624b14b1cb",
+            "bad-reset": "fc8c557448cb8ec5e334f05490c859923ca1f1bb92e053e80745b73de73f2b8e"
+          }
+        }
+      }
+    },
+    "off": {
+      "pi": {
+        "build": "out/correctness/isa-contract-20261003/pi-off/build-l2y1fucf",
+        "verification": "out/correctness/isa-contract-20261003/pi-off/build-l2y1fucf/pi-verify-1l_b_cyc/verification.json",
+        "build_sha256": "097428ac6e58966e7f9be38e97058d3bea46382520c1de54812a848050e2e7a2",
+        "verification_sha256": "c8098dd5b4765cbd57d3342bb0e30f78757143743c83c495ff8bb069c185e282",
+        "payload_sha256": {
+          "baseline": "9f5723971ed70a2cc9041ef9168bc139ebc771ce950fbbbb45d31ea184d68620",
+          "normal": "3498e161518cff0526c5b1936431d311518cacfb3970aa63afe5112d1f82d819",
+          "reverse": "3498e161518cff0526c5b1936431d311518cacfb3970aa63afe5112d1f82d819"
+        },
+        "report": {
+          "schema": 1,
+          "verified": true,
+          "scope": "Actual ARM runtime entry and trampoline to rewritten Thumb entry; one exact counter, Thumb return link, NZCV, R4, SP and quiet core-zero contract. Boot shim changes only the entry pointer and counter metadata; ELF entry and emitted code are retained.",
+          "port": "COM5",
+          "results": {
+            "baseline": {
+              "passed": true,
+              "actual_runtime_entry": false,
+              "counter_checked": false,
+              "exact_counter": null,
+              "thumb_return_link": 32869,
+              "state": [
+                305419896,
+                2684355034,
+                8388608,
+                2147483648,
+                1,
+                0,
+                32869
+              ],
+              "thumb_state": true,
+              "sentinels_and_quiet_contract": true
+            },
+            "normal": {
+              "passed": true,
+              "actual_runtime_entry": true,
+              "counter_checked": true,
+              "exact_counter": 1,
+              "thumb_return_link": 41055,
+              "state": [
+                305419896,
+                2684355034,
+                8388608,
+                2147483648,
+                1,
+                0,
+                41055
+              ],
+              "thumb_state": true,
+              "sentinels_and_quiet_contract": true
+            },
+            "reverse": {
+              "passed": true,
+              "actual_runtime_entry": true,
+              "counter_checked": true,
+              "exact_counter": 1,
+              "thumb_return_link": 41055,
+              "state": [
+                305419896,
+                2684355034,
+                8388608,
+                2147483648,
+                1,
+                0,
+                41055
+              ],
+              "thumb_state": true,
+              "sentinels_and_quiet_contract": true
+            }
+          },
+          "build_manifest_sha256": "097428ac6e58966e7f9be38e97058d3bea46382520c1de54812a848050e2e7a2",
+          "verifier_sha256": "2f3edabd7c0241e45bb452e5df75ca7350154deb8b3e17b75095a89ad4caef0e",
+          "artifact_checker_sha256": "c8423520a081191dcb9466ae860fe33f384fe121cb08be476ad0ae5b99bd0c9b",
+          "loader_sha256": "20d8a44f44c62ce001c3cd49007a0b73b9a6890d92bdb37f9d5a573246453ab0",
+          "log_sha256": {
+            "baseline": "a3e36c97ee8e1d0a296ad6ae90389d2e627cfdcb3499f11d8db1ad7732c3124b",
+            "normal": "15d5690c24967c8904884336d4959a92d2349e52a264549c3ae1af43f1fe0b31",
+            "reverse": "15d5690c24967c8904884336d4959a92d2349e52a264549c3ae1af43f1fe0b31"
+          }
+        }
+      },
+      "it": {
+        "build": "out/correctness/isa-contract-20261003/it-off/build-6nttpglj",
+        "verification": "out/correctness/isa-contract-20261003/it-off/build-6nttpglj/pi-verify-z7os9lx5/verification.json",
+        "build_sha256": "e3c64cc3ed6811bd7ac916f65c3393754a2d8b79509db4341205ae655753b349",
+        "verification_sha256": "f609b985ea738e4bb196c9ab789679c8c4bfe0833354b8740654cd46b494ac89",
+        "payload_sha256": {
+          "bad-reset": "34117521051f329c0913389f4d071507f8e6ee75fb0e07ed247376ddbc30ecdc",
+          "baseline": "2c9f4d72d1589206834bce3bd9d0ede63c6364a31e8cab09de570d7055c272a7",
+          "conservative": "07994e0eb220838b95ee55b290347908ff83564097e7d71ab56d92ef753da7b9",
+          "normal": "22c77ac73eb09f99b662b9062bfe74629f83b52c77544210fb97baf2231fb6d3",
+          "reverse": "b6022ad61d56dd4201fcdfadb8c0a61e797b35cee4aa40fd522f828decad00ef"
+        },
+        "report": {
+          "schema": 1,
+          "verified": true,
+          "scope": "15 IT masks; narrow/wide terminal IT branches and loops; nested calls and recursion; single-core privileged quiet firmware; no active IRQ/FIQ/SMP",
+          "port": "COM5",
+          "results": {
+            "baseline": {
+              "passed": true,
+              "cases": 372,
+              "counters": 1,
+              "instrumented": false,
+              "runtime_clear_checked": true,
+              "operating_contract": {
+                "cpsr": 1610613210,
+                "mpidr": 2147483648,
+                "stack": 8388552
+              }
+            },
+            "normal": {
+              "passed": true,
+              "cases": 372,
+              "counters": 85,
+              "instrumented": true,
+              "runtime_clear_checked": true,
+              "operating_contract": {
+                "cpsr": 1610613210,
+                "mpidr": 2147483648,
+                "stack": 8388552
+              }
+            },
+            "reverse": {
+              "passed": true,
+              "cases": 372,
+              "counters": 85,
+              "instrumented": true,
+              "runtime_clear_checked": true,
+              "operating_contract": {
+                "cpsr": 1610613210,
+                "mpidr": 2147483648,
+                "stack": 8388552
+              }
+            },
+            "conservative": {
+              "passed": true,
+              "cases": 372,
+              "counters": 73,
+              "instrumented": true,
+              "runtime_clear_checked": true,
+              "operating_contract": {
+                "cpsr": 1610613210,
+                "mpidr": 2147483648,
+                "stack": 8388552
+              }
+            },
+            "bad-reset": {
+              "fault_detected": true,
+              "case": 0,
+              "seed": 0,
+              "field": 2000,
+              "actual": 305419896,
+              "operating_contract": {
+                "cpsr": 1610613210,
+                "mpidr": 2147483648,
+                "stack": 8388552
+              }
+            }
+          },
+          "build_manifest_sha256": "e3c64cc3ed6811bd7ac916f65c3393754a2d8b79509db4341205ae655753b349",
+          "verifier_sha256": "5a3ef90d3749a5ef0d2e69ada398dc7b2fc60147d9d5d8f1035211066e55b374",
+          "loader_sha256": "20d8a44f44c62ce001c3cd49007a0b73b9a6890d92bdb37f9d5a573246453ab0",
+          "log_sha256": {
+            "baseline": "5fa9fa4b6921990928b84c7c375ee6a90ad379faa8e84fc2d8c38ac95793d819",
+            "normal": "0bd2793982d7598f514fc46626e906befb952e278762df4f77034dec0799da3d",
+            "reverse": "4b0fa4f15e24bf8db511f3bbc801651d7e8035a5a2b1d45e84c0053a2bcba75d",
+            "conservative": "5c3c52a5e4dafba118db30240a7b96d40639b7d2f3efd16b130788624b14b1cb",
+            "bad-reset": "fc8c557448cb8ec5e334f05490c859923ca1f1bb92e053e80745b73de73f2b8e"
+          }
+        }
+      }
+    }
+  },
+  "caveats": [
+    "Static PIE remains admitted; queue item 4 is next.",
+    "Attributes are declarations, not a proof of all machine-code bytes or hardware capabilities.",
+    "Hard-float, compatible-both VFP arguments, scoped/alternate attributes and newer architectures are conservatively unsupported.",
+    "Automatic ARMv7 MOVW/MOVT linker thunk retains its old target; tested direct caller bypasses it through a correct new stub. Other entry routes remain unverified under items 7/11.",
+    "Runtime execution is scoped to privileged quiet single-core firmware; active IRQ/FIQ/SMP and dynamic finalization remain open.",
+    "Complete source replay does not establish clean full-build provenance."
+  ],
+  "automatic_v7_thunk": {
+    "on": {
+      "removed_veneers": 0,
+      "map": "_start 10000 2400000 24\n__ARMv7ABSLongThunk_far_away/1 10014 2400024 c\nfar_away 2110020 4500030 4\n",
+      "functions": [
+        {
+          "name": "__ARMv7ABSLongThunk_far_away",
+          "address": 37748772,
+          "size": 12,
+          "disassembly": "\n/mnt/c/Users/User/CURSOR/CodexProjects/BOLT_AARCH32/out/correctness/isa-contract-20261003/automatic-v7-thunk/on.elf:\tfile format elf32-littlearm\n\nDisassembly of section .text:\n\n02400024 <__ARMv7ABSLongThunk_far_away>:\n 2400024: e300c020     \tmovw\tr12, #0x20\n 2400028: e340c211     \tmovt\tr12, #0x211\n 240002c: e12fff1c     \tbx\tr12\n"
+        },
+        {
+          "name": "_start",
+          "address": 37748736,
+          "size": 36,
+          "disassembly": "\n/mnt/c/Users/User/CURSOR/CodexProjects/BOLT_AARCH32/out/correctness/isa-contract-20261003/automatic-v7-thunk/on.elf:\tfile format elf32-littlearm\n\nDisassembly of section .text:\n\n02400000 <_start>:\n 2400000: eb000003     \tbl\t0x2400014 <_start+0x14> @ imm = #0xc\n 2400004: e3a0002a     \tmov\tr0, #42\n 2400008: e3a07001     \tmov\tr7, #1\n 240000c: ef000000     \tsvc\t#0x0\n 2400010: ea000002     \tb\t0x2400020 <_start+0x20> @ imm = #0x8\n 2400014: e300c030     \tmovw\tr12, #0x30\n 2400018: e340c450     \tmovt\tr12, #0x450\n 240001c: e12fff1c     \tbx\tr12\n 2400020: eafffffe     \tb\t0x2400020 <_start+0x20> @ imm = #-0x8\n"
+        },
+        {
+          "name": "far_away",
+          "address": 72351792,
+          "size": 4,
+          "disassembly": "\n/mnt/c/Users/User/CURSOR/CodexProjects/BOLT_AARCH32/out/correctness/isa-contract-20261003/automatic-v7-thunk/on.elf:\tfile format elf32-littlearm\n\nDisassembly of section .text:\n\n04500030 <far_away>:\n 4500030: e12fff1e     \tbx\tlr\n"
+        }
+      ]
+    },
+    "off": {
+      "removed_veneers": 0,
+      "map": "_start 10000 2400000 24\n__ARMv7ABSLongThunk_far_away/1 10014 2400024 c\nfar_away 2110020 4500030 4\n",
+      "functions": [
+        {
+          "name": "__ARMv7ABSLongThunk_far_away",
+          "address": 37748772,
+          "size": 12,
+          "disassembly": "\n/mnt/c/Users/User/CURSOR/CodexProjects/BOLT_AARCH32/out/correctness/isa-contract-20261003/automatic-v7-thunk/off.elf:\tfile format elf32-littlearm\n\nDisassembly of section .text:\n\n02400024 <__ARMv7ABSLongThunk_far_away>:\n 2400024: e300c020     \tmovw\tr12, #0x20\n 2400028: e340c211     \tmovt\tr12, #0x211\n 240002c: e12fff1c     \tbx\tr12\n"
+        },
+        {
+          "name": "_start",
+          "address": 37748736,
+          "size": 36,
+          "disassembly": "\n/mnt/c/Users/User/CURSOR/CodexProjects/BOLT_AARCH32/out/correctness/isa-contract-20261003/automatic-v7-thunk/off.elf:\tfile format elf32-littlearm\n\nDisassembly of section .text:\n\n02400000 <_start>:\n 2400000: eb000003     \tbl\t0x2400014 <_start+0x14> @ imm = #0xc\n 2400004: e3a0002a     \tmov\tr0, #42\n 2400008: e3a07001     \tmov\tr7, #1\n 240000c: ef000000     \tsvc\t#0x0\n 2400010: ea000002     \tb\t0x2400020 <_start+0x20> @ imm = #0x8\n 2400014: e300c030     \tmovw\tr12, #0x30\n 2400018: e340c450     \tmovt\tr12, #0x450\n 240001c: e12fff1c     \tbx\tr12\n 2400020: eafffffe     \tb\t0x2400020 <_start+0x20> @ imm = #-0x8\n"
+        },
+        {
+          "name": "far_away",
+          "address": 72351792,
+          "size": 4,
+          "disassembly": "\n/mnt/c/Users/User/CURSOR/CodexProjects/BOLT_AARCH32/out/correctness/isa-contract-20261003/automatic-v7-thunk/off.elf:\tfile format elf32-littlearm\n\nDisassembly of section .text:\n\n04500030 <far_away>:\n 4500030: e12fff1e     \tbx\tlr\n"
+        }
+      ]
+    }
+  },
+  "automatic_v7_thunk_scope": "Both builds: old thunk target 0x2110020 retained; moved far_away 0x4500030; direct _start BL uses a generated stub to 0x4500030. No runtime failure claimed.",
+  "source_replay": {
+    "schema": 1,
+    "success": true,
+    "live_source_preserved": true,
+    "live_head": "bcc08884995ff3cbee70749524621803b9bd258a",
+    "base_commit": "bcc08884995ff3cbee70749524621803b9bd258a",
+    "uncovered_source_changes": [],
+    "mismatched_source_files": [],
+    "source_identity_sha256": "e8880ef1a0c90c4f027d898fc1c59fcf50b18e0b880d70eacd4d478c142f317c",
+    "scope": "pinned base plus complete patch series; source contents only, not clean full build/binary provenance"
+  },
+  "patch_sha256": "c07a6d1d304b3b49051a1a1e6d08ed7eb9e6105507133e8c599e8a6833d3fa2e",
+  "repository_validation": {
+    "script_unittests_passed": 60,
+    "runtime_builder_bash_syntax": true,
+    "whitespace_check": "docs/scripts pass; patch context whitespace is intentional and reverse-apply/replay checks pass"
+  }
+}
