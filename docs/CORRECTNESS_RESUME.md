@@ -1,5 +1,36 @@
 # ATFE correctness checkpoint - 2026-10-03
 
+## Latest: item 6 Pi far-call milestone verified
+
+Both assertion modes pass all four caller/callee ISA pairs on Pi 4 in normal
+and reverse layouts: 80 transformed cases and 40 baseline cases overall.
+Six deliberate faults fail at the expected fields, including a retained original
+callee that returns correct arithmetic but fails the live callee-PC witness.
+All twelve images return through the watchdog to the resident loader. Exact
+packed-byte reconstruction, live caller/callee/return PCs, R12 stub targets,
+independent result/memory values, NZCV and SP checks are required. All 98 Python
+tests pass. No LLVM source change was needed beyond 0044.
+
+This is bounded core-0 HYP execution with IRQ/FIQ masked and MMU/caches off.
+It covers explicit supported ARM literal veneers, not automatic v7 thunks,
+whole-LK, interrupts or clean compiler provenance. Item 6 and original #12
+remain active. See [contract](AARCH32_PI_FAR_SAFETY.md) and
+[evidence](results/correctness_pi_far_20261003.json).
+
+Evidence is under `out/correctness/pi-far-20261003`: final builds
+`on/build-v6lqg6c0` and `off/build-3caho_7a`, their `pi-verify-*` receipts,
+upload/loader/manifest snapshots, serial logs and `python-tests.log` (98 pass).
+The initial `on/build-a1htvw75` is a rejected harness diagnostic, not execution
+evidence. Preserve it and all dirty ATFE/LK sources and unrelated Microsoft/.
+Do not rerun one-time publication or overwrite these fresh-directory artifacts.
+
+Stop at this verified milestone under the standing user instruction. On resume,
+continue item 6's remaining verification-path audits and wider independent
+execution/oracle receipts. Do not advance to item 7 or weaken whole-LK admission.
+Original #12 remains active, including PMU and clean-build provenance.
+Historical checkpoints below retain their original scope and are superseded
+by this hardware stage where they say Pi far-call execution is pending.
+
 ## Latest: item 6 ARM/Thumb far-call stage verified in 0044
 
 Overlay 0044 fixes eight reproduced Thumb-caller far-stub link failures by

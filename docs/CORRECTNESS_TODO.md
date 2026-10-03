@@ -1,5 +1,22 @@
 # ATFE correctness TODO
 
+## Latest: item 6 Pi far-call milestone verified
+
+Both assertion modes pass all four caller/callee ISA pairs on Pi 4 in normal
+and reverse layouts: 80 transformed cases and 40 baseline cases overall.
+Six deliberate faults fail at the expected fields, including a retained original
+callee that returns correct arithmetic but fails the live callee-PC witness.
+All twelve images return through the watchdog to the resident loader. Exact
+packed-byte reconstruction, live caller/callee/return PCs, R12 stub targets,
+independent result/memory values, NZCV and SP checks are required. All 98 Python
+tests pass. No LLVM source change was needed beyond 0044.
+
+This is bounded core-0 HYP execution with IRQ/FIQ masked and MMU/caches off.
+It covers explicit supported ARM literal veneers, not automatic v7 thunks,
+whole-LK, interrupts or clean compiler provenance. Item 6 and original #12
+remain active. See [contract](AARCH32_PI_FAR_SAFETY.md) and
+[evidence](results/correctness_pi_far_20261003.json).
+
 ## Latest: item 6 ARM/Thumb far-call stage verified in 0044
 
 Overlay 0044 fixes eight reproduced Thumb-caller far-stub link failures by

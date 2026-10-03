@@ -73,7 +73,10 @@ tests pass; both builds pass all 37 ARM lit tests and 58 CoreTests with 31 skips
 All 44 overlays replay exactly from the pinned base without altering live
 source. Source replay does not certify a clean full build.
 
-No new Pi execution is claimed. These padded ELF images exceed the current
+The QEMU stage below is now complemented by [bounded sparse Pi execution](AARCH32_PI_FAR_SAFETY.md), verified in both builds with 80 transformed cases,
+40 baselines, six detected faults and twelve watchdog returns. Its [evidence](results/correctness_pi_far_20261003.json) does not extend the QEMU scope to whole-LK.
+
+These padded ELF images exceed the current
 contiguous serial loader's payload boundary, which protects the loader's
 relocated memory. Hardware needs a bounded sparse/staged fixture rather than
 sending these Linux user-mode images directly. The automatic v7 linker-thunk
@@ -82,7 +85,7 @@ cold layouts and wider sharing combinations still require their own matrix.
 Whole-LK `arm_reset` admission, interrupts/PMU and clean-build provenance remain
 open. No guard was weakened to obtain execution.
 
-Next within item 6: hardware far-call witnesses, remaining raw-grep/comparison/
+Next within item 6: remaining raw-grep/comparison/
 legacy gate audits, and durable coverage/oracle receipts for the remaining
 supported gates. See [evidence](results/correctness_far_interwork_20261003.json)
 and [the active queue](CORRECTNESS_PRIORITY_TODO.md).
