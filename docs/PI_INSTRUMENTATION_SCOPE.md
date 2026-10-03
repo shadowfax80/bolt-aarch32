@@ -1,5 +1,11 @@
 # Supported AArch32 instrumentation contract
 
+Follow-up 2026-10-03: overlay 0039 closes the 0038 unnamed interior-entry
+reservation bypass for decoded original code. Every decoded acquisition is
+analyzed independently of entry metadata; unanalyzed stores reject. Other
+ISA/entry/runtime caveats below remain. See
+[evidence](results/correctness_interior_reservations_20261003.json).
+
 Direct ARM32 instrumentation must pass:
 
 ```text
@@ -38,8 +44,8 @@ concurrent resets and live snapshots remain open. Overlay 0037 rejects selected
 exclusive functions; local overlay 0038 requires reservations in decoded skipped
 callers to stay within their function, rejecting live calls/exits and unmodeled
 boundaries before instrumentation. Known multiple entries reject conservatively.
-The fresh review reproduces an unnamed interior-entry bypass in skipped exclusive
-code, despite those known-entry checks. General ISA/entry/symbol admission remains
+The 0038 review reproduced an unnamed interior-entry bypass in skipped exclusive
+code; 0039's acquisition-rooted gate now rejects those inputs. General ISA/entry/symbol admission remains
 open. Thumb-entry instrumentation also crashes; ARMv6 input receives unsupported
 generated instructions. Both host modes pass the scoped
 boundary tests; supported Pi fixture bytes match previous execution evidence.

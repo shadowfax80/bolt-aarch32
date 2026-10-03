@@ -6,6 +6,13 @@ See [current review](CORRECTNESS_REVIEW_0038.md),
 [fresh priority queue](CORRECTNESS_PRIORITY_TODO.md), [status](CORRECTNESS_STATUS.md), and
 [previous fixes](CORRECTNESS_FIXES.md).
 
+Follow-up 2026-10-03: consolidated item 1 has a scoped fix in overlay 0039.
+Every decoded exclusive acquisition is analyzed independently of entry metadata;
+unmatched/unanalyzed stores reject. The eight F1 bypasses now reject; both builds
+pass 171 expanded cases. Next is Thumb instrumentation startup. General
+ISA/entry/symbol scope and active ISR remain open; #12 stays active. See the
+[status table](CORRECTNESS_PRIORITY_TODO.md).
+
 The user requested a new review and publication of prioritized work items. The
 fresh queue supersedes the earlier order below: skipped interior-entry reservation
 bypass, Thumb startup crash, ISA/ABI admission and fixed-load/PIE policy come first.
@@ -234,8 +241,12 @@ and measured counts match the expected model, including carry tests.
   Both builds pass 104 rejections, 52 ordinary relocation admissions and 38
   actual decoder cases. Fresh supported Pi payloads match the five executed
   0036 images in both modes.
-- [ ] Complete cross-function exclusive reservation rejection for every entry
-  root. Overlay 0038's scoped gate covers skipped/unselected callers, but the
+- [x] Contain reservations beginning at every decoded original-code acquisition.
+  Overlay 0039 seeds every exclusive load and rejects stores without an analyzed
+  local reservation, removing the entry-metadata dependency. Both builds pass
+  171 cases, including all eight review bypasses. General ISA/entry/symbol
+  admission remains under #7/#9 and active ISR remains open.
+  Historical finding: overlay 0038's scoped gate covered skipped/unselected callers, but the
   fresh F1 review admits unnamed interior entries through both direct addends
   and MOVW/MOVT/BLX pointers: eight verified redirected routes in both builds.
   First-entry traversal and known-multiple-entry rejection are insufficient.

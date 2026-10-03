@@ -9,6 +9,13 @@ provenance work is included in the consolidated priority queue.
 
 ## Assessment
 
+Follow-up 2026-10-03: overlay 0039 closes F1 for decoded original function code
+without relying on discovered entry roots. The original eight bypass inputs now
+reject in both builds; expanded tests pass. Other findings below remain open.
+See [follow-up evidence](results/correctness_interior_reservations_20261003.json)
+and [current status table](CORRECTNESS_PRIORITY_TODO.md). Findings below retain
+their original 0038 observations.
+
 The backend has substantial verification for a selected, static little-endian
 ARM/Thumb bare-metal subset. It now has working splitting and inline Thumb tables,
 restricted inlining, flag-preserving CBZ/CBNZ expansion, full-width counters,

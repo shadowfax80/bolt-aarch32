@@ -1,0 +1,75 @@
+--- a/bolt/lib/Rewrite/RewriteInstance.cpp
++++ b/bolt/lib/Rewrite/RewriteInstance.cpp
+@@ -975,6 +975,15 @@
+     // instruction would lose a live path arriving after a cleared path.
+     std::vector<std::pair<uint64_t, bool>> Worklist{
+         {Instructions.begin()->first, false}};
++    // Skipped callers can enter unnamed interior addresses without those
++    // roots appearing in BinaryFunction's entry metadata. Analyze every
++    // decoded acquisition, even in code unreachable from the main entry.
++    // Any reservation leaving its function is rejected independently of
++    // how execution reached the load or how callees are later redirected.
++    for (const auto &[Offset, D] : Instructions)
++      if (MIB->getExclusiveMemoryAccessKind(D.Inst) ==
++          MCPlusBuilder::ExclusiveMemoryAccessKind::Load)
++        Worklist.emplace_back(Offset, false);
+     std::set<std::pair<uint64_t, bool>> Visited;
+     while (!Worklist.empty()) {
+       const auto [Offset, Live] = Worklist.back();
+@@ -1046,6 +1055,13 @@
+       }
+       Worklist.emplace_back(Offset + D.Size, After);
+     }
++    // An unreachable store cannot be certified by main-entry traversal:
++    // it may be an unnamed entry consuming a reservation from elsewhere.
++    for (const auto &[Offset, D] : Instructions)
++      if (MIB->getExclusiveMemoryAccessKind(D.Inst) ==
++              MCPlusBuilder::ExclusiveMemoryAccessKind::Store &&
++          !Visited.count({Offset, true}))
++        return fail(Offset, "exclusive store without an analyzed local reservation");
+   }
+   return Error::success();
+ }
+--- a/bolt/test/ARM/Inputs/check-arm-cross-function-exclusive.py
++++ b/bolt/test/ARM/Inputs/check-arm-cross-function-exclusive.py
+@@ -39,6 +39,30 @@
+      check(d,kind,mode,select+extra)
+    for mode,extra in [('normal',[]),('reverse',['--reorder-blocks=reverse'])]:
+     check(d,'relocate',mode,['--funcs=callee']+extra,admit=True,relocate=True)
++# Unnamed interior entries in skipped code do not necessarily appear in
++# BinaryFunction entry metadata. Cover all ISA pairs and entry/reference kinds.
++for caller in ('arm','thumb'):
++ for callee in ('arm','thumb'):
++  for route in ('direct','pointer','alias','data'):
++   for kind,select in [('unselected',['--funcs=callee']),('skipped',['--skip-funcs=caller,_start'])]:
++    d=out/('interior-'+caller+'-'+callee+'-'+route+'-'+kind)
++    body='ldrex r4,[r6]\nstrex r5,r4,[r6]\nbx lr\n.Linterior:\npush {r4-r8,lr}\nldrex r4,[r6]\nbl callee\nstrex r5,r4,[r6]\npop {r4-r8,pc}'
++    build(d,caller,callee,body)
++    text=(d/'input.s').read_text()
++    if route=='direct':entry=('blx' if caller=='thumb' else 'bl')+' caller+(.Linterior-caller)'
++    elif route=='pointer':entry='movw r7,:lower16:.Linterior\nmovt r7,:upper16:.Linterior\n'+('orr r7,r7,#1\n' if caller=='thumb' else '')+'blx r7'
++    elif route=='alias':
++     text+='\n.global interior_alias\n.set interior_alias,.Linterior'+('+1' if caller=='thumb' else '')+'\n'
++     entry='movw r7,:lower16:interior_alias\nmovt r7,:upper16:interior_alias\nblx r7'
++    else:
++     text+='\n.data\n.Lpointer:\n.long .Linterior'+('+1' if caller=='thumb' else '')+'\n'
++     entry='movw r7,:lower16:.Lpointer\nmovt r7,:upper16:.Lpointer\nldr r7,[r7]\nblx r7'
++    text=text.replace('bl caller\nbx lr','push {r4,lr}\n'+entry+'\npop {r4,pc}',1)
++    (d/'input.s').write_text(text)
++    for name,cmd in [('mc',['llvm-mc','-triple=armv7-none-eabi','-arm-add-build-attributes','-filetype=obj',d/'input.s','-o',d/'input.o']),('link',['ld.lld','--emit-relocs','-T',d/'layout.ld',d/'input.o','-o',d/'input.elf'])]:
++     p=run(d,name,cmd);assert p.returncode==0,p.stdout+p.stderr
++    check(d,'interior','instrument',select)
++
+ for isa in ('arm','thumb'):
+  for suffix in ('','b','h','d'):
+   pair='r4,r5' if suffix=='d' else 'r4'
+@@ -51,6 +75,9 @@
+    check(d,kind,'instrument',['--funcs=callee'],admit=not live)
+  cases={
+   'secondary_entry':('ldrex r4,[r6]\nstrex r5,r4,[r6]\nbx lr\n.global alternate\n.type alternate,%function\n'+('.thumb_func\n' if isa=='thumb' else '')+'alternate:\nldrex r4,[r6]\nbl callee\nstrex r5,r4,[r6]\nbx lr\n.size alternate,.-alternate',False),
++  'dead_store':('bx lr\nstrex r5,r4,[r6]\nbx lr',False),
++  'dead_local_pair':('bx lr\nldrex r4,[r6]\nstrex r5,r4,[r6]\nbx lr',True),
++  'dead_call_before_pair':('bx lr\nbl callee\nldrex r4,[r6]\nstrex r5,r4,[r6]\nbx lr',True),
+   'live_return':('ldrex r4,[r6]\nbx lr',False),
+   'store_only':('strex r5,r4,[r6]\nbx lr',False),
+   'live_tail':('ldrex r4,[r6]\nb callee',False),

@@ -1,6 +1,36 @@
-# ATFE correctness checkpoint - 2026-10-02
+# ATFE correctness checkpoint - 2026-10-03
 
-## Latest: review through 0038 and prioritized work items published
+## Latest: consolidated queue item 1 verified in 0039; milestone stop
+
+Resumed per the consolidated queue. Overlay 0039 closes F1 for decoded original
+function code by analyzing every exclusive load independently of entry metadata,
+and rejecting stores without an analyzed local reservation. No first-entry-only
+or complete-secondary-entry assumption is used to contain reservations.
+
+Both builds pass 171 cases: 132 rejections/39 admissions. The 32 new entry-route
+cases cover ARM/Thumb caller/callee pairs, direct/addend, MOVW/MOVT/BLX, aliases
+and data pointers with unselected/explicitly skipped functions. Six additional
+cases check unreachable stores, closed pairs and calls preceding a local pair.
+The eight original F1 review admissions now reject before output. Focused suites
+pass 48/47 (one expected debug-only skip off); both CoreTests pass 58/31 skips.
+Fresh supported nested/IT payloads match all five previously executed 0036 bytes
+per mode. No new Pi execution or runtime reservation failure is claimed.
+
+Overlay/source preimages/afterimages, hashes and logs:
+out/correctness/interior-reservations-20261003. Compact
+[evidence](results/correctness_interior_reservations_20261003.json), with
+[status table](CORRECTNESS_PRIORITY_TODO.md). One-time mutation scripts already
+ran: resume-interior-reservations.py, refine-interior-fixtures.py and
+finish-interior-fixtures.py. Do not rerun them blindly. The refined Thumb direct
+entry uses A32 BLX to permit a halfword-aligned target; alias routes use pointers.
+
+Stop at this verified milestone, respecting the user's previous instruction.
+Next, when resumed: queue item 2, Thumb instrumentation startup SIGABRT/SIGSEGV.
+All remaining original #12 work stays active in the queue, not paused. Original
+#2/#8/#10 remain complete; no additional whole original workstream is closed.
+ATFE only. Preserve dirty ATFE/LK, saved evidence and unrelated Microsoft/.
+
+## Earlier: review through 0038 and prioritized work items published
 
 The user requested a fresh correctness re-evaluation and publication of an
 ordered work-item list. See [current review](CORRECTNESS_REVIEW_0038.md),

@@ -1,27 +1,58 @@
 # Correctness priority queue after the 0038 review
 
-Updated 2026-10-02 from [the fresh review](CORRECTNESS_REVIEW_0038.md) and
+Updated 2026-10-03 from [the fresh review](CORRECTNESS_REVIEW_0038.md) and
 [recorded evidence](results/correctness_0038_review_20261002.json).
 Queue positions below are new priorities; the original twelve workstream IDs
 remain stable in [CORRECTNESS_TODO.md](CORRECTNESS_TODO.md).
 
-ATFE only. This list is a plan, not a claim that fixes have begun. The user
+ATFE only. Item 1 now has a verified scoped fix in overlay 0039; the remaining
+queue is not yet started in this resumed session. The user
 reactivated #12 on 2026-10-02; all its remaining work is included below. Nothing
 is paused in this correctness queue. Three original
 items are complete in their bounded scope (#2/#8/#10); nine remain open.
 
+## Status table
+
+| Queue priority | Work item | Current status |
+|---|---|---|
+| 1 · P0 | Skipped interior-entry reservation bypass | Verified for decoded original function code; 0039 |
+| 2 · P0 | Thumb instrumentation startup crash | Pending; next |
+| 3 · P0 | ISA/profile/ABI admission | Pending |
+| 4 · P0 | Fixed-load ELF/PIE boundary | Pending |
+| 5 · P0 | Exact profile/artifact identity | Remaining work pending |
+| 6 · P0 | Execution/result gate integrity | Remaining work pending |
+| 7 · P1 | Relocation/literal matrix | Partial; remaining work pending |
+| 8 · P1 | Control-flow/mutation invariants | Partial; remaining work pending |
+| 9 · P1 | Interrupt/reentrancy boundaries | Partial; remaining work pending |
+| 10 · P1 | Sampling/PMU ownership | Partial; remaining work pending |
+| 11 · P1 | Entries/symbols/reference routes | Partial; remaining work pending |
+| 12 · P1 | Tables/inline data | Partial; remaining work pending |
+| 13 · P1 | Pass transformations/combinations | Partial; remaining work pending |
+| 14 · P1 | Clean build/content provenance | Partial; remaining work pending |
+
+Item 1: both assertion builds pass 171 cases (132 rejections, 39 admissions),
+including ARM/Thumb/mixed pairs and direct/addend, pointer, alias and data-pointer
+routes. All eight original review bypasses now reject before output. Fresh
+supported Pi payloads match previously executed bytes; no new runtime reservation
+outcome is claimed. See [0039 evidence](results/correctness_interior_reservations_20261003.json).
+General ISA/entry/symbol discovery remains in items 3/11. Work stopped at this
+milestone under the user's previous next-milestone instruction; nothing in the
+queue is marked paused.
+
 ## P0: confirmed defects and unsafe admission
 
 1. **Close skipped interior-entry reservation bypass — F1, #6/#9.**
-   - [ ] Discover direct branch/addend and pointer entry roots even when both
-     the source and destination functions are skipped or unselected.
-   - [ ] Analyze every possible root, or reject exclusive functions whose roots
-     cannot be established. A first-entry walk plus `isMultiEntry()` is insufficient.
-   - [ ] Add the eight reproduced admissions as negative regressions in both
+   - [x] Remove the gate's dependence on complete entry metadata: analyze every
+     decoded exclusive load, including acquisitions outside main-entry reachability,
+     and reject stores without an analyzed local reservation. General entry
+     discovery stays under item 11; unknown ISA admission stays under item 3.
+   - [x] Add the eight reproduced admissions as negative regressions in both
      assertion builds; extend to ARM/Thumb/mixed modes, aliases and data pointers.
-   - [ ] Check final raw/redirected loaded-byte routes; retain supported local-pair
-     and retry-loop admissions. Prove no accepted route inserts memory traffic
-     into a live reservation window. Keep host and runtime claims separate.
+   - [x] Recheck the review's raw/redirected inputs: rejection occurs before any
+     output/redirect can be published. Keep local-pair/retry-loop admissions,
+     including unreachable closed pairs. Supported generated Pi bytes match
+     executed payloads. This is a decoded-code admission proof, not a fresh
+     hardware reservation-failure reproduction.
 
 2. **Fix Thumb instrumentation startup lookup and release crash — F2, #9/#3.**
    - [ ] Normalize the entry lookup and preserve Thumb state in the trampoline.

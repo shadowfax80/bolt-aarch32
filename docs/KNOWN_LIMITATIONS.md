@@ -1,5 +1,11 @@
 # Known limitations and improvement items
 
+> **Follow-up (2026-10-03):** overlay 0039 closes the reproduced unnamed
+> interior-entry reservation bypass for decoded original code by analyzing every
+> acquisition independently of entry metadata. The other 0038 caveats below
+> remain open; general ISA/entry discovery and active ISR are not certified.
+> See [0039 evidence](results/correctness_interior_reservations_20261003.json).
+
 > **Current ATFE caveats (2026-10-02, through 0038):** fresh probes reproduce
 > skipped unnamed interior-entry reservation bypass, Thumb instrumentation
 > startup abort/segfault, ARMv6 inputs receiving unsupported MOVW/MOVT and static

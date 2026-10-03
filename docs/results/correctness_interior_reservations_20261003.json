@@ -1,0 +1,92 @@
+{
+  "schema": 1,
+  "date": "2026-10-03",
+  "kind": "interior-exclusive-reservation-boundary",
+  "base": "atfe",
+  "patch": "overlay/llvm/patches/atfe/0039-bolt-arm-interior-exclusive-reservations.patch",
+  "patch_sha256": "9960b704ba3cc5a96313c9fdd38bf5ab7416cd0943e3fbd7227728cbc5e713a2",
+  "source_change": {
+    "bolt/lib/Rewrite/RewriteInstance.cpp": {
+      "before": "318f5e9d741fbfda851e0a2b62f7cb90fb2897e3c034e5be014643fd1ec4eed1",
+      "after": "042ad0aabcb50d0b4b955c2e625138e8e726ce31cf743ccddbae67c582f43d43"
+    },
+    "bolt/test/ARM/Inputs/check-arm-cross-function-exclusive.py": {
+      "before": "86ee35ffa98694cdb8b6057a76d4ef84b9be87fd1668925465ea0c9ded159cd9",
+      "after": "3572accb3549cb1d8986d56fc28465816ada6f8942597b78d7f088b8c5511fa4"
+    }
+  },
+  "host": {
+    "assertions-on": {
+      "review_interior_rejections": 4,
+      "expanded_exclusive_cases": 171,
+      "rejections": 132,
+      "admissions": 39,
+      "focused_lit_passed": 48,
+      "focused_expected_skips": 0,
+      "core_tests_passed": 58,
+      "core_expected_skips": 31,
+      "positive_build": "out/correctness/interior-reservations-20261003/assertions-on-pi-positive/build-9knlacjc",
+      "payload_sha256": {
+        "baseline": "2c9f4d72d1589206834bce3bd9d0ede63c6364a31e8cab09de570d7055c272a7",
+        "normal": "b7f4922987aee91316ebd439be6c21fe962600f17b7cb6691369c9dfd11f16d5",
+        "reverse": "2457595d84b45d917a43e1935af8e0cc59c551cf2c68649589a029b07494d562",
+        "conservative": "e7b9d4eb9068031e1b696214533fc3b0363e0249324f13ebf71040378063cabe",
+        "bad-reset": "feda77d5bf9ebdddade07a8fb19c3b7f867fb0c3683133077610a7a27dc62e4b"
+      },
+      "matches_executed_0036": "out/correctness/conditional-instrumentation/assertions-on-pi-positive/build-d5fv3u4k",
+      "tool_sha256": "b55e75e1ebfe6ceaa8cd0cffc08b6ac4d74bb66ea4a78e95b1b9f7bf51f2602b"
+    },
+    "assertions-off": {
+      "review_interior_rejections": 4,
+      "expanded_exclusive_cases": 171,
+      "rejections": 132,
+      "admissions": 39,
+      "focused_lit_passed": 47,
+      "focused_expected_skips": 1,
+      "core_tests_passed": 58,
+      "core_expected_skips": 31,
+      "positive_build": "out/correctness/interior-reservations-20261003/assertions-off-pi-positive/build-nahgwwtl",
+      "payload_sha256": {
+        "baseline": "2c9f4d72d1589206834bce3bd9d0ede63c6364a31e8cab09de570d7055c272a7",
+        "normal": "b7f4922987aee91316ebd439be6c21fe962600f17b7cb6691369c9dfd11f16d5",
+        "reverse": "2457595d84b45d917a43e1935af8e0cc59c551cf2c68649589a029b07494d562",
+        "conservative": "e7b9d4eb9068031e1b696214533fc3b0363e0249324f13ebf71040378063cabe",
+        "bad-reset": "feda77d5bf9ebdddade07a8fb19c3b7f867fb0c3683133077610a7a27dc62e4b"
+      },
+      "matches_executed_0036": "out/correctness/conditional-instrumentation/assertions-off-pi-positive/build-zg3fm5ln",
+      "tool_sha256": "f4d85f1519dd011eea140a1636d05b09aa18edaec6cc904430f68987110fd3de"
+    }
+  },
+  "reverse_apply_checked": true,
+  "fresh_pi_execution": false,
+  "runtime_reservation_failure_reproduced": false,
+  "scope": "Analyze every decoded exclusive acquisition independently of discovered entry metadata; reject stores lacking an analyzed local reservation. Original skipped interior-entry call/pointer reproducers reject before output. General ISA/entry/symbol coverage remains separate.",
+  "evidence": "out/correctness/interior-reservations-20261003",
+  "next_queue_item": 2,
+  "paused_items": [],
+  "log_sha256": {
+    "assertions-off-build.log": "fe396c2cb1f813966a80a79ca683c420fcef08600a8c69f55c0b5e8b37bd58b9",
+    "assertions-off-lit.log": "e3f29cff08d48359971583b583d3121be1c63abeacc2592b19896b625a1d2568",
+    "assertions-off-positive-build.log": "d7b5d8dde1c659e3d0af96e3a925ff5e18c59bed2f370d4b09b546d10d204f41",
+    "assertions-off-review.log": "f93d256ad79b3389fb9c042ba9ec4f538eceb5bb41a2087f4dd495261046ee92",
+    "assertions-off-units.log": "5d3a9fc5d4ecb14e8f3f8c1bcaa9c1ce3d3424ec0cd8fc55b1c8508d1f56fc3e",
+    "assertions-on-build.log": "a442cd35e6b819618858e4e8c2c37f416a420f89855ef399380519c3bd99f63f",
+    "assertions-on-lit.log": "453cf5224b06aca36aef5e1b7429bb3b286a3a4bd821c457ede77a9f7bb24442",
+    "assertions-on-positive-build.log": "290379153ea07be08743d4514faab6f56bac2fdaf2bfd3c86379022a7061b77e",
+    "assertions-on-review.log": "21d9ee7b5d94ad54ac64c4aff6a1bab79eaf83a3cdbe387f3c65f946650c6d49",
+    "assertions-on-units.log": "e241654ced95e709183ffa78daacdd23bfd18cb303460a7b392ef7d9ad09bbb0"
+  },
+  "source_replay": {
+    "patch_count": 39,
+    "success": true,
+    "source_identity_sha256": "19db3a2a78a478f4dd66b7789610e0caf1fd1a1d4b6f72184b355cabfd82a7dc",
+    "mismatched_source_files": [],
+    "uncovered_source_changes": []
+  },
+  "stop_check": {
+    "time_utc": "2026-10-03T10:27:05.038345+00:00",
+    "task_compiler_test_processes_running": false,
+    "no_serial_job_started": true,
+    "reason": "Verified next milestone; user previously requested stopping at the next logical stage."
+  }
+}

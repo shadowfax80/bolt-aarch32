@@ -1,5 +1,22 @@
 # Correctness fixes
 
+## Unnamed interior-entry reservation boundary (2026-10-03)
+
+Overlay 0039 closes the reproduced F1 admission gap for decoded original function
+code. Every decoded exclusive load seeds reservation analysis, even outside the
+main entry's reachability; stores without an analyzed local reservation reject.
+The gate no longer relies on complete entry metadata to detect live calls/exits.
+Closed local pairs, retry loops and calls outside live windows remain supported.
+
+Both builds pass 171 cases (132 rejections/39 admissions), 48/47 focused tests
+(one expected debug-only skip off), and 58 CoreTests/31 skips. The eight original
+review bypasses reject before output. Expanded routes include ARM/Thumb/mixed
+pairs, direct/addend, pointers, aliases and data pointers. Fresh supported Pi
+payloads match all five previously executed 0036 bytes per mode; no new hardware
+reservation result is claimed. The patch is reverse-apply checked. General
+ISA/entry/symbol discovery and active ISR scope remain separate open work. See
+[evidence](results/correctness_interior_reservations_20261003.json).
+
 ## Cross-function exclusive reservation boundary (2026-10-02)
 
 Follow-up review: the scoped 133-case gate still passes, but F1 in the

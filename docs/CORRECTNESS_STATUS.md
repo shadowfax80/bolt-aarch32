@@ -1,6 +1,14 @@
 # Twelve-item correctness work
 
-Last updated: 2026-10-02. Verification details: [CORRECTNESS_FIXES.md](CORRECTNESS_FIXES.md).
+Last updated: 2026-10-03. Verification details: [CORRECTNESS_FIXES.md](CORRECTNESS_FIXES.md).
+
+Queue item 1 is now verified for decoded original function code in overlay 0039:
+all eight F1 bypasses reject before output; both builds pass 171 expanded cases
+(132 rejections/39 admissions), 48/47 focused tests and 58 CoreTests/31 skips.
+Fresh supported Pi payloads match executed 0036 bytes; no new Pi runtime result
+is claimed. See [evidence](results/correctness_interior_reservations_20261003.json)
+and the [14-item status table](CORRECTNESS_PRIORITY_TODO.md). Next is queue item 2,
+Thumb instrumentation startup. General ISA/entry scope remains open; #12 is active.
 
 Current assessment: [review through 0038](CORRECTNESS_REVIEW_0038.md) and
 [fresh priority queue](CORRECTNESS_PRIORITY_TODO.md). Both focused suites still
@@ -82,7 +90,7 @@ from completion criteria. Three items are complete within this scope (2, 8, 10).
 | 3 | Pseudo/CFG invariants | Partial | Pseudo-count and fallthrough rejection verified in both build modes; worker fatal errors exit after join; wider CFG audit open |
 | 4 | Control flow and return semantics | Partial; checkpoint verified | POP-to-PC, flags, CBZ/CBNZ and inlining verified; unsupported PC writes/exception returns/IT calls reject; conditional-return instrumentation rejects; general exit model and broader pass combinations remain |
 | 5 | Instrumentation correctness | Partial; operating scope next | Carry, CPU-state, IT, nested Thumb/recursion and real runtime clear pass on Pi; mixed-ISA nested state, active interrupts and live snapshots remain |
-| 6 | Instrumentation scope | Partial; new P0 bypass reproduced | Scoped operating/exclusive gates pass; skipped unnamed interior entries bypass reservation validation; active ISR and wider state/entry coverage remain |
+| 6 | Instrumentation scope | Partial; decoded F1 boundary fixed | 0039 analyzes every decoded acquisition and rejects unanalyzed stores; active ISR and general ISA/entry coverage remain |
 | 7 | ISA/profile/endianness | Open; P0 admission violations reproduced | Enforce generated-feature/ISA and fixed-load boundaries; ARMv6, static PIE, missing attributes and BE8 probes admitted |
 | 8 | FK_Data_8 / ABS32 mismatch | Complete | ATFE host and Pi checks passed; symbolic 64-bit relocations rejected; resolved values and map width corrected |
 | 9 | Entry points and symbols | Partial; P0 crashes/routes reproduced | Thumb instrumentation aborts with assertions and segfaults without; skipped unnamed interior routes evade discovery; aliases/pointers/redirect coverage remains |

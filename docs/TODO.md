@@ -10,8 +10,9 @@ other work was done was incorrect.
 - [Twelve-item status tracker](CORRECTNESS_STATUS.md)
 - [Completed fixes and verification evidence](CORRECTNESS_FIXES.md)
 
-The current 14-task queue starts with skipped interior-entry reservation bypass,
-Thumb instrumentation startup, ISA/ABI admission and fixed-load/PIE policy.
+The current 14-task queue's first item, the skipped interior-entry reservation
+bypass, has a scoped verified fix in 0039. Next are Thumb instrumentation startup,
+ISA/ABI admission and fixed-load/PIE policy.
 Exact profile/artifact binding and execution-gate integrity follow as P0 tasks.
 All remaining #12 work is active by the user's latest instruction, including
 PMU ownership, durable evidence and clean build provenance. Broader relocation,
