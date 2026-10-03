@@ -1,5 +1,22 @@
 # ATFE correctness TODO
 
+## Latest: item 6 QEMU workload/output consistency stage verified
+
+Legacy runtime banner checks now require all eighteen ordered sink results and
+fresh baseline/candidate equality. QEMU errors, timeout, malformed/duplicate
+results and explicit failures reject without a success receipt. Fresh directories,
+image snapshots and stable image/QEMU/script/revision hashes are required.
+Both assertion-mode hot-loop candidates match their baselines: 36 candidate and
+36 baseline results overall. Five simulated bad-child cases reject, while the
+complete control passes. All 118 WSL Python tests pass; Windows passes with
+three Linux process-ownership skips. Shell syntax checks pass for all four gates.
+
+This proves complete workloads/output consistency only. Selected rewritten
+execution and independent correctness remain separate open requirements. No
+LLVM source change beyond 0044 or new Pi run is claimed. Item 6 and original
+#12 stay active. See [contract](AARCH32_QEMU_WORKLOAD_GATES.md) and
+[evidence](results/correctness_qemu_gates_20261004.json).
+
 ## Latest: item 6 measurement association stage verified
 
 Two preserved admissions now reject: missing PMU output cannot shift the next

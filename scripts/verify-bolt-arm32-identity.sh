@@ -1,9 +1,7 @@
 #!/usr/bin/env bash
-# P1 + P4 progress check on ARM32 LK.
-#
-# P4 is ARM-mode identity rewrite. Default qemu-virt-arm32-test benches are
-# Thumb; they will be discovered and then ignored until P6. To actually
-# overwrite bolt_bench_*, rebuild first with BOLT_BENCH_ISA=arm.
+# ARM32 identity emission diagnostic; conditional runtime output comparison.
+# Default LK benches may be Thumb; BOLT_BENCH_ISA=arm gives an ARM fixture.
+# Emission counts do not prove selected rewritten execution.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
@@ -17,7 +15,7 @@ LOG="${LOG:-/tmp/bolt-arm32-identity.log}"
 BOLT_BENCH_FUNCS="${BOLT_BENCH_FUNCS:-bolt_bench_hot_loop,bolt_bench_hot_cold,bolt_bench_branch_chain,bolt_bench_memcpy}"
 
 if [[ ! -x "$TOOLCHAIN/llvm-bolt" ]]; then
-  echo "error: $TOOLCHAIN/llvm-bolt missing — rebuild on the volume" >&2
+  echo "error: $TOOLCHAIN/llvm-bolt missing - rebuild on the volume" >&2
   exit 1
 fi
 
@@ -83,14 +81,7 @@ fi
 if [[ "${BOOT_REWRITTEN:-1}" == 1 && "${REQUIRE_OVERWRITE:-0}" == 1 ]]; then
   echo "=== QEMU boot rewritten ELF ==="
   QEMU="${QEMU:-qemu-system-arm}"
-  timeout 120 "$QEMU" -machine virt -cpu cortex-a15 -m 512 -smp 1 \
-    -nographic \
-    -append "${BENCH_CMDLINE:-lk.bolt_bench=all}" \
-    -kernel "$OUT" > /tmp/bench-arm32-rewritten.log 2>&1 || true
-  grep -q "bolt_bench: hot_loop done" /tmp/bench-arm32-rewritten.log
-  grep -q "bolt_bench: hot_cold done" /tmp/bench-arm32-rewritten.log
-  grep -q "bolt_bench: branch_chain done" /tmp/bench-arm32-rewritten.log
-  grep -q "bolt_bench: memcpy done" /tmp/bench-arm32-rewritten.log
-  grep -q "entering main console loop" /tmp/bench-arm32-rewritten.log
-  echo "P4 rewritten image booted and benches ran"
+  python3 "$ROOT/scripts/qemu_workload_gate.py" --elf "$ELF" --candidate "$OUT" --qemu "$QEMU" \
+    --append "${BENCH_CMDLINE:-lk.bolt_bench=all}" --out "${OUT_DIR:-$ROOT/out/arm32-identity}" --timeout 120
+  echo "P4 OUTPUT CONSISTENCY (selected rewritten execution not certified)"
 fi

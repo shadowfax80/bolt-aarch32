@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# End-to-end BOLT verification on bare-metal LK (AArch64 or ARM32).
-# Only bolt_bench synthetic workloads are instrumented — LK is the host platform.
+# Complete workload/output consistency on LK (AArch64 or ARM32).
+# Only bolt_bench synthetic workloads are instrumented - LK is the host platform.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
@@ -47,10 +47,9 @@ echo "=== build LK (with bolt_bench overlay) ARCH=$ARCH ==="
 "$BUILD_LK"
 
 echo "=== sanity: original LK ==="
-timeout 8 "$QEMU" -machine virt -cpu "$QEMU_CPU" -m 512 -smp "$QEMU_SMP" \
-  -nographic -kernel "$ELF" > "/tmp/orig-${SERIAL_PREFIX}.log" 2>&1 || true
-grep -q "entering main console loop" "/tmp/orig-${SERIAL_PREFIX}.log"
-echo "original LK booted"
+python3 "$ROOT/scripts/qemu_workload_gate.py" --elf "$ELF" --qemu "$QEMU" \
+  --cpu "$QEMU_CPU" --smp "$QEMU_SMP" --append "$CMDLINE" \
+  --out "${OUT_DIR:-$ROOT/out/workload-consistency}/baseline" --timeout 120
 
 echo "=== runtime ==="
 ARCH="$ARCH" "$ROOT/scripts/build-bolt-rt-baremetal.sh"
@@ -71,7 +70,7 @@ python3 "$ROOT/scripts/dump-bolt-counters.py" \
   --smp "$QEMU_SMP" \
   --append "$CMDLINE" \
   --boot-timeout 60 --settle 4
-grep -q "bolt_bench:" "/tmp/${SERIAL_PREFIX}-serial.log"
+python3 "$ROOT/scripts/qemu_workload_gate.py" --check-log "/tmp/${SERIAL_PREFIX}-serial.log"
 echo "bolt_bench workloads ran"
 
 echo "=== fdata ==="
@@ -91,11 +90,7 @@ ARCH="$ARCH" ELF="$ELF" FDATA="$FDATA" OUT="$BOLT_OUT" \
   "$ROOT/scripts/optimize-lk-bolt.sh"
 
 echo "=== boot optimized + rerun workloads ==="
-timeout 90 "$QEMU" -machine virt -cpu "$QEMU_CPU" -m 512 -smp "$QEMU_SMP" \
-  -display none -serial "file:/tmp/${SERIAL_PREFIX}-bolt-serial.log" \
-  -append "$CMDLINE" \
-  -kernel "$BOLT_OUT" || true
-grep -q "entering main console loop" "/tmp/${SERIAL_PREFIX}-bolt-serial.log"
-grep -q "bolt_bench: hot_loop done" "/tmp/${SERIAL_PREFIX}-bolt-serial.log"
-grep -q "bolt_bench: memcpy done" "/tmp/${SERIAL_PREFIX}-bolt-serial.log"
-echo "BOLT $ARCH workload verification OK"
+python3 "$ROOT/scripts/qemu_workload_gate.py" --elf "$ELF" --candidate "$BOLT_OUT" --qemu "$QEMU" \
+  --cpu "$QEMU_CPU" --smp "$QEMU_SMP" --append "$CMDLINE" \
+  --out "${OUT_DIR:-$ROOT/out/workload-consistency}/optimized" --timeout 120
+echo "BOLT $ARCH OUTPUT CONSISTENCY (selected rewritten execution not certified)"

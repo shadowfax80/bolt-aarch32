@@ -1,6 +1,6 @@
 # Correctness priority queue after the 0038 review
 
-Updated 2026-10-03 from [the fresh review](CORRECTNESS_REVIEW_0038.md) and
+Updated 2026-10-04 from [the fresh review](CORRECTNESS_REVIEW_0038.md) and
 [recorded evidence](results/correctness_0038_review_20261002.json).
 Queue positions below are new priorities; the original twelve workstream IDs
 remain stable in [CORRECTNESS_TODO.md](CORRECTNESS_TODO.md).
@@ -20,7 +20,7 @@ items are complete in their bounded scope (#2/#8/#10); nine remain open.
 | 3 · P0 | ISA/profile/ABI admission | Verified conservative contract; 0041 + Pi |
 | 4 · P0 | Fixed-load ELF/PIE boundary | Verified fixed-load admission; 0042 |
 | 5 · P0 | Exact profile/artifact identity | Verified sealed pipeline scope; 0043; #12 active |
-| 6 · P0 | Execution/result gate integrity | Active; gate hardening, four-ISA QEMU/Pi and measurement association verified; remaining gates/wider proof pending |
+| 6 · P0 | Execution/result gate integrity | Active; gate hardening, four-ISA QEMU/Pi, measurement association and complete QEMU workloads verified; execution/oracle/wider proof pending |
 | 7 · P1 | Relocation/literal matrix | Partial; remaining work pending |
 | 8 · P1 | Control-flow/mutation invariants | Partial; remaining work pending |
 | 9 · P1 | Interrupt/reentrancy boundaries | Partial; remaining work pending |
@@ -161,6 +161,10 @@ and original #12 remain active; stop at this verified stage.
    - [x] Fix legacy Pi measurement record association and PGO-lab checksum
      failure propagation; exact command-framed triples and diagnostic snapshots
      verified by 111 Python tests. This is output consistency, not execution proof.
+   - [x] Replace four legacy runtime banner gates with complete eighteen-result
+     QEMU workload/output consistency and strict child/error/timeout handling.
+     Fresh snapshots/receipts and five simulated rejections verified; 118 WSL
+     tests pass. Selected rewritten execution is not certified by this stage.
    - [ ] Require selected/emitted/redirected/executed coverage and independent
      results in every optimization gate, not only the scoped full-image gate.
    - [ ] Extend ARM/Thumb/mixed inputs, flags, memory and return-value checks over

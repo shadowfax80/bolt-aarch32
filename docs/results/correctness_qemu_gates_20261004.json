@@ -1,0 +1,401 @@
+{
+  "schema": 1,
+  "date": "2026-10-04",
+  "queue_item": 6,
+  "status": "complete QEMU workload/output consistency stage verified; item 6 and original #12 active",
+  "scope": "complete workload/output consistency only; no independent result or selected rewritten execution proof",
+  "llvm_overlay_count": 44,
+  "llvm_source_changed": false,
+  "new_pi_execution": false,
+  "base_repository_revision": "d027a6482bc6c06f215649ea3964520cf3e8d27e",
+  "totals": {
+    "candidate_results": 36,
+    "baseline_results": 36,
+    "simulated_admissions": 1,
+    "simulated_rejections": 5
+  },
+  "tests": {
+    "wsl": {
+      "tests": 118,
+      "skipped": 0,
+      "successful": true,
+      "log_sha256": "4480f62c49a41cf8af35350f9abbf517a82b73c9e2916f2775e18dff2ddc2e29"
+    },
+    "windows": {
+      "tests": 118,
+      "skipped": 3,
+      "successful": true,
+      "log_sha256": "da2df8d5301cea2c270ef4170acbd7684477746744ea06675f8c5fc47f845469"
+    }
+  },
+  "isolated_lk_build": {
+    "stage": "/home/user/qemu-gate-9dl0hw4c",
+    "scope": "isolated copy of dirty live LK with current overlay files; not clean provenance",
+    "overlay_files": {
+      "project/qemu-virt-arm32-bolt-test.mk": "1f81c76e5b76fdd3f11a553c1983f231ae8c68ac204961e4dccd6d9b9002d2df",
+      "project/rpi4-bolt-test.mk": "85d44f147c27e845ad1c5eae42d18cff901139bff9c6b659b922a90b304585d2",
+      "target/rpi4/rules.mk": "831f160f2afeb8ac4fd5088b51d39f46a43f45bfc76de9145233404de20b39c3",
+      "app/bolt_bench/bolt_bench.c": "3589018a2ce711a801b9fcec8994b6c20a0659e5bdafd65b2d51311267aa8eab",
+      "app/bolt_bench/composite.c": "a42b1249a8ce739a64b6a9a7086352d5f1d0dfaef0a51a12b06f1c305e873f29",
+      "app/bolt_bench/rules.mk": "d2fb9879310a2d93be7c3e7ea49abd54bbc9778cadd531ed05e8301126a2c7d1"
+    },
+    "live_git_diff_sha256": "681588b446e35b4bdfceb0206307ed806c7e97811241061b3773d5f5136317f3",
+    "elf": "/home/user/qemu-gate-9dl0hw4c/lk/build-qemu-virt-arm32-test/lk.elf",
+    "elf_sha256": "60ad55377a00d50ecc410abd17e6b81f2304d0c30ccbf032343ea1271b921be2"
+  },
+  "reproductions": {
+    "preserved_old_lk": {
+      "legacy_marker_checks_pass": true,
+      "new_rejection": "incomplete/duplicate/reordered workload completion",
+      "log_sha256": "757b6eca575c543e14c5f28e30486337c3d95c4f8cc5f0a732ca7d4ff420ff9b"
+    },
+    "integration": [
+      {
+        "name": "complete",
+        "returncode": 0,
+        "receipt_created": true,
+        "scope": "simulated QEMU child; not runtime backend evidence"
+      },
+      {
+        "name": "markers-only",
+        "returncode": 1,
+        "receipt_created": false,
+        "scope": "simulated QEMU child; not runtime backend evidence"
+      },
+      {
+        "name": "child-error",
+        "returncode": 1,
+        "receipt_created": false,
+        "scope": "simulated QEMU child; not runtime backend evidence"
+      },
+      {
+        "name": "wrong-result",
+        "returncode": 1,
+        "receipt_created": false,
+        "scope": "simulated QEMU child; not runtime backend evidence"
+      },
+      {
+        "name": "duplicate",
+        "returncode": 1,
+        "receipt_created": false,
+        "scope": "simulated QEMU child; not runtime backend evidence"
+      },
+      {
+        "name": "timeout",
+        "returncode": 1,
+        "receipt_created": false,
+        "scope": "simulated QEMU child; not runtime backend evidence"
+      }
+    ]
+  },
+  "builds": {
+    "on": {
+      "receipt": {
+        "schema": 1,
+        "scope": "complete workload/output consistency only; no independent oracle or selected rewritten execution proof",
+        "output_consistent": true,
+        "complete_workload": true,
+        "results": {
+          "baseline": {
+            "results": {
+              "hot_loop": "0x6a4ae6e0",
+              "hot_cold": "0x00000000",
+              "branch_chain": "0x007a5100",
+              "memcpy": "0x5acd3dc5",
+              "far_call": "0xb7082fa9",
+              "it_cond": "0x021e8480",
+              "interwork": "0x2fb21555",
+              "switch": "0xa953bbf0",
+              "spill_ret": "0x504980a0",
+              "litpool": "0x16b596e0",
+              "indirect_call": "0x0e6aac80",
+              "interwork_tail": "0xda3416f0",
+              "regpressure": "0xc5da3550",
+              "hotcold_split": "0xd4751003",
+              "icf": "0xdc7c3be0",
+              "shrinkwrap": "0x6a1b87d4",
+              "composite": "0x939f4ea0",
+              "stair": "0x9fef2a18"
+            },
+            "stop": "completed-then-stopped",
+            "returncode": 0
+          },
+          "candidate": {
+            "results": {
+              "hot_loop": "0x6a4ae6e0",
+              "hot_cold": "0x00000000",
+              "branch_chain": "0x007a5100",
+              "memcpy": "0x5acd3dc5",
+              "far_call": "0xb7082fa9",
+              "it_cond": "0x021e8480",
+              "interwork": "0x2fb21555",
+              "switch": "0xa953bbf0",
+              "spill_ret": "0x504980a0",
+              "litpool": "0x16b596e0",
+              "indirect_call": "0x0e6aac80",
+              "interwork_tail": "0xda3416f0",
+              "regpressure": "0xc5da3550",
+              "hotcold_split": "0xd4751003",
+              "icf": "0xdc7c3be0",
+              "shrinkwrap": "0x6a1b87d4",
+              "composite": "0x939f4ea0",
+              "stair": "0x9fef2a18"
+            },
+            "stop": "completed-then-stopped",
+            "returncode": 0
+          }
+        },
+        "commands": {
+          "baseline": [
+            "/usr/bin/qemu-system-arm",
+            "-machine",
+            "virt",
+            "-cpu",
+            "cortex-a15",
+            "-m",
+            "512",
+            "-smp",
+            "1",
+            "-display",
+            "none",
+            "-monitor",
+            "none",
+            "-serial",
+            "stdio",
+            "-append",
+            "lk.bolt_bench=all",
+            "-kernel",
+            "/mnt/c/Users/User/CURSOR/CodexProjects/BOLT_AARCH32/out/correctness/qemu-gates-20261003/final-on/run-xa0sk3dk/baseline.elf"
+          ],
+          "candidate": [
+            "/usr/bin/qemu-system-arm",
+            "-machine",
+            "virt",
+            "-cpu",
+            "cortex-a15",
+            "-m",
+            "512",
+            "-smp",
+            "1",
+            "-display",
+            "none",
+            "-monitor",
+            "none",
+            "-serial",
+            "stdio",
+            "-append",
+            "lk.bolt_bench=all",
+            "-kernel",
+            "/mnt/c/Users/User/CURSOR/CodexProjects/BOLT_AARCH32/out/correctness/qemu-gates-20261003/final-on/run-xa0sk3dk/candidate.elf"
+          ]
+        },
+        "images": {
+          "baseline": "60ad55377a00d50ecc410abd17e6b81f2304d0c30ccbf032343ea1271b921be2",
+          "candidate": "97dac107ba6937fe7a42c661673bfbfd00f43384755d952c2aa87ae85262fd2a"
+        },
+        "qemu_sha256": "ce90caa842f56f4220766cbce0b6bebc43a449dc740cc79cb64b91d6828cf4be",
+        "scripts": {
+          "scripts/qemu_workload_gate.py": "64640d44f7632311e1a224cfb5a40494ad0d7085ba2387a9ff68623be39c97f2",
+          "scripts/profile_identity.py": "7e6fedf6de313a6029525f381e3d1c571656e922bd32bb14daa097c71ab79689",
+          "scripts/pi4/passes_check.py": "f590ab943cbadf8c6918f88bcabd873dd2c96256a13f40de9abe02d855737bff"
+        },
+        "repository_revision": "d027a6482bc6c06f215649ea3964520cf3e8d27e",
+        "logs": {
+          "baseline": "9a63d649b7e91e73510cb1038df5d9287accec22c17d860f291002ac5f95858c",
+          "candidate": "70a817c55f484662a6bf8c4124068f3bff17ed0539348b2362e9366517d36e26"
+        }
+      },
+      "receipt_path": "out/correctness/qemu-gates-20261003/final-on/run-xa0sk3dk/workload.json",
+      "receipt_sha256": "0dd3625aba6962f167fc724937551e744304e7c681a7d45a8539edf557022520",
+      "bolt_log_sha256": "5dc13e0565e9f5767312eb4de2f2ed1c8db7821aa5fde0f69034f452694286c1"
+    },
+    "off": {
+      "receipt": {
+        "schema": 1,
+        "scope": "complete workload/output consistency only; no independent oracle or selected rewritten execution proof",
+        "output_consistent": true,
+        "complete_workload": true,
+        "results": {
+          "baseline": {
+            "results": {
+              "hot_loop": "0x6a4ae6e0",
+              "hot_cold": "0x00000000",
+              "branch_chain": "0x007a5100",
+              "memcpy": "0x5acd3dc5",
+              "far_call": "0xb7082fa9",
+              "it_cond": "0x021e8480",
+              "interwork": "0x2fb21555",
+              "switch": "0xa953bbf0",
+              "spill_ret": "0x504980a0",
+              "litpool": "0x16b596e0",
+              "indirect_call": "0x0e6aac80",
+              "interwork_tail": "0xda3416f0",
+              "regpressure": "0xc5da3550",
+              "hotcold_split": "0xd4751003",
+              "icf": "0xdc7c3be0",
+              "shrinkwrap": "0x6a1b87d4",
+              "composite": "0x939f4ea0",
+              "stair": "0x9fef2a18"
+            },
+            "stop": "completed-then-stopped",
+            "returncode": 0
+          },
+          "candidate": {
+            "results": {
+              "hot_loop": "0x6a4ae6e0",
+              "hot_cold": "0x00000000",
+              "branch_chain": "0x007a5100",
+              "memcpy": "0x5acd3dc5",
+              "far_call": "0xb7082fa9",
+              "it_cond": "0x021e8480",
+              "interwork": "0x2fb21555",
+              "switch": "0xa953bbf0",
+              "spill_ret": "0x504980a0",
+              "litpool": "0x16b596e0",
+              "indirect_call": "0x0e6aac80",
+              "interwork_tail": "0xda3416f0",
+              "regpressure": "0xc5da3550",
+              "hotcold_split": "0xd4751003",
+              "icf": "0xdc7c3be0",
+              "shrinkwrap": "0x6a1b87d4",
+              "composite": "0x939f4ea0",
+              "stair": "0x9fef2a18"
+            },
+            "stop": "completed-then-stopped",
+            "returncode": 0
+          }
+        },
+        "commands": {
+          "baseline": [
+            "/usr/bin/qemu-system-arm",
+            "-machine",
+            "virt",
+            "-cpu",
+            "cortex-a15",
+            "-m",
+            "512",
+            "-smp",
+            "1",
+            "-display",
+            "none",
+            "-monitor",
+            "none",
+            "-serial",
+            "stdio",
+            "-append",
+            "lk.bolt_bench=all",
+            "-kernel",
+            "/mnt/c/Users/User/CURSOR/CodexProjects/BOLT_AARCH32/out/correctness/qemu-gates-20261003/final-off/run-tceb4fdd/baseline.elf"
+          ],
+          "candidate": [
+            "/usr/bin/qemu-system-arm",
+            "-machine",
+            "virt",
+            "-cpu",
+            "cortex-a15",
+            "-m",
+            "512",
+            "-smp",
+            "1",
+            "-display",
+            "none",
+            "-monitor",
+            "none",
+            "-serial",
+            "stdio",
+            "-append",
+            "lk.bolt_bench=all",
+            "-kernel",
+            "/mnt/c/Users/User/CURSOR/CodexProjects/BOLT_AARCH32/out/correctness/qemu-gates-20261003/final-off/run-tceb4fdd/candidate.elf"
+          ]
+        },
+        "images": {
+          "baseline": "60ad55377a00d50ecc410abd17e6b81f2304d0c30ccbf032343ea1271b921be2",
+          "candidate": "e8724cd4454ff12b941b60802f64462a084ba7da0fda0e4847a23dd6501010d0"
+        },
+        "qemu_sha256": "ce90caa842f56f4220766cbce0b6bebc43a449dc740cc79cb64b91d6828cf4be",
+        "scripts": {
+          "scripts/qemu_workload_gate.py": "64640d44f7632311e1a224cfb5a40494ad0d7085ba2387a9ff68623be39c97f2",
+          "scripts/profile_identity.py": "7e6fedf6de313a6029525f381e3d1c571656e922bd32bb14daa097c71ab79689",
+          "scripts/pi4/passes_check.py": "f590ab943cbadf8c6918f88bcabd873dd2c96256a13f40de9abe02d855737bff"
+        },
+        "repository_revision": "d027a6482bc6c06f215649ea3964520cf3e8d27e",
+        "logs": {
+          "baseline": "d5a3306be00c8db82f5d092ccde32653e34d669199d93e58f7d1470ea8c29fb6",
+          "candidate": "0443039f0bcbc39651f61c35f45ee5fd30f6bbfdf9062d25065134553fe10105"
+        }
+      },
+      "receipt_path": "out/correctness/qemu-gates-20261003/final-off/run-tceb4fdd/workload.json",
+      "receipt_sha256": "e3fe156ab184c3a5e1533d0ab399b04f768ef679eb66cc898d2243dc15d7fb47",
+      "bolt_log_sha256": "5dc13e0565e9f5767312eb4de2f2ed1c8db7821aa5fde0f69034f452694286c1"
+    }
+  },
+  "scripts": {
+    "qemu_workload_gate.py": "64640d44f7632311e1a224cfb5a40494ad0d7085ba2387a9ff68623be39c97f2",
+    "verify-bolt-arm32-harness.sh": "5eabf15f47121359ecce171359168b35548a2a0f820fe3d6f5f8ae6ff7b997a0",
+    "verify-bolt-arm32-identity.sh": "c0bf93a777ca0bf70f7613b2de4bb27f953e6370c5f18111999d199257343a4f",
+    "verify-bolt-arm32-milestones.sh": "13e0a30565d69ea8ba02ebf374a7cc645d4804373fca7c666824cb268b688eab",
+    "verify-bolt-workloads.sh": "65e83f5007cbaef78c50c99b04c3f4267bd5465b4f737ca8fe80355ac37bb3b8",
+    "tests/test_qemu_workload_gate.py": "06930fcd247b1f46acfbe7593daa122092951292f45075e0695071a2a0e404a8"
+  },
+  "remaining": [
+    "selected/emitted/redirected/executed route coverage",
+    "independent output oracles",
+    "legacy/manual hooks",
+    "P1/P2/P3 and overwrite artifact diagnostics",
+    "PMU ownership",
+    "clean full-build provenance/original #12"
+  ],
+  "evidence_files": {
+    "bolt-off.log": "5dc13e0565e9f5767312eb4de2f2ed1c8db7821aa5fde0f69034f452694286c1",
+    "bolt-on.log": "5dc13e0565e9f5767312eb4de2f2ed1c8db7821aa5fde0f69034f452694286c1",
+    "build-isolated.py": "39d8e0f73a86b181ed4966fd6ba1fc55c5e9b15590ab97320bcb3ead463d242f",
+    "check-shell-and-rewrite.py": "e89909358ac60b690899ff634128518416c3964cd78aab91a3f96d5c0d1af368",
+    "focused-final.log": "0f39114c547616a43119816a2d4875421527c62e16390001d5e1d6916008d342",
+    "focused-release.log": "908f7d8b312f4cffeb4874026ea37c1c3d2622e01d8144b177df1ba777cfca16",
+    "focused.log": "7c8fcdfda6e1fe31a34dbcb1d6d7f60c4d5384ac4d6d08c5eb1930b63bfdb53c",
+    "lk-build.json": "66051803f9bc75691fcc3c25f79316b9e863af640da3ae12248b0d50b63255d3",
+    "lk-build.log": "fd36f82d37751154bfbe3562bc69dba5f6a2c32ead3298e173731b4e97322d11",
+    "publish.py": "b4725fd61e4fbe9017ade4e8b03afdfd14bdd86e62670f34f23da5211752367f",
+    "python-tests-windows-release.log": "da2df8d5301cea2c270ef4170acbd7684477746744ea06675f8c5fc47f845469",
+    "python-tests-wsl-release.log": "4480f62c49a41cf8af35350f9abbf517a82b73c9e2916f2775e18dff2ddc2e29",
+    "python-tests.log": "eeb61d6be1d1aad572e3ffbe2c3b7b9540035cd71dde4770d9b9950b2db545e8",
+    "reproduce.py": "d1434bb6e390832ac948d835a00d428d36e737800e01965f463b3af9270dcf37",
+    "reproductions.json": "5dd0a6d26e7ee97466568c8c110aa7c34d5454efac8e024907c3df4aec5f72cf",
+    "verify-bolt-arm32-harness.sh.before": "a21e98f4087aa998f4dad8c26ec995695777c4dc1dedb77f07b26805a7b339a6",
+    "verify-bolt-arm32-identity.sh.before": "0dd6dc1a5f9a4a136611fc6d67463632105b8cf248280ce9c2fede2c6bf6df04",
+    "verify-bolt-arm32-milestones.sh.before": "fed5ac676de7a7e5cbd886649b81af03640a4e3d9ef1d7f9e76736982388d551",
+    "verify-bolt-workloads.sh.before": "f34596a1b59db3f0872003084c765c318763e86b14077932222cc56ae093753e",
+    "final-on/run-xa0sk3dk/baseline.log": "9a63d649b7e91e73510cb1038df5d9287accec22c17d860f291002ac5f95858c",
+    "final-on/run-xa0sk3dk/candidate.log": "70a817c55f484662a6bf8c4124068f3bff17ed0539348b2362e9366517d36e26",
+    "final-on/run-xa0sk3dk/workload.json": "0dd3625aba6962f167fc724937551e744304e7c681a7d45a8539edf557022520",
+    "final-off/run-tceb4fdd/baseline.log": "d5a3306be00c8db82f5d092ccde32653e34d669199d93e58f7d1470ea8c29fb6",
+    "final-off/run-tceb4fdd/candidate.log": "0443039f0bcbc39651f61c35f45ee5fd30f6bbfdf9062d25065134553fe10105",
+    "final-off/run-tceb4fdd/workload.json": "e3fe156ab184c3a5e1533d0ab399b04f768ef679eb66cc898d2243dc15d7fb47",
+    "fake-qemu/child-error/driver.log": "258d07b2c1b1deeae78b43a78f4e80497aa2267bac7ab87f58c93c693110c33a",
+    "fake-qemu/child-error/fake-qemu": "f8e50d416205b3a79aed3ce58695fae303cccffb59506709c11b05d6c9809dae",
+    "fake-qemu/complete/driver.log": "743956e12aefe18704a0901d8a0e91240da08e247289cbb0f22d2ad857ffeaed",
+    "fake-qemu/complete/fake-qemu": "117f48e49239425ec011c58565b5a02c1c2fa26ab1c6317c638cdc0046a11b58",
+    "fake-qemu/duplicate/driver.log": "c1803389313c99ae1ac1ffe227c56bb4ea5ea750555e97aa7e8c1a63a835aeaf",
+    "fake-qemu/duplicate/fake-qemu": "02a1d25aa3c7d3ba11e3c9ff002119197a82d24de5b7f525fb1415f2d0b2cfe2",
+    "fake-qemu/markers-only/driver.log": "a6090a40a4d11b1db57c51a9c058cf16d373a3f64394d61266f68ace60e8d7d0",
+    "fake-qemu/markers-only/fake-qemu": "ae9f5f931e13060dd0bc30fdd0c3064d1e18b1c71a148b56d5e7a0fe7276914a",
+    "fake-qemu/timeout/driver.log": "97fd6b0e6906ff2d1cc88cc55d763d5afe8e4d82edcde65a4e8e08aeabe65dce",
+    "fake-qemu/timeout/fake-qemu": "6a2f4638aa4f1c42e18881e3d84a48752cd56c63abf99d2d7ab6b5cb2242a43d",
+    "fake-qemu/wrong-result/driver.log": "84486ab8d77b0f65f7e05eac1567c5897b0ef4a6b844c0afa07fefd491b2ef41",
+    "fake-qemu/wrong-result/fake-qemu": "7d5a199f6b86816816e94934f158e0b2f3772bedd5a314e9c47c8ecf6bfdefa2",
+    "fake-qemu/wrong-result/runs/run-fqwqrgfx/baseline.log": "3d6b74ffa536e869a6ed45a1ca73b0a8066ee43ea807e7f3e76b1d60f55e9911",
+    "fake-qemu/wrong-result/runs/run-fqwqrgfx/candidate.log": "48452b01343232eb11e21b95a16564f1c99a68aac2b9ed1dfa961d09a11495af",
+    "fake-qemu/timeout/runs/run-r1to5bsw/baseline.log": "3f4e3c0b96cedbc76f660c2d3c77bbafff4121478994e78759a1e099a0d16150",
+    "fake-qemu/markers-only/runs/run-limweml7/baseline.log": "4476a0accc72b942daf9dc27f3580cb2e26eafab18ae2fefa24662ad137a04e2",
+    "fake-qemu/duplicate/runs/run-tqdba6ji/baseline.log": "bfa8c63293e91f185c1ffeb85dffd8914dbc5820ee41ce814696b6a7fa2fd0d4",
+    "fake-qemu/complete/runs/run-fxxo0au4/baseline.log": "3d6b74ffa536e869a6ed45a1ca73b0a8066ee43ea807e7f3e76b1d60f55e9911",
+    "fake-qemu/complete/runs/run-fxxo0au4/candidate.log": "3d6b74ffa536e869a6ed45a1ca73b0a8066ee43ea807e7f3e76b1d60f55e9911",
+    "fake-qemu/complete/runs/run-fxxo0au4/workload.json": "2c6bcb131973bdc1ba77a749fca76c221317daf10acaeed191ba6a30426aa935",
+    "fake-qemu/child-error/runs/run-d2fsf6d6/baseline.log": "3d6b74ffa536e869a6ed45a1ca73b0a8066ee43ea807e7f3e76b1d60f55e9911",
+    "current/run-wcaje6u5/baseline.log": "7649d1874aa1d17e10901e62c2a55324c6e97f541134aed246986daa71df2136",
+    "current/run-wcaje6u5/workload.json": "223ab914cb6d9b0bce1e4aa6a527c9531754a7006739a0591fc74b961d826d80",
+    "baseline/run-256_8369/baseline.log": "dce4cc98660edbd39e186fee3250c2e5ba2e21845b674bc5d31ac725c27c1900",
+    "baseline/run-j_zjrj24/baseline.log": "782c381c0a1ab998655c51f82a09806d7140b31594cf6daeda6a368c99cbd041"
+  }
+}

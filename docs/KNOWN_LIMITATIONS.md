@@ -1,5 +1,11 @@
 # Known limitations and improvement items
 
+> **QEMU gate audit (2026-10-04):** old workload banners could pass without
+> sink results and child failures were ignored. Four runtime paths now require
+> complete ordered results and fresh baseline equality. This remains output
+> consistency; selected rewritten execution, independent oracles and legacy
+> artifact admissions stay open. See [scope](AARCH32_QEMU_WORKLOAD_GATES.md).
+
 > **Measurement audit (2026-10-03):** missing PMU lines could shift counters
 > between runs, and PGO-lab checksum mismatches previously returned success.
 > Both now reject; these tools remain measurement/output comparisons without
