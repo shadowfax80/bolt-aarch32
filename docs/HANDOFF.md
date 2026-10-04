@@ -133,7 +133,6 @@ Take items in the order below; groups reflect dependencies, not ownership.
 |---|---|---|---|---|---|---|---|
 | 2a | T1 | ARMv8-A AArch32 (Cortex-A55) admission and decode; v8-A Pi image, coverage and certified gate | P0 | Claude | Done and certified: contract `47c73bc0` approved (d3c8253); certified gate 10 reps, 18/18, both redirects executed | 6b, 7, 11 | Image `lk-rpi4-bolt-test-a55-47c73bc0.elf`: 406/416 admitted, rewritten image 2x18 on the Pi; evidence `docs/results/t1_a55_20261004.json`. Build: `make rpi4-bolt-test RPI4_ARM_CPU=cortex-a55` |
 | 2b | T2b | SMP instrumentation: the ARM counter update masks IRQ around a 64-bit increment (not atomic across cores), so the contract stays `privileged-single-core-no-fiq`; needs a cross-core-atomic counter path (or per-core counters) + tests + Pi check | P1 | — | Open | 9, 10 | Profiles from all cores are already available via PC sampling (certified chain) |
-| 3 | 6a | Every gate proves execution | P0 | — | Nearly done: Pi gates certify (full_image_verify, smp_verify); QEMU routes are labelled diagnostics that fail closed; wrappers audited (G1/G2 done, G3 n/a by user decision). Left: assertions-off rebuild re-check for overlays 0055–0059 | — | See 2026-10-04 6a audit log entries |
 
 **C. Correctness defects (small)**
 
@@ -186,6 +185,7 @@ Take items in the order below; groups reflect dependencies, not ownership.
 | 6c | Legacy/manual hook admission | P0 | Claude | 9, 11, 12 | Manual counter hooks rejected (existing); R13 split prefixes; new `scripts/tests/test_redirect_routes.py` (real ELFs: map route ARM/Thumb, legacy no-map, short, secondary entry, PC-relative prologue, referenced/unreferenced split prefix, unknown function; every refusal leaves the ELF byte-identical) + existing restoration/preservation/late-failure tests. Found and fixed: the split-prefix scan missed unpadded (<8-digit) addresses |
 | 6d | Durable receipts on every certification route | P0 | Claude | 12 | Certification routes are `full_image_verify.py` (already complete) and `smp_verify.py` (now: tool/script/patch/option identities, manifest + loader hashes, emitted/redirected sets, expected and observed per-core sinks, log hashes; atomic publication). Tests: `test_smp_gate.py` (checker rejections; preflight refusals before upload, no evidence dir). QEMU routes are labelled diagnostics. Receipt: `docs/results/t2_smp_certified_20261004.json` |
 | 6b | Oracle contracts for the declared configurations | P0 | Claude + user | — | Active `pi4` contracts: full LK v7 (`424606a8`), bolt_edge 1/1b/2, A55 (`47c73bc0`), A55 SMP (`e1139981`), A55 whole-module `-marm` SMP (`00d9c42d`); all certified. Contract descriptions corrected (workloads are the default Thumb module; erratum in the draft). New configurations still need the user's review |
+| 6a | Every gate proves execution | P0 | Claude | — | Pi gates certify (full_image_verify, smp_verify); QEMU routes are labelled diagnostics that fail closed (G1/G2 done, G3 n/a by user decision); wrappers audited; overlays 0001–0059 pass in both assertion modes (assertions-off `build-atfe-noassert`: ARM lit 50/50, BOLT lit 719 + 110 unsupported asserts-only + the known AArch64 failure) |
 | R11 | Skip-and-report admission mode | P1 | Codex | — | 0054; [diagnostic contract/evidence](ARM_ADMISSION_REPORT.md); one scan, same 399/417 coverage; both assertion modes + scoped Pi |
 
 ## Coverage goal
@@ -219,6 +219,19 @@ plus genuine fallthrough such as `bzero`: about 98% of functions.
 4. Update the *Claims* table and LK_COVERAGE.md together.
 
 ## Handoff log
+
+### 2026-10-04 — Claude: 6a done (both assertion modes)
+
+- New assertions-off build `build-atfe-noassert` (WSL; Release, bolt+lld,
+  X86/AArch64/ARM). BOLT, llvm-mc, ld.lld, objdump/readelf/nm/objcopy,
+  FileCheck and llvm-config are native assertions-off; helper tools it does
+  not build (clang, llc, ...) are symlinked from `build-atfe`. Lit config: a
+  copy of build-atfe's BOLT `lit.site.cfg.py` with obj/tools dirs pointed at
+  the new build; `bolt-rt-baremetal-arm` copied next to it.
+- ARM lit 50/50; full BOLT lit 719 passed, 110 unsupported (asserts-only
+  tests), 1 failed (the known AArch64/constant_island_pie_update.s).
+  Pitfall: with a symlinked assertions-on llvm-config, lit runs asserts-only
+  tests and 16 fail spuriously; build the native llvm-config.
 
 ### 2026-10-04 — Claude: T3 prepared (Secure-SVC armstub); waiting on SD card
 
