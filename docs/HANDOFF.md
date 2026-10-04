@@ -112,7 +112,7 @@ T1 and T2 lead the resume order.
 
 | Holder | Since | Purpose |
 |---|---|---|
-| — (free) | 2026-10-04 | Released by Claude after overlay 0058 |
+| Claude | 2026-10-04 | T2b: SMP-safe AArch32 instrumentation counters (overlay 0060) |
 
 ## Claims (consolidated TODO)
 
