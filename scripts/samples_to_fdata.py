@@ -44,10 +44,19 @@ def main() -> int:
     ap.add_argument("--functions", help="explicit comma-separated source functions; record all excluded profile counts")
     ap.add_argument("--debug-unbound", action="store_true",
                     help="diagnostic conversion only; output cannot pass the optimization identity gate")
+    ap.add_argument("--skip-funcs", default="",
+                    help="comma-separated functions perf2bolt must not disassemble (the same "
+                         "admission skip list the optimizer uses); recorded in the sidecar")
     args = ap.parse_args()
     selected = args.functions.split(',') if args.functions is not None else None
     if selected is not None and args.debug_unbound:
         ap.error('source function scoping requires a bound capture')
+    skip_funcs = [f for f in args.skip_funcs.split(',') if f]
+    if len(set(skip_funcs)) != len(skip_funcs):
+        ap.error('duplicate --skip-funcs entry')
+    # A selected profile function must be disassembled to receive its counts.
+    if selected and set(skip_funcs) & set(selected):
+        ap.error('--skip-funcs overlaps --functions: ' + ','.join(sorted(set(skip_funcs) & set(selected))))
 
     manifest_path = args.capture_manifest or args.samples + '.manifest.json'
     capture = None if args.debug_unbound else check_capture(manifest_path, args.samples, args.elf, 'pi-pc-capture')
@@ -66,8 +75,11 @@ def main() -> int:
         with open(staged_preagg, "w") as fh:
             for addr, n in sorted(counts.items()):
                 fh.write(f"S {addr:x} {n}\n")
-        r = subprocess.run([os.path.join(args.toolchain, "perf2bolt"), args.elf, "-nl", "-pa",
-                            "-p", staged_preagg, "-o", staged_fdata], capture_output=True, text=True)
+        command = [os.path.join(args.toolchain, "perf2bolt"), args.elf, "-nl", "-pa",
+                   "-p", staged_preagg, "-o", staged_fdata]
+        if skip_funcs:
+            command.append("-skip-funcs=" + ",".join(skip_funcs))
+        r = subprocess.run(command, capture_output=True, text=True)
         sys.stdout.write(r.stdout[-1500:])
         if r.returncode != 0 or not os.path.exists(staged_fdata) or not os.path.getsize(staged_fdata):
             sys.stderr.write(r.stderr[-1500:])
@@ -84,6 +96,7 @@ def main() -> int:
                                 capture_manifest_sha256=capture_hash, perf2bolt_sha256=converter_hash,
                                 build=capture['build'] if capture else None,
                                 profile_scope=profile_scope,
+                                perf2bolt_skip_funcs=skip_funcs,
                                 limitations='IRQ-masked code is invisible; PC frequencies are not exact edge counts')
         from pathlib import Path
         publish_files({preagg: Path(staged_preagg).read_bytes(), destination: Path(staged_fdata).read_bytes(),

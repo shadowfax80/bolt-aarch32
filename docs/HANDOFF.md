@@ -56,10 +56,10 @@ Suggested order: highest priority first, then items that unblock others.
 
 | ID | Item | Priority | Owner | Status | Part of | Notes |
 |---|---|---|---|---|---|---|
-| 6a | Every optimization gate proves execution end to end | P0 | Claude | In progress: full-image route certified on the Pi | — | Audit all certification wrappers; diagnostic modes must never certify |
-| 6b | Independent oracles; reviewed `pi4` contract for the full LK image | P0 | Claude | Partial: full-LK `pi4` contract approved and active | — | Further supported configurations (Thumb workloads) still need contracts |
-| 6c | Legacy/manual hook admission | P0 | Claude | Claimed (queued) | — | R9 done; R13 open |
-| 6d | Durable coverage receipts on every certification route | P0 | Claude | Claimed (queued) | — | R16 adds LK coverage receipts |
+| 6a | Every optimization gate proves execution end to end | P0 | — | Partial: Pi sealed chain certified; audit done; G1–G3 open | — | See 2026-10-04 audit entry | — | Audit all certification wrappers; diagnostic modes must never certify |
+| 6b | Independent oracles; reviewed `pi4` contract for the full LK image | P0 | — | Partial: full-LK `pi4` contract approved and active | — | Further supported configurations (Thumb workloads) still need contracts |
+| 6c | Legacy/manual hook admission | P0 | — | Partial | — | R9 done; R13 open |
+| 6d | Durable coverage receipts on every certification route | P0 | — | Partial | — | R16 adds LK coverage receipts |
 | R8 | r12 clobbered by local-branch LongJmp stubs | P1 | — | Open | 13 | Liveness check or rejection; next to R7's code |
 | R15 | Full-LK instrumentation blocked by the `arch_spin_trylock` guard (false positive) | P1 | — | Open | exclusive guards (0038/0039) | Changes a safety guard: add must-reject tests for real cross-function pairs |
 | 7 | Relocation/literal/veneer matrix | P1 | — | Partial | — | R1–R3, R7, R14 done |
@@ -121,6 +121,41 @@ plus genuine fallthrough such as `bzero`: about 98% of functions.
 4. Update the *Claims* table and LK_COVERAGE.md together.
 
 ## Handoff log
+
+### 2026-10-04 — Claude: 6a milestone (usage limit); P0 items released
+
+**Milestone:** the complete sealed Pi chain is certified end to end on the
+full LK image: seal (`profile_identity.py seal-samples`) → Pi PC capture
+(6,772 samples) → `samples_to_fdata.py` + `check-profile` → `full_image_build
+--profile` (manifest binds profile + sidecar hashes; 400 emitted) →
+`full_image_verify.py` PASS (10 repetitions, 18/18 vs the approved contract,
+execution observed in both required rewritten functions). Receipts:
+`docs/results/sealed_chain_certified_20261004.json`,
+`docs/results/sealed_chain_profile_manifest_20261004.json`.
+
+**Fix (scripts only):** `samples_to_fdata.py --skip-funcs` passes the
+optimizer's admission skip list to perf2bolt and records it in the sidecar
+(`perf2bolt_skip_funcs`). Without it the sample-profile route failed on the
+full image (`perf2bolt` stopped at `arm_reset`). All 12 script unit-test
+modules pass.
+
+**6a audit results:**
+- Sound (no certificate without proof): `qemu_rewrite_gate.py` /
+  `qemu_rewrite_build.py` (contract-bound input, fresh evidence dirs, live
+  entry-pair traces, tool/script/revision re-checks); `full_image_verify.py`;
+  `qemu_workload_gate.py --check-log` and Pi `passes_check.py` /
+  `measurement_records.py` are labelled diagnostics (no execution claim).
+- **G1 (open):** `verify-bolt-workloads.sh` reuses fixed-path intermediates
+  (instrumented ELF, counters, fdata, optimized ELF, /tmp serial log) without
+  clearing them first.
+- **G2 (open):** that QEMU pipeline's certificate (`rewrite.json`) does not
+  bind the profile/instrumented image/BOLT options; the Pi full-image route
+  does (manifest `profile`).
+- **G3 (open, fails closed):** default QEMU LK builds have no oracle contract,
+  so the QEMU pipeline cannot currently certify.
+- Not done: "both assertion modes" (needs a second, no-assertions ATFE build).
+
+All P0 items are released (unclaimed); the lock is free.
 
 ### 2026-10-04 — Claude: 6b contract active; first certified full-image Pi run
 
