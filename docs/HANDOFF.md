@@ -39,7 +39,7 @@ and update it before stopping. `AGENTS.md` and `CLAUDE.md` point here.
 
 | Holder | Since | Purpose |
 |---|---|---|
-| Codex | 2026-10-04 | R11 skip-and-report admission; source/build validation and overlay 0054 |
+| — (free) | 2026-10-04 | Released by Codex on user-requested pause/exit; no backend edits started |
 
 ## Claims (consolidated TODO)
 
@@ -58,7 +58,7 @@ Take items in the order below; groups reflect dependencies, not ownership.
 
 | Order | ID | Item | Priority | Owner | Status | Part of | Notes |
 |---|---|---|---|---|---|---|---|
-| 1 | R11 | Skip-and-report admission mode | P1 | Codex | In progress | — | Replaces the multi-round coverage scan; needed by R17; fatal remains default for certification |
+| 1 | R11 | Skip-and-report admission mode | P1 | Codex | Paused | — | User requested pause/exit for mobile control; resume at admission error handling; fatal remains default for certification |
 | 2 | R17 | Synthesized edge-case test image (`bolt_edge`), stage 1 (~40 cases) | P1 | — | Open | 7, 8, 11, 12 | Generator emits sources + admission manifest + independent checksums; QEMU + Pi; stage 2 randomized generator later |
 
 **B. P0 certification (finish)**
@@ -141,6 +141,26 @@ plus genuine fallthrough such as `bzero`: about 98% of functions.
 4. Update the *Claims* table and LK_COVERAGE.md together.
 
 ## Handoff log
+
+### 2026-10-04 — Codex paused R11 at the user's request; lock released
+
+- The user requested pause for mobile remote control, then exit. R11 remains
+  assigned to Codex and is Paused; the live-tree lock is released. Other items
+  retain their owners/statuses. Reacquire the lock before implementation on resume.
+- Claim commit: `46e8b1b`. Windows and WSL repos were synced to that claim.
+  Read current disassembly/CFG admission handlers and coverage scanning code.
+  The 53-overlay baseline replay passes with no uncovered/mismatched files:
+  WSL `out/r11-baseline-replay-20261004/replay.json`, source identity
+  `dfbf60c0e1c3c6c051dcfa3749b16652e904188e9276fb8f15f26a0ab54ecfdc`.
+- No backend edits, overlay 0054, compiler rebuilds, test runs or Pi uploads
+  have started. Read-only inspection helpers are under Windows `out/r11_*.py`.
+  Existing dirty ATFE/LK, unrelated Microsoft/ and evidence are preserved.
+  Recorded coverage is unchanged: 399/417 functions (95.7%); 97.9% code bytes.
+- Resume R11 by reviewing `RewriteInstance::disassembleFunctions()` and
+  `buildFunctionsCFG()` error handlers and BinaryFunction cleanup. Keep default
+  fatal/global admission intact; diagnostic reports must not become correctness
+  certificates. Add both-mode regressions, export 0054, replay and regenerate
+  coverage before closure; R17 follows. WSL is left available; Pi serial is closed.
 
 ### 2026-10-04 — Codex claims R11 and takes the live-tree lock
 
