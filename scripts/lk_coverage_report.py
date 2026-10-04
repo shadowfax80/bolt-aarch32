@@ -352,7 +352,10 @@ def main():
                    OUT=str(a.out / 'lk.instr.elf'), TOOLCHAIN=str(tc),
                    BOLT_RT_LIB=str(tc.parent / 'bolt-rt-baremetal-arm' /
                                    'libbolt_rt_baremetal.a'),
-                   ARM_INSTRUMENTATION_CONTRACT='privileged-single-core-no-fiq')
+                   ARM_INSTRUMENTATION_CONTRACT='privileged-single-core-no-fiq',
+                   # BOLT-generated per-edge instrumentation; the legacy manual
+                   # entry hooks (BOLT_INSTR_EDGES=0) are rejected by design (6c).
+                   BOLT_INSTR_EDGES='1')
         p = subprocess.run(['bash', str(ROOT / 'scripts/instrument-lk-bolt.sh')],
                            env=env, capture_output=True, text=True)
         (a.out / 'instrument.log').write_text(p.stdout + p.stderr)

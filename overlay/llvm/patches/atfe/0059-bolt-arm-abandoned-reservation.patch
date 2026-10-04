@@ -1,0 +1,150 @@
+--- a/bolt/lib/Rewrite/RewriteInstance.cpp
++++ b/bolt/lib/Rewrite/RewriteInstance.cpp
+@@ -985,7 +985,63 @@
+ // indirect/transitive reachability and later entry redirects are not a proof
+ // that the callee stays free of probes. This intentionally rejects split
+ // load/store primitives as well as calls made with a reservation outstanding.
++//
++// R15: a *return* with a live reservation (try-lock failure paths such as
++// LK's arch_spin_trylock: ldrex; cmp; strexeq; bx lr) abandons the
++// reservation. Nothing can consume it: every analyzed exclusive store must be
++// reached with a local reservation on all paths (checked below), so it is
++// admitted when a raw scan finds no exclusive store outside analyzed
++// functions. Calls and branches out with a live reservation stay rejected.
++static Error findUnanalyzedExclusiveStore(BinaryContext &BC,
++                                          uint64_t &Address) {
++  for (BinarySection &Section : BC.textSections()) {
++    if (!Section.getSize())
++      continue;
++    const uint64_t Start = Section.getAddress(), End = Start + Section.getSize();
++    std::vector<std::pair<uint64_t, uint64_t>> Covered;
++    for (auto &It : BC.getBinaryFunctions()) {
++      const BinaryFunction &BF = It.second;
++      if (BF.getSize() && BF.getAddress() < End &&
++          BF.getAddress() + BF.getSize() > Start)
++        Covered.emplace_back(BF.getAddress(), BF.getAddress() + BF.getSize());
++    }
++    llvm::sort(Covered);
++    ArrayRef<uint8_t> Bytes = arrayRefFromStringRef(Section.getContents());
++    auto scanGap = [&](uint64_t Lo, uint64_t Hi) -> bool {
++      for (uint64_t A = alignTo(Lo, 2); A + 2 <= Hi; A += 2) {
++        for (const bool Thumb : {true, false}) {
++          if (!Thumb && (A % 4 || A + 4 > Hi))
++            continue;
++          MCDisassembler *Decoder = Thumb ? BC.ThumbDisAsm.get() : BC.DisAsm.get();
++          MCInst Inst;
++          uint64_t Size = 0;
++          if (Decoder->getInstruction(Inst, Size, Bytes.slice(A - Start, Hi - A),
++                                      A, nulls()) != MCDisassembler::Success)
++            continue;
++          if (BC.getMIBFor(Thumb)->getExclusiveMemoryAccessKind(Inst) ==
++              MCPlusBuilder::ExclusiveMemoryAccessKind::Store) {
++            Address = A;
++            return true;
++          }
++        }
++      }
++      return false;
++    };
++    uint64_t Cursor = Start;
++    for (const auto &[Lo, Hi] : Covered) {
++      if (Lo > Cursor && scanGap(Cursor, std::min(Lo, End)))
++        return Error::success();
++      Cursor = std::max(Cursor, Hi);
++    }
++    if (Cursor < End && scanGap(Cursor, End))
++      return Error::success();
++  }
++  Address = 0;
++  return Error::success();
++}
++
+ static Error validateARMExclusiveReservations(BinaryContext &BC) {
++  std::string AbandonedAt;
+   for (auto &It : BC.getBinaryFunctions()) {
+     BinaryFunction &BF = It.second;
+     if (BF.isPseudo() || !BF.getSize())
+@@ -1104,8 +1160,9 @@
+         continue;
+       }
+       if (MIB->isReturn(Inst)) {
+-        if (Live)
+-          return fail(Offset, "return with a live reservation");
++        if (Live && AbandonedAt.empty())
++          AbandonedAt = BF.getPrintName() + " at 0x" +
++                        Twine::utohexstr(BF.getAddress() + Offset).str();
+         if (D.Predicated)
+           Worklist.emplace_back(Offset + D.Size, false);
+         continue;
+@@ -1159,6 +1216,20 @@
+           !Visited.count({Offset, true}))
+         return fail(Offset, "exclusive store without an analyzed local reservation");
+   }
++  if (!AbandonedAt.empty()) {
++    uint64_t Store = 0;
++    if (Error E = findUnanalyzedExclusiveStore(BC, Store))
++      return E;
++    if (Store)
++      return createFatalBOLTError(
++          "AArch32 instrumentation cannot preserve cross-function exclusive "
++          "reservations: return with a live reservation in " + AbandonedAt +
++          " while code outside analyzed functions has an exclusive store at 0x" +
++          Twine::utohexstr(Store));
++    BC.outs() << "BOLT-INFO: AArch32 reservation abandoned on return in "
++              << AbandonedAt
++              << " admitted: every exclusive store is locally paired\n";
++  }
+   return Error::success();
+ }
+ Error RewriteInstance::run() {
+--- a/bolt/test/ARM/Inputs/check-arm-cross-function-exclusive.py
++++ b/bolt/test/ARM/Inputs/check-arm-cross-function-exclusive.py
+@@ -78,7 +78,7 @@
+   'dead_store':('bx lr\nstrex r5,r4,[r6]\nbx lr',False),
+   'dead_local_pair':('bx lr\nldrex r4,[r6]\nstrex r5,r4,[r6]\nbx lr',True),
+   'dead_call_before_pair':('bx lr\nbl callee\nldrex r4,[r6]\nstrex r5,r4,[r6]\nbx lr',True),
+-  'live_return':('ldrex r4,[r6]\nbx lr',False),
++  'live_return':('ldrex r4,[r6]\nbx lr',True),  # R15: abandoned, nothing can consume it
+   'store_only':('strex r5,r4,[r6]\nbx lr',False),
+   'live_tail':('ldrex r4,[r6]\nb callee',False),
+   'skip_clear':('ldrex r4,[r6]\ncmp r0,#0\nbeq .Lcall\nclrex\n.Lcall:\nbl callee\nbx lr',False),
+@@ -97,12 +97,29 @@
+  if isa=='arm':
+   cases['predicated_store']=('ldrex r4,[r6]\nstrexeq r5,r4,[r6]\nbl callee\nbx lr',False)
+   cases['predicated_clear']=('ldrex r4,[r6]\nclrex\nbxeq lr\nbx lr',True)
+-  cases['predicated_return']=('ldrex r4,[r6]\nbxeq lr\nclrex\nbx lr',False)
++  cases['predicated_return']=('ldrex r4,[r6]\nbxeq lr\nclrex\nbx lr',True)
++  cases['trylock']=('mov r2,r0\nmov r1,#1\nldrex r0,[r2]\ncmp r0,#0\nstrexeq r0,r1,[r2]\ndmb\nbx lr',True)
+  else:
+   cases['it_store']=('ldrex r4,[r6]\ncmp r0,#0\nit eq\nstrexeq r5,r4,[r6]\nbl callee\nbx lr',False)
+   cases['it_clear']=('ldrex r4,[r6]\ncmp r0,#0\nit eq\nclrexeq\nbl callee\nbx lr',False)
+  for kind,(body,admit) in cases.items():
+   d=out/(isa+'-'+kind);build(d,isa,isa,body)
+   check(d,kind,'instrument',['--funcs=callee'],admit=admit)
++# R15 negatives: an abandoned reservation must have no consumer. The caller's
++# store after the call has no local reservation; an orphan store outside any
++# function is found by the raw scan.
++for isa in ('arm','thumb'):
++ d=out/(isa+'-live_return_caller_store');build(d,isa,isa,'ldrex r4,[r6]\nbx lr')
++ text=(d/'input.s').read_text().replace('bl caller\nbx lr','push {r4,lr}\nbl caller\nstrex r5,r4,[r6]\npop {r4,pc}',1)
++ (d/'input.s').write_text(text)
++ for name,cmd in [('mc',['llvm-mc','-triple=armv7-none-eabi','-arm-add-build-attributes','-filetype=obj',d/'input.s','-o',d/'input.o']),('link',['ld.lld','--emit-relocs','-T',d/'layout.ld',d/'input.o','-o',d/'input.elf'])]:
++  p=run(d,name,cmd);assert p.returncode==0,p.stdout+p.stderr
++ check(d,'live_return_caller_store','instrument',['--funcs=callee'])
++ d=out/(isa+'-live_return_orphan_store');build(d,isa,isa,'ldrex r4,[r6]\nbx lr')
++ text=(d/'input.s').read_text()+'.balign 4\n.'+isa+'\nstrex r5,r4,[r6]\nbx lr\n'
++ (d/'input.s').write_text(text)
++ for name,cmd in [('mc',['llvm-mc','-triple=armv7-none-eabi','-arm-add-build-attributes','-filetype=obj',d/'input.s','-o',d/'input.o']),('link',['ld.lld','--emit-relocs','-T',d/'layout.ld',d/'input.o','-o',d/'input.elf'])]:
++  p=run(d,name,cmd);assert p.returncode==0,p.stdout+p.stderr
++ check(d,'live_return_orphan_store','instrument',['--funcs=callee'])
+ (out/'results.json').write_text(json.dumps(rows,indent=2)+'\n')
+ print('Cross-function exclusive boundary:',len(rows),'passed;',sum(not r['output'] for r in rows),'rejections;',sum(r['output'] for r in rows),'admissions;',out,flush=True)
+--- a/bolt/test/ARM/arm-cross-function-exclusive.test
++++ b/bolt/test/ARM/arm-cross-function-exclusive.test
+@@ -1,3 +1,5 @@
+ ## Skipped ARM/Thumb callers may not carry an exclusive reservation through
+-## independently instrumented callees or function exits. Local pairs remain safe.
++## independently instrumented callees or branches out. Local pairs remain safe.
++## A return with a live reservation (try-lock failure path) is admitted only when
++## no exclusive store anywhere could consume it (R15).
+ RUN: %python %p/Inputs/check-arm-cross-function-exclusive.py %t.dir
