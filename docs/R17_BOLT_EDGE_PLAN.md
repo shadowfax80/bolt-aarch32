@@ -51,3 +51,11 @@ Generator, sources and manifest committed; a reviewed contract for the stage-1
 image; QEMU and Pi runs certified by the gates; each case's admission matches
 the manifest; known-open items (R8, R12, R13, R15) appear as expected
 failures until fixed.
+
+## Stage 1 result (2026-10-04)
+
+68 cases built into `fixtures/lk-rpi4-bolt-edge-0895d7bc.elf`. Pi baseline
+68/68 equal to the models; admission 72/77 as designed (gaps → R18, R19);
+BOLT-rewritten image with 25 redirected case entries: 68 × 2 runs, 0
+mismatches. Evidence: `docs/results/bolt_edge_stage1_20261004.json`. Far-code
+cases were deferred (image size); they remain in the host lit tests.

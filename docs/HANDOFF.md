@@ -84,7 +84,7 @@ Take items in the order below; groups reflect dependencies, not ownership.
 
 | Order | ID | Item | Priority | Owner | Status | Part of | Notes |
 |---|---|---|---|---|---|---|---|
-| 2 | R17 | Synthesized edge-case test image (`bolt_edge`), stage 1 (~40 cases) | P1 | Claude | In progress | 7, 8, 11, 12 | Plan: [R17_BOLT_EDGE_PLAN.md](R17_BOLT_EDGE_PLAN.md) |
+| 2 | R17 | Synthesized edge-case test image (`bolt_edge`), stage 1 (68 cases) | P1 | Claude | Stage 1 done; contract needs user review | 7, 8, 11, 12 | [Plan](R17_BOLT_EDGE_PLAN.md); [evidence](results/bolt_edge_stage1_20261004.json); stage 2 (randomized generator) open |
 
 **B. P0 certification (finish)**
 
@@ -103,6 +103,8 @@ Take items in the order below; groups reflect dependencies, not ownership.
 | 8 | R15 | Full-LK instrumentation blocked by `arch_spin_trylock` guard (false positive) | P1 | — | Open | exclusive guards (0038/0039) | Keep must-reject tests for real cross-function pairs |
 | 9 | R12 | ADR to an inline TBB/TBH table (`vsnprintf`) | P2 | — | Open | 12 | Last coverage item |
 | 10 | R13 | Redirect functions starting with a 16-bit instruction | P2 | — | Open | 6c | If not done under 6c |
+| 10a | R18 | ARM-state inline jump tables (`add rN, pc, #k; ldr pc, [rN, rI, lsl #2]; .word …`) rejected as PC read | P1 | — | Open | 12 | Found by R17: clang `-marm` switch and function-pointer tables (`c_switch_arm_*`, `c_indirect_arm_o2`) |
+| 10b | R19 | `mov lr, pc; b <target>` call idiom rejected as PC read | P1 | — | Open | 8 | Found by R17 (`c_noret_arm_*`, clang `-marm` call to a noreturn function via a thunk); position-independent while adjacent |
 
 **D. P1 certification matrices (as capacity allows)**
 
@@ -167,6 +169,27 @@ plus genuine fallthrough such as `bzero`: about 98% of functions.
 4. Update the *Claims* table and LK_COVERAGE.md together.
 
 ## Handoff log
+
+### 2026-10-04 — Claude: R17 stage 1 done (68-case bolt_edge image)
+
+- `scripts/bolt_edge/gen.py` generates `overlay/lk/files/app/bolt_edge/`, the
+  `rpi4-bolt-edge` project and `docs/bolt_edge/manifest.json` (model-computed
+  sinks + expected admission); `scripts/bolt_edge/check.py results|admission`
+  compares runs and BOLT admission. Image: `fixtures/lk-rpi4-bolt-edge-0895d7bc.elf`
+  (0 FP/NEON). Build: install the app/project into `third_party/lk` and run
+  `make rpi4-bolt-edge` (TOOLCHAIN=clang, CLANG_BINDIR=build-atfe/bin,
+  LD=ld.lld, SIZE=size). **Do not use `build-lk-aarch32.sh` on the dirty live
+  tree:** it runs `apply-overlays.sh` (it stopped safely at 0014; replay
+  re-verified clean).
+- **Pi baseline:** 68/68 sinks equal the models. **Admission:** 72/77
+  functions as designed; 5 real gaps in clang `-marm` output, new items R18
+  (ARM inline `ldr pc` tables) and R19 (`mov lr, pc; b` call idiom).
+- **Rewritten image on the Pi:** 478 emitted, 25 case entries redirected
+  (interworking, ARM CTC and `bleq`, noreturn chains, TBB/TBH, carry, C
+  variants): 68 cases × 2 runs, 0 mismatches, no faults. Uncertified until the
+  user reviews the generator/models as an oracle contract (6b).
+- Next: user review of `gen.py` models for a `pi4` contract on `0895d7bc…`;
+  R18/R19; stage 2 (randomized generator).
 
 ### 2026-10-04 — Claude: session-independent handoff
 

@@ -1,0 +1,75 @@
+{
+ "schema": 1,
+ "item": "R17 stage 1",
+ "date": "2026-10-04",
+ "image": "fixtures/lk-rpi4-bolt-edge-0895d7bc.elf",
+ "image_sha256": "0895d7bc1b0dcaa7b60869fd0e3182b6c8cb9a32aebb742c6e5336dd468208dd",
+ "generator": "scripts/bolt_edge/gen.py",
+ "manifest": "docs/bolt_edge/manifest.json",
+ "cases": 68,
+ "baseline_pi": {
+  "result": "68/68 sinks equal the generator models",
+  "log_lines": "bolt_edge: <case> sink=..."
+ },
+ "admission": {
+  "functions_checked": 77,
+  "matching": 72,
+  "known_gaps": [
+   "c_switch_arm_o2",
+   "c_indirect_arm_o2",
+   "c_switch_arm_o0 (R18: ARM inline add pc/ldr pc tables)",
+   "c_noret_arm_o2",
+   "c_noret_arm_o0 (R19: mov lr, pc; b call idiom)"
+  ],
+  "image_coverage": {
+   "functions": 508,
+   "status": {
+    "rejected": 20,
+    "rewritten": 478,
+    "folded (ICF)": 7,
+    "alias of rewritten function": 3
+   },
+   "rejection_classes": {
+    "fallthrough": 3,
+    "pc-write": 8,
+    "pc-read": 9
+   }
+  }
+ },
+ "rewritten_pi": {
+  "emitted": 478,
+  "redirected": 25,
+  "redirected_functions": [
+   "a_add100",
+   "iw_a_call_t",
+   "iw_a_tail_a",
+   "iw_a_tail_t",
+   "a_ctc",
+   "a_bleq",
+   "nr_user_t",
+   "nr_halt_a",
+   "nr_fatal_a",
+   "nr_user_a",
+   "t_tbb",
+   "t_tbh",
+   "a_carry",
+   "c_loop_arm_o2",
+   "c_fib_arm_o2",
+   "c_switch_thumb_o2",
+   "c_loop_thumb_o2",
+   "c_fib_thumb_o2",
+   "c_indirect_thumb_o2",
+   "c_switch_thumb_os",
+   "c_fib_thumb_os",
+   "c_indirect_thumb_os",
+   "c_loop_arm_o0",
+   "c_fib_arm_o0",
+   "c_indirect_arm_o0"
+  ],
+  "result": "68 cases x 2 runs: 0 mismatches vs models; no faults",
+  "refused_redirect": {
+   "lit_a": "PC-relative literal first instruction"
+  }
+ },
+ "scope": "uncertified: edge-image oracle contract awaits user review (6b); sampling not used, execution of redirected entries follows from redirects + correct results"
+}

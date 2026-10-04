@@ -1,0 +1,787 @@
+{
+ "schema": 1,
+ "generator": "scripts/bolt_edge/gen.py",
+ "command": "bolt_edge all",
+ "output_line": "bolt_edge: <case> sink=0x%08x",
+ "sink": "FNV-1a 32 over LE results for inputs",
+ "inputs": [
+  "0x00000000",
+  "0x00000001",
+  "0x00000002",
+  "0x00000003",
+  "0x00000004",
+  "0x00000005",
+  "0x00000006",
+  "0x00000008",
+  "0x00000009",
+  "0x0000000f",
+  "0x00000010",
+  "0x000000ff",
+  "0x7fffffff",
+  "0x80000000",
+  "0xfffffffe",
+  "0xffffffff"
+ ],
+ "noreturn_trigger": "0xdead0000",
+ "helpers": {
+  "t_add5": "rewrite",
+  "t_add100": "rewrite",
+  "a_add7": "rewrite",
+  "a_add100": "rewrite"
+ },
+ "cases": [
+  {
+   "name": "iw_a_call_t",
+   "isa": "A32",
+   "area": "interworking",
+   "admission": "rewrite",
+   "functions": {
+    "iw_a_call_t": "rewrite"
+   },
+   "note": "",
+   "expected_sink": "0xc2aa04da"
+  },
+  {
+   "name": "iw_t_call_a",
+   "isa": "T32",
+   "area": "interworking",
+   "admission": "rewrite",
+   "functions": {
+    "iw_t_call_a": "rewrite"
+   },
+   "note": "",
+   "expected_sink": "0xee096292"
+  },
+  {
+   "name": "iw_a_tail_a",
+   "isa": "A32",
+   "area": "interworking",
+   "admission": "rewrite",
+   "functions": {
+    "iw_a_tail_a": "rewrite"
+   },
+   "note": "",
+   "expected_sink": "0xfbaa1976"
+  },
+  {
+   "name": "iw_t_tail_t",
+   "isa": "T32",
+   "area": "interworking",
+   "admission": "rewrite",
+   "functions": {
+    "iw_t_tail_t": "rewrite"
+   },
+   "note": "",
+   "expected_sink": "0x52c4cb06"
+  },
+  {
+   "name": "iw_t_tail_a",
+   "isa": "T32",
+   "area": "interworking",
+   "admission": "rewrite",
+   "functions": {
+    "iw_t_tail_a": "rewrite"
+   },
+   "note": "cross-ISA tail call: ld.lld inserts an interworking thunk",
+   "expected_sink": "0xfbaa1976"
+  },
+  {
+   "name": "iw_a_tail_t",
+   "isa": "A32",
+   "area": "interworking",
+   "admission": "rewrite",
+   "functions": {
+    "iw_a_tail_t": "rewrite"
+   },
+   "note": "cross-ISA tail call: ld.lld inserts an interworking thunk",
+   "expected_sink": "0x52c4cb06"
+  },
+  {
+   "name": "it_mask_t",
+   "isa": "T32",
+   "area": "it-mask",
+   "admission": "rewrite",
+   "functions": {
+    "it_mask_t": "rewrite"
+   },
+   "note": "",
+   "expected_sink": "0x7d5650f3"
+  },
+  {
+   "name": "it_mask_tt",
+   "isa": "T32",
+   "area": "it-mask",
+   "admission": "rewrite",
+   "functions": {
+    "it_mask_tt": "rewrite"
+   },
+   "note": "",
+   "expected_sink": "0x96264388"
+  },
+  {
+   "name": "it_mask_te",
+   "isa": "T32",
+   "area": "it-mask",
+   "admission": "rewrite",
+   "functions": {
+    "it_mask_te": "rewrite"
+   },
+   "note": "",
+   "expected_sink": "0xbad71133"
+  },
+  {
+   "name": "it_mask_ttt",
+   "isa": "T32",
+   "area": "it-mask",
+   "admission": "rewrite",
+   "functions": {
+    "it_mask_ttt": "rewrite"
+   },
+   "note": "",
+   "expected_sink": "0x4242738a"
+  },
+  {
+   "name": "it_mask_tte",
+   "isa": "T32",
+   "area": "it-mask",
+   "admission": "rewrite",
+   "functions": {
+    "it_mask_tte": "rewrite"
+   },
+   "note": "",
+   "expected_sink": "0x696a7260"
+  },
+  {
+   "name": "it_mask_tet",
+   "isa": "T32",
+   "area": "it-mask",
+   "admission": "rewrite",
+   "functions": {
+    "it_mask_tet": "rewrite"
+   },
+   "note": "",
+   "expected_sink": "0xb45c51e5"
+  },
+  {
+   "name": "it_mask_tee",
+   "isa": "T32",
+   "area": "it-mask",
+   "admission": "rewrite",
+   "functions": {
+    "it_mask_tee": "rewrite"
+   },
+   "note": "",
+   "expected_sink": "0xf912afdb"
+  },
+  {
+   "name": "it_mask_tttt",
+   "isa": "T32",
+   "area": "it-mask",
+   "admission": "rewrite",
+   "functions": {
+    "it_mask_tttt": "rewrite"
+   },
+   "note": "",
+   "expected_sink": "0xb8cd6cea"
+  },
+  {
+   "name": "it_mask_ttte",
+   "isa": "T32",
+   "area": "it-mask",
+   "admission": "rewrite",
+   "functions": {
+    "it_mask_ttte": "rewrite"
+   },
+   "note": "",
+   "expected_sink": "0x5057fcaa"
+  },
+  {
+   "name": "it_mask_ttet",
+   "isa": "T32",
+   "area": "it-mask",
+   "admission": "rewrite",
+   "functions": {
+    "it_mask_ttet": "rewrite"
+   },
+   "note": "",
+   "expected_sink": "0x6d9dc860"
+  },
+  {
+   "name": "it_mask_ttee",
+   "isa": "T32",
+   "area": "it-mask",
+   "admission": "rewrite",
+   "functions": {
+    "it_mask_ttee": "rewrite"
+   },
+   "note": "",
+   "expected_sink": "0x5bc2e6c0"
+  },
+  {
+   "name": "it_mask_tett",
+   "isa": "T32",
+   "area": "it-mask",
+   "admission": "rewrite",
+   "functions": {
+    "it_mask_tett": "rewrite"
+   },
+   "note": "",
+   "expected_sink": "0x06a11225"
+  },
+  {
+   "name": "it_mask_tete",
+   "isa": "T32",
+   "area": "it-mask",
+   "admission": "rewrite",
+   "functions": {
+    "it_mask_tete": "rewrite"
+   },
+   "note": "",
+   "expected_sink": "0x21a47e05"
+  },
+  {
+   "name": "it_mask_teet",
+   "isa": "T32",
+   "area": "it-mask",
+   "admission": "rewrite",
+   "functions": {
+    "it_mask_teet": "rewrite"
+   },
+   "note": "",
+   "expected_sink": "0xc3fe6ae5"
+  },
+  {
+   "name": "it_mask_teee",
+   "isa": "T32",
+   "area": "it-mask",
+   "admission": "rewrite",
+   "functions": {
+    "it_mask_teee": "rewrite"
+   },
+   "note": "",
+   "expected_sink": "0xbd6a5bfb"
+  },
+  {
+   "name": "it_ret",
+   "isa": "T32",
+   "area": "it-transfer",
+   "admission": "rewrite",
+   "functions": {
+    "it_ret": "rewrite"
+   },
+   "note": "",
+   "expected_sink": "0x4479e00d"
+  },
+  {
+   "name": "it_pop_ret",
+   "isa": "T32",
+   "area": "it-transfer",
+   "admission": "rewrite",
+   "functions": {
+    "it_pop_ret": "rewrite"
+   },
+   "note": "",
+   "expected_sink": "0x5f247796"
+  },
+  {
+   "name": "it_ite_ret",
+   "isa": "T32",
+   "area": "it-transfer",
+   "admission": "rewrite",
+   "functions": {
+    "it_ite_ret": "rewrite"
+   },
+   "note": "",
+   "expected_sink": "0x6282cf90"
+  },
+  {
+   "name": "it_call",
+   "isa": "T32",
+   "area": "it-transfer",
+   "admission": "rewrite",
+   "functions": {
+    "it_call": "rewrite"
+   },
+   "note": "",
+   "expected_sink": "0xbacadb71"
+  },
+  {
+   "name": "it_callx",
+   "isa": "T32",
+   "area": "it-transfer",
+   "admission": "rewrite",
+   "functions": {
+    "it_callx": "rewrite"
+   },
+   "note": "",
+   "expected_sink": "0xd386cfbb"
+  },
+  {
+   "name": "it_ctc",
+   "isa": "T32",
+   "area": "it-transfer",
+   "admission": "rewrite",
+   "functions": {
+    "it_ctc": "rewrite"
+   },
+   "note": "",
+   "expected_sink": "0x2a618562"
+  },
+  {
+   "name": "t_ctc",
+   "isa": "T32",
+   "area": "it-transfer",
+   "admission": "rewrite",
+   "functions": {
+    "t_ctc": "rewrite"
+   },
+   "note": "",
+   "expected_sink": "0x3fe19fc5"
+  },
+  {
+   "name": "a_ctc",
+   "isa": "A32",
+   "area": "it-transfer",
+   "admission": "rewrite",
+   "functions": {
+    "a_ctc": "rewrite"
+   },
+   "note": "",
+   "expected_sink": "0x5888cc02"
+  },
+  {
+   "name": "a_bleq",
+   "isa": "A32",
+   "area": "it-transfer",
+   "admission": "rewrite",
+   "functions": {
+    "a_bleq": "rewrite"
+   },
+   "note": "",
+   "expected_sink": "0x5b01f7d4"
+  },
+  {
+   "name": "nr_user_t",
+   "isa": "T32",
+   "area": "noreturn",
+   "admission": "rewrite",
+   "functions": {
+    "nr_user_t": "rewrite",
+    "nr_fatal_t": "rewrite",
+    "nr_halt_t": "rewrite"
+   },
+   "note": "",
+   "expected_sink": "0xfc388d9a"
+  },
+  {
+   "name": "nr_user_a",
+   "isa": "A32",
+   "area": "noreturn",
+   "admission": "rewrite",
+   "functions": {
+    "nr_user_a": "rewrite",
+    "nr_fatal_a": "rewrite",
+    "nr_halt_a": "rewrite"
+   },
+   "note": "",
+   "expected_sink": "0xfc388d9a"
+  },
+  {
+   "name": "ft_into_next",
+   "isa": "T32",
+   "area": "fallthrough",
+   "admission": "reject:fallthrough",
+   "functions": {
+    "ft_into_next": "reject:fallthrough",
+    "ft_next": "rewrite"
+   },
+   "note": "",
+   "expected_sink": "0xfc388d9a"
+  },
+  {
+   "name": "lit_a",
+   "isa": "A32",
+   "area": "data-in-code",
+   "admission": "rewrite",
+   "functions": {
+    "lit_a": "rewrite"
+   },
+   "note": "",
+   "expected_sink": "0xc7e7769e"
+  },
+  {
+   "name": "lit_t",
+   "isa": "T32",
+   "area": "data-in-code",
+   "admission": "rewrite",
+   "functions": {
+    "lit_t": "rewrite"
+   },
+   "note": "",
+   "expected_sink": "0xc323cf96"
+  },
+  {
+   "name": "t_tbb",
+   "isa": "T32",
+   "area": "data-in-code",
+   "admission": "rewrite",
+   "functions": {
+    "t_tbb": "rewrite"
+   },
+   "note": "",
+   "expected_sink": "0xd39d5835"
+  },
+  {
+   "name": "t_tbh",
+   "isa": "T32",
+   "area": "data-in-code",
+   "admission": "rewrite",
+   "functions": {
+    "t_tbh": "rewrite"
+   },
+   "note": "",
+   "expected_sink": "0x602104dd"
+  },
+  {
+   "name": "t_adr_tbh",
+   "isa": "T32",
+   "area": "data-in-code",
+   "admission": "reject:pc-read",
+   "functions": {
+    "t_adr_tbh": "reject:pc-read"
+   },
+   "note": "vsnprintf pattern; becomes rewrite when R12 lands",
+   "expected_sink": "0x63c0ba41"
+  },
+  {
+   "name": "a_add_pc_switch",
+   "isa": "A32",
+   "area": "data-in-code",
+   "admission": "reject:pc-write",
+   "functions": {
+    "a_add_pc_switch": "reject:pc-write"
+   },
+   "note": "",
+   "expected_sink": "0xa2cbc5c9"
+  },
+  {
+   "name": "short16",
+   "isa": "T32",
+   "area": "entries",
+   "admission": "rewrite",
+   "functions": {
+    "short16": "rewrite"
+   },
+   "note": "16-bit first instruction: rewritten, not redirectable until R13",
+   "expected_sink": "0x98396e06"
+  },
+  {
+   "name": "t_alias",
+   "isa": "T32",
+   "area": "entries",
+   "admission": "rewrite",
+   "functions": {
+    "t_alias": "alias"
+   },
+   "note": "alias of t_add5",
+   "expected_sink": "0xc2aa04da"
+  },
+  {
+   "name": "size0_t",
+   "isa": "T32",
+   "area": "entries",
+   "admission": "rewrite",
+   "functions": {
+    "size0_t": "rewrite"
+   },
+   "note": "no .size",
+   "expected_sink": "0x4ceadb52"
+  },
+  {
+   "name": "a_pcread",
+   "isa": "A32",
+   "area": "guards",
+   "admission": "reject:pc-read",
+   "functions": {
+    "a_pcread": "reject:pc-read"
+   },
+   "note": "",
+   "expected_sink": "0xeeb8f2f5"
+  },
+  {
+   "name": "t_excl",
+   "isa": "T32",
+   "area": "guards",
+   "admission": "rewrite",
+   "functions": {
+    "t_excl": "rewrite"
+   },
+   "note": "local LDREX/STREX loop",
+   "expected_sink": "0xd0f35019"
+  },
+  {
+   "name": "a_carry",
+   "isa": "A32",
+   "area": "flags",
+   "admission": "rewrite",
+   "functions": {
+    "a_carry": "rewrite"
+   },
+   "note": "",
+   "expected_sink": "0xe368451a"
+  },
+  {
+   "name": "t_carry",
+   "isa": "T32",
+   "area": "flags",
+   "admission": "rewrite",
+   "functions": {
+    "t_carry": "rewrite"
+   },
+   "note": "",
+   "expected_sink": "0xe368451a"
+  },
+  {
+   "name": "edge_dup_a",
+   "isa": "C",
+   "area": "entries",
+   "admission": "rewrite",
+   "functions": {
+    "edge_dup_a": "rewrite"
+   },
+   "note": "static helper `dup` duplicated across files (dup/1, dup/2)",
+   "expected_sink": "0x56009df4"
+  },
+  {
+   "name": "edge_dup_b",
+   "isa": "C",
+   "area": "entries",
+   "admission": "rewrite",
+   "functions": {
+    "edge_dup_b": "rewrite"
+   },
+   "note": "static helper `dup` duplicated across files (dup/1, dup/2)",
+   "expected_sink": "0x59d3668a"
+  },
+  {
+   "name": "c_switch_arm_o2",
+   "isa": "C-arm_o2",
+   "area": "compiler",
+   "admission": "rewrite",
+   "functions": {
+    "c_switch_arm_o2": "rewrite"
+   },
+   "note": "",
+   "expected_sink": "0x7ea82827"
+  },
+  {
+   "name": "c_loop_arm_o2",
+   "isa": "C-arm_o2",
+   "area": "compiler",
+   "admission": "rewrite",
+   "functions": {
+    "c_loop_arm_o2": "rewrite"
+   },
+   "note": "",
+   "expected_sink": "0x50e00300"
+  },
+  {
+   "name": "c_fib_arm_o2",
+   "isa": "C-arm_o2",
+   "area": "compiler",
+   "admission": "rewrite",
+   "functions": {
+    "c_fib_arm_o2": "rewrite"
+   },
+   "note": "",
+   "expected_sink": "0x79c9f2c4"
+  },
+  {
+   "name": "c_indirect_arm_o2",
+   "isa": "C-arm_o2",
+   "area": "compiler",
+   "admission": "rewrite",
+   "functions": {
+    "c_indirect_arm_o2": "rewrite"
+   },
+   "note": "",
+   "expected_sink": "0x99d0ad78"
+  },
+  {
+   "name": "c_noret_arm_o2",
+   "isa": "C-arm_o2",
+   "area": "compiler",
+   "admission": "rewrite",
+   "functions": {
+    "c_noret_arm_o2": "rewrite"
+   },
+   "note": "noreturn panic path not taken",
+   "expected_sink": "0x8fa7536c"
+  },
+  {
+   "name": "c_switch_thumb_o2",
+   "isa": "C-thumb_o2",
+   "area": "compiler",
+   "admission": "rewrite",
+   "functions": {
+    "c_switch_thumb_o2": "rewrite"
+   },
+   "note": "",
+   "expected_sink": "0x7ea82827"
+  },
+  {
+   "name": "c_loop_thumb_o2",
+   "isa": "C-thumb_o2",
+   "area": "compiler",
+   "admission": "rewrite",
+   "functions": {
+    "c_loop_thumb_o2": "rewrite"
+   },
+   "note": "",
+   "expected_sink": "0x50e00300"
+  },
+  {
+   "name": "c_fib_thumb_o2",
+   "isa": "C-thumb_o2",
+   "area": "compiler",
+   "admission": "rewrite",
+   "functions": {
+    "c_fib_thumb_o2": "rewrite"
+   },
+   "note": "",
+   "expected_sink": "0x79c9f2c4"
+  },
+  {
+   "name": "c_indirect_thumb_o2",
+   "isa": "C-thumb_o2",
+   "area": "compiler",
+   "admission": "rewrite",
+   "functions": {
+    "c_indirect_thumb_o2": "rewrite"
+   },
+   "note": "",
+   "expected_sink": "0x99d0ad78"
+  },
+  {
+   "name": "c_noret_thumb_o2",
+   "isa": "C-thumb_o2",
+   "area": "compiler",
+   "admission": "rewrite",
+   "functions": {
+    "c_noret_thumb_o2": "rewrite"
+   },
+   "note": "noreturn panic path not taken",
+   "expected_sink": "0x8fa7536c"
+  },
+  {
+   "name": "c_switch_thumb_os",
+   "isa": "C-thumb_os",
+   "area": "compiler",
+   "admission": "rewrite",
+   "functions": {
+    "c_switch_thumb_os": "rewrite"
+   },
+   "note": "",
+   "expected_sink": "0x7ea82827"
+  },
+  {
+   "name": "c_loop_thumb_os",
+   "isa": "C-thumb_os",
+   "area": "compiler",
+   "admission": "rewrite",
+   "functions": {
+    "c_loop_thumb_os": "rewrite"
+   },
+   "note": "",
+   "expected_sink": "0x50e00300"
+  },
+  {
+   "name": "c_fib_thumb_os",
+   "isa": "C-thumb_os",
+   "area": "compiler",
+   "admission": "rewrite",
+   "functions": {
+    "c_fib_thumb_os": "rewrite"
+   },
+   "note": "",
+   "expected_sink": "0x79c9f2c4"
+  },
+  {
+   "name": "c_indirect_thumb_os",
+   "isa": "C-thumb_os",
+   "area": "compiler",
+   "admission": "rewrite",
+   "functions": {
+    "c_indirect_thumb_os": "rewrite"
+   },
+   "note": "",
+   "expected_sink": "0x99d0ad78"
+  },
+  {
+   "name": "c_noret_thumb_os",
+   "isa": "C-thumb_os",
+   "area": "compiler",
+   "admission": "rewrite",
+   "functions": {
+    "c_noret_thumb_os": "rewrite"
+   },
+   "note": "noreturn panic path not taken",
+   "expected_sink": "0x8fa7536c"
+  },
+  {
+   "name": "c_switch_arm_o0",
+   "isa": "C-arm_o0",
+   "area": "compiler",
+   "admission": "rewrite",
+   "functions": {
+    "c_switch_arm_o0": "rewrite"
+   },
+   "note": "",
+   "expected_sink": "0x7ea82827"
+  },
+  {
+   "name": "c_loop_arm_o0",
+   "isa": "C-arm_o0",
+   "area": "compiler",
+   "admission": "rewrite",
+   "functions": {
+    "c_loop_arm_o0": "rewrite"
+   },
+   "note": "",
+   "expected_sink": "0x50e00300"
+  },
+  {
+   "name": "c_fib_arm_o0",
+   "isa": "C-arm_o0",
+   "area": "compiler",
+   "admission": "rewrite",
+   "functions": {
+    "c_fib_arm_o0": "rewrite"
+   },
+   "note": "",
+   "expected_sink": "0x79c9f2c4"
+  },
+  {
+   "name": "c_indirect_arm_o0",
+   "isa": "C-arm_o0",
+   "area": "compiler",
+   "admission": "rewrite",
+   "functions": {
+    "c_indirect_arm_o0": "rewrite"
+   },
+   "note": "",
+   "expected_sink": "0x99d0ad78"
+  },
+  {
+   "name": "c_noret_arm_o0",
+   "isa": "C-arm_o0",
+   "area": "compiler",
+   "admission": "rewrite",
+   "functions": {
+    "c_noret_arm_o0": "rewrite"
+   },
+   "note": "noreturn panic path not taken",
+   "expected_sink": "0x8fa7536c"
+  }
+ ]
+}
