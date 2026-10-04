@@ -12,11 +12,19 @@ import tempfile
 ROOT = Path(__file__).resolve().parents[2]
 sys.path[:0] = [str(ROOT/'scripts'),str(ROOT/'scripts/pi4')]
 from profile_identity import elf_metadata,sha256,write_json
-from verify_far_execution import offset,require,SEEDS
+from verify_far_execution import offset,require
 from verify_far_interwork import decode_thumb_bl,decode_stub
 
 PAIRS = [('arm','arm'),('arm','thumb'),('thumb','arm'),('thumb','thumb')]
+SEEDS = [0,1,2,17,0x7fffffff,0x80000000,0x80000001,0xfffffff9,0xffffffff]
 FIELDS = ['caller_pc','callee_pc','return_pc','ip','flags_before','flags_after','sp_before','sp_after','memory']
+
+
+def cmp_flags(value):
+    result=(value-1)&0xffffffff
+    n=result>>31;z=int(result==0);c=int(value>=1)
+    v=(((value^1)&(value^result))>>31)&1
+    return (n<<31)|(z<<30)|(c<<29)|(v<<28)
 
 
 def validate_chunks(chunks):
@@ -32,14 +40,20 @@ def validate_chunks(chunks):
 
 def instructions(blob,address,size,thumb):
     end = address+size
+    sections,_=elf_metadata(blob)
+    matches=[s for s in sections if s['kind']!=8 and s['flags']&2 and address<s['address']+s['size'] and s['address']<end]
+    require(len(matches)==1 and matches[0]['address']<=address<end<=matches[0]['address']+matches[0]['size'],
+            'ambiguous/unmapped instruction extent')
+    section=matches[0]
     while address < end:
+        position=section['offset']+address-section['address']
         if thumb:
-            half = struct.unpack_from('<H',blob,offset(blob,address,2))[0]
+            require(address+2<=end,'truncated instruction')
+            half = struct.unpack_from('<H',blob,position)[0]
             length = 4 if half & 0xf800 in (0xe800,0xf000,0xf800) else 2
         else:
             length = 4
         require(address+length <= end,'truncated instruction')
-        position = offset(blob,address,length)
         yield address,blob[position:position+length]
         address += length
 
@@ -51,27 +65,69 @@ def witnesses(blob,caller,callee):
         require(len(rows) == 1,'ambiguous function '+name)
         return rows[0]
     source,target = symbol(caller),symbol(callee)
-    def pc_reads(s):
-        opcode = bytes.fromhex('7b46') if s['thumb'] else bytes.fromhex('0f30a0e1')
-        return [address+(4 if s['thumb'] else 8) for address,data in instructions(blob,s['address'],s['size'],s['thumb']) if data == opcode]
-    caller_pcs,callee_pcs = pc_reads(source),pc_reads(target)
-    require(len(caller_pcs) == 2 and len(callee_pcs) == 1,'missing live PC witness instructions')
+    caller_pcs = link_witnesses(list(instructions(blob,source['address'],source['size'],source['thumb'])),source['thumb'],fields=[0,8])
+    callee_pcs = link_witnesses(list(instructions(blob,target['address'],target['size'],target['thumb'])),target['thumb'],save_link=True,fields=[4])
+    require(len(caller_pcs) == 2 and len(callee_pcs) == 1,'missing live link witness instructions')
     return dict(caller=source,callee=target,caller_pc=caller_pcs[0],callee_pc=callee_pcs[0],return_pc=caller_pcs[1])
+
+
+def direct_call(address,data,thumb):
+    if thumb and len(data) == 4:
+        first,second = struct.unpack('<HH',data)
+        if first & 0xf800 == 0xf000 and second & 0xd000 == 0xd000:
+            return decode_thumb_bl(first,second,address)
+    elif not thumb:
+        word = struct.unpack('<I',data)[0]
+        if word >> 24 == 0xeb:
+            delta = (word & 0xffffff) << 2
+            return address+8+delta-(0x4000000 if delta & 0x2000000 else 0)
+    return None
+
+
+def link_witnesses(code,thumb,save_link=False,fields=None):
+    """Bind each MOV r3,LR to its actual incoming BL and optional output field.
+
+    Block reordering may separate the capture from the call continuation.
+    The observed LR is call+4 (with ISA bit), rather than the capture's address.
+    """
+    move = bytes.fromhex('7346' if thumb else '0e30a0e1')
+    save = bytes.fromhex('7246' if thumb else '0e20a0e1')
+    restore = bytes.fromhex('9646' if thumb else '02e0a0e1')
+    result=[];values={}
+    calls=[(i,address,direct_call(address,data,thumb)) for i,(address,data) in enumerate(code)
+           if direct_call(address,data,thumb) is not None]
+    for i,(address,data) in enumerate(code):
+        if data != move:
+            continue
+        incoming=[(j,call) for j,call,target in calls if target==address]
+        require(len(incoming)==1,'link witness lacks unique same-ISA call')
+        call_index,call=incoming[0]
+        if save_link:
+            require(call_index>0 and code[call_index-1][1]==save and i+1<len(code) and code[i+1][1]==restore,
+                    'callee witness does not preserve return link')
+        value=(call+4) | int(thumb);result.append(value)
+        if fields is not None:
+            store_index=i+1+int(save_link)
+            require(store_index<len(code),'missing witness store')
+            stores={bytes.fromhex('c1f8'+f'{field:02x}'+'30') if thumb else struct.pack('<I',0xe5813000|field):field for field in fields}
+            field=stores.get(code[store_index][1])
+            require(field is not None and field not in values,'missing/duplicate witness field')
+            values[field]=value
+    if fields is not None:
+        require(set(values)==set(fields),'incomplete witness fields')
+        return [values[field] for field in fields]
+    return result
 
 
 def emitted_route(blob,row):
     source,target = row['caller'],row['callee']
     calls = []
+    captures={address for address,data in instructions(blob,source['address'],source['size'],source['thumb'])
+              if data==bytes.fromhex('7346' if source['thumb'] else '0e30a0e1')}
     for address,data in instructions(blob,source['address'],source['size'],source['thumb']):
-        if source['thumb'] and len(data) == 4:
-            first,second = struct.unpack('<HH',data)
-            if first & 0xf800 == 0xf000 and second & 0xd000 == 0xd000:
-                calls.append((address,decode_thumb_bl(first,second,address)))
-        elif not source['thumb']:
-            word = struct.unpack('<I',data)[0]
-            if word >> 24 == 0xeb:
-                delta = (word & 0xffffff) << 2
-                calls.append((address,address+8+delta-(0x4000000 if delta & 0x2000000 else 0)))
+        target_address=direct_call(address,data,source['thumb'])
+        if target_address is not None and target_address not in captures:
+            calls.append((address,target_address))
     require(len(calls) == 1,'wrong generated call count')
     call,stub = calls[0]
     absolute = decode_stub(blob,stub,source['thumb'])
@@ -107,14 +163,14 @@ def main():
         tag = caller_isa+'_'+callee_isa
         caller,callee,veneer = 'caller_'+tag,'far_'+tag,'__ARMv5LongLdrPcThunk_far_'+tag
         wide = '.w' if caller_isa == 'thumb' else ''
-        body = ('push {r4,lr}\nmov r2,sp\nstr'+wide+' r2,[r1,#24]\nmov r3,pc\nstr'+wide+' r3,[r1]\n'
+        body = ('push {r4,lr}\nmov r2,sp\nstr'+wide+' r2,[r1,#24]\nbl .Lcapture0_'+tag+'\n.Lcapture0_'+tag+':\nmov r3,lr\nstr'+wide+' r3,[r1]\n'
                 'movw r12,#0xa5a5\nmovt r12,#0xa5a5\ncmp r0,#1\nmrs r2,cpsr\nstr'+wide+' r2,[r1,#16]\n'
                 +('blx' if caller_isa == 'thumb' else 'bl')+' '+veneer+'\nmrs r2,cpsr\nstr'+wide+' r2,[r1,#20]\n'
-                'mov r2,sp\nstr'+wide+' r2,[r1,#28]\nmov r3,pc\nstr'+wide+' r3,[r1,#8]\npop {r4,pc}')
+                'mov r2,sp\nstr'+wide+' r2,[r1,#28]\nbl .Lcapture1_'+tag+'\n.Lcapture1_'+tag+':\nmov r3,lr\nstr'+wide+' r3,[r1,#8]\npop {r4,pc}')
         asm += function(caller,caller_isa,body)
         asm += function(veneer,'arm','ldr pc,[pc,#-4]\n.word '+callee)
         wide = '.w' if callee_isa == 'thumb' else ''
-        asm += function(callee,callee_isa,'mov r3,pc\nstr'+wide+' r3,[r1,#4]\nstr'+wide+' r12,[r1,#12]\nadd'+wide+' r0,r0,#7\nstr'+wide+' r0,[r1,#32]\nbx lr')
+        asm += function(callee,callee_isa,'mov r2,lr\nbl .Lcapture2_'+tag+'\n.Lcapture2_'+tag+':\nmov r3,lr\nmov lr,r2\nstr'+wide+' r3,[r1,#4]\nstr'+wide+' r12,[r1,#12]\nadd'+wide+' r0,r0,#7\nstr'+wide+' r0,[r1,#32]\nbx lr')
         functions += [caller,callee,veneer]
     asm += '.data\n.balign 4\n.global case_entries\n.type case_entries,%object\ncase_entries:\n'
     for a,b in PAIRS:
@@ -156,6 +212,7 @@ extern const struct Case case_entries[];
     puts_uart("BOLT_FAR_PI PASS cases=20\\r\\n");finish();
 }
 '''
+    c=c.replace('i<20','i<'+str(len(PAIRS)*len(SEEDS))).replace('cases=20','cases='+str(len(PAIRS)*len(SEEDS)))
     (out/'main.c').write_text(c)
     (out/'link.ld').write_text('ENTRY(_start)\nSECTIONS { . = 0x100000; .text : { *(.text.start) *(.text*) } .rodata : { *(.rodata*) } .data : { *(.data*) } .bss : { *(.bss*) *(COMMON) } /DISCARD/ : { *(.ARM.exidx*) *(.ARM.extab*) *(.comment) } }\n')
     run('mc',[tc/'llvm-mc','-triple=armv7-none-eabi','-arm-add-build-attributes','-filetype=obj',out/'fixture.s','-o',out/'fixture.o'])
@@ -170,10 +227,14 @@ extern const struct Case case_entries[];
         options += ['--pad-funcs-before=far_'+a+'_'+b+':0x2100000' for a,b in PAIRS]+extra
         log = run(layout+'-bolt',[tc/'llvm-bolt',out/'baseline.elf','-o',out/(layout+'.elf'),*options])
         require('removed linker-inserted veneers: 4' in log,'literal veneers not removed')
-        layouts[layout] = dict(options=options)
+        mapping={parts[0]:[int(x,16) for x in parts[1:]] for line in (out/(layout+'.map')).read_text().splitlines() if (parts:=line.split())}
+        emitted=[n for n in functions if not n.startswith('__ARMv5LongLdrPcThunk_')]
+        require(set(mapping)==set(emitted),'missing/extra emitted function')
+        layouts[layout] = dict(options=options,selected=functions,emitted=mapping,
+                              eliminated=[n for n in functions if n not in mapping],profile=None)
     variants = {}
-    for name in ['baseline','normal','reverse','bad-result','bad-flags','retained-callee']:
-        code_name = 'normal' if name.startswith('bad-') or name == 'retained-callee' else name
+    for name in ['baseline','normal','reverse','bad-result','bad-flags','retained-callee','timeout']:
+        code_name = 'normal' if name.startswith('bad-') or name in ['retained-callee','timeout'] else name
         code = (out/(code_name+'.elf')).read_bytes()
         rows = [witnesses(code,'caller_'+a+'_'+b,'far_'+a+'_'+b) for a,b in PAIRS]
         routes = [emitted_route(code,r) for r in rows] if code_name != 'baseline' else []
@@ -183,6 +244,10 @@ extern const struct Case case_entries[];
             require(len(additions) == 1,'ambiguous arithmetic fault site')
             struct.pack_into('<I',data,offset(data,additions[0][0],4),0xe2800008 if name == 'bad-result' else 0xe2900007)
             code = bytes(data)
+        elif name == 'timeout':
+            data=bytearray(code)
+            struct.pack_into('<I',data,offset(data,rows[0]['callee']['address'],4),0xeafffffe)
+            code=bytes(data)
         elif name == 'retained-callee':
             data = bytearray(code); stub = routes[0]['stub']
             old = witnesses(original,'caller_arm_arm','far_arm_arm')['callee']['address']
@@ -196,8 +261,8 @@ extern const struct Case case_entries[];
             ip = 0xa5a5a5a5 if code_name == 'baseline' else routes[index]['absolute_target']
             for seed_index,seed in enumerate(SEEDS):
                 values = [fn,seed,(seed+7)&0xffffffff,row['caller_pc'],row['callee_pc'],row['return_pc'],ip]
-                struct.pack_into('<7I',baseline,offset(baseline,case_table['address']+(index*5+seed_index)*28,28),*values)
-                expectations.append(dict(pair=a+'-'+b,id=index*5+seed_index,input=seed,result=values[2],cpc=values[3],fpc=values[4],rpc=values[5],ip=ip))
+                struct.pack_into('<7I',baseline,offset(baseline,case_table['address']+(index*len(SEEDS)+seed_index)*28,28),*values)
+                expectations.append(dict(pair=a+'-'+b,id=index*len(SEEDS)+seed_index,input=seed,result=values[2],cpc=values[3],fpc=values[4],rpc=values[5],ip=ip,nzcv=cmp_flags(seed)))
         chunks = []
         for section in original_sections:
             if not section['flags'] & 2 or not section['size']:
@@ -287,9 +352,10 @@ chunk_table:
         print(name,'packed',len(chunks),'chunks,', (out/(name+'.bin')).stat().st_size,'upload bytes',flush=True)
     require(tools == {name:sha256(tc/name) for name in tools} and scripts == {name:sha256(ROOT/name) for name in scripts},'producer inputs changed')
     require(revision == subprocess.check_output(['git','-C',str(ROOT),'rev-parse','HEAD'],text=True).strip(),'revision changed')
-    write_json(out/'build.json',dict(schema=1,kind='pi-far-safety',scope='HYP core 0, MMU/caches off, masked IRQ/FIQ; sparse staging of original harness and unmodified emitted four-ISA far-call code; no whole-kernel/ISR claim',
+    write_json(out/'build.json',dict(schema=2,kind='pi-far-safety',witness_kind='same-ISA BL return link including Thumb bit',scope='HYP core 0, MMU/caches off, masked IRQ/FIQ; sparse staging of original harness and unmodified emitted four-ISA far-call code; live BL/LR position witnesses; no whole-kernel/ISR claim',
         variants=variants,layouts=layouts,tools=tools,scripts=scripts,repository_revision=revision,
-        faults={'bad-result':dict(case_id=0,field=0),'bad-flags':dict(case_id=0,field=14),'retained-callee':dict(case_id=0,field=11)},
+        seeds=SEEDS,patch_sha256={p.name:sha256(p) for p in sorted((ROOT/'overlay/llvm/patches/atfe').glob('*.patch'))},
+        faults={'bad-result':dict(case_id=0,field=0),'bad-flags':dict(case_id=0,field=14),'retained-callee':dict(case_id=0,field=11),'timeout':dict(case_id=0,kind='missing-completion')},
         files={p.relative_to(out).as_posix():sha256(p) for p in out.rglob('*') if p.is_file()}))
     print('Built sparse Pi far-call fixture:',out,flush=True)
 

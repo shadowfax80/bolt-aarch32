@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Produce a fresh scoped LK rewrite and verify its redirected entry execution."""
 import argparse
+import json
 from pathlib import Path
 import subprocess
 import sys
@@ -8,6 +9,7 @@ import tempfile
 
 from profile_identity import sha256,write_json,read_json
 from qemu_rewrite_gate import selection,read_map,layout,one,ROOT
+from qemu_bench_oracle import CONTRACTS
 
 
 def main():
@@ -20,12 +22,13 @@ def main():
     a.out.mkdir(parents=True,exist_ok=True); out=Path(tempfile.mkdtemp(prefix='build-',dir=a.out.resolve()))
     print('Build evidence:',out,flush=True)
     original=out/'original.elf'; original.write_bytes(a.elf.read_bytes()); source_hash=sha256(original)
+    if source_hash not in CONTRACTS: raise ValueError('no reviewed independent oracle contract for input image')
     # No automatic extension of LK's heap/boot allocator boundary is supported.
     _,_,_,symbols=layout(original.read_bytes())
     start=one(symbols,'__bolt_reserved_start')['value']; end=one(symbols,'__bolt_reserved_end')['value']
     if not start<end<=one(symbols,'_end')['value']: raise ValueError('linked protected reservation required')
     tools={n:sha256(a.toolchain/n) for n in ('llvm-bolt','llvm-nm','llvm-readelf')}
-    scripts={n:sha256(ROOT/'scripts'/n) for n in ('qemu_rewrite_build.py','qemu_rewrite_gate.py','qemu_workload_gate.py','profile_identity.py','pi4/passes_check.py','redirect-bolt-entries.py','fix-kernel-elf-sections.py')}
+    scripts={n:sha256(ROOT/'scripts'/n) for n in ('qemu_rewrite_build.py','qemu_rewrite_gate.py','qemu_workload_gate.py','qemu_bench_oracle.py','profile_identity.py','pi4/passes_check.py','redirect-bolt-entries.py','fix-kernel-elf-sections.py')}
     candidate=out/'candidate.elf'; mapping=out/'functions.map'
     commands=[
         [str(a.toolchain/'llvm-bolt'),str(original),'--funcs='+a.funcs,'--no-huge-pages','--emit-function-map='+str(mapping),'-o',str(candidate)],
@@ -40,13 +43,15 @@ def main():
         if i==0: read_map(mapping.read_text(encoding='utf-8'),names)
     receipts=list((out/'verification').glob('rewrite-*/rewrite.json'))
     if len(receipts)!=1: raise ValueError('missing/ambiguous live verification receipt')
-    verified=read_json(receipts[0])
+    verified=json.loads(receipts[0].read_text(encoding='utf-8'))
+    if verified.get('schema')!=2 or set(verified.get('independent_oracles',{}))!={'baseline','candidate'}:
+        raise ValueError('missing independent execution/oracle receipt')
     for name,path in [('baseline.elf',original),('candidate.elf',candidate),('functions.map',mapping)]:
         if sha256(path)!=verified['artifacts'][name] or sha256(receipts[0].parent/name)!=verified['artifacts'][name]:
             raise ValueError('artifact changed after verification')
     if source_hash!=sha256(original) or source_hash!=sha256(a.elf): raise ValueError('source changed during build')
     if tools!={n:sha256(a.toolchain/n) for n in tools} or scripts!={n:sha256(ROOT/'scripts'/n) for n in scripts}: raise ValueError('tool/verifier changed')
-    write_json(out/'build.json',dict(schema=1,scope='scoped selected-entry QEMU execution/output consistency; dirty source and compiler provenance not certified',
+    write_json(out/'build.json',dict(schema=2,scope='scoped selected-entry QEMU execution and eighteen independent sink oracles for approved input; dirty source and compiler provenance not certified',
         selected=names,commands=commands,tools=tools,scripts=scripts,verification=str(receipts[0].relative_to(out)),
         artifacts={n:sha256(out/n) for n in ('original.elf','candidate.elf','functions.map','redirect.json','step-0.log','step-1.log','step-2.log','step-3.log')},
         verification_sha256=sha256(receipts[0])))

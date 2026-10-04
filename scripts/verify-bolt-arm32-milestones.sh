@@ -24,7 +24,7 @@ printf '%s\n' ${BOLT_BENCH_FUNCS//,/ } > "$FUNCS_FILE"
 echo "=== P0: original ELF boots + bolt_bench all ==="
 python3 "$ROOT/scripts/qemu_workload_gate.py" --elf "$ELF" --qemu "$QEMU" \
   --append "$CMDLINE" --out "${OUT_DIR:-$ROOT/out/arm32-milestones}/p0" --timeout 120
- echo "P0 complete workload (no independent correctness certificate)"
+ echo "P0 complete workload and independent sink arithmetic (no rewrite certificate)"
 
 echo "=== P1: print-sections (full image) ==="
 "$TOOLCHAIN/llvm-bolt" "$ELF" -o /tmp/lk.arm.sections.elf \
@@ -50,5 +50,5 @@ echo "=== P4: selected identity rewrite + QEMU execution ==="
 python3 "$ROOT/scripts/qemu_rewrite_build.py" --elf "$ELF" --toolchain "$TOOLCHAIN" \
   --funcs "$BOLT_BENCH_FUNCS" --qemu "$QEMU" \
   --out "${OUT_DIR:-$ROOT/out/arm32-milestones}/p4" --timeout 120
- echo "P4 selected-entry execution / output consistency verified"
+ echo "P4 selected-entry execution / independent sink arithmetic verified"
  echo "P0/P4 complete workloads; P1/P2/P3 remain artifact diagnostics"

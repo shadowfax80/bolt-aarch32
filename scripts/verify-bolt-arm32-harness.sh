@@ -14,8 +14,10 @@ MEM="${QEMU_MEM:-512}"
 SMP="${QEMU_SMP:-1}"
 CMDLINE="${BENCH_CMDLINE:-lk.bolt_bench=all}"
 
-echo "=== build LK ARM32 (with bolt_bench overlay) ==="
-"$ROOT/scripts/build-lk-aarch32.sh"
+if [[ "${REBUILD_LK:-1}" == 1 || ! -f "$ELF" ]]; then
+  echo "=== build LK ARM32 (with bolt_bench overlay) ==="
+  "$ROOT/scripts/build-lk-aarch32.sh"
+fi
 
 echo "=== complete original workload (no rewrite certificate) ==="
 python3 "$ROOT/scripts/qemu_workload_gate.py" --elf "$ELF" --qemu "$QEMU" \

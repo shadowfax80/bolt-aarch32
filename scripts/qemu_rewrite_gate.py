@@ -14,6 +14,7 @@ from pathlib import Path
 
 from profile_identity import elf_metadata, sha256, write_json
 from qemu_workload_gate import boot, ROOT
+from qemu_bench_oracle import CONTRACTS,check_results
 
 
 def selection(text):
@@ -213,10 +214,12 @@ def main():
     hashes={}
     for n,path in sources.items():
         (out/n).write_bytes(path.read_bytes()); hashes[n]=sha256(out/n)
-    scripts={n:sha256(ROOT/n) for n in ('scripts/qemu_rewrite_gate.py','scripts/qemu_workload_gate.py','scripts/profile_identity.py','scripts/pi4/passes_check.py')}
+    if hashes['baseline.elf'] not in CONTRACTS:
+        raise ValueError('no reviewed independent oracle contract for input image')
+    scripts={n:sha256(ROOT/n) for n in ('scripts/qemu_rewrite_gate.py','scripts/qemu_workload_gate.py','scripts/qemu_bench_oracle.py','scripts/profile_identity.py','scripts/pi4/passes_check.py')}
     revision=subprocess.check_output(['git','-C',str(ROOT),'rev-parse','HEAD'],text=True).strip(); tool_hash=sha256(qemu)
     checked=check_artifacts((out/'baseline.elf').read_bytes(),(out/'candidate.elf').read_bytes(),(out/'functions.map').read_text(encoding='utf-8'),names)
-    commands={}; results={}
+    commands={}; results={}; oracles={}
     with tempfile.TemporaryDirectory(prefix='qemu-entry-') as temporary:
         trace=Path(temporary)/'entries.trace'
         for name in ('baseline','candidate'):
@@ -228,6 +231,7 @@ def main():
             try: results[name]=boot(command,out/(name+'.log'),a.timeout,lambda:trace_bound(trace))
             finally:
                 if trace.exists(): shutil.copyfile(trace,out/'entries.trace')
+            oracles[name]=check_results(hashes['baseline.elf'],results[name]['results'])
         if results['baseline']['results']!=results['candidate']['results']: raise ValueError('candidate results differ from baseline')
     if (out/'entries.trace').stat().st_size>4*1024*1024: raise ValueError('CPU trace exceeds byte bound')
     coverage=check_execution((out/'entries.trace').read_text(encoding='utf-8'),checked['rows'])
@@ -235,9 +239,9 @@ def main():
         if sha256(path)!=hashes[n] or sha256(out/n)!=hashes[n]: raise ValueError('artifact changed during capture')
     if scripts!={n:sha256(ROOT/n) for n in scripts} or sha256(qemu)!=tool_hash: raise ValueError('verifier/QEMU changed')
     if revision!=subprocess.check_output(['git','-C',str(ROOT),'rev-parse','HEAD'],text=True).strip(): raise ValueError('revision changed')
-    write_json(out/'rewrite.json',dict(schema=1,scope='selected entry TB execution/ISA witnesses and complete output consistency; no independent whole-LK oracle, hardware or clean-build proof',
+    write_json(out/'rewrite.json',dict(schema=2,scope='selected entry TB execution/ISA witnesses and eighteen independent sink oracles for approved input; no whole-LK/state, hardware or clean-build proof',
         selected=names,emitted_redirected=checked,executed=coverage,results=results,commands=commands,artifacts=hashes,scripts=scripts,
-        repository_revision=revision,qemu_sha256=tool_hash,logs={n:sha256(out/n) for n in ('baseline.log','candidate.log','entries.trace')}))
+        independent_oracles=oracles,repository_revision=revision,qemu_sha256=tool_hash,logs={n:sha256(out/n) for n in ('baseline.log','candidate.log','entries.trace')}))
     print('SELECTED ENTRY EXECUTION / OUTPUT CONSISTENCY: '+str(out/'rewrite.json'),flush=True)
 
 

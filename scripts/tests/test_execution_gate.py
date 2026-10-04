@@ -15,6 +15,7 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path[:0] = [str(ROOT / 'scripts'), str(ROOT / 'scripts/pi4')]
 import full_image_verify as gate
 import full_image_build as builder
+import qemu_bench_oracle
 from bolt_dump_reassemble import checksum
 
 redirect = builder.redirect
@@ -42,6 +43,16 @@ class ExecutionGateTests(unittest.TestCase):
         for address, length, file_size in ((0xffe, 4, 24), (0x1006, 4, 24), (0x1004, 4, 23), (0x1000, 0, 24)):
             with self.subTest(address=address), self.assertRaises(SystemExit):
                 redirect.bounded_offset((0x1000, 16, 8), address, length, file_size)
+
+    def test_redirect_replaces_whole_instructions(self):
+        # PUSH (two bytes), MOVW (four): four-byte replacement splits MOVW.
+        with self.assertRaisesRegex(SystemExit,'split'):
+            redirect.require_whole_redirect_prefix(bytes.fromhex('10b540f20100'),0,6,True)
+        for code,thumb in [('10b500bf',True),('40f20100',True),('10402de9',False)]:
+            redirect.require_whole_redirect_prefix(bytes.fromhex(code),0,4,thumb)
+        for off,size in [(0,2),(2,4),(-1,4)]:
+            with self.assertRaises(SystemExit):
+                redirect.require_whole_redirect_prefix(b'1234',off,size,True)
 
     def test_invalid_map_ranges(self):
         path = self.out / 'map'
@@ -221,10 +232,22 @@ class ExecutionGateTests(unittest.TestCase):
                 mutate(command, len(calls))
             return subprocess.CompletedProcess(command, child_returncode, text.encode())
         with patch.object(sys, 'argv', ['verify', str(self.out), '--repeat', '1']), \
+             patch.dict(qemu_bench_oracle.CONTRACTS,{manifest['input_sha256']:{'platform':'pi4','name':'synthetic host oracle'}}), \
+             patch.object(qemu_bench_oracle,'reference_results',return_value={k:'0x00000001' for k in gate.parse_results.__globals__['EXPECTED_WORKLOADS']}), \
              patch.object(gate, 'loadable_sections', return_value=self.sections), \
              patch.object(gate, 'run_bounded', side_effect=child), contextlib.redirect_stdout(io.StringIO()):
             result = gate.main()
         return result, calls
+
+    def test_unreviewed_pi_input_rejects_before_upload(self):
+        manifest=self.artifact_fixture()
+        (self.out/'full_manifest.json').write_text(json.dumps(manifest))
+        with patch.object(sys,'argv',['verify',str(self.out)]), \
+             patch.object(gate,'loadable_sections',return_value=self.sections), \
+             patch.object(gate,'run_bounded') as upload,self.assertRaisesRegex(ValueError,'no reviewed'):
+            gate.main()
+        upload.assert_not_called()
+        self.assertFalse(list(self.out.glob('pi-verify-*')))
 
     def test_full_gate_snapshots_uploads_and_records_exact_coverage(self):
         result, calls = self.run_mock_full_gate()

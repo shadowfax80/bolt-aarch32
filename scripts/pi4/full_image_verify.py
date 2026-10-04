@@ -27,6 +27,7 @@ from proc_util import run_bounded
 from bolt_dump_reassemble import validate_single_dump
 from profile_identity import check_profile
 from pi4_sample_profile import validate_capture
+from qemu_bench_oracle import check_contract,check_results
 
 
 def sha256(path):
@@ -194,7 +195,7 @@ def main():
     manifest_hash = hashlib.sha256(manifest_bytes).hexdigest()
     script_paths = [Path(__file__), HERE/'pi4_run.py', HERE/'pi4_serial_boot.py', HERE/'passes_check.py',
                     HERE/'pi4_sample_profile.py', HERE/'proc_util.py', HERE.parent/'bolt_dump_reassemble.py',
-                    HERE.parent/'profile_identity.py']
+                    HERE.parent/'profile_identity.py',HERE.parent/'qemu_bench_oracle.py']
     script_hashes = {p.name: sha256(p) for p in script_paths}
     revision = subprocess.check_output(['git', '-C', str(HERE.parent.parent), 'rev-parse', 'HEAD'], text=True).strip()
     required = args.require_executed.split(',') if args.require_executed else [r['name'] for r in manifest['redirected']]
@@ -205,6 +206,9 @@ def main():
     if not 1 <= args.repeat <= 32:
         parser.error('repeat must be 1..32')
     check_artifacts(out, manifest)
+    # Baseline equality alone cannot certify correctness. Whole-LK inputs still
+    # require their own reviewed Pi source/configuration oracle contract.
+    check_contract(manifest['input_sha256'],'pi4')
     evidence_dir = Path(tempfile.mkdtemp(prefix='pi-verify-', dir=out))
     (evidence_dir / 'build_manifest.json').write_bytes(manifest_bytes)
     if sha256(evidence_dir / 'build_manifest.json') != manifest_hash:
@@ -241,11 +245,13 @@ def main():
 
     baseline = boot('baseline', uploads['baseline'], ['bolt_bench all'])
     expected = parse_results(baseline)
+    baseline_oracle=check_results(manifest['input_sha256'],expected,'pi4')
     buffer = manifest['sample_buffer']
     candidate = boot('candidate', uploads['candidate'], [f'bolt_sample start {args.period}',
                      *(['bolt_bench all'] * args.repeat), 'bolt_sample stop',
                      f'bolt_dump {buffer["address"]:x} {buffer["size"]:x}'])
     actual = parse_results(candidate, args.repeat)
+    candidate_oracle=check_results(manifest['input_sha256'],actual,'pi4')
     if expected != actual:
         raise ValueError('candidate workload results differ from baseline')
     check_artifacts(out, manifest)  # Do not certify artifacts modified during a run.
@@ -270,6 +276,7 @@ def main():
                   selected_functions=required, emitted_functions=[r['name'] for r in manifest['emitted']],
                   redirected_functions=[r['name'] for r in manifest['redirected']],
                   expected_workload_results=expected,
+                  independent_oracles=dict(baseline=baseline_oracle,candidate=candidate_oracle),
                   repository_revision=revision, script_sha256=script_hashes,
                   build_provenance={key: manifest.get(key) for key in ('repository_revision', 'bolt_options', 'tool_sha256', 'patch_sha256', 'script_sha256')},
                   baseline_log_sha256=sha256(evidence_dir / 'baseline.log'),

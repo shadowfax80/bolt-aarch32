@@ -70,6 +70,19 @@ def nm_symbols(nm: str, elf: str) -> dict[str, tuple[int, int]]:
     return syms
 
 
+def require_whole_redirect_prefix(data,off,size,thumb):
+    """A four-byte branch must replace complete original instructions."""
+    if off<0 or size<4 or off+4>len(data):
+        raise SystemExit('redirect prefix is outside the original function/file')
+    if thumb:
+        first=fix.thumb_insn_len(int.from_bytes(data[off:off+2],'little'))
+        covered=first
+        if first==2:
+            covered+=fix.thumb_insn_len(int.from_bytes(data[off+2:off+4],'little'))
+        if covered!=4:
+            raise SystemExit('four-byte redirect would split an original Thumb instruction')
+
+
 def function_symbol(nm: str, elf: str, name: str) -> int:
     out = subprocess.run([nm, "-a", elf], check=True, capture_output=True, text=True).stdout
     for line in out.splitlines():
@@ -261,6 +274,7 @@ def main() -> int:
             raise SystemExit(f"{name}: misaligned or unmoved redirect")
         orig_off = bounded_offset(secs['.bolt.org.text'], orig_entry, 4, len(data))
         input_off = bounded_offset(original_secs['.text'], orig_entry, 4, len(original_data))
+        require_whole_redirect_prefix(original_data,input_off,size,thumb)
         output_size = entries[name][2] if args.map else 4
         if output_size <= 0:
             raise SystemExit(f"{name}: empty output function")

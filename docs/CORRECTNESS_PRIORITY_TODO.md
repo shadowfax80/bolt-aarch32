@@ -1,299 +1,56 @@
-# Correctness priority queue after the 0038 review
+# Consolidated correctness TODO — review through 0045
 
-Updated 2026-10-04 from [the fresh review](CORRECTNESS_REVIEW_0038.md) and
-[recorded evidence](results/correctness_0038_review_20261002.json).
-Queue positions below are new priorities; the original twelve workstream IDs
-remain stable in [CORRECTNESS_TODO.md](CORRECTNESS_TODO.md).
+Updated 2026-10-04 after the [deep review](CORRECTNESS_REVIEW_0045.md).
+ATFE only. This is the fresh prioritized list for later work. Original twelve
+workstream IDs remain stable in [CORRECTNESS_TODO.md](CORRECTNESS_TODO.md).
+Original #12 is included throughout; it is **open**, not excluded or paused.
 
-ATFE only. Items 1-5 have verified scoped fixes in overlays 0039-0043.
-Item 6 is active; gate hardening, four-ISA QEMU (0044), historical sparse Pi far calls, PC-read admission (0045) and four reserved integer-only ARM entries are scoped verified. The user
-reactivated #12 on 2026-10-02; all its remaining work is included below. Nothing
-is paused in this correctness queue. Three original
-items are complete in their bounded scope (#2/#8/#10); nine remain open.
+**Stop at the next verified milestone and publish this list**, as requested.
+That instruction supersedes the earlier requirement to finish all P0 before
+stopping. Consolidated P0 item 6 remains open. “Verified scoped” below means the
+stated contract, not general backend correctness. See the
+[milestone contract](AARCH32_ORACLE_MILESTONE.md) for final validation evidence.
 
-## Status table
+## Prioritized work-item table
 
-| Queue priority | Work item | Current status |
-|---|---|---|
-| 1 · P0 | Skipped interior-entry reservation bypass | Verified for decoded original function code; 0039 |
-| 2 · P0 | Thumb instrumentation startup crash | Verified for static entry and dummy-fini scope; 0040 + Pi |
-| 3 · P0 | ISA/profile/ABI admission | Verified conservative contract; 0041 + Pi |
-| 4 · P0 | Fixed-load ELF/PIE boundary | Verified fixed-load admission; 0042 |
-| 5 · P0 | Exact profile/artifact identity | Verified sealed pipeline scope; 0043; #12 active |
-| 6 · P0 | Execution/result gate integrity | Active; 0045 PC-read guard and four reserved integer-only ARM entries verified; original NEON memcpy, independent oracles, updated Pi witnesses and wider proof pending |
-| 7 · P1 | Relocation/literal matrix | Partial; remaining work pending |
-| 8 · P1 | Control-flow/mutation invariants | Partial; remaining work pending |
-| 9 · P1 | Interrupt/reentrancy boundaries | Partial; remaining work pending |
-| 10 · P1 | Sampling/PMU ownership | Partial; remaining work pending |
-| 11 · P1 | Entries/symbols/reference routes | Partial; remaining work pending |
-| 12 · P1 | Tables/inline data | Partial; remaining work pending |
-| 13 · P1 | Pass transformations/combinations | Partial; remaining work pending |
-| 14 · P1 | Clean build/content provenance | Partial; remaining work pending |
+| Order | Priority | Work item / original IDs | Status at stop | Remaining work and closure criteria |
+|---|---|---|---|---|
+| 1 | P0 | Skipped interior-entry reservation bypass — #6/#9 | Verified scoped, 0039 | Decoded acquisitions and unpaired stores reject unsafe cross-function routes; retain both-mode regressions. General entry discovery is item 11. |
+| 2 | P0 | Thumb instrumentation startup — #3/#9 | Verified scoped, 0040 | Static startup/runtime-to-Thumb execution verified; dynamic hooks and real finalization remain excluded. Retain startup/counter tests. |
+| 3 | P0 | ISA/profile/ABI admission — #6/#7 | Verified scoped, 0041 | LE v7-A/Thumb-2, EABI5/base-AAPCS and runtime feature admission enforced. Broader ISA/ABI features require implementation or rejection and both-mode tests. |
+| 4 | P0 | Fixed-load ELF boundary — #6/#7/#11 | Verified scoped, 0042 | Fixed ET_EXEC enforced; PIE/dynamic/TLS/GOT/PLT excluded. Preserve mapping/extent/zero-address and no-output rejection controls. |
+| 5 | P0 | Exact profile/artifact identity — #12 | Verified sealed scope, 0043; #12 open | Sealed input/map/tool/profile identity verified. Actual end-to-end capture and clean compiler provenance remain in 6a/10/14. |
+| 6a | P0 | Every optimization gate proves execution — #11/#12; review R1 | **Open; next task** | Validate complete sealed profile → optimize → exact-map redirect → boot pipeline in both modes. Audit identity/P4/workload/milestone/Pi/measurement wrappers and diagnostic modes; disabled boot, omitted functions, stale artifacts and late failures must never produce a certificate. |
+| 6b | P0 | Independent output/state oracles — #11/#12; R2 | Partial; one exact QEMU contract verified | Eighteen independent sinks and four integer ARM entries verified. Add reviewed contracts and selected execution for the next declared supported configuration/Thumb/Pi scope, or enforce exclusion. No approved whole-LK Pi contract exists. Shared-wrong baseline/candidate, flags, memory, return and timeout controls must reject. |
+| 6c | P0 | Legacy/manual hook admission — #9/#11/#12; R3 | Partial; whole Thumb prefix guarded; manual counter hooks rejected | Exercise real wrapper routes for sections/maps/legacy no-map redirects, short and interior targets, PC-relative prologues, restoration sizes, scratch limits, existing-artifact preservation and hard failure propagation. Support only with full semantics; otherwise reject before publication. |
+| 6d | P0 | Durable coverage receipts — #12; R4 | Partial; fresh bounded QEMU/Pi receipts verified | Extend source/tool/profile/options identities, selected/emitted/redirected/executed sets, independent expected/observed results and logs to every certification route. Test complete receipt CLI construction and late publication failures. Bounded fixture receipts do not close #12. |
+| 7 | P1 | Relocation/literal/veneer matrix — #1; R6 | Partial | Document extraction → MC → JITLink → pending/kept writes for each admitted relocation. Execute endpoints/addends/alignment/BLX/Thumb/predicates/split-cold routes; validate veneer opcode/name/size controls and automatic retained v7 thunk targets. Original NEON memcpy/ADR remains excluded. |
+| 8 | P1 | CFG and mutation invariants — #3/#4; R5 | Partial; predicated-return gap remains | Model taken return + fallthrough, or reject every affected pass/input. Audit indirect/tail/trap/system transfers, per-function ISA builders and failure-before-publication; verify live LR/SP/NZCV/results in both modes. |
+| 9 | P1 | Interrupt/reentrancy/reset boundaries — #5/#6; R8 | Partial; quiet fixtures only | Enforce quiet privilege/core contract or validate active IRQ/exception and monitor interactions. Cover nested interworking/recursion, concurrent clear/read and exact counts; FIQ/SMP/userspace remain excluded without proof. |
+| 10 | P1 | Sampling/PMU ownership — #12; R8 | Open; parser/association hardened | Runtime arms all cores. Establish sample/core/PMU ownership, loss/saturation, workload completion and exclusions; preserve IRQ-masked blind spots and distinguish samples from exact edge counts. Wrong ownership/count/completion must fail. |
+| 11 | P1 | Entries/symbols/reference routes — #9/#11; R7 | Partial; selected main-entry scope verified | Preserve aliases, secondary/unnamed entries, pointers, mapping transitions, kept callees and in-place references. Validate short/overwritten-interior redirects and exact input/map/ISA identity with actual indirect/original-entry execution. |
+| 12 | P1 | Tables and inline data — #1/#11; R7 | Partial | Bound TBB/TBH reach, ambiguous/shared islands and reverse/split/instrumentation interactions. Support or reject ARM tables and unresolved data-to-code routes; ignored code must retain correct references. |
+| 13 | P1 | Actual pass combinations — #4/#11; R9 | Partial | Prove that profile-driven reorder/split/peephole/inlining changed code safely; audit ICF/address identity, tail duplication, generic hooks and debug/DWARF. Record each real transformation; no-op success is not coverage. |
+| 14 | P1 | Clean build/content provenance — #12; R9 | Partial; exact 45-overlay source replay only | Isolate a clean full build of assessed overlays, bind exact source/config/tools, compare both modes, audit export/modes and preserve live dirty ATFE/LK. Source replay and binary version banners are insufficient. |
 
-Item 1: both assertion builds pass 171 cases (132 rejections, 39 admissions),
-including ARM/Thumb/mixed pairs and direct/addend, pointer, alias and data-pointer
-routes. All eight original review bypasses now reject before output. Fresh
-supported Pi payloads match previously executed bytes; no new runtime reservation
-outcome is claimed. See [0039 evidence](results/correctness_interior_reservations_20261003.json).
+## Milestone and caveats
 
-Item 2: both builds pass 40 startup/static-finalization cases; focused suites
-pass 49/48 (one expected skip off), and CoreTests pass 58/31 skips. Fresh Pi
-baseline, normal and reverse variants pass per build, including actual ARM
-runtime entry to emitted Thumb entry and an exact counter of one. Only the boot
-entry-pointer and counter metadata words change after BOLT; emitted code and ELF
-entry are retained. See [0040 evidence](results/correctness_thumb_startup_20261003.json).
-Static finalization remains a dummy return: DT_FINI variants are not invoked.
-Dynamic hooks remain unsupported; item 4 now rejects PIE admission below; general entry/symbol
-scope remains in item 11; item 3 is now scoped verified below. Work stops at
-this verified milestone under the
-user's previous instruction; nothing in the queue is marked paused.
+The independent QEMU oracle and compatible BL/LR Pi witnesses improve item 6.
+The wider Pi matrix uses nine edge seeds per ISA pair, including signed overflow
+and wraparound, independent NZCV checks, and result/flag/retained-callee/hang
+controls. These proofs remain bounded; consult the milestone evidence for exact
+successful run counts and all failed diagnostics.
 
-Item 3: scoped ISA/ABI admission verified in 0041. Both builds pass 358 cases
-(32 admissions, 326 rejections), focused suites 50/49 and CoreTests 58/31 skips.
-Fresh Pi startup and 372-case IT/nested/reset checks pass per build; deliberate
-reset faults are detected. See [contract](AARCH32_ISA_ABI_CONTRACT.md) and
-[evidence](results/correctness_isa_contract_20261003.json). Static PIE admission from that checkpoint is superseded by 0042 below. Stop at this milestone; no remaining item is paused.
+Whole-LK rewriting, original NEON memcpy, active interrupts/SMP, automatic v7
+retained-thunk routes, arbitrary entries and clean compiler provenance are not
+certified. Conservative rejection is retained where implemented. A source risk
+or missing evidence is not presented as a freshly reproduced backend failure.
 
-Item 4: scoped fixed-load boundary verified in 0042. Both builds pass 192 cases,
-focused suites 51/50 and CoreTests 58/31 skips. Original static PIE now rejects
-before output; prior PIE/DT_FINI admissions are superseded. Supported Pi bytes
-match the executed 0041 fixtures. See [contract](AARCH32_FIXED_LOAD_CONTRACT.md)
-and [evidence](results/correctness_fixed_load_20261003.json). Next is item 5;
-all remaining #12 work stays active. Work stops at this verified milestone.
+Only original #2 (EHABI rejection), #8 (data widths) and #10 (deterministic mixed
+stubs) remain complete within their original bounded scope; nine original
+workstreams remain open. Keep their tests green. Resume later with **6a**; do not
+close #12 from one fixture or advance to P1 while claiming P0 is complete.
 
-Item 5: scoped sealed-pipeline identity verified in 0043. Both builds pass 300
-host cases each; 65 Python tests and four wrapper rejection checks pass.
-Captures are synthetic; no fresh hardware execution is claimed. Unsealed
-legacy captures are excluded; crash/power-loss atomicity and clean build
-provenance are not claimed. See [contract](AARCH32_PROFILE_IDENTITY.md) and
-[evidence](results/correctness_profile_identity_20261003.json). Next is item 6;
-all remaining #12 work stays active. Work stops at this verified milestone.
-
-Item 6: measurement association stage also verified; see [contract](AARCH32_MEASUREMENT_GATES.md) and [evidence](results/correctness_measurement_gates_20261003.json). First gate-hardening stage verified. All five reproduced admissions now
-reject; 80 Python tests and 7 valid/80 malformed transport cases pass. Fresh Pi
-checks pass 420 positive cases and two expected faults per build. Whole-LK
-rewriting still rejects arm_reset; wider independent execution coverage and
-Bounded sparse Pi far-call witnesses now pass both builds; see [hardware contract](AARCH32_PI_FAR_SAFETY.md) and [evidence](results/correctness_pi_far_20261003.json). The third stage fixes the Thumb-caller
-link failure and verifies all four ISA pairs in 0044; see [four-ISA scope](AARCH32_FAR_INTERWORK.md)
-and [evidence](results/correctness_far_interwork_20261003.json). The second item 6 stage verifies
-A32 QEMU far-call execution in both modes/layouts: 20 transformed inputs, ten
-baseline inputs, 28 rejected faults and 86 Python tests. See [far-call scope](AARCH32_FAR_EXECUTION.md)
-and [far-call evidence](results/correctness_far_execution_20261003.json). See [scope](AARCH32_EXECUTION_GATES.md)
-and [evidence](results/correctness_execution_integrity_20261003.json). Item 6
-and original #12 remain active; stop at this verified stage.
-
-Item 6: protected-reservation QEMU execution now verifies three selected ARM
-entries in both builds, exact branches/live PC/ISA/state witnesses and eighteen
-outputs per baseline/candidate. The default fourth requested function, memcpy,
-is not emitted and rejects. Unreserved redirected code aborts after reaching the
-emitted entry; retained-original output consistency does not prove a rewrite.
-See [contract](AARCH32_QEMU_REWRITE_COVERAGE.md) and
-[evidence](results/correctness_rewrite_coverage_20261004.json). This is a bounded
-entry-execution stage, not a whole-LK or independent-output oracle. Item 6 and
-original #12 remain active; stop at this verified milestone.
-
-## Latest: item 6 PC-read admission fix and four-entry integer fixture verified
-
-Overlay 0045 closes a reproduced position-dependent PC-read defect. Eight ARM/
-Thumb normal/reverse candidates previously faulted after moving a PC-derived
-address; both builds now reject before output/map publication while originals
-still exit 42. Each build passes 189 admission cases (145 rejections, 44
-admissions). ARM/JITLink suites pass 53/52 with one expected release skip;
-CoreTests pass 58/31 skips per build. All 45 overlays replay exactly.
-
-A separate explicitly integer-only LK fixture emits, redirects and executes
-all four selected ARM entries, including memcpy, in both builds. All eighteen
-outputs match fresh baselines. The original NEON memcpy remains excluded;
-independent oracles and whole-LK rewriting are not certified. The historical
-Pi far-safety fixture uses MOV-PC witnesses now excluded by 0045; compatible
-live witnesses and fresh hardware verification are pending. See
-[contract](AARCH32_PC_READ_ADMISSION.md) and
-[evidence](results/correctness_pc_reads_20261004.json).
-
-Item 6 and original #12 remain active. The latest user instruction is to stop
-when all P0 items are complete, before starting P1 work; it supersedes the
-historical milestone-stop instructions below. Continue the remaining P0 oracle,
-execution-gate, manual-hook and durable-evidence requirements. Do not weaken
-whole-LK admission, close #12 prematurely or advance to priority 7.
-
-## P0: confirmed defects and unsafe admission
-
-1. **Close skipped interior-entry reservation bypass — F1, #6/#9.**
-   - [x] Remove the gate's dependence on complete entry metadata: analyze every
-     decoded exclusive load, including acquisitions outside main-entry reachability,
-     and reject stores without an analyzed local reservation. General entry
-     discovery stays under item 11; unknown ISA admission stays under item 3.
-   - [x] Add the eight reproduced admissions as negative regressions in both
-     assertion builds; extend to ARM/Thumb/mixed modes, aliases and data pointers.
-   - [x] Recheck the review's raw/redirected inputs: rejection occurs before any
-     output/redirect can be published. Keep local-pair/retry-loop admissions,
-     including unreachable closed pairs. Supported generated Pi bytes match
-     executed payloads. This is a decoded-code admission proof, not a fresh
-     hardware reservation-failure reproduction.
-
-2. **Fix Thumb instrumentation startup lookup and release crash — F2, #9/#3.**
-   - [x] Normalize ELF ARM entry lookup and preserve the Thumb target bit.
-   - [x] Diagnose missing entry and mismatched ISA bit instead of asserting or
-     dereferencing null; resolved ELF finalization lookup also returns errors.
-   - [x] Both builds pass valid moved/skipped ARM/Thumb entry and zero/missing/
-     interior/ISA-mismatch cases. The original SIGABRT/SIGSEGV input succeeds.
-     Static DT_FINI valid/zero/missing/interior/ISA-mismatch variants retain the
-     runtime's dummy return; dynamic user-finalization hooks are not certified.
-   - [x] Fresh Pi checks execute actual runtime/trampoline/rewritten Thumb entry,
-     bounded odd return link, NZCV/R4/SP, exact one counter and watchdog return.
-     General dynamic-hook/PIE policy remains in item 4.
-
-3. **Enforce the ISA/profile/ABI contract for generated instructions - F3/F5, #7/#6.**
-   - [x] Define/enforce the initial LE ARMv7-A/Thumb-2, EABI5/base-AAPCS contract;
-     instrumented inputs additionally require the existing quiet privilege contract.
-   - [x] Reject excluded architectures/profiles, malformed/missing/conflicting
-     attributes, BE8/BE32 and ABI variants. Validate supplied runtime objects and
-     archive members; reject FP/SIMD runtime or optional features exceeding input.
-   - [x] Check generated veneer/branch forms, complete counter-body bytes and all
-     baseline runtime instructions against minimum ARMv7-A. Rebuild the default
-     runtime for generic ARMv7-A; fresh Pi startup and IT/nested/reset pass both modes.
-   - [x] Both builds pass 358 admission cases, including original ARMv6/missing-
-     attributes/BE8 findings. Conservative exclusions and limits are published in
-     [the contract](AARCH32_ISA_ABI_CONTRACT.md); broader code/FP/pass proof stays open.
-
-4. **Enforce fixed-load ELF admission or implement rebasing - F4, #7/#11/#6.**
-   - [x] Require fixed-address ET_EXEC before transformation in both ordinary and
-     instrumented modes; do not use static-PIE's IsStaticExecutable exception.
-   - [x] Reject PIE/shared/relocatable inputs, INTERP/DYNAMIC/TLS and unsupported
-     dynamic tags/sections, loaded relocation tables and GOT/PLT machinery.
-   - [x] Validate LOAD/section extents and file mappings; reject nonempty loaded
-     sections at zero before the reproduced assertion. Both builds pass 192 cases.
-   - [x] Check runtime/entry/counter pointers at three fixed VMAs, demonstrate that
-     simulated nonzero bias is unsupported, and preserve existing artifacts on
-     rejection. Fresh supported Pi bytes match executed 0041 payloads.
-   - [x] Publish [the enforced contract](AARCH32_FIXED_LOAD_CONTRACT.md). No rebasing
-     or dynamic finalization support is claimed; broader code/reference proof stays open.
-
-5. **Bind counter profiles and every artifact to exact inputs — #12.**
-   - [x] Validate every named counter location/offset against the exact original
-     ELF/function/map before fdata publication; string consistency alone is insufficient.
-   - [x] Bind dumps, counters, metadata, maps, profiles and tools to image and
-     patch digests; reject stale/mismatched artifacts and ambiguous source identity.
-   - [x] Extend deliberate wrong-image/wrong-map/wrong-offset tests and verify
-     staged publication and caught-error rollback leave existing profiles intact after late failures.
-
-6. **Make every execution/result gate prove its claimed coverage — #12/#11.**
-   - [x] Reject unmodeled position-dependent PC reads before transformation;
-     eight reproduced crashes now reject and 189 admission cases pass per build.
-     Verify all four reserved ARM entries on a separately integer-only LK input.
-   - [ ] Add independent workload oracles, retain the original NEON memcpy
-     exclusion, and replace excluded MOV-PC hardware witnesses with a supported
-     live witness before fresh Pi verification.
-   - [x] Close the reproduced repetition/dump admissions; require every selected
-     redirect, stable upload/manifest/loader identities and cleanup failure
-     propagation. Reject unsafe ARM/Thumb entry-bump hooks; enforce exact
-     section restoration. Publish the bounded host/Pi stage and its limits.
-   - [x] Replace the legacy P5 exit-only/optional-QEMU gate with bounded A32
-     result/memory/NZCV/SP checks, exact veneer/callee visit counts, executable
-     faults and durable tool/artifact/route receipts in both modes/layouts.
-     Four-ISA QEMU/Pi routes are verified below; automatic v7 thunk scope remains open.
-   - [x] Fix Thumb-caller far-stub construction and verify all four ISA pairs,
-     observed CPU modes/inputs/returns and same/cross-ISA sharing in both builds.
-     Sparse Pi execution now passes both builds; wider range/split/cold/sharing proof remains open.
-   - [x] Certify sparse Pi far calls with exact staging bytes, live PCs/R12,
-     ordered independent results/state and three hardware faults per build;
-     all twelve uploads return to the loader.
-   - [x] Fix legacy Pi measurement record association and PGO-lab checksum
-     failure propagation; exact command-framed triples and diagnostic snapshots
-     verified by 111 Python tests. This is output consistency, not execution proof.
-   - [x] Replace four legacy runtime banner gates with complete eighteen-result
-     QEMU workload/output consistency and strict child/error/timeout handling.
-     Fresh snapshots/receipts and five simulated rejections verified; 118 WSL
-     tests pass. Selected rewritten execution is not certified by this stage.
-   - [x] Require exact selected maps, protected kernel reservation/layout,
-     scoped branches and live original/emitted PC/ISA/input-state witnesses for
-     identity/P4. Both builds pass three ARM entries and eighteen-output baseline
-     comparisons; missing memcpy emission and unreserved layouts reject. General
-     gates, wider functions/ISA/pass coverage and independent oracles stay open.
-   - [ ] Require selected/emitted/redirected/executed coverage and independent
-     results in every optimization gate, not only the scoped full-image gate.
-   - [ ] Extend ARM/Thumb/mixed inputs, flags, memory and return-value checks over
-     multiple seeds, faults and timeouts; extend the verified A32 QEMU far-call
-     routes to wider state/route coverage beyond the verified bounded Pi matrix.
-   - [ ] Validate legacy/manual section hooks: bounded scratch, whole instructions,
-     PC-relative prologues, exact restoration sizes and hard failure propagation.
-   - [ ] Record durable Pi manifests with revisions/options, tool/image/profile
-     hashes, functions selected/emitted/executed, expected/observed outputs and logs.
-
-## P1: required boundaries and wider correctness proof
-
-7. **Complete the relocation and literal-load matrix — #1.**
-   - [ ] Resolve automatic v7 thunk recognition and retained-target routes:
-     the reviewed retained MOVW/MOVT thunk names the old target, while the tested
-     caller uses a correct new stub. This is an open route caveat; no tested
-     runtime failure was demonstrated (also item 11).
-   - [ ] Publish each relocation's recognition, addend extraction, MC emission,
-     JITLink application, pending-write and kept-code behavior.
-   - [ ] Resolve the core/JITLink declaration differences and justify skips;
-     unsupported paths must diagnose rather than truncate or silently change bits.
-   - [ ] Cover signed endpoints/overflow, alignment, PC bias, Thumb bits,
-     BLX H=0/H=1, predicates, MOVW/MOVT addends, narrow/wide branches and far stubs.
-   - [ ] Execute representative same/mixed-ISA call, literal and split paths on Pi.
-
-8. **Finish control-flow and mutation invariants — #3/#4.**
-   - [ ] Model predicated return exits/fallthrough, or reject every pass requiring
-     the missing edge; the instrumentation-only gate is not general CFG support.
-   - [ ] Audit indirect/tail/system/trap transfers and per-function ARM/Thumb
-     builder selection across mutation, repair and emission.
-   - [ ] Reject unsafe fallback before publishing partial transformations;
-     verify debug/release behavior and live flags/LR/SP/results independently.
-
-9. **Establish interrupt and reentrancy boundaries — #5/#6.**
-   - [ ] Validate active IRQ/exception entry and monitor interactions, or require
-     and enforce a narrower documented quiet-execution contract.
-   - [ ] Extend full nested state checks to ARM/Thumb interworking and recursion,
-     including register/flag state around interrupts and insertion sites.
-   - [ ] Keep FIQ/SMP/userspace excluded unless separately supported. Runtime
-     acknowledgement cannot prove privilege or other cores' inactivity.
-   - [ ] Specify/reset/read quiescence; reject or validate concurrent reset/live
-     snapshots and multi-entry/zero-edge exact-count models.
-
-10. **Establish sampling/PMU ownership and statistical integrity — #12.**
-    - [ ] Restrict or verify participating core/PMU ownership; the runtime currently
-      arms all cores and IRQ totals do not prove per-PC core ownership.
-    - [ ] Verify buffer identity, kept/taken counts, loss/saturation, workload
-      completion and unbounded assembly exclusions for each profile scope.
-    - [ ] Record IRQ-masked blind spots; PC samples must not be presented as exact
-      edge counts. Cover deliberately wrong ownership/count/completion cases.
-
-11. **Preserve entries, symbols and all reference routes — #9/#11.**
-   - [ ] Cover aliases, secondary/unnamed entries, function/data pointers, missing
-     mapping symbols, literals, code/data transitions and kept callees.
-   - [ ] Harden redirects for short functions, overwritten interior targets,
-     exact maps/input identity and ISA; verify indirect/original-entry execution.
-   - [ ] Establish safe behavior for in-place/kept-code and section restoration
-     separately from the relocated supported fixture path.
-
-12. **Bound table and inline-data rewriting — #11/#1.**
-   - [ ] Test TBB/TBH reach limits, malformed/ambiguous islands, shared cases,
-     reverse layout and splitting/instrumentation interactions.
-   - [ ] Support or reject ARM tables, alternate indirect forms and unresolved
-     data-to-code references; skipped code must retain correct references.
-
-13. **Verify actual pass transformations and combinations — #4/#11.**
-    - [ ] Extend profile-driven reorder/split/peephole/inlining combinations with
-      adversarial predicates, flags, stack, calls and return paths.
-    - [ ] Audit ICF/address identity, tail duplication and remaining generic pass
-      hooks; record which passes actually changed code.
-    - [ ] Reject or validate GOT/TLS/PLT/PIC and debug/DWARF behavior; command
-      success or a no-op pass is not semantic verification.
-
-14. **Prove clean build provenance and content identity — #12.**
-    - [ ] Replace filename-only stamps with base/patch/source content identity
-      and prove clean full-build provenance. The fresh 38-patch source replay
-      passes; it does not close the clean-build or binary-provenance requirement.
-    - [ ] Reproduce the assessed overlays in an isolated clean build, compare
-      source/tool identities and preserve the live dirty ATFE/LK trees.
-    - [ ] Preserve current sync protection for `.git/` and `out/`, audit file
-      modes and export coverage, and bind the exact tested tools to manifests.
-
-Keep #2 EHABI rejection, #8 data-width handling and #10 deterministic mixed stubs
-green throughout. For each task, require a small reproducer, an enforced support
-or rejection boundary, assertions-on/off checks and scoped hardware execution
-when claiming runtime behavior. Do not mark a full original item complete from
-one additional fixture.
+The [previous queue and checkpoints](CORRECTNESS_PRIORITY_TODO_0038_HISTORY.md)
+are preserved as history; their earlier “continue”/“stop all P0” instructions and
+pending-oracle/MOV-PC statements are superseded by this table and milestone.

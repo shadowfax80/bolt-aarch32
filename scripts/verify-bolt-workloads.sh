@@ -43,8 +43,10 @@ case "$ARCH" in
     ;;
 esac
 
-echo "=== build LK (with bolt_bench overlay) ARCH=$ARCH ==="
-"$BUILD_LK"
+if [[ "${REBUILD_LK:-1}" == 1 || ! -f "$ELF" ]]; then
+  echo "=== build LK (with bolt_bench overlay) ARCH=$ARCH ==="
+  "$BUILD_LK"
+fi
 
 echo "=== sanity: original LK ==="
 python3 "$ROOT/scripts/qemu_workload_gate.py" --elf "$ELF" --qemu "$QEMU" \
@@ -86,11 +88,21 @@ grep -q "bolt_bench_" "$FDATA"
 cat "$FDATA"
 
 echo "=== optimize ==="
-ARCH="$ARCH" ELF="$ELF" FDATA="$FDATA" OUT="$BOLT_OUT" \
+ARCH="$ARCH" ELF="$ELF" FDATA="$FDATA" OUT="$BOLT_OUT" OPTIMIZE_FUNCS="$BENCH_FUNCS" \
   "$ROOT/scripts/optimize-lk-bolt.sh"
 
 echo "=== boot optimized + rerun workloads ==="
-python3 "$ROOT/scripts/qemu_workload_gate.py" --elf "$ELF" --candidate "$BOLT_OUT" --qemu "$QEMU" \
+if [[ "$ARCH" == arm32 ]]; then
+  python3 "$ROOT/scripts/redirect-bolt-entries.py" "$BOLT_OUT" --original "$ELF" \
+    --map "$BOLT_OUT.funcmap" --func "$BENCH_FUNCS" --toolchain "$TOOLCHAIN" \
+    --report "$BOLT_OUT.redirect.json"
+  python3 "$ROOT/scripts/qemu_rewrite_gate.py" --elf "$ELF" --candidate "$BOLT_OUT" \
+    --map "$BOLT_OUT.funcmap" --funcs "$BENCH_FUNCS" --qemu "$QEMU" \
+    --out "${OUT_DIR:-$ROOT/out/workload-consistency}/optimized" --timeout 120
+  echo "BOLT ARM32 SELECTED ENTRY EXECUTION / INDEPENDENT RESULTS VERIFIED"
+else
+  python3 "$ROOT/scripts/qemu_workload_gate.py" --elf "$ELF" --candidate "$BOLT_OUT" --qemu "$QEMU" \
   --cpu "$QEMU_CPU" --smp "$QEMU_SMP" --append "$CMDLINE" \
   --out "${OUT_DIR:-$ROOT/out/workload-consistency}/optimized" --timeout 120
-echo "BOLT $ARCH OUTPUT CONSISTENCY (selected rewritten execution not certified)"
+  echo "BOLT $ARCH OUTPUT CONSISTENCY (selected rewritten execution not certified)"
+fi

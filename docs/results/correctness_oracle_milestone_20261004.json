@@ -1,0 +1,859 @@
+{
+  "date": "2026-10-04",
+  "repository_parent": "d36cf8dadc87030d2c70ef6a01e44d87320a544d",
+  "scope": "ATFE through 0045; independent approved QEMU sink arithmetic and bounded quiet Pi far calls; no whole-LK/ISR/clean compiler proof",
+  "stop": "User requested next milestone, deep review and published tabular TODO; stop now with P0 item 6 and original #12 open",
+  "qemu": {
+    "on": {
+      "build": "oracle-latest-on/build-kvq9tldj/build.json",
+      "build_sha256": "fe4c8fde047f465e9d046bbb2e41870fd171c259f87c3c6ba43823f108aa593f",
+      "verification": "out/correctness/p0-completion-20261004/oracle-latest-on/build-kvq9tldj/verification/rewrite-p077oz_b/rewrite.json",
+      "verification_sha256": "f358aae9a249b5f182a37f5d0f4b11d81f0cfbc8bef532103b3f252076ea14c6",
+      "selected": [
+        "bolt_bench_hot_loop",
+        "bolt_bench_hot_cold",
+        "bolt_bench_branch_chain",
+        "bolt_bench_memcpy"
+      ],
+      "executed": [
+        {
+          "name": "bolt_bench_hot_loop",
+          "pairs": 1,
+          "input": 2148545116,
+          "output": 2149158912,
+          "thumb": false
+        },
+        {
+          "name": "bolt_bench_hot_cold",
+          "pairs": 1,
+          "input": 2148545180,
+          "output": 2149158976,
+          "thumb": false
+        },
+        {
+          "name": "bolt_bench_branch_chain",
+          "pairs": 1,
+          "input": 2148545240,
+          "output": 2149159040,
+          "thumb": false
+        },
+        {
+          "name": "bolt_bench_memcpy",
+          "pairs": 1,
+          "input": 2148546284,
+          "output": 2149159256,
+          "thumb": false
+        }
+      ],
+      "oracles": {
+        "baseline": {
+          "input_sha256": "e13fa5f45c1b9f970ac29221b15b6efad73c490e291cebd9b06493704f20db20",
+          "contract": {
+            "name": "reserved-integer-arm-20261004",
+            "platform": "qemu-virt",
+            "bench_source_sha256": "dec4cca0ca0bb0c45e9ed85d166e3b66ad3363638ae781fe32bd8c20b65b5087",
+            "composite_source_sha256": "a42b1249a8ce739a64b6a9a7086352d5f1d0dfaef0a51a12b06f1c305e873f29",
+            "rules_sha256": "ea8c49a2d016ee24fab40ccd439cac077cf02922ad75c7681834e9b198719bad",
+            "configuration": "benchmark -mfpu=none, -marm; explicit __thumb__ macro retains IT arithmetic; STAIR_M=10, STAIR_X=0, input variant=0"
+          },
+          "expected": {
+            "hot_loop": "0x6a4ae6e0",
+            "hot_cold": "0x00000000",
+            "branch_chain": "0x007a5100",
+            "far_call": "0xb7082fa9",
+            "it_cond": "0x021e8480",
+            "memcpy": "0x5acd3dc5",
+            "interwork": "0x2fb21555",
+            "switch": "0xa953bbf0",
+            "spill_ret": "0x504980a0",
+            "litpool": "0x16b596e0",
+            "indirect_call": "0x0e6aac80",
+            "interwork_tail": "0xda3416f0",
+            "regpressure": "0xc5da3550",
+            "hotcold_split": "0xd4751003",
+            "icf": "0xdc7c3be0",
+            "shrinkwrap": "0x6a1b87d4",
+            "composite": "0x939f4ea0",
+            "stair": "0x9fef2a18"
+          },
+          "matched_workloads": 18,
+          "scope": "independent sink arithmetic for approved input; not execution/state, PMU or clean-build proof"
+        },
+        "candidate": {
+          "input_sha256": "e13fa5f45c1b9f970ac29221b15b6efad73c490e291cebd9b06493704f20db20",
+          "contract": {
+            "name": "reserved-integer-arm-20261004",
+            "platform": "qemu-virt",
+            "bench_source_sha256": "dec4cca0ca0bb0c45e9ed85d166e3b66ad3363638ae781fe32bd8c20b65b5087",
+            "composite_source_sha256": "a42b1249a8ce739a64b6a9a7086352d5f1d0dfaef0a51a12b06f1c305e873f29",
+            "rules_sha256": "ea8c49a2d016ee24fab40ccd439cac077cf02922ad75c7681834e9b198719bad",
+            "configuration": "benchmark -mfpu=none, -marm; explicit __thumb__ macro retains IT arithmetic; STAIR_M=10, STAIR_X=0, input variant=0"
+          },
+          "expected": {
+            "hot_loop": "0x6a4ae6e0",
+            "hot_cold": "0x00000000",
+            "branch_chain": "0x007a5100",
+            "far_call": "0xb7082fa9",
+            "it_cond": "0x021e8480",
+            "memcpy": "0x5acd3dc5",
+            "interwork": "0x2fb21555",
+            "switch": "0xa953bbf0",
+            "spill_ret": "0x504980a0",
+            "litpool": "0x16b596e0",
+            "indirect_call": "0x0e6aac80",
+            "interwork_tail": "0xda3416f0",
+            "regpressure": "0xc5da3550",
+            "hotcold_split": "0xd4751003",
+            "icf": "0xdc7c3be0",
+            "shrinkwrap": "0x6a1b87d4",
+            "composite": "0x939f4ea0",
+            "stair": "0x9fef2a18"
+          },
+          "matched_workloads": 18,
+          "scope": "independent sink arithmetic for approved input; not execution/state, PMU or clean-build proof"
+        }
+      },
+      "artifacts": {
+        "original.elf": "e13fa5f45c1b9f970ac29221b15b6efad73c490e291cebd9b06493704f20db20",
+        "candidate.elf": "d2ef73f23bde4f3b444a55f8f09c96b36907cca3ab1a7036c43fa2661e291024",
+        "functions.map": "08764141bf8bce03e65a192dae0e8e1bfee0e49b6ea909c556fe9f6c02676cc5",
+        "redirect.json": "16291197a81a30d449e40098a971dc816cabb60650615dd55a34d14d862f1a01",
+        "step-0.log": "171d1fff0e32d0a0df622d44d3d12bdc02dd5834f887b19e2aff8544d8d764d3",
+        "step-1.log": "0957161f10221eee7a67b0246869a90f9d6c91abdeb45e872eeba9520c665a98",
+        "step-2.log": "cf2a9576d9f3507e6e127c3bc2008eb9962f037d05ef76a8d5a16c39f510c8e2",
+        "step-3.log": "cb78a89729da04debf0e3af670264761a369a3b31f40ac638e568a651044809d"
+      },
+      "tools": {
+        "llvm-bolt": "31590d2a6cb2a03eda589fec2d084f6cff6a2b96276be65e2763f42badec665b",
+        "llvm-nm": "3bf529fd49cf73c6eb8c0049fd15b85933195cdfedcd0084451fffa1f2ceafe5",
+        "llvm-readelf": "34ffb11d9ed81366c93817f462483e1d76b341c90d35f85895d5b768b0b974ac"
+      },
+      "scripts": {
+        "qemu_rewrite_build.py": "931794bdc2bf59bc52030263a8e387193bf74651607f0523bbd0bc275492ee7d",
+        "qemu_rewrite_gate.py": "28fa2d39eb6a72896b997192fe9309d5b93ba1780989c6fd26da69ecdda2bf65",
+        "qemu_workload_gate.py": "c5a44b42d1e8a7c946d115a8fa3d78edaf45ca9b3642eca3390ef29ede81aa64",
+        "qemu_bench_oracle.py": "91a4ad8d1b58a6fb03532e544070917a09c7e710e752d5de259ea6ed3dca77ff",
+        "profile_identity.py": "7e6fedf6de313a6029525f381e3d1c571656e922bd32bb14daa097c71ab79689",
+        "pi4/passes_check.py": "f590ab943cbadf8c6918f88bcabd873dd2c96256a13f40de9abe02d855737bff",
+        "redirect-bolt-entries.py": "42dd1c4ddd2078f7a34ef15ed59b93eda2d07a34bd886fa5df8b6c6124e693ee",
+        "fix-kernel-elf-sections.py": "ac234f4fd1fafe97ffbea75df4532cd3abd959ed6bbd14f7964eaed865187934"
+      },
+      "logs": {
+        "baseline.log": "36d876834c237360ba047b04d93ef6de9cb119ccc3ecc6890d8515736404ed99",
+        "candidate.log": "4b6f5affa1734a0a3bc4a17f9cec550bca902b15d6b57338d1114f1453201d96",
+        "entries.trace": "2906631ebff257d080054e879bd49c21cfbacd93cc4b0779010c55a65c12fb5e"
+      }
+    },
+    "off": {
+      "build": "oracle-latest-off/build-b6si54bu/build.json",
+      "build_sha256": "ae4c77ef6d76c754be9ba8a0217039fa3e0017dac337c213e2feaf7259953bbd",
+      "verification": "out/correctness/p0-completion-20261004/oracle-latest-off/build-b6si54bu/verification/rewrite-zfr7sgw3/rewrite.json",
+      "verification_sha256": "648665253509048299ab0eabc5a51303a3b373c1b5c07330bd872e74da0495ed",
+      "selected": [
+        "bolt_bench_hot_loop",
+        "bolt_bench_hot_cold",
+        "bolt_bench_branch_chain",
+        "bolt_bench_memcpy"
+      ],
+      "executed": [
+        {
+          "name": "bolt_bench_hot_loop",
+          "pairs": 1,
+          "input": 2148545116,
+          "output": 2149158912,
+          "thumb": false
+        },
+        {
+          "name": "bolt_bench_hot_cold",
+          "pairs": 1,
+          "input": 2148545180,
+          "output": 2149158976,
+          "thumb": false
+        },
+        {
+          "name": "bolt_bench_branch_chain",
+          "pairs": 1,
+          "input": 2148545240,
+          "output": 2149159040,
+          "thumb": false
+        },
+        {
+          "name": "bolt_bench_memcpy",
+          "pairs": 1,
+          "input": 2148546284,
+          "output": 2149159256,
+          "thumb": false
+        }
+      ],
+      "oracles": {
+        "baseline": {
+          "input_sha256": "e13fa5f45c1b9f970ac29221b15b6efad73c490e291cebd9b06493704f20db20",
+          "contract": {
+            "name": "reserved-integer-arm-20261004",
+            "platform": "qemu-virt",
+            "bench_source_sha256": "dec4cca0ca0bb0c45e9ed85d166e3b66ad3363638ae781fe32bd8c20b65b5087",
+            "composite_source_sha256": "a42b1249a8ce739a64b6a9a7086352d5f1d0dfaef0a51a12b06f1c305e873f29",
+            "rules_sha256": "ea8c49a2d016ee24fab40ccd439cac077cf02922ad75c7681834e9b198719bad",
+            "configuration": "benchmark -mfpu=none, -marm; explicit __thumb__ macro retains IT arithmetic; STAIR_M=10, STAIR_X=0, input variant=0"
+          },
+          "expected": {
+            "hot_loop": "0x6a4ae6e0",
+            "hot_cold": "0x00000000",
+            "branch_chain": "0x007a5100",
+            "far_call": "0xb7082fa9",
+            "it_cond": "0x021e8480",
+            "memcpy": "0x5acd3dc5",
+            "interwork": "0x2fb21555",
+            "switch": "0xa953bbf0",
+            "spill_ret": "0x504980a0",
+            "litpool": "0x16b596e0",
+            "indirect_call": "0x0e6aac80",
+            "interwork_tail": "0xda3416f0",
+            "regpressure": "0xc5da3550",
+            "hotcold_split": "0xd4751003",
+            "icf": "0xdc7c3be0",
+            "shrinkwrap": "0x6a1b87d4",
+            "composite": "0x939f4ea0",
+            "stair": "0x9fef2a18"
+          },
+          "matched_workloads": 18,
+          "scope": "independent sink arithmetic for approved input; not execution/state, PMU or clean-build proof"
+        },
+        "candidate": {
+          "input_sha256": "e13fa5f45c1b9f970ac29221b15b6efad73c490e291cebd9b06493704f20db20",
+          "contract": {
+            "name": "reserved-integer-arm-20261004",
+            "platform": "qemu-virt",
+            "bench_source_sha256": "dec4cca0ca0bb0c45e9ed85d166e3b66ad3363638ae781fe32bd8c20b65b5087",
+            "composite_source_sha256": "a42b1249a8ce739a64b6a9a7086352d5f1d0dfaef0a51a12b06f1c305e873f29",
+            "rules_sha256": "ea8c49a2d016ee24fab40ccd439cac077cf02922ad75c7681834e9b198719bad",
+            "configuration": "benchmark -mfpu=none, -marm; explicit __thumb__ macro retains IT arithmetic; STAIR_M=10, STAIR_X=0, input variant=0"
+          },
+          "expected": {
+            "hot_loop": "0x6a4ae6e0",
+            "hot_cold": "0x00000000",
+            "branch_chain": "0x007a5100",
+            "far_call": "0xb7082fa9",
+            "it_cond": "0x021e8480",
+            "memcpy": "0x5acd3dc5",
+            "interwork": "0x2fb21555",
+            "switch": "0xa953bbf0",
+            "spill_ret": "0x504980a0",
+            "litpool": "0x16b596e0",
+            "indirect_call": "0x0e6aac80",
+            "interwork_tail": "0xda3416f0",
+            "regpressure": "0xc5da3550",
+            "hotcold_split": "0xd4751003",
+            "icf": "0xdc7c3be0",
+            "shrinkwrap": "0x6a1b87d4",
+            "composite": "0x939f4ea0",
+            "stair": "0x9fef2a18"
+          },
+          "matched_workloads": 18,
+          "scope": "independent sink arithmetic for approved input; not execution/state, PMU or clean-build proof"
+        }
+      },
+      "artifacts": {
+        "original.elf": "e13fa5f45c1b9f970ac29221b15b6efad73c490e291cebd9b06493704f20db20",
+        "candidate.elf": "8b9a7530e805001114441f92d909b68e4d3ad35d24c5d09ba715826099991d97",
+        "functions.map": "08764141bf8bce03e65a192dae0e8e1bfee0e49b6ea909c556fe9f6c02676cc5",
+        "redirect.json": "c7565ddb971a1c7513af41887968b457b1ba4c76b11c3cb843b4f194c8b7f2fd",
+        "step-0.log": "171d1fff0e32d0a0df622d44d3d12bdc02dd5834f887b19e2aff8544d8d764d3",
+        "step-1.log": "86073136be98d489aa5fb2eadc11750f16df0da470603ff723e729e4c55c4411",
+        "step-2.log": "cf2a9576d9f3507e6e127c3bc2008eb9962f037d05ef76a8d5a16c39f510c8e2",
+        "step-3.log": "f94ee4fdd95d516ca3aacd7df054f040162746814b5fed656f0d12292d0e21af"
+      },
+      "tools": {
+        "llvm-bolt": "8fc4ebc26cd202beda700f164312bc7a48ee6f1fe6d94bbb46dd23b580fa00a6",
+        "llvm-nm": "3bf529fd49cf73c6eb8c0049fd15b85933195cdfedcd0084451fffa1f2ceafe5",
+        "llvm-readelf": "34ffb11d9ed81366c93817f462483e1d76b341c90d35f85895d5b768b0b974ac"
+      },
+      "scripts": {
+        "qemu_rewrite_build.py": "931794bdc2bf59bc52030263a8e387193bf74651607f0523bbd0bc275492ee7d",
+        "qemu_rewrite_gate.py": "28fa2d39eb6a72896b997192fe9309d5b93ba1780989c6fd26da69ecdda2bf65",
+        "qemu_workload_gate.py": "c5a44b42d1e8a7c946d115a8fa3d78edaf45ca9b3642eca3390ef29ede81aa64",
+        "qemu_bench_oracle.py": "91a4ad8d1b58a6fb03532e544070917a09c7e710e752d5de259ea6ed3dca77ff",
+        "profile_identity.py": "7e6fedf6de313a6029525f381e3d1c571656e922bd32bb14daa097c71ab79689",
+        "pi4/passes_check.py": "f590ab943cbadf8c6918f88bcabd873dd2c96256a13f40de9abe02d855737bff",
+        "redirect-bolt-entries.py": "42dd1c4ddd2078f7a34ef15ed59b93eda2d07a34bd886fa5df8b6c6124e693ee",
+        "fix-kernel-elf-sections.py": "ac234f4fd1fafe97ffbea75df4532cd3abd959ed6bbd14f7964eaed865187934"
+      },
+      "logs": {
+        "baseline.log": "a91af2af3f84ce68870c9f45d5ad45a64a79d4f67d9fbc0fdb40c2f743c2d237",
+        "candidate.log": "ca037796665f0a8d746a1a6251fd99e51ffdb89d180b1f27dd4f6134e30dfada",
+        "entries.trace": "338bc58a2fe11aa10eebd178170f2ae45a381136082235af7ffdf77eaf4b42b1"
+      }
+    }
+  },
+  "pi": {
+    "on": {
+      "verification": "wider-on/build-dqpxie5s/pi-verify-4sas_0wj/verification.json",
+      "verification_sha256": "62e597e1ce1f850249a02b3cc502b3217c0e56674ebb0a2ef93e797df8993d89",
+      "positive_cases": {
+        "baseline": 36,
+        "normal": 36,
+        "reverse": 36
+      },
+      "faults": {
+        "bad-result": {
+          "expected_failure": true,
+          "case_id": 0,
+          "field": 0,
+          "expected": 7,
+          "actual": 8
+        },
+        "bad-flags": {
+          "expected_failure": true,
+          "case_id": 0,
+          "field": 14,
+          "expected": 2147484122,
+          "actual": 474
+        },
+        "retained-callee": {
+          "expected_failure": true,
+          "case_id": 0,
+          "field": 11,
+          "expected": 35729508,
+          "actual": 1048696
+        },
+        "timeout": {
+          "expected_failure": true,
+          "watchdog_return_without_completion": true
+        }
+      },
+      "uploaded_sha256": {
+        "baseline": "8a258c79b87dd9555d000700db8872fd83c325251300c7b2b703ae7f8b1bfcdc",
+        "normal": "b9cee407e1820896c1afcf6a7414c25237a9128fbff66ffaa958fe5933727662",
+        "reverse": "c0d901ff486d6cba52fc05d9a475308c744b220bd615066221e6e56df43fc3b8",
+        "bad-result": "4f305797d823ed44f30010a1adf8d1f5ad929c185716a27815a5275c1b8be890",
+        "bad-flags": "2c268cbc131545b5f100b14b26e24f8eb8b8c24fd549a8ca5a1acb4761b9c7d7",
+        "retained-callee": "eee7504e802650ad54a1e10d6a4f3e4ca27cb6476a63260370ede7816d1f3193",
+        "timeout": "ee288d4b16d1339a49ccc90e67d1d537d3e2903ea0dad9ed5d12e1f8f5c501f1"
+      },
+      "logs": {
+        "bad-flags.log": "202632533a0acbebe27c8869c0cf68f99e9897ac2587a2c0603d4a65ff2d3fbd",
+        "bad-result.log": "3f2af4d661ade377a70c1f45f09baabb28af5e428269b8e34b7153d7cb929e17",
+        "baseline.log": "b3d6ac17a93e28030a3e9533ef3937cd1a61b6aa17fb6af1c42be8eb21a4d8d0",
+        "normal.log": "b60b8e03dc7147a49ee895f488dd83bac2ad4156d56bb99d2f51e4fb7206de0f",
+        "retained-callee.log": "9edbf55556c0a1502050ec14457c9c8c056afc544e06524743d3874ddd122d77",
+        "reverse.log": "c2eed7f1800d39cba289b7c3387c19d7343fa79fe5f7e420c5e37f32c4af55b3",
+        "timeout.log": "72f144f165f35aa26c641ccad85a0109156ad0c02ba20137c31986c411c17af4"
+      },
+      "loader_sha256": "20d8a44f44c62ce001c3cd49007a0b73b9a6890d92bdb37f9d5a573246453ab0",
+      "selected": {
+        "normal": [
+          "caller_arm_arm",
+          "far_arm_arm",
+          "__ARMv5LongLdrPcThunk_far_arm_arm",
+          "caller_arm_thumb",
+          "far_arm_thumb",
+          "__ARMv5LongLdrPcThunk_far_arm_thumb",
+          "caller_thumb_arm",
+          "far_thumb_arm",
+          "__ARMv5LongLdrPcThunk_far_thumb_arm",
+          "caller_thumb_thumb",
+          "far_thumb_thumb",
+          "__ARMv5LongLdrPcThunk_far_thumb_thumb"
+        ],
+        "reverse": [
+          "caller_arm_arm",
+          "far_arm_arm",
+          "__ARMv5LongLdrPcThunk_far_arm_arm",
+          "caller_arm_thumb",
+          "far_arm_thumb",
+          "__ARMv5LongLdrPcThunk_far_arm_thumb",
+          "caller_thumb_arm",
+          "far_thumb_arm",
+          "__ARMv5LongLdrPcThunk_far_thumb_arm",
+          "caller_thumb_thumb",
+          "far_thumb_thumb",
+          "__ARMv5LongLdrPcThunk_far_thumb_thumb"
+        ]
+      },
+      "emitted": {
+        "normal": {
+          "caller_arm_arm": [
+            1048600,
+            1126400,
+            92
+          ],
+          "far_arm_arm": [
+            1048688,
+            35729500,
+            36
+          ],
+          "caller_arm_thumb": [
+            1048724,
+            35729536,
+            92
+          ],
+          "far_arm_thumb": [
+            1048812,
+            70332636,
+            28
+          ],
+          "caller_thumb_arm": [
+            1048840,
+            70332672,
+            80
+          ],
+          "far_thumb_arm": [
+            1048916,
+            104935760,
+            36
+          ],
+          "caller_thumb_thumb": [
+            1048952,
+            104935808,
+            80
+          ],
+          "far_thumb_thumb": [
+            1049028,
+            139538896,
+            28
+          ]
+        },
+        "reverse": {
+          "caller_arm_arm": [
+            1048600,
+            1126400,
+            92
+          ],
+          "far_arm_arm": [
+            1048688,
+            35729500,
+            36
+          ],
+          "caller_arm_thumb": [
+            1048724,
+            35729536,
+            92
+          ],
+          "far_arm_thumb": [
+            1048812,
+            70332636,
+            28
+          ],
+          "caller_thumb_arm": [
+            1048840,
+            70332672,
+            84
+          ],
+          "far_thumb_arm": [
+            1048916,
+            104935764,
+            36
+          ],
+          "caller_thumb_thumb": [
+            1048952,
+            104935808,
+            84
+          ],
+          "far_thumb_thumb": [
+            1049028,
+            139538900,
+            28
+          ]
+        }
+      },
+      "eliminated": {
+        "normal": [
+          "__ARMv5LongLdrPcThunk_far_arm_arm",
+          "__ARMv5LongLdrPcThunk_far_arm_thumb",
+          "__ARMv5LongLdrPcThunk_far_thumb_arm",
+          "__ARMv5LongLdrPcThunk_far_thumb_thumb"
+        ],
+        "reverse": [
+          "__ARMv5LongLdrPcThunk_far_arm_arm",
+          "__ARMv5LongLdrPcThunk_far_arm_thumb",
+          "__ARMv5LongLdrPcThunk_far_thumb_arm",
+          "__ARMv5LongLdrPcThunk_far_thumb_thumb"
+        ]
+      },
+      "executed": {
+        "normal": [
+          "arm-arm",
+          "arm-thumb",
+          "thumb-arm",
+          "thumb-thumb"
+        ],
+        "reverse": [
+          "arm-arm",
+          "arm-thumb",
+          "thumb-arm",
+          "thumb-thumb"
+        ]
+      },
+      "patch_sha256": {
+        "0001-emit-bolt-instr-tables-on-elf.patch": "49269895b37e21ee39d410a2717417b08bddb42974b5e99fba87636e227de16f",
+        "0002-tolerate-secondary-entrypoint-outside-code-section.patch": "2460f45fbe39ad520a591d37edf5925e74d7acc2e107e399ad87607e4dfab41d",
+        "0003-bolt-arm-elf32-and-target.patch": "cb2ed805a49b73c6122d4c6c0481c9703009689fa8873c4c3a06632af354d2f5",
+        "0004-bolt-arm-mcplusbuilder.patch": "d2025105313fefb9c7e304a6dda4df227e483cd4be93ab55902451949932bbb0",
+        "0005-bolt-arm-relocations.patch": "27b15ca9aaf28792ba9b98aaaf2edacc3f46a1e4730deee882e40a4698fe2800",
+        "0006-bolt-arm-rewrite-dispatch.patch": "825de9a51c22543e9c7d9a0cee01a526b4c5fb7e0d1b6b6be9171cea1287dba3",
+        "0007-bolt-arm-lit-tests.patch": "ae0e05384a0d24f6475f425f5cfb90fca98ca94c53d8d0487a151045b70c3d5a",
+        "0008-jitlink-arm-generic-archkind.patch": "7a30ef8fec31cda68bb63e128edecd75eb3bc0aad4141d0a2267e9e5abe3d8ff",
+        "0009-bolt-arm-longjmp-veneers.patch": "2950d0d2dddf856a83d84f45029f8c769b9832cdf10f99f486d50e7f12e7e379",
+        "0010-bolt-arm-instrumentation.patch": "1acf956dab22a687c2d53e1f0e6c49a439309957986644e8325234acb1b067a4",
+        "0011-bolt-arm-reverse-cbz.patch": "ddad8f56439d393eeb5ede2a158e3967540480be99f15425b6a64473caf7db15",
+        "0012-jitlink-arm-thumb-stub-alignment.patch": "15494da3e1e735474b84b39664b3acbadd9cdcc49b34f0a324372852fe6f267d",
+        "0013-bolt-emit-function-map.patch": "99d3c782f692bff0cfb4580d94c549e20ce664aa68eef6762cb5a2ca9282f397",
+        "0014-bolt-arm-literal-loads.patch": "8861406e0bfbd6bb6747adec762b22a85c5dfe87726c5dd4623a0d21acad1da8",
+        "0015-bolt-arm-unwind-rejection.patch": "ade687b385030923f6870345bfb287df44ff8e551749e6366b564383eee8ce54",
+        "0016-bolt-arm-data-fixup-width.patch": "2751b9ac14c11453f4f0cfe90477c157aba202280bac6b18103a6affda4dc568",
+        "0017-jitlink-arm-blx-stub-link.patch": "e50459022d2bf599c619c57ebca46035989cae1c1c5a912e617ca19a0c6b358a",
+        "0018-bolt-arm-pop-terminators.patch": "01722cd389cd657c60045bea3b7ded528e57343444aa58cc75602aee378cf6de",
+        "0019-deterministic-arm-stubs-and-alignment.patch": "179e2642d141217d73ab34a2170a59cdc868de47fb54f7d73afa4de77af530ec",
+        "0020-preserve-flags-in-cbz-long-branches.patch": "9b0923d9d680d3e8453fb755166809db921262ca32fdca577d26dc456b19c315",
+        "0021-preserve-thumb-entry-and-symbol-state.patch": "faaac1ec8a3b0a46fd1808a311b800500b60003175dcbe8d7c9950669f116ae2",
+        "0022-bolt-arm-thumb-jump19-split-functions.patch": "8d51bf51f92eaadb5b23e701c77179a65b17b68ca4705d3c898f96cc252958cd",
+        "0023-bolt-arm-generic-passes.patch": "cc93b6883bab0531ff041d43473128b16b4bb6ca70654c29496a3f0b48801806",
+        "0024-bolt-arm-inline-switch-tables.patch": "b1856915369978bf779613bab9ba40753cc39e52edf2258c55ef0cdf3d61d3a1",
+        "0025-bolt-arm-attributes-kept-code.patch": "72aaaa063316350a7a368b0bff5323febfc8ee161b5ccaba1974d246e36d60f5",
+        "0026-bolt-arm-full-width-counters.patch": "52743dc6e4a099df4b6a107537ae18807e3f9ca1ff068c1b715eebe6519c468e",
+        "0027-bolt-arm-terminal-it-branches.patch": "e9fb10d80d9ab3720bfb43b8a73f3dccfbbe4ff235efe52b14d61330150eaa30",
+        "0028-bolt-arm-instrumentation-contract.patch": "b203cacc72fcae4d3b83df4fc2d4c9c704a44f7b599ad0efc921b24bf5143703",
+        "0029-bolt-arm-pseudo-count-invariants.patch": "941bf3095f1d2080606c1b1c17a584e774d1c52e48b8aef08116ddd71eb85ba2",
+        "0030-bolt-arm-function-fallthrough.patch": "7b99d65e9c9abd569b7e55cb0af4461ea34355fb830575db9ad02a290bad43a9",
+        "0031-bolt-arm-self-move-flags.patch": "5388caa9e8d318682d001a9a52f88e010f2012fd99ee130bff10fc696d605ee0",
+        "0032-bolt-arm-inline-safety.patch": "4be51041d90091485bbd1110371d01de2ccaa9e8320f2eef7c879d938247bb70",
+        "0033-bolt-arm-pc-write-admission.patch": "717127d4b5298022246d70fd7647d7dc4d5600301cb73b485e303526e2b1dd96",
+        "0034-bolt-arm-inline-pass-tests.patch": "e9001fa210bb1656060cce70d661d5286e71c035e1b712f92756e6594ab1116c",
+        "0035-bolt-arm-exception-return-admission.patch": "a5fb2a2af1d8c1a79a88dbf67c70a6f11cec5d3a149af2ee448b629189e98609",
+        "0036-bolt-arm-conditional-return-instrumentation.patch": "0855669ab274d51c2d47e7910adbbb32fca38d3ae634a514252480fb2ba13de9",
+        "0037-bolt-arm-exclusive-instrumentation.patch": "2ead60639d5a3572b47901dbf67d6f0bb6e0e075768798b2115d05c8770ee602",
+        "0038-bolt-arm-cross-function-exclusive-reservations.patch": "21fe8aa4cceb0392131bef1a7e54ac27221b6eda369e1767665f5d2a6c72eba6",
+        "0039-bolt-arm-interior-exclusive-reservations.patch": "9960b704ba3cc5a96313c9fdd38bf5ab7416cd0943e3fbd7227728cbc5e713a2",
+        "0040-bolt-arm-instrumentation-startup.patch": "972fc766e581961659a2ad38d81af086f231fbfedac02c3969b2647a4ff9ef34",
+        "0041-bolt-arm-isa-abi-contract.patch": "c07a6d1d304b3b49051a1a1e6d08ed7eb9e6105507133e8c599e8a6833d3fa2e",
+        "0042-bolt-arm-fixed-load-contract.patch": "3b1308b69c9d775dd1f12deaa7a090ed07bdbed9645399e7c1d0cf43e19c416b",
+        "0043-bolt-arm-profile-source-identity.patch": "9eb4b60aad28cd052cff602bfaa59f51287eef8f53ac2eeee53b107aa770da17",
+        "0044-bolt-arm-thumb-far-stub-isa.patch": "7e401a3682e13e423c4f62246ba13cc868f441d9bfad64cc09da6a9f456f8a3b",
+        "0045-bolt-arm-pc-read-admission.patch": "a4a7c764b473977024e30f921b58c013e0a9f0fc965d3ed0f03c866d020c2dbe"
+      },
+      "scripts": {
+        "scripts/pi4/verify_far_safety.py": "be0a39ff43c0fa3adc14f1983094227e6f0bbc31a5c98a0c74cb12ab63224062",
+        "scripts/pi4/build_far_safety.py": "c46a6e5b0e37a794cccc21826f693b7d8d313012f3274ae11665c906a6952ff7",
+        "scripts/pi4/pi4_serial_boot.py": "48705d40e55f5cafd9baf2ae932365333e3f2e08f6f6689e8235448e8e0cc7e0",
+        "scripts/pi4/verify_counter_state.py": "a9b603c78b4405ddf76661e10232ccfd2deef918e035befc2500d3080dc27c77",
+        "scripts/profile_identity.py": "7e6fedf6de313a6029525f381e3d1c571656e922bd32bb14daa097c71ab79689",
+        "scripts/verify_far_execution.py": "341992e497bc9a2277c58100dc2fc6a82e2bd9707f81a6a2a4d8cecc3bf28c93",
+        "scripts/verify_far_interwork.py": "b4c12e1a9ff08327397b78a7d4ebec892ba6eefba0d8fbe2e949e3e668b372c8"
+      },
+      "profile": null,
+      "source_scope": "dirty source; no clean compiler provenance"
+    },
+    "off": {
+      "verification": "wider-off/build-zoyyerjb/pi-verify-lolistaj/verification.json",
+      "verification_sha256": "c4888713545cf71db1f53a59e80c49036749caa761e4445d81e517b63e30c62b",
+      "positive_cases": {
+        "baseline": 36,
+        "normal": 36,
+        "reverse": 36
+      },
+      "faults": {
+        "bad-result": {
+          "expected_failure": true,
+          "case_id": 0,
+          "field": 0,
+          "expected": 7,
+          "actual": 8
+        },
+        "bad-flags": {
+          "expected_failure": true,
+          "case_id": 0,
+          "field": 14,
+          "expected": 2147484122,
+          "actual": 474
+        },
+        "retained-callee": {
+          "expected_failure": true,
+          "case_id": 0,
+          "field": 11,
+          "expected": 35729508,
+          "actual": 1048696
+        },
+        "timeout": {
+          "expected_failure": true,
+          "watchdog_return_without_completion": true
+        }
+      },
+      "uploaded_sha256": {
+        "baseline": "8a258c79b87dd9555d000700db8872fd83c325251300c7b2b703ae7f8b1bfcdc",
+        "normal": "b9cee407e1820896c1afcf6a7414c25237a9128fbff66ffaa958fe5933727662",
+        "reverse": "c0d901ff486d6cba52fc05d9a475308c744b220bd615066221e6e56df43fc3b8",
+        "bad-result": "4f305797d823ed44f30010a1adf8d1f5ad929c185716a27815a5275c1b8be890",
+        "bad-flags": "2c268cbc131545b5f100b14b26e24f8eb8b8c24fd549a8ca5a1acb4761b9c7d7",
+        "retained-callee": "eee7504e802650ad54a1e10d6a4f3e4ca27cb6476a63260370ede7816d1f3193",
+        "timeout": "ee288d4b16d1339a49ccc90e67d1d537d3e2903ea0dad9ed5d12e1f8f5c501f1"
+      },
+      "logs": {
+        "bad-flags.log": "202632533a0acbebe27c8869c0cf68f99e9897ac2587a2c0603d4a65ff2d3fbd",
+        "bad-result.log": "3f2af4d661ade377a70c1f45f09baabb28af5e428269b8e34b7153d7cb929e17",
+        "baseline.log": "a7de730f8eb11ab1225e8801c512539f4f72d39fd870dd4313a06f79cecc503b",
+        "normal.log": "b60b8e03dc7147a49ee895f488dd83bac2ad4156d56bb99d2f51e4fb7206de0f",
+        "retained-callee.log": "9edbf55556c0a1502050ec14457c9c8c056afc544e06524743d3874ddd122d77",
+        "reverse.log": "c2eed7f1800d39cba289b7c3387c19d7343fa79fe5f7e420c5e37f32c4af55b3",
+        "timeout.log": "01979cb87ad43a30c6a20de5b6e3b89a586ecc68b79a23a5ff55ca5d21f380a4"
+      },
+      "loader_sha256": "20d8a44f44c62ce001c3cd49007a0b73b9a6890d92bdb37f9d5a573246453ab0",
+      "selected": {
+        "normal": [
+          "caller_arm_arm",
+          "far_arm_arm",
+          "__ARMv5LongLdrPcThunk_far_arm_arm",
+          "caller_arm_thumb",
+          "far_arm_thumb",
+          "__ARMv5LongLdrPcThunk_far_arm_thumb",
+          "caller_thumb_arm",
+          "far_thumb_arm",
+          "__ARMv5LongLdrPcThunk_far_thumb_arm",
+          "caller_thumb_thumb",
+          "far_thumb_thumb",
+          "__ARMv5LongLdrPcThunk_far_thumb_thumb"
+        ],
+        "reverse": [
+          "caller_arm_arm",
+          "far_arm_arm",
+          "__ARMv5LongLdrPcThunk_far_arm_arm",
+          "caller_arm_thumb",
+          "far_arm_thumb",
+          "__ARMv5LongLdrPcThunk_far_arm_thumb",
+          "caller_thumb_arm",
+          "far_thumb_arm",
+          "__ARMv5LongLdrPcThunk_far_thumb_arm",
+          "caller_thumb_thumb",
+          "far_thumb_thumb",
+          "__ARMv5LongLdrPcThunk_far_thumb_thumb"
+        ]
+      },
+      "emitted": {
+        "normal": {
+          "caller_arm_arm": [
+            1048600,
+            1126400,
+            92
+          ],
+          "far_arm_arm": [
+            1048688,
+            35729500,
+            36
+          ],
+          "caller_arm_thumb": [
+            1048724,
+            35729536,
+            92
+          ],
+          "far_arm_thumb": [
+            1048812,
+            70332636,
+            28
+          ],
+          "caller_thumb_arm": [
+            1048840,
+            70332672,
+            80
+          ],
+          "far_thumb_arm": [
+            1048916,
+            104935760,
+            36
+          ],
+          "caller_thumb_thumb": [
+            1048952,
+            104935808,
+            80
+          ],
+          "far_thumb_thumb": [
+            1049028,
+            139538896,
+            28
+          ]
+        },
+        "reverse": {
+          "caller_arm_arm": [
+            1048600,
+            1126400,
+            92
+          ],
+          "far_arm_arm": [
+            1048688,
+            35729500,
+            36
+          ],
+          "caller_arm_thumb": [
+            1048724,
+            35729536,
+            92
+          ],
+          "far_arm_thumb": [
+            1048812,
+            70332636,
+            28
+          ],
+          "caller_thumb_arm": [
+            1048840,
+            70332672,
+            84
+          ],
+          "far_thumb_arm": [
+            1048916,
+            104935764,
+            36
+          ],
+          "caller_thumb_thumb": [
+            1048952,
+            104935808,
+            84
+          ],
+          "far_thumb_thumb": [
+            1049028,
+            139538900,
+            28
+          ]
+        }
+      },
+      "eliminated": {
+        "normal": [
+          "__ARMv5LongLdrPcThunk_far_arm_arm",
+          "__ARMv5LongLdrPcThunk_far_arm_thumb",
+          "__ARMv5LongLdrPcThunk_far_thumb_arm",
+          "__ARMv5LongLdrPcThunk_far_thumb_thumb"
+        ],
+        "reverse": [
+          "__ARMv5LongLdrPcThunk_far_arm_arm",
+          "__ARMv5LongLdrPcThunk_far_arm_thumb",
+          "__ARMv5LongLdrPcThunk_far_thumb_arm",
+          "__ARMv5LongLdrPcThunk_far_thumb_thumb"
+        ]
+      },
+      "executed": {
+        "normal": [
+          "arm-arm",
+          "arm-thumb",
+          "thumb-arm",
+          "thumb-thumb"
+        ],
+        "reverse": [
+          "arm-arm",
+          "arm-thumb",
+          "thumb-arm",
+          "thumb-thumb"
+        ]
+      },
+      "patch_sha256": {
+        "0001-emit-bolt-instr-tables-on-elf.patch": "49269895b37e21ee39d410a2717417b08bddb42974b5e99fba87636e227de16f",
+        "0002-tolerate-secondary-entrypoint-outside-code-section.patch": "2460f45fbe39ad520a591d37edf5925e74d7acc2e107e399ad87607e4dfab41d",
+        "0003-bolt-arm-elf32-and-target.patch": "cb2ed805a49b73c6122d4c6c0481c9703009689fa8873c4c3a06632af354d2f5",
+        "0004-bolt-arm-mcplusbuilder.patch": "d2025105313fefb9c7e304a6dda4df227e483cd4be93ab55902451949932bbb0",
+        "0005-bolt-arm-relocations.patch": "27b15ca9aaf28792ba9b98aaaf2edacc3f46a1e4730deee882e40a4698fe2800",
+        "0006-bolt-arm-rewrite-dispatch.patch": "825de9a51c22543e9c7d9a0cee01a526b4c5fb7e0d1b6b6be9171cea1287dba3",
+        "0007-bolt-arm-lit-tests.patch": "ae0e05384a0d24f6475f425f5cfb90fca98ca94c53d8d0487a151045b70c3d5a",
+        "0008-jitlink-arm-generic-archkind.patch": "7a30ef8fec31cda68bb63e128edecd75eb3bc0aad4141d0a2267e9e5abe3d8ff",
+        "0009-bolt-arm-longjmp-veneers.patch": "2950d0d2dddf856a83d84f45029f8c769b9832cdf10f99f486d50e7f12e7e379",
+        "0010-bolt-arm-instrumentation.patch": "1acf956dab22a687c2d53e1f0e6c49a439309957986644e8325234acb1b067a4",
+        "0011-bolt-arm-reverse-cbz.patch": "ddad8f56439d393eeb5ede2a158e3967540480be99f15425b6a64473caf7db15",
+        "0012-jitlink-arm-thumb-stub-alignment.patch": "15494da3e1e735474b84b39664b3acbadd9cdcc49b34f0a324372852fe6f267d",
+        "0013-bolt-emit-function-map.patch": "99d3c782f692bff0cfb4580d94c549e20ce664aa68eef6762cb5a2ca9282f397",
+        "0014-bolt-arm-literal-loads.patch": "8861406e0bfbd6bb6747adec762b22a85c5dfe87726c5dd4623a0d21acad1da8",
+        "0015-bolt-arm-unwind-rejection.patch": "ade687b385030923f6870345bfb287df44ff8e551749e6366b564383eee8ce54",
+        "0016-bolt-arm-data-fixup-width.patch": "2751b9ac14c11453f4f0cfe90477c157aba202280bac6b18103a6affda4dc568",
+        "0017-jitlink-arm-blx-stub-link.patch": "e50459022d2bf599c619c57ebca46035989cae1c1c5a912e617ca19a0c6b358a",
+        "0018-bolt-arm-pop-terminators.patch": "01722cd389cd657c60045bea3b7ded528e57343444aa58cc75602aee378cf6de",
+        "0019-deterministic-arm-stubs-and-alignment.patch": "179e2642d141217d73ab34a2170a59cdc868de47fb54f7d73afa4de77af530ec",
+        "0020-preserve-flags-in-cbz-long-branches.patch": "9b0923d9d680d3e8453fb755166809db921262ca32fdca577d26dc456b19c315",
+        "0021-preserve-thumb-entry-and-symbol-state.patch": "faaac1ec8a3b0a46fd1808a311b800500b60003175dcbe8d7c9950669f116ae2",
+        "0022-bolt-arm-thumb-jump19-split-functions.patch": "8d51bf51f92eaadb5b23e701c77179a65b17b68ca4705d3c898f96cc252958cd",
+        "0023-bolt-arm-generic-passes.patch": "cc93b6883bab0531ff041d43473128b16b4bb6ca70654c29496a3f0b48801806",
+        "0024-bolt-arm-inline-switch-tables.patch": "b1856915369978bf779613bab9ba40753cc39e52edf2258c55ef0cdf3d61d3a1",
+        "0025-bolt-arm-attributes-kept-code.patch": "72aaaa063316350a7a368b0bff5323febfc8ee161b5ccaba1974d246e36d60f5",
+        "0026-bolt-arm-full-width-counters.patch": "52743dc6e4a099df4b6a107537ae18807e3f9ca1ff068c1b715eebe6519c468e",
+        "0027-bolt-arm-terminal-it-branches.patch": "e9fb10d80d9ab3720bfb43b8a73f3dccfbbe4ff235efe52b14d61330150eaa30",
+        "0028-bolt-arm-instrumentation-contract.patch": "b203cacc72fcae4d3b83df4fc2d4c9c704a44f7b599ad0efc921b24bf5143703",
+        "0029-bolt-arm-pseudo-count-invariants.patch": "941bf3095f1d2080606c1b1c17a584e774d1c52e48b8aef08116ddd71eb85ba2",
+        "0030-bolt-arm-function-fallthrough.patch": "7b99d65e9c9abd569b7e55cb0af4461ea34355fb830575db9ad02a290bad43a9",
+        "0031-bolt-arm-self-move-flags.patch": "5388caa9e8d318682d001a9a52f88e010f2012fd99ee130bff10fc696d605ee0",
+        "0032-bolt-arm-inline-safety.patch": "4be51041d90091485bbd1110371d01de2ccaa9e8320f2eef7c879d938247bb70",
+        "0033-bolt-arm-pc-write-admission.patch": "717127d4b5298022246d70fd7647d7dc4d5600301cb73b485e303526e2b1dd96",
+        "0034-bolt-arm-inline-pass-tests.patch": "e9001fa210bb1656060cce70d661d5286e71c035e1b712f92756e6594ab1116c",
+        "0035-bolt-arm-exception-return-admission.patch": "a5fb2a2af1d8c1a79a88dbf67c70a6f11cec5d3a149af2ee448b629189e98609",
+        "0036-bolt-arm-conditional-return-instrumentation.patch": "0855669ab274d51c2d47e7910adbbb32fca38d3ae634a514252480fb2ba13de9",
+        "0037-bolt-arm-exclusive-instrumentation.patch": "2ead60639d5a3572b47901dbf67d6f0bb6e0e075768798b2115d05c8770ee602",
+        "0038-bolt-arm-cross-function-exclusive-reservations.patch": "21fe8aa4cceb0392131bef1a7e54ac27221b6eda369e1767665f5d2a6c72eba6",
+        "0039-bolt-arm-interior-exclusive-reservations.patch": "9960b704ba3cc5a96313c9fdd38bf5ab7416cd0943e3fbd7227728cbc5e713a2",
+        "0040-bolt-arm-instrumentation-startup.patch": "972fc766e581961659a2ad38d81af086f231fbfedac02c3969b2647a4ff9ef34",
+        "0041-bolt-arm-isa-abi-contract.patch": "c07a6d1d304b3b49051a1a1e6d08ed7eb9e6105507133e8c599e8a6833d3fa2e",
+        "0042-bolt-arm-fixed-load-contract.patch": "3b1308b69c9d775dd1f12deaa7a090ed07bdbed9645399e7c1d0cf43e19c416b",
+        "0043-bolt-arm-profile-source-identity.patch": "9eb4b60aad28cd052cff602bfaa59f51287eef8f53ac2eeee53b107aa770da17",
+        "0044-bolt-arm-thumb-far-stub-isa.patch": "7e401a3682e13e423c4f62246ba13cc868f441d9bfad64cc09da6a9f456f8a3b",
+        "0045-bolt-arm-pc-read-admission.patch": "a4a7c764b473977024e30f921b58c013e0a9f0fc965d3ed0f03c866d020c2dbe"
+      },
+      "scripts": {
+        "scripts/pi4/verify_far_safety.py": "be0a39ff43c0fa3adc14f1983094227e6f0bbc31a5c98a0c74cb12ab63224062",
+        "scripts/pi4/build_far_safety.py": "c46a6e5b0e37a794cccc21826f693b7d8d313012f3274ae11665c906a6952ff7",
+        "scripts/pi4/pi4_serial_boot.py": "48705d40e55f5cafd9baf2ae932365333e3f2e08f6f6689e8235448e8e0cc7e0",
+        "scripts/pi4/verify_counter_state.py": "a9b603c78b4405ddf76661e10232ccfd2deef918e035befc2500d3080dc27c77",
+        "scripts/profile_identity.py": "7e6fedf6de313a6029525f381e3d1c571656e922bd32bb14daa097c71ab79689",
+        "scripts/verify_far_execution.py": "341992e497bc9a2277c58100dc2fc6a82e2bd9707f81a6a2a4d8cecc3bf28c93",
+        "scripts/verify_far_interwork.py": "b4c12e1a9ff08327397b78a7d4ebec892ba6eefba0d8fbe2e949e3e668b372c8"
+      },
+      "profile": null,
+      "source_scope": "dirty source; no clean compiler provenance"
+    }
+  },
+  "tests": {
+    "python-tests-wsl-final.log": {
+      "tests": 141,
+      "passed": 141,
+      "skipped": 0,
+      "sha256": "dadcdc5d00fe5be1f592651ad806352a41d2946c6c2bb0f5986bf11e2b53452d"
+    },
+    "python-tests-windows-venv-final.log": {
+      "tests": 141,
+      "passed": 137,
+      "skipped": 4,
+      "sha256": "d9a8b8064241ccb480eee3d668690e3e1bdbc7567ec3d65916e8b9ffa6ad3467"
+    },
+    "shell_syntax": {
+      "passed": true,
+      "files": [
+        "scripts/verify-bolt-workloads.sh",
+        "scripts/verify-bolt-arm32-harness.sh",
+        "scripts/verify-bolt-arm32-milestones.sh"
+      ]
+    }
+  },
+  "diagnostics": [
+    {
+      "path": "out/correctness/p0-completion-20261004/pi-wider-on.log",
+      "sha256": "c349178c30d81d8de9c4970ee25956840c9cd4f2046447c5a30a7df2b3606121",
+      "success_certificate": false
+    },
+    {
+      "path": "out/correctness/p0-completion-20261004/python-tests-windows-final.log",
+      "sha256": "2bdc9d2cc72aeae431dac999563498cd3ac2d35fba7830abae55c53bfa363e17",
+      "success_certificate": false
+    },
+    {
+      "path": "out/correctness/p0-completion-20261004/python-tests-gates.log",
+      "sha256": "3b4af59c4539edc93fae74d92137449b6f93a07bbc849bc3ef111b1653dbc016",
+      "success_certificate": false
+    }
+  ],
+  "totals": {
+    "pi_transformed_positive_cases": 144,
+    "pi_baseline_positive_cases": 72,
+    "pi_expected_faults": 8,
+    "pi_final_uploaded_images": 14,
+    "qemu_selected_entry_observations": 8,
+    "qemu_baseline_sink_checks": 36,
+    "qemu_candidate_sink_checks": 36
+  },
+  "source_replay": {
+    "count": 45,
+    "path": "out/correctness/memcpy-coverage-20261004/replay-45/replay.json",
+    "sha256": "3af98764ce722997ef328d2efe8d87b77e0765ae24c0f0f397fb6070df67a6ed",
+    "fresh_run": false,
+    "claim": "exact source content; not clean compiler provenance"
+  }
+}

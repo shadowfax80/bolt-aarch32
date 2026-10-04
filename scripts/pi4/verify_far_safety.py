@@ -14,13 +14,13 @@ import subprocess
 ROOT = Path(__file__).resolve().parents[2]
 sys.path[:0] = [str(ROOT/'scripts'),str(ROOT/'scripts/pi4')]
 from profile_identity import elf_metadata,sha256,write_json,check_load_image
-from verify_far_execution import offset,require,SEEDS
-from build_far_safety import PAIRS,validate_chunks,witnesses,emitted_route,instructions
+from verify_far_execution import offset,require
+from build_far_safety import PAIRS,SEEDS,cmp_flags,validate_chunks,witnesses,emitted_route,instructions
 from verify_counter_state import Capture
 from pi4_serial_boot import reboot_to_chainloader,resolve_port,send_image
 import serial
 
-NAMES = ['baseline','normal','reverse','bad-result','bad-flags','retained-callee']
+NAMES = ['baseline','normal','reverse','bad-result','bad-flags','retained-callee','timeout']
 CASE_RE = re.compile(r'^BOLT_FAR_PI CASE id=([0-9a-f]{8}) input=([0-9a-f]{8}) result=([0-9a-f]{8}) cpc=([0-9a-f]{8}) fpc=([0-9a-f]{8}) rpc=([0-9a-f]{8}) ip=([0-9a-f]{8}) fb=([0-9a-f]{8}) fa=([0-9a-f]{8}) sb=([0-9a-f]{8}) sa=([0-9a-f]{8}) mem=([0-9a-f]{8})\r?$',re.M)
 
 
@@ -36,15 +36,17 @@ def read_staged(chunks,address,size):
 
 
 def check_artifacts(out,build):
-    require(build['schema'] == 1 and build['kind'] == 'pi-far-safety' and list(build['variants']) == NAMES,'wrong fixture matrix')
-    require(build['faults'] == {'bad-result':{'case_id':0,'field':0},'bad-flags':{'case_id':0,'field':14},'retained-callee':{'case_id':0,'field':11}},'wrong faults')
+    require(build['schema'] == 2 and build['kind'] == 'pi-far-safety' and list(build['variants']) == NAMES
+            and build['witness_kind']=='same-ISA BL return link including Thumb bit','wrong fixture matrix/witness contract')
+    require(build['seeds']==SEEDS,'wrong independent seed matrix')
+    require(build['faults'] == {'bad-result':{'case_id':0,'field':0},'bad-flags':{'case_id':0,'field':14},'retained-callee':{'case_id':0,'field':11},'timeout':{'case_id':0,'kind':'missing-completion'}},'wrong faults')
     for name,digest in build['files'].items():
         path = out/name
         require(path.resolve().is_relative_to(out.resolve()) and sha256(path) == digest,'changed/unsafe artifact '+name)
     original = (out/'baseline.elf').read_bytes()
     sections,symbols = elf_metadata(original)
     table = next(s for s in symbols if s['name'] == 'case_entries')
-    require(table['size'] == 20*28,'wrong independent table extent')
+    require(table['size'] == len(PAIRS)*len(SEEDS)*28,'wrong independent table extent')
     for name in NAMES:
         variant = build['variants'][name]
         code_name = 'normal' if name in build['faults'] else name
@@ -59,6 +61,8 @@ def check_artifacts(out,build):
             require(len(adds) == 1,'wrong fault instruction')
             struct.pack_into('<I',data,offset(data,adds[0],4),0xe2800008 if name == 'bad-result' else 0xe2900007)
             code = bytes(data)
+        elif name == 'timeout':
+            data=bytearray(code);struct.pack_into('<I',data,offset(data,rows[0]['callee']['address'],4),0xeafffffe);code=bytes(data)
         elif name == 'retained-callee':
             data = bytearray(code); old = witnesses(original,'caller_arm_arm','far_arm_arm')['callee']['address']
             lo,hi = old & 0xffff,old >> 16
@@ -72,8 +76,8 @@ def check_artifacts(out,build):
             ip = 0xa5a5a5a5 if name == 'baseline' else routes[i]['absolute_target']
             for j,seed in enumerate(SEEDS):
                 values = [fn,seed,(seed+7)&0xffffffff,row['caller_pc'],row['callee_pc'],row['return_pc'],ip]
-                struct.pack_into('<7I',expected_original,offset(expected_original,table['address']+(i*5+j)*28,28),*values)
-                expectations.append(dict(pair=a+'-'+b,id=i*5+j,input=seed,result=values[2],cpc=values[3],fpc=values[4],rpc=values[5],ip=ip))
+                struct.pack_into('<7I',expected_original,offset(expected_original,table['address']+(i*len(SEEDS)+j)*28,28),*values)
+                expectations.append(dict(pair=a+'-'+b,id=i*len(SEEDS)+j,input=seed,result=values[2],cpc=values[3],fpc=values[4],rpc=values[5],ip=ip,nzcv=cmp_flags(seed)))
         require(expectations == variant['expectations'],'wrong independent expectations')
         check_load_image(out/(name+'.stage.elf'),out/(name+'.bin'))
         image = (out/(name+'.bin')).read_bytes()
@@ -118,14 +122,20 @@ def check_result(text,expectations,negative=None):
     cases = [dict(zip(['id','input','result','cpc','fpc','rpc','ip','fb','fa','sb','sa','mem'],map(lambda x:int(x,16),match))) for match in CASE_RE.findall(text)]
     require(len(cases) == text.count('BOLT_FAR_PI CASE') and len(failures) == text.count('BOLT_FAR_PI FAIL') and len(passes) == text.count('BOLT_FAR_PI PASS'),'malformed result record')
     if negative:
+        if negative.get('kind')=='missing-completion':
+            require(not passes and not failures and not cases and text.rfind('SBOOT?')>text.rfind('BOLT_FAR_PI BEGIN'),
+                    'incomplete execution did not return without a success result')
+            return dict(expected_failure=True,watchdog_return_without_completion=True)
         require(not passes and len(failures) == 1 and len(cases) == negative['case_id'],'fault did not fail at expected completion')
         case,field,expected,actual = map(lambda x:int(x,16),failures[0])
         require(case == negative['case_id'] and field == negative['field'] and expected != actual,'wrong fault outcome')
         return dict(expected_failure=True,case_id=case,field=field,expected=expected,actual=actual)
-    require(not failures and passes == ['20'] and len(cases) == len(expectations) == 20,'incomplete/duplicate pass')
+    require(not failures and passes == [str(len(expectations))] and len(cases) == len(expectations),'incomplete/duplicate pass')
     for actual,expected in zip(cases,expectations):
         require(all(actual[key] == expected[key] for key in ['id','input','result','cpc','fpc','rpc','ip']),'wrong ordered execution witness')
         require(actual['mem'] == expected['result'] and not (actual['fb'] ^ actual['fa']) & 0xf0000000 and actual['sb'] == actual['sa'] and not actual['sa'] & 7,'wrong memory/flags/stack')
+        require(actual['fb']&0xf0000000==cmp_flags(expected['input']) and actual['fa']&0xf0000000==cmp_flags(expected['input']),
+                'wrong independent comparison flags')
     return dict(passed=True,cases=cases)
 
 
@@ -155,9 +165,11 @@ def main():
                 while time.monotonic() < deadline:
                     console.write(port.read(port.in_waiting or 1)); text = console.data.decode('ascii','replace')
                     last = max(text.rfind('BOLT_FAR_PI PASS'),text.rfind('BOLT_FAR_PI FAIL'))
-                    if last >= 0 and text.rfind('SBOOT?') > last: break
+                    anchor=text.rfind('BOLT_FAR_PI BEGIN') if name=='timeout' else last
+                    if anchor >= 0 and text.rfind('SBOOT?') > anchor: break
                 text = console.data.decode('ascii','replace'); last = max(text.rfind('BOLT_FAR_PI PASS'),text.rfind('BOLT_FAR_PI FAIL'))
-                require(last >= 0 and text.rfind('SBOOT?') > last,'missing result/watchdog return '+name)
+                anchor=text.rfind('BOLT_FAR_PI BEGIN') if name=='timeout' else last
+                require(anchor >= 0 and text.rfind('SBOOT?') > anchor,'missing result/watchdog return '+name)
                 results[name] = check_result(text,build['variants'][name]['expectations'],build['faults'].get(name))
                 print(name,'passed' if name not in build['faults'] else results[name],flush=True)
         finally:
@@ -170,7 +182,13 @@ def main():
     require(revision == subprocess.check_output(['git','-C',str(ROOT),'rev-parse','HEAD'],text=True).strip(),'revision changed')
     write_json(evidence/'verification.json',dict(schema=1,verified=True,kind='pi-far-safety',results=results,port=port_name,scope=build['scope'],repository_revision=revision,
         build_manifest_sha256=hashlib.sha256(manifest_bytes).hexdigest(),uploaded_sha256=upload_hashes,loader_sha256=hashlib.sha256(loader).hexdigest(),scripts=scripts,
-        logs={p.name:sha256(p) for p in evidence.glob('*.log')},routes={name:build['variants'][name]['routes'] for name in ['normal','reverse']}))
+        logs={p.name:sha256(p) for p in evidence.glob('*.log')},routes={name:build['variants'][name]['routes'] for name in ['normal','reverse']},
+        selected={name:build['layouts'][name]['selected'] for name in ['normal','reverse']},
+        emitted={name:build['layouts'][name]['emitted'] for name in ['normal','reverse']},
+        eliminated={name:build['layouts'][name]['eliminated'] for name in ['normal','reverse']},
+        executed={name:sorted({expected['pair'] for actual,expected in zip(results[name]['cases'],build['variants'][name]['expectations'])
+                              if actual['id']==expected['id']}) for name in ['normal','reverse']},
+        patch_sha256=build['patch_sha256'],profile=None,source_scope='dirty source; no clean compiler provenance'))
     print('Verified all sparse far-call images and watchdog returns:',evidence,flush=True)
 
 
