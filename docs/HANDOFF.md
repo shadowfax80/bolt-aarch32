@@ -61,6 +61,28 @@ Everything needed to continue is in this repo:
   COM5; sample captures occasionally fail chunk validation (USB corruption),
   retry; never `git stash` from WSL on the Windows checkout.
 
+## Target platform (user, 2026-10-04) and gap to it
+
+The product target is **Arm Cortex-A55, multi-core (SMP), AArch32, bare-metal
+LK, always privileged SVC, mostly Secure state, no FPU and no NEON**. The Pi 4B
+(Cortex-A72, run as ARMv7-A Cortex-A15 code, Non-secure SVC) is the
+verification stand-in. Completeness against that target:
+
+| Aspect | Target | Implemented / verified today | Gap |
+|---|---|---|---|
+| Architecture | ARMv8.2-A, AArch32 state (A32/T32) | Admission (0041) accepts **only ARMv7-A** attributes and decodes with v7 features; `armv8a` is a must-reject test case | **T1 (P0): an A55-built image is rejected outright.** Needs v8-A AArch32 admission + decode (LDA/STL, LDAEX/STLEX, `dmb ishld`, `sevl`, v8 IT restrictions), lit tests, and a Pi image built for v8-A AArch32 (the A72 runs it) |
+| No FPU / no NEON | none at all | Enforced: `-mfpu=none` everywhere, `check-no-fpu.sh` (fail-closed since 000a8a4), BOLT runtime NEON-free; certified fixtures 0 VFP/NEON | None, keep the guard on every new build (incl. v8 images) |
+| Privileged SVC only | always SVC | Matches the instrumentation contract (privileged); all Pi runs in SVC | None for rewriting |
+| SMP | multi-core | Pi LK runs `WITH_SMP` (4 cores) but rewritten code is only exercised on the boot core; instrumentation contract is `single-core-no-fiq` (counter reset/snapshot need quiescence); exclusive-pair guards know LDREX/STREX and LDAEX/STLEX | **T2 (P0): concurrent execution of rewritten code on all cores not verified; SMP instrumentation not admitted.** Pi has 4 cores, so this is testable |
+| Secure state | mostly Secure | Pi runs Non-secure; Secure-SVC Pi bring-up plan exists but is on hold (user) | **T3 (P1):** rewriting is state-agnostic, but FIQ use (the target can route PMU sampling to FIQ in Secure state) conflicts with the `no-fiq` instrumentation contract; SMC/monitor transfers belong to matrix 8 audit. Only needed when the user asks for Secure-SVC on the Pi |
+| Interrupts | IRQ (+FIQ) active | Rewritten IRQ handler verified on the Pi (676 IRQs, R4); quiet fixtures otherwise | Matrix 9 (interrupts/reentrancy) remains open; FIQ under T3 |
+| Performance numbers | in-order A55, small caches | Measured on out-of-order A72 | **T4 (P2):** layout gains are not transferable; final measurements belong on target hardware |
+
+Bottom line: within the declared boundary the backend is functional and Pi-verified
+for ARMv7-A, single-core-exercised code. For the actual target it is **not yet
+applicable** (T1 blocks any A55-built image) and SMP execution is unverified (T2).
+T1 and T2 lead the resume order.
+
 ## Live-tree lock
 
 | Holder | Since | Purpose |
@@ -84,6 +106,8 @@ Take items in the order below; groups reflect dependencies, not ownership.
 
 | Order | ID | Item | Priority | Owner | Status | Part of | Notes |
 |---|---|---|---|---|---|---|---|
+| 2a | T1 | ARMv8-A AArch32 (Cortex-A55) admission and decode: accept v8-A build attributes, decode v8 AArch32 integer instructions (LDA/STL, LDAEX/STLEX, `dmb ishld`, `sevl`), keep rejecting FP/NEON; lit tests; Pi image built for v8-A AArch32, coverage + certified gate | P0 | — | Open | 6b, 7, 11 | Target is A55; 0041 rejects `armv8a` today (must-reject test); A72 on the Pi executes v8 AArch32 |
+| 2b | T2 | SMP: run rewritten functions concurrently on all Pi cores (results + execution per core); decide SMP instrumentation contract (counters are LDREX/STREX; reset/snapshot quiescence) | P0 | — | Open | 9, 10 | Pi LK already runs `WITH_SMP` (4 cores); today only the boot core executes rewritten code |
 | 3 | 6a | Every gate proves execution: close G1 (fixed-path intermediates), G2 (seal profile chain in QEMU certificate), G3 (contracts for QEMU LK builds) | P0 | — | Partial: G1/G2 done; QEMU route diagnostic (user), runs to instrumentation, then blocked by R15 | — | Pi sealed chain certified; G3 needs user review; 0054 ON/OFF builds and scoped Pi runs verified, remaining gate routes still open |
 | 4 | 6c | Legacy/manual hook admission | P0 | — | Partial | — | R9 done; includes R13 |
 | 5 | 6d | Durable receipts on every certification route | P0 | — | Partial | — | Pi gate + coverage report receipts exist |
@@ -98,6 +122,8 @@ Take items in the order below; groups reflect dependencies, not ownership.
 | 9 | R12 | ADR to an inline TBB/TBH table (`vsnprintf`) | P2 | — | Open | 12 | Last coverage item |
 | 10 | R13 | Redirect functions starting with a 16-bit instruction | P2 | — | Open | 6c | If not done under 6c |
 | 10a | R21 | A32 `-O0` load-then-jump tables (`add rB, pc, #k; ldr rX, [rB, rI, lsl #2]; mov pc, rX` / `bx rX`) still rejected as PC read | P2 | — | Open | 12 | Found by R17 after R18 (`c_switch_arm_o0`, `c_switch_marm_o0`); extend 0057's table model to a register jump |
+| 10b | T3 | Secure-state specifics: FIQ-routed PMU sampling vs the `no-fiq` instrumentation contract; SMC/monitor transfers (matrix 8); Secure-SVC Pi run when the user asks | P1 | — | Open | 8, 9, 10 | Rewriting itself is Secure/Non-secure agnostic |
+| 10c | T4 | Performance on target hardware: A72 gains are not transferable to the in-order A55 | P2 | — | Open | — | Needs target hardware access |
 
 
 **D. P1 certification matrices (as capacity allows)**
@@ -113,7 +139,7 @@ Take items in the order below; groups reflect dependencies, not ownership.
 | 17 | 10 | Sampling/PMU ownership | P1 | — | Open | |
 | 18 | 14 | Clean build/content provenance | P1 | — | Partial | Overlay replay only; ISA-aware no-FPU output scanning/metadata needed (0054 audit) |
 
-**Needs the user:** new oracle contracts (6a G3, 6b, each `bolt_edge` image).
+**Needs the user:** new oracle contracts (6b, T1 v8-A image); target hardware for T4; go-ahead for Secure-SVC on the Pi (T3).
 
 ### Done
 
@@ -167,6 +193,16 @@ plus genuine fallthrough such as `bzero`: about 98% of functions.
 4. Update the *Claims* table and LK_COVERAGE.md together.
 
 ## Handoff log
+
+### 2026-10-04 — Claude: target platform recorded; T1–T4 added
+
+- User: target is Cortex-A55 SMP, AArch32 bare-metal LK, always SVC, mostly
+  Secure, **no FPU and no NEON**. New section *Target platform* above.
+- Main finding: 0041 admits only ARMv7-A attributes (`armv8a` is a must-reject
+  test), so an A55-built image is rejected; SMP execution of rewritten code is
+  unverified. Added T1 (v8-A AArch32, P0) and T2 (SMP, P0) at the head of
+  group B, T3 (Secure/FIQ, P1) and T4 (target performance, P2) in group C.
+- No code change; lock free.
 
 ### 2026-10-04 — Claude: 6a QEMU route + no-FPU guard fix; paused at R15
 
