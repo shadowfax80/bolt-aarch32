@@ -11,9 +11,11 @@ and update it before stopping. `AGENTS.md` and `CLAUDE.md` point here.
    (`build-atfe`) are shared. Only the agent named in *Live-tree lock* may edit
    or rebuild them. Take the lock by committing a change to this file first;
    release it the same way.
-2. **Claim before work.** Every work item has one owner in *Claims*. Do not
-   start an item owned by the other agent. To take one over, record it in the
-   *Handoff log* with the reason.
+2. **Shared pool; claim before work.** Open items belong to no agent; either
+   may take any of them, whatever its origin. Before starting, set *Owner* to
+   yourself and *Status* to "In progress" in one commit and push it. Do not
+   start an item the other agent has claimed; to take it over, ask the user
+   and record it in the *Handoff log*. Done items keep their owner as a record.
 3. **One overlay per item.** Each source change is exported as the next
    `overlay/llvm/patches/atfe/NNNN-*.patch` with its own lit/unit test. Before
    pushing, `scripts/verify-atfe-overlays.py` must replay the full series with
@@ -41,44 +43,54 @@ and update it before stopping. `AGENTS.md` and `CLAUDE.md` point here.
 
 ## Claims (consolidated TODO)
 
-One list for both agents. Review items (R*) come from the 2026-10-04 Claude
-review ([details](CORRECTNESS_REVIEW_CLAUDE_0E616EB.md)); queue items (6a–14)
-are Codex's certification queue ([CORRECTNESS_PRIORITY_TODO.md](CORRECTNESS_PRIORITY_TODO.md),
-which keeps their closure criteria). An R item that is a case of a queue item
-is listed under it; closing the R item does not close the queue item.
+One shared list. Review items (R*) come from the 2026-10-04 Claude review
+([details](CORRECTNESS_REVIEW_CLAUDE_0E616EB.md)); certification items
+(6a–14) keep their closure criteria in
+[CORRECTNESS_PRIORITY_TODO.md](CORRECTNESS_PRIORITY_TODO.md). "Part of"
+links an R item to the certification item it contributes to; closing the R
+item does not close that item. *Owner* is empty until someone claims it.
 
-| ID | Item | Priority | Owner | Status | Part of | Patch / evidence |
+### Open (unclaimed — anyone may take)
+
+Suggested order: highest priority first, then items that unblock others.
+
+| ID | Item | Priority | Owner | Status | Part of | Notes |
 |---|---|---|---|---|---|---|
-| R1 | Thumb `blx` re-patched as `bl` to ARM targets (61 LK sites) | P0 | Claude | Done | 7 | 0046; `arm-external-branch-repatch.test`; LK raw output 61 → 0 |
-| R2 | ARM `B`/`BL`/`BLX` re-patch drops condition; PC+8 | P0 | Claude | Done | 7 | 0046 |
-| R3 | Thumb narrow/conditional fixup → relocation mapping | P1 | Claude | Done | 7 | 0046 |
-| R14 | RISC-V 64 relocations dispatched to ARM helpers | P1 | Claude | Done (untested) | 7 | 0047; RISC-V not built here |
-| R7 | Far tail call through LongJmp stub becomes `BL` | P1 | Claude | Done | 7, 13 | 0049; `arm-far-tail-call.test` |
-| R9 | PatchEntries emits ARM patches into Thumb entries | P1 | Claude | Done | 6c, 11 | 0048; `arm-patch-entries.test` |
-| R10 | Global ARM builder in Thumb functions; NOP as trap fill | P2 | Claude | Done | — | 0050; `arm-trap-fill.test` |
-| R4 | Conditional tail calls crash (`LLVM ERROR`) | P1 | Claude | Done | 8 | 0051; Pi: 676 IRQs via rewritten `platform_irq` |
-| R16 | Full-image coverage report | P1 | Claude | Done | 6d | `scripts/lk_coverage_report.py`, [LK_COVERAGE.md](LK_COVERAGE.md) |
-| R5 | Noreturn calls at function end (~80 LK functions) | P1 | Claude | Done | 8 | 0052; `arm-noreturn-calls.test`; LK 276 → 354 functions |
-| R6 | Predicated returns and calls in IT blocks (45 LK functions) | P1 | Claude | Done | 8 | 0053; `arm-predicated-returns-calls.test`; LK 354 → 399 functions |
-| R8 | r12 clobber in local-branch LongJmp stubs | P1 | Codex | Open | 13 | |
-| R11 | Skip-and-report admission mode | P2 | Codex | Open | — | |
-| R12 | ADR to inline TBB/TBH table (`vsnprintf`) | P2 | Codex | Open | 12 | |
-| R13 | Redirect functions starting with a 16-bit instruction | P2 | Codex | Open | 6c | |
-| R15 | Full-LK instrumentation blocked: `arch_spin_trylock` live reservation | P1 | Codex | Open | exclusive guards (0038/0039) | |
-| 6a | Every optimization gate proves execution end to end | P0 | Codex | Open — next for Codex | — | |
-| 6b | Independent output/state oracles; reviewed `pi4` contract for full LK (needs user review) | P0 | Codex | Partial | — | QEMU contract only |
-| 6c | Legacy/manual hook admission | P0 | Codex | Partial | — | R9 done, R13 open |
-| 6d | Durable coverage receipts on every route | P0 | Codex | Partial | — | R16 adds LK coverage receipts |
-| 7 | Relocation/literal/veneer matrix | P1 | Codex | Partial | — | R1–R3, R7, R14 done |
-| 8 | CFG and mutation invariants (predicated-return gap) | P1 | Codex | Partial | — | R4, R5, R6 done (0051–0053) |
-| 9 | Interrupt/reentrancy/reset boundaries | P1 | Codex | Partial | — | |
-| 10 | Sampling/PMU ownership | P1 | Codex | Open | — | |
-| 11 | Entries/symbols/reference routes | P1 | Codex | Partial | — | R9 done |
-| 12 | Tables and inline data | P1 | Codex | Partial | — | R12 open |
-| 13 | Actual pass combinations | P1 | Codex | Partial | — | R7 done, R8 open |
-| 14 | Clean build/content provenance | P1 | Codex | Partial | — | overlay replay only |
+| 6a | Every optimization gate proves execution end to end | P0 | — | Open | — | Audit all certification wrappers; diagnostic modes must never certify |
+| 6b | Independent oracles; reviewed `pi4` contract for the full LK image | P0 | — | Blocked on user review | — | Contract values must not be derived from Pi output |
+| 6c | Legacy/manual hook admission | P0 | — | Partial | — | R9 done; R13 open |
+| 6d | Durable coverage receipts on every certification route | P0 | — | Partial | — | R16 adds LK coverage receipts |
+| R8 | r12 clobbered by local-branch LongJmp stubs | P1 | — | Open | 13 | Liveness check or rejection; next to R7's code |
+| R15 | Full-LK instrumentation blocked by the `arch_spin_trylock` guard (false positive) | P1 | — | Open | exclusive guards (0038/0039) | Changes a safety guard: add must-reject tests for real cross-function pairs |
+| 7 | Relocation/literal/veneer matrix | P1 | — | Partial | — | R1–R3, R7, R14 done |
+| 8 | CFG and mutation invariants | P1 | — | Partial | — | R4–R6 done (0051–0053) |
+| 9 | Interrupt/reentrancy/reset boundaries | P1 | — | Partial | — | |
+| 10 | Sampling/PMU ownership | P1 | — | Open | — | |
+| 11 | Entries/symbols/reference routes | P1 | — | Partial | — | R9 done |
+| 12 | Tables and inline data | P1 | — | Partial | — | R12 open |
+| 13 | Actual pass combinations | P1 | — | Partial | — | R7 done; R8 open |
+| 14 | Clean build/content provenance | P1 | — | Partial | — | Overlay replay only |
+| R12 | ADR to an inline TBB/TBH table (`vsnprintf`) | P2 | — | Open | 12 | Last coverage item (+1 function) |
+| R13 | Redirect functions starting with a 16-bit instruction | P2 | — | Open | 6c | Script only; enables Pi checks of ~45 more rewritten functions |
+| R11 | Skip-and-report admission mode | P2 | — | Open | — | Replaces the multi-round coverage scan |
 
-## Coverage goal (Codex)
+### Done
+
+| ID | Item | Priority | Owner | Part of | Patch / evidence |
+|---|---|---|---|---|---|
+| R1 | Thumb `blx` re-patched as `bl` to ARM targets (61 LK sites) | P0 | Claude | 7 | 0046; `arm-external-branch-repatch.test`; LK raw output 61 → 0 |
+| R2 | ARM `B`/`BL`/`BLX` re-patch drops condition; PC+8 | P0 | Claude | 7 | 0046 |
+| R3 | Thumb narrow/conditional fixup → relocation mapping | P1 | Claude | 7 | 0046 |
+| R14 | RISC-V 64 relocations dispatched to ARM helpers | P1 | Claude | 7 | 0047 (untested: RISC-V not built here) |
+| R9 | PatchEntries emits ARM patches into Thumb entries | P1 | Claude | 6c, 11 | 0048; `arm-patch-entries.test` |
+| R7 | Far tail call through LongJmp stub becomes `BL` | P1 | Claude | 7, 13 | 0049; `arm-far-tail-call.test` |
+| R10 | Global ARM builder in Thumb functions; NOP as trap fill | P2 | Claude | — | 0050; `arm-trap-fill.test` |
+| R16 | Full-image coverage report | P1 | Claude | 6d | `scripts/lk_coverage_report.py`, [LK_COVERAGE.md](LK_COVERAGE.md) |
+| R4 | Conditional tail calls crash | P1 | Claude | 8 | 0051; Pi: 676 IRQs via rewritten `platform_irq` |
+| R5 | Noreturn calls at function end | P1 | Claude | 8 | 0052; LK 276 → 354 functions |
+| R6 | Predicated returns and calls in IT blocks | P1 | Claude | 8 | 0053; LK 354 → 399 functions |
+
+## Coverage goal
 
 Raise BOLT coverage of the full LK test binary, measured only by
 `scripts/lk_coverage_report.py` ([LK_COVERAGE.md](LK_COVERAGE.md)).
@@ -109,6 +121,13 @@ plus genuine fallthrough such as `bzero`: about 98% of functions.
 4. Update the *Claims* table and LK_COVERAGE.md together.
 
 ## Handoff log
+
+### 2026-10-04 — List made a shared pool (user decision)
+
+- The user decided items are not tied to the agent whose history they came
+  from: open items are unclaimed and either agent may take any of them by
+  claiming it first (rule 2). *Claims* now has an Open table (suggested
+  order) and a Done table. No item is currently claimed; the lock is free.
 
 ### 2026-10-04 — Claude: R6 done (overlay 0053); lock released
 
