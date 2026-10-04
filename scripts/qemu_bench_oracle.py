@@ -56,6 +56,23 @@ CONTRACTS = {
         'edge_generator_sha256': '7d3fd37f382655d74b8d73f8dc149a1d3c444707718d7792b1618a06e0933cba',
         'configuration': 'LK rpi4-bolt-edge with app/bolt_edge/marm (-marm) and mthumb (-mthumb) submodules, -mfpu=none; bolt_bench as in the full-LK contract; 0 FP/NEON instructions',
     },
+    # Approved by the user 2026-10-04: R17 stage 2 (146 cases; adds 48 seeded
+    # random A32/T32 functions). fixtures/lk-rpi4-bolt-edge-ce8dd005.elf.
+    'ce8dd005d78de4eb1a627d7b69f77d0f699738baefdf9fecc3d2d11a8050f9f6': {
+        'name': 'bolt-edge-stage2-20261004',
+        'platform': 'pi4',
+        'bench_source_sha256': 'a48247945d47b359c04f40883361b72c1be87a4a7983aecc299d7c121d0d96d0',
+        'composite_source_sha256': '8d830b9ca2a3884270f81cc3b00811f16d6744d5ac838d754664e2ec0ea12adb',
+        'rules_sha256': 'c34149eda9808d114cdc8da415a0863ed5de2d2effa3de3c133ed385d3b5a38e',
+        'edge_manifest': 'docs/bolt_edge/stage2/manifest.json',
+        'edge_generator': 'docs/bolt_edge/stage2/gen.py',
+        'edge_manifest_sha256': '1679dff0452d4500da60641626bf35fb55eafbfc33a74bc0061118c7de256905',
+        'edge_generator_sha256': 'd52743b2c5293856ff41537c241dcf263f939b4627b44d484d4bc6e2771feb7c',
+        'edge_support_sha256': {
+            'docs/bolt_edge/stage2/rand.py': '3ad884b5e825c8c456ad61df7e66d38ec867557500b9362ed94836a7fecb249b',
+        },
+        'configuration': 'LK rpi4-bolt-edge as stage 1b plus rand.py functions (seed 17, 24 per ISA) in cases.S, -mfpu=none; bolt_bench as in the full-LK contract; 0 FP/NEON instructions',
+    },
 }
 
 
@@ -159,6 +176,9 @@ def check_edge_results(image_sha256,text,platform='pi4'):
     if hashlib.sha256(raw).hexdigest()!=contract['edge_manifest_sha256'] or \
             hashlib.sha256(gen).hexdigest()!=contract['edge_generator_sha256']:
         raise ValueError('bolt_edge manifest/generator differs from the reviewed contract')
+    for rel,digest in contract.get('edge_support_sha256',{}).items():
+        if hashlib.sha256((root/rel).read_bytes().replace(b'\r\n',b'\n')).hexdigest()!=digest:
+            raise ValueError('bolt_edge generator support file differs from the reviewed contract: '+rel)
     cases=json.loads(raw)['cases']
     done=re.findall(r'bolt_edge: done (\d+) cases',text)
     if done!=[str(len(cases))]:
