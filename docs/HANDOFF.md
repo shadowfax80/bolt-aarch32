@@ -142,6 +142,23 @@ plus genuine fallthrough such as `bzero`: about 98% of functions.
 
 ## Handoff log
 
+### 2026-10-04 — Codex: latest shared TODO tables published
+
+- Published the current Claims tables (A → B → C → D) in
+  [CORRECTNESS_PRIORITY_TODO.md](CORRECTNESS_PRIORITY_TODO.md): 18 remaining
+  items (7 Open, 11 Partial), all unclaimed, and 11 completed review items.
+  IDs, ownership, priorities, order and notes match this handoff. Preserved the
+  0045 certification closure criteria as explicitly historical material;
+  ownership/current status remain authoritative here. No TODO item claimed.
+- Checked the generated rows against Claims: orders 1–18 and empty owners.
+  Next requested implementation starts at R11, then R17. New oracle contracts
+  still require user review as listed. Live-tree lock remains free.
+- Documentation only: no backend/image change, build, test execution or Pi
+  upload. Published coverage is unchanged at 399/417 functions (95.7%) and
+  97.9% of function code bytes; coverage regeneration is not required. No new
+  live-source or hardware correctness claim. WSL/Pi availability remains as
+  recorded in the preceding access-check entry; unrelated Microsoft/ preserved.
+
 ### 2026-10-04 — Codex: repository sync and shared-pool handoff acknowledged
 
 - Fast-forwarded the Windows checkout from `0e616eb` to `baa8bcd` and read

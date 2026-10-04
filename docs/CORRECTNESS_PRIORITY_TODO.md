@@ -1,4 +1,93 @@
-# Consolidated correctness TODO — review through 0045
+# Shared correctness TODO — Claude / Codex
+
+Published 2026-10-04 from [HANDOFF.md](HANDOFF.md#claims-consolidated-todo)
+at repository revision `7646c29`, through ATFE overlay 0053. This publication
+uses the handoff's exact IDs, group order, priorities, owners and statuses.
+
+**Ownership and current status are authoritative in HANDOFF.md.** Either agent
+may claim any unowned item, irrespective of origin. Commit and push the claim
+before implementation; take the separate live-tree lock before editing/rebuilding
+shared ATFE. Update HANDOFF.md first if status changes, then refresh this view
+when publishing the list. Detailed certification closure criteria remain below.
+
+At publication: **18 remaining items** (7 Open, 11 Partial), all unclaimed;
+**11 completed review items**; live-tree lock free. Resume order is **A → B → C → D**,
+starting at **R11**, then R17. The P1 unblockers precede P0 by the handoff's
+explicit dependency order. Closing a review sub-item does not close its parent
+certification item. Original workstream #12 remains included and open.
+
+Recorded coverage: **399/417 functions (95.7%)**, **97.9% of function code bytes**.
+The approved full-LK Pi oracle and sealed Pi chain are recorded in the latest
+handoff; remaining G1/G2/G3 and both-assertion-mode requirements are still open.
+
+## Remaining work, in resume order
+
+Take items in the order below; groups reflect dependencies, not ownership.
+
+**A. Unblockers (first)**
+
+| Order | ID | Item | Priority | Owner | Status | Part of | Notes |
+|---|---|---|---|---|---|---|---|
+| 1 | R11 | Skip-and-report admission mode | P1 | — | Open | — | Replaces the multi-round coverage scan; needed by R17 |
+| 2 | R17 | Synthesized edge-case test image (`bolt_edge`), stage 1 (~40 cases) | P1 | — | Open | 7, 8, 11, 12 | Generator emits sources + admission manifest + independent checksums; QEMU + Pi; stage 2 randomized generator later |
+
+**B. P0 certification (finish)**
+
+| Order | ID | Item | Priority | Owner | Status | Part of | Notes |
+|---|---|---|---|---|---|---|---|
+| 3 | 6a | Every gate proves execution: close G1 (fixed-path intermediates), G2 (seal profile chain in QEMU certificate), G3 (contracts for QEMU LK builds) | P0 | — | Partial | — | Pi sealed chain certified; G3 needs user review; "both assertion modes" needs a second toolchain build |
+| 4 | 6c | Legacy/manual hook admission | P0 | — | Partial | — | R9 done; includes R13 |
+| 5 | 6d | Durable receipts on every certification route | P0 | — | Partial | — | Pi gate + coverage report receipts exist |
+| 6 | 6b | Oracle contracts for further configurations (Thumb workloads, `bolt_edge` images) | P0 | — | Partial | — | Full-LK `pi4` contract active; each new contract needs user review |
+
+**C. Correctness defects (small)**
+
+| Order | ID | Item | Priority | Owner | Status | Part of | Notes |
+|---|---|---|---|---|---|---|---|
+| 7 | R8 | r12 clobbered by local-branch LongJmp stubs | P1 | — | Open | 13 | Liveness check or rejection |
+| 8 | R15 | Full-LK instrumentation blocked by `arch_spin_trylock` guard (false positive) | P1 | — | Open | exclusive guards (0038/0039) | Keep must-reject tests for real cross-function pairs |
+| 9 | R12 | ADR to an inline TBB/TBH table (`vsnprintf`) | P2 | — | Open | 12 | Last coverage item |
+| 10 | R13 | Redirect functions starting with a 16-bit instruction | P2 | — | Open | 6c | If not done under 6c |
+
+**D. P1 certification matrices (as capacity allows)**
+
+| Order | ID | Item | Priority | Owner | Status | Notes |
+|---|---|---|---|---|---|---|
+| 11 | 8 | CFG and mutation invariants | P1 | — | Partial | R4–R6 done |
+| 12 | 7 | Relocation/literal/veneer matrix | P1 | — | Partial | R1–R3, R7, R14 done |
+| 13 | 11 | Entries/symbols/reference routes | P1 | — | Partial | R9 done |
+| 14 | 12 | Tables and inline data | P1 | — | Partial | R12 pending |
+| 15 | 13 | Actual pass combinations | P1 | — | Partial | R7 done; R8 pending |
+| 16 | 9 | Interrupt/reentrancy/reset boundaries | P1 | — | Partial | |
+| 17 | 10 | Sampling/PMU ownership | P1 | — | Open | |
+| 18 | 14 | Clean build/content provenance | P1 | — | Partial | Overlay replay only |
+
+**Needs the user:** new oracle contracts (6a G3, 6b, each `bolt_edge` image).
+
+## Completed review items
+
+| ID | Item | Priority | Owner | Part of | Patch / evidence |
+|---|---|---|---|---|---|
+| R1 | Thumb `blx` re-patched as `bl` to ARM targets (61 LK sites) | P0 | Claude | 7 | 0046; `arm-external-branch-repatch.test`; LK raw output 61 → 0 |
+| R2 | ARM `B`/`BL`/`BLX` re-patch drops condition; PC+8 | P0 | Claude | 7 | 0046 |
+| R3 | Thumb narrow/conditional fixup → relocation mapping | P1 | Claude | 7 | 0046 |
+| R14 | RISC-V 64 relocations dispatched to ARM helpers | P1 | Claude | 7 | 0047 (untested: RISC-V not built here) |
+| R9 | PatchEntries emits ARM patches into Thumb entries | P1 | Claude | 6c, 11 | 0048; `arm-patch-entries.test` |
+| R7 | Far tail call through LongJmp stub becomes `BL` | P1 | Claude | 7, 13 | 0049; `arm-far-tail-call.test` |
+| R10 | Global ARM builder in Thumb functions; NOP as trap fill | P2 | Claude | — | 0050; `arm-trap-fill.test` |
+| R16 | Full-image coverage report | P1 | Claude | 6d | `scripts/lk_coverage_report.py`, [LK_COVERAGE.md](LK_COVERAGE.md) |
+| R4 | Conditional tail calls crash | P1 | Claude | 8 | 0051; Pi: 676 IRQs via rewritten `platform_irq` |
+| R5 | Noreturn calls at function end | P1 | Claude | 8 | 0052; LK 276 → 354 functions |
+| R6 | Predicated returns and calls in IT blocks | P1 | Claude | 8 | 0053; LK 354 → 399 functions |
+
+## Historical 0045 certification closure criteria and evidence
+
+The material below preserves the original closure criteria and milestone
+references. Its status, resume-order, oracle-availability and stop statements
+are historical snapshots, superseded by the current handoff and tables above.
+The earlier R1–R9 labels refer to the Codex 0045 review, not Claude's R1–R17 IDs.
+
+### Archived review through 0045
 
 Updated 2026-10-04 after the [deep review](CORRECTNESS_REVIEW_0045.md).
 ATFE only. This is the fresh prioritized list for later work. Original twelve
