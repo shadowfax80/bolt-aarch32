@@ -112,7 +112,7 @@ T1 and T2 lead the resume order.
 
 | Holder | Since | Purpose |
 |---|---|---|
-| — (free) | 2026-10-04 | Released by Claude after overlay 0057 |
+| Claude | 2026-10-04 | T1: ARMv8-A AArch32 admission/decode (new overlay 0058) |
 
 ## Claims (consolidated TODO)
 
@@ -131,7 +131,7 @@ Take items in the order below; groups reflect dependencies, not ownership.
 
 | Order | ID | Item | Priority | Owner | Status | Part of | Notes |
 |---|---|---|---|---|---|---|---|
-| 2a | T1 | ARMv8-A AArch32 (Cortex-A55) admission and decode: accept v8-A build attributes, decode v8 AArch32 integer instructions (LDA/STL, LDAEX/STLEX, `dmb ishld`, `sevl`), keep rejecting FP/NEON; lit tests; Pi image built for v8-A AArch32, coverage + certified gate | P0 | — | Open | 6b, 7, 11 | Target is A55; 0041 rejects `armv8a` today (must-reject test); A72 on the Pi executes v8 AArch32. **LK port change needed:** upstream `arch/arm` has no ARMv8 AArch32 `ARM_CPU` (only v7 and older) - add one (e.g. `cortex-a55`: v7-A-compatible defines, `ARM_WITH_HYP` for the Pi's Hyp entry, `-mcpu=cortex-a55` or `-march=armv8-a`, `-mfpu=none`, no NEON float flags) as an LK overlay patch, selectable for `rpi4-bolt-test`/`-edge`; verify the image only uses instructions the A72 (v8.0) implements. Pi loader/firmware: no change |
+| 2a | T1 | ARMv8-A AArch32 (Cortex-A55) admission and decode: accept v8-A build attributes, decode v8 AArch32 integer instructions (LDA/STL, LDAEX/STLEX, `dmb ishld`, `sevl`), keep rejecting FP/NEON; lit tests; Pi image built for v8-A AArch32, coverage + certified gate | P0 | Claude | In progress | 6b, 7, 11 | Target is A55; 0041 rejects `armv8a` today (must-reject test); A72 on the Pi executes v8 AArch32. **LK port change needed:** upstream `arch/arm` has no ARMv8 AArch32 `ARM_CPU` (only v7 and older) - add one (e.g. `cortex-a55`: v7-A-compatible defines, `ARM_WITH_HYP` for the Pi's Hyp entry, `-mcpu=cortex-a55` or `-march=armv8-a`, `-mfpu=none`, no NEON float flags) as an LK overlay patch, selectable for `rpi4-bolt-test`/`-edge`; verify the image only uses instructions the A72 (v8.0) implements. Pi loader/firmware: no change |
 | 2b | T2 | SMP: run rewritten functions concurrently on all Pi cores (results + execution per core); decide SMP instrumentation contract (counters are LDREX/STREX; reset/snapshot quiescence) | P0 | — | Open | 9, 10 | Pi LK already runs `WITH_SMP` (4 cores, mailbox release); today only the boot core executes rewritten code. Change is app-level (bolt_bench/bolt_edge run cases on all cores, per-core sinks + PC evidence), not port or loader |
 | 3 | 6a | Every gate proves execution: close G1 (fixed-path intermediates), G2 (seal profile chain in QEMU certificate), G3 (contracts for QEMU LK builds) | P0 | — | Partial: G1/G2 done; QEMU route diagnostic (user), runs to instrumentation, then blocked by R15 | — | Pi sealed chain certified; G3 needs user review; 0054 ON/OFF builds and scoped Pi runs verified, remaining gate routes still open |
 | 4 | 6c | Legacy/manual hook admission | P0 | — | Partial | — | R9 done; includes R13 |
