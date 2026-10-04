@@ -131,7 +131,7 @@ Take items in the order below; groups reflect dependencies, not ownership.
 
 | Order | ID | Item | Priority | Owner | Status | Part of | Notes |
 |---|---|---|---|---|---|---|---|
-| 9 | R12 | ADR to an inline TBB/TBH table (`vsnprintf`) | P2 | Claude | In progress | 12 | Last coverage item |
+| 9 | R12 | ADR to an inline TBB/TBH table (`vsnprintf`) | P2 | — | Open (analysed, see log) | 12 | Pattern: `adr.w r2, <table>; tbh [pc, r4, lsl #1]; <table>` (424606a8: 0x80030c04). Plan: treat the ADR right before TBB/TBH that addresses that table as a table reference; re-emit it against the emitted table label (reuse 0057's ADR-base mechanism with 0024's TBH model; relax 0045's PC-read rejection only for this shape) |
 | 10a | R21 | A32 `-O0` load-then-jump tables (`add rB, pc, #k; ldr rX, [rB, rI, lsl #2]; mov pc, rX` / `bx rX`) still rejected as PC read | P2 | — | Open | 12 | Found by R17 after R18 (`c_switch_arm_o0`, `c_switch_marm_o0`); extend 0057's table model to a register jump |
 | 10b | T3 | Secure-SVC parity on the Pi | P2 | — | Deferred TODO (user, 2026-10-04): Secure armstub is built (`tools/pi4-armstub-secure/`, sha `af4a5512…`, install/rollback in its README) but not installed; the SD-card step and the Secure re-runs wait until the user asks | 9 | All Pi results so far are Non-secure SVC; BOLT rewriting is state-agnostic, so T3 is a parity confirmation |
 | 10c | T4 | Performance and final validation on the real A55 target (A72 gains not transferable) | P2 | User | Out of scope here | — | Done by the user in the office environment, from this repo |
@@ -214,6 +214,23 @@ plus genuine fallthrough such as `bzero`: about 98% of functions.
 4. Update the *Claims* table and LK_COVERAGE.md together.
 
 ## Handoff log
+
+### 2026-10-04 — Claude: R12 analysed; released (usage limit)
+
+- `vsnprintf` (full LK `424606a8`, also the A55 builds) is rejected at
+  `adr.w r2, #4` (0x80030c04), immediately followed by `tbh [pc, r4, lsl #1]`
+  and the inline halfword table at 0x80030c0c: clang materialises the
+  table base in r2 although TBH indexes from PC.
+- Fix plan (one overlay, 0062): in the TBH model (0024), when the instruction
+  right before TBB/TBH is `adr Rd, <table start>`, record it as the table's
+  base and re-emit it against the emitted table label (the 0057 mechanism:
+  `createInlineTableBase` / per-emission named labels); relax the 0045 PC-read
+  rejection only for this exact shape. Keep rejecting an ADR to a table that
+  is separated from the TBB/TBH or whose register is clobbered in between.
+  Tests: Thumb lit fixture (ADR+TBH and ADR+TBB, default and reversed
+  layout; separated/clobbered rejected), then full-LK coverage (expect
+  401/417) and a Pi run.
+- Lock free; R12 unclaimed. WSL synced, Pi idle.
 
 ### 2026-10-04 — Claude: T2b and R8 done (overlays 0060, 0061); lock released
 
