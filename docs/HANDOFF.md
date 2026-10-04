@@ -142,7 +142,7 @@ Take items in the order below; groups reflect dependencies, not ownership.
 | 7 | R8 | r12 clobbered by local-branch LongJmp stubs | P1 | — | Open | 13 | Liveness check or rejection |
 | 9 | R12 | ADR to an inline TBB/TBH table (`vsnprintf`) | P2 | — | Open | 12 | Last coverage item |
 | 10a | R21 | A32 `-O0` load-then-jump tables (`add rB, pc, #k; ldr rX, [rB, rI, lsl #2]; mov pc, rX` / `bx rX`) still rejected as PC read | P2 | — | Open | 12 | Found by R17 after R18 (`c_switch_arm_o0`, `c_switch_marm_o0`); extend 0057's table model to a register jump |
-| 10b | T3 | Secure-SVC parity on the Pi: firmware stub that keeps LK in Secure SVC, then rerun the certified gates (rewriting is state-agnostic; PMU sampling is IRQ; no SMC calls) | P1 | — | Open (approved 2026-10-04; start after T1 and T2) | 9 | User go-ahead given for the PoC parity goal; start from the earlier Secure-SVC plan |
+| 10b | T3 | Secure-SVC parity on the Pi | P1 | Claude | In progress: Secure armstub built (`tools/pi4-armstub-secure/`, 256 B, sha `af4a5512…`); waiting for the user to install it on the SD card (README: install + rollback). Then: LK Secure-state check, re-run certified gates in Secure SVC | 9 | Approved by the user; LK GIC driver and loaders already handle Secure SVC entry |
 | 10c | T4 | Performance and final validation on the real A55 target (A72 gains not transferable) | P2 | User | Out of scope here | — | Done by the user in the office environment, from this repo |
 
 
@@ -159,7 +159,7 @@ Take items in the order below; groups reflect dependencies, not ownership.
 | 17 | 10 | Sampling/PMU ownership | P1 | — | Open | |
 | 18 | 14 | Clean build/content provenance | P1 | — | Partial | Overlay replay only; ISA-aware no-FPU output scanning/metadata needed (0054 audit) |
 
-**Needs the user:** new oracle contracts (6b).
+**Needs the user:** install the Secure armstub on the SD card (T3, `tools/pi4-armstub-secure/README.md`); new oracle contracts for new configurations.
 
 ### Done
 
@@ -219,6 +219,24 @@ plus genuine fallthrough such as `bzero`: about 98% of functions.
 4. Update the *Claims* table and LK_COVERAGE.md together.
 
 ## Handoff log
+
+### 2026-10-04 — Claude: T3 prepared (Secure-SVC armstub); waiting on SD card
+
+- `tools/pi4-armstub-secure/armstub7-secure.S`: Raspberry Pi's armstub7.S
+  (downloaded unmodified as `armstub7.upstream.S`) with three marked changes:
+  no switch to Non-secure HYP (kernel entered in Secure SVC); all interrupts
+  kept in GIC Group 0 as IRQ (`FIQEn=0`); `CNTVOFF` zeroed from Monitor mode
+  with `SCR.NS` set briefly. Built with `build.sh` (upstream defines and
+  layout; 256 bytes; 0 FP/NEON; sha256 `af4a5512…`).
+- Checked: LK `start.S` and the fast loader drop HYP→SVC only when entered in
+  HYP; LK's GIC driver writes `GICD_CTLR=1`/`GICC_CTLR=1` (Group 0 enable in
+  the Secure view) and never touches `IGROUPR`, so no LK GIC change.
+- **Needs the user:** copy `out/armstub8-32-gic-secure.bin` to the SD boot
+  partition and add `armstub=armstub8-32-gic-secure.bin` to `config.txt`
+  (rollback: remove that line). Then: LK boot-time Secure check (entry mode +
+  Secure-only register), and re-run full_image_verify / smp_verify /
+  bolt_edge in Secure SVC.
+- 6a: assertions-off rebuild (`build-atfe-noassert`) still compiling in WSL.
 
 ### 2026-10-04 — Claude: 6b done for the declared configurations
 
