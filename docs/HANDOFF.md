@@ -56,6 +56,7 @@ existing queue in [CORRECTNESS_PRIORITY_TODO.md](CORRECTNESS_PRIORITY_TODO.md).
 | R12 | ADR to inline TBB/TBH table (`vsnprintf`) | P2 | Codex | Open | |
 | R13 | Redirect functions starting with a 16-bit instruction | P2 | Codex | Open | |
 | R14 | RISC-V 64 relocations dispatched to the ARM helpers | P1 | Claude | Done (untested) | 0047; RISC-V target not built here |
+| R16 | Full-image coverage report (every function and code byte in the LK test binary) | P1 | Claude | In progress | `scripts/lk_coverage_report.py` (no live-tree changes) |
 | R15 | Full-LK instrumentation rejected: `arch_spin_trylock` returns with a live reservation (0038 guard false positive) | P1 | Codex | Open | `instrument-lk-bolt.sh` on input `424606a8…` fails before any counter is placed |
 | 6a–14 | Existing correctness queue | P0/P1 | Codex | See its table | |
 
