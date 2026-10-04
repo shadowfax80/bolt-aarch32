@@ -74,7 +74,7 @@ verification stand-in. Completeness against that target:
 | No FPU / no NEON | none at all | Enforced: `-mfpu=none` everywhere, `check-no-fpu.sh` (fail-closed since 000a8a4), BOLT runtime NEON-free; certified fixtures 0 VFP/NEON | None, keep the guard on every new build (incl. v8 images) |
 | Privileged SVC only | always SVC | Matches the instrumentation contract (privileged); all Pi runs in SVC | None for rewriting |
 | SMP | multi-core | Pi LK runs `WITH_SMP` (4 cores) but rewritten code is only exercised on the boot core; instrumentation contract is `single-core-no-fiq` (counter reset/snapshot need quiescence); exclusive-pair guards know LDREX/STREX and LDAEX/STLEX | **T2 (P0): concurrent execution of rewritten code on all cores not verified; SMP instrumentation not admitted.** Pi has 4 cores, so this is testable |
-| Secure state | mostly Secure | Pi runs Non-secure; Secure-SVC Pi bring-up plan exists but is on hold (user) | **T3 (P1):** rewriting is state-agnostic, but FIQ use (the target can route PMU sampling to FIQ in Secure state) conflicts with the `no-fiq` instrumentation contract; SMC/monitor transfers belong to matrix 8 audit. Only needed when the user asks for Secure-SVC on the Pi |
+| Secure state | mostly Secure | Pi runs Non-secure; Secure-SVC Pi bring-up plan exists but is on hold (user) | **T3 (P1):** rewriting is state-agnostic (LK stays in Secure SVC), but FIQ use (the target can route PMU sampling to FIQ in Secure state) conflicts with the `no-fiq` instrumentation contract. LK runs only in Secure SVC: no SMC/monitor calls to check (user). Only needed when the user asks for Secure-SVC on the Pi |
 | Interrupts | IRQ (+FIQ) active | Rewritten IRQ handler verified on the Pi (676 IRQs, R4); quiet fixtures otherwise | Matrix 9 (interrupts/reentrancy) remains open; FIQ under T3 |
 | Performance numbers | in-order A55, small caches | Measured on out-of-order A72 | **T4 (P2):** layout gains are not transferable; final measurements belong on target hardware |
 
@@ -122,7 +122,7 @@ Take items in the order below; groups reflect dependencies, not ownership.
 | 9 | R12 | ADR to an inline TBB/TBH table (`vsnprintf`) | P2 | — | Open | 12 | Last coverage item |
 | 10 | R13 | Redirect functions starting with a 16-bit instruction | P2 | — | Open | 6c | If not done under 6c |
 | 10a | R21 | A32 `-O0` load-then-jump tables (`add rB, pc, #k; ldr rX, [rB, rI, lsl #2]; mov pc, rX` / `bx rX`) still rejected as PC read | P2 | — | Open | 12 | Found by R17 after R18 (`c_switch_arm_o0`, `c_switch_marm_o0`); extend 0057's table model to a register jump |
-| 10b | T3 | Secure-state specifics: FIQ-routed PMU sampling vs the `no-fiq` instrumentation contract; SMC/monitor transfers (matrix 8); Secure-SVC Pi run when the user asks | P1 | — | Open | 8, 9, 10 | Rewriting itself is Secure/Non-secure agnostic |
+| 10b | T3 | Secure SVC specifics: FIQ-routed PMU sampling vs the `no-fiq` instrumentation contract; Secure-SVC Pi run when the user asks. No SMC/monitor calls in target LK (user: not needed) | P1 | — | Open | 9, 10 | Rewriting itself is Secure/Non-secure agnostic |
 | 10c | T4 | Performance on target hardware: A72 gains are not transferable to the in-order A55 | P2 | — | Open | — | Needs target hardware access |
 
 
