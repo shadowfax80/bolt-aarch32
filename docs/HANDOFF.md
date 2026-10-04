@@ -72,7 +72,8 @@ Suggested order: highest priority first, then items that unblock others.
 | 14 | Clean build/content provenance | P1 | — | Partial | — | Overlay replay only |
 | R12 | ADR to an inline TBB/TBH table (`vsnprintf`) | P2 | — | Open | 12 | Last coverage item (+1 function) |
 | R13 | Redirect functions starting with a 16-bit instruction | P2 | — | Open | 6c | Script only; enables Pi checks of ~45 more rewritten functions |
-| R11 | Skip-and-report admission mode | P2 | — | Open | — | Replaces the multi-round coverage scan |
+| R11 | Skip-and-report admission mode | P1 | — | Open | — | Replaces the multi-round coverage scan; do before R17 |
+| R17 | Synthesized edge-case test image (`bolt_edge`): generator emits sources + admission manifest + independent expected checksums; QEMU + Pi | P1 | — | Open | 7, 8, 11, 12 | Stage 1 ~40 hand-written cases from lit fixtures; stage 2 randomized CFG/IT generator; needs R11; contract per image (review generator once) |
 
 ### Done
 
@@ -121,6 +122,13 @@ plus genuine fallthrough such as `bzero`: about 98% of functions.
 4. Update the *Claims* table and LK_COVERAGE.md together.
 
 ## Handoff log
+
+### 2026-10-04 — R17 added (user decision)
+
+- New open item R17: synthesized edge-case test image (see the 2026-10-04
+  evaluation in the session: interworking, IT masks, noreturn, far code, data
+  in code, entries/symbols, must-reject guards, register/flag state, runtime
+  context, compiler variety). R11 raised to P1 because R17 needs it.
 
 ### 2026-10-04 — Claude: 6a milestone (usage limit); P0 items released
 
