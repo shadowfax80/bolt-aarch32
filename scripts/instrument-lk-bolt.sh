@@ -110,11 +110,20 @@ BOLT_ARGS=(
 # ARM32 counters require privileged execution on one participating core with
 # FIQ masked; resets and external reads must occur at quiescent boundaries.
 if [[ "$ARCH" == arm32 ]]; then
-  if [[ "${ARM_INSTRUMENTATION_CONTRACT:-}" != privileged-single-core-no-fiq ]]; then
-    echo "error: set ARM_INSTRUMENTATION_CONTRACT=privileged-single-core-no-fiq after establishing the ARM32 operating contract" >&2
+  # privileged-smp-no-fiq (T2b): counters use an LDREXD/STREXD helper, so any
+  # number of cores may run instrumented code; snapshots stay quiescent.
+  if [[ "${ARM_INSTRUMENTATION_CONTRACT:-}" != privileged-single-core-no-fiq &&
+        "${ARM_INSTRUMENTATION_CONTRACT:-}" != privileged-smp-no-fiq ]]; then
+    echo "error: set ARM_INSTRUMENTATION_CONTRACT=privileged-single-core-no-fiq or privileged-smp-no-fiq after establishing the ARM32 operating contract" >&2
     exit 1
   fi
   BOLT_ARGS+=(--arm-instrumentation-contract="$ARM_INSTRUMENTATION_CONTRACT")
+  # BOLT's added segments (instrumented copies, counters, runtime) must land in
+  # the window LK reserves right after the image end (rpi4: LK patch 0006).
+  # The default huge-page layout puts them at 0x80400000/0x80601000, where
+  # LK's page array overwrites them (undefined abort in the first
+  # instrumented function on the Pi, 2026-10-04).
+  BOLT_ARGS+=(--no-huge-pages)
 fi
 
 # --no-lse-atomics is AArch64's option (QEMU cortex-a53 has no LSE). The ARM

@@ -1,0 +1,202 @@
+--- a/bolt/lib/Passes/LongJmp.cpp
++++ b/bolt/lib/Passes/LongJmp.cpp
+@@ -72,6 +72,78 @@
+     MIB->applyBTIFixupToTarget(StubBB);
+ }
+ 
++// R8: AArch32 stubs reach their target through r12 (movw/movt r12; bx r12).
++// AAPCS lets a callee clobber r12, so stubs for calls and tail calls are fine,
++// but a stub on a local branch (e.g. hot -> cold fragment) overwrites r12 in
++// the middle of the function. Is r12 live on entry to Target? Backward
++// fixpoint over the function's CFG: an instruction that reads r12 before
++// writing it makes it live; a write or a (non-tail) call kills it; returns and
++// tail calls leave it dead; an indirect branch with unknown successors is
++// treated as a use (conservative).
++static bool isARMR12LiveIn(const BinaryFunction &BF,
++                           const BinaryBasicBlock &Target) {
++  const BinaryContext &BC = BF.getBinaryContext();
++  MCPlusBuilder *MIB = BC.getMIBFor(BF.isARMThumb());
++  unsigned R12 = 0;
++  for (unsigned Reg = 1, E = BC.MRI->getNumRegs(); Reg < E; ++Reg)
++    if (StringRef(BC.MRI->getName(Reg)).equals_insensitive("r12")) {
++      R12 = Reg;
++      break;
++    }
++  if (!R12)
++    return true;
++  struct GenKill {
++    bool Gen = false, Kill = false;
++  };
++  DenseMap<const BinaryBasicBlock *, GenKill> GK;
++  for (const BinaryBasicBlock &BB : BF) {
++    GenKill G;
++    for (const MCInst &Inst : BB) {
++      if (MIB->isPseudo(Inst) || MIB->isCFI(Inst))
++        continue;
++      // Calls and returns are handled here: the generic register queries
++      // need ABI hooks the ARM builder does not provide. Under AAPCS r12 is
++      // not an argument or return value; only an explicit operand uses it.
++      if (MIB->isCall(Inst) || MIB->isReturn(Inst)) {
++        if (!G.Kill)
++          for (const MCOperand &Op : Inst)
++            if (Op.isReg() && Op.getReg() == R12)
++              G.Gen = true;
++        if (MIB->isCall(Inst) && !MIB->isTailCall(Inst))
++          G.Kill = true;
++        continue;
++      }
++      if (!G.Kill) {
++        BitVector Src(BC.MRI->getNumRegs());
++        MIB->getSrcRegs(Inst, Src);
++        if (Src[R12] || (MIB->isIndirectBranch(Inst) && BB.succ_empty()))
++          G.Gen = true;
++      }
++      BitVector Written(BC.MRI->getNumRegs());
++      MIB->getWrittenRegs(Inst, Written);
++      if (Written[R12])
++        G.Kill = true;
++    }
++    GK[&BB] = G;
++  }
++  DenseMap<const BinaryBasicBlock *, bool> LiveIn;
++  for (bool Changed = true; Changed;) {
++    Changed = false;
++    for (const BinaryBasicBlock &BB : llvm::reverse(BF)) {
++      bool Out = false;
++      for (const BinaryBasicBlock *Succ : BB.successors())
++        Out |= LiveIn.lookup(Succ);
++      const GenKill &G = GK[&BB];
++      const bool In = G.Gen || (!G.Kill && Out);
++      if (In != LiveIn.lookup(&BB)) {
++        LiveIn[&BB] = In;
++        Changed = true;
++      }
++    }
++  }
++  return LiveIn.lookup(&Target);
++}
++
+ static BinaryBasicBlock *getBBAtHotColdSplitPoint(BinaryFunction &Func) {
+   if (!Func.isSplit() || Func.empty())
+     return nullptr;
+@@ -648,6 +720,18 @@
+       }
+       Modified = true;
+ 
++      if (BC.isARM() && !MIB->isCall(Inst)) {
++        const MCSymbol *TgtSym = MIB->getTargetSymbol(Inst);
++        const BinaryBasicBlock *TgtBB =
++            TgtSym ? Func.getBasicBlockForLabel(TgtSym) : nullptr;
++        if (TgtBB && isARMR12LiveIn(Func, *TgtBB))
++          return createFatalBOLTError(
++              "BOLT-ERROR: AArch32 local branch in " + Func.getPrintName() +
++              " to " + TgtBB->getName() +
++              " needs an r12 stub but r12 is live there (R8); do not split "
++              "this function (e.g. --skip-funcs or no --split-functions)");
++      }
++
+       // Insert stubs close to the patched BB if call, but far away from the
+       // hot path if a branch, since this branch target is the cold region
+       // (but first check that the far away stub will be in range).
+--- /dev/null
++++ b/bolt/test/ARM/Inputs/check-arm-r12-stub.py
+@@ -0,0 +1,91 @@
++from pathlib import Path
++import shutil
++import subprocess
++import sys
++import tempfile
++
++# R8: a local branch (hot -> cold fragment) that needs a LongJmp stub uses
++# movw/movt r12; bx r12. When r12 is live at the cold block, BOLT must refuse
++# instead of clobbering it; when the cold block writes r12 before reading it,
++# the stub is fine and the split succeeds.
++tc = Path(shutil.which('llvm-bolt')).resolve().parent
++evidence = Path(sys.argv[1])
++evidence.mkdir(parents=True, exist_ok=True)
++out = Path(tempfile.mkdtemp(prefix='run-', dir=evidence))
++print('Evidence:', out)
++
++
++def source(isa, cold):
++    w = '.w' if isa == 'thumb' else ''
++    tf = ' .thumb_func\n' if isa == 'thumb' else ''
++    return f''' .syntax unified
++ .text
++ .arm
++ .global _start
++ .type _start,%function
++_start:
++ bl f
++ bl pad
++ b _start
++ .size _start,.-_start
++
++ .{isa}
++ .global f
++ .type f,%function
++{tf}f:
++ mov{w} r12, #5
++ cmp r0, #0
++ beq{w} .Lcold
++ add{w} r0, r0, #1
++ bx lr
++.Lcold:
++{cold}
++ bx lr
++ .size f,.-f
++
++ .arm
++ .global pad
++ .type pad,%function
++pad:
++ bx lr
++ .size pad,.-pad
++'''
++
++
++LD = 'ENTRY(_start)\nSECTIONS {\n  . = 0x10000;\n  .text : { *(.text*) }\n}\n'
++# _start's two calls are hot; f's branch to .Lcold never taken -> .Lcold cold.
++FDATA = '1 _start 0 1 f 0 0 100\n1 _start 4 1 pad 0 0 100\n'
++
++
++def run(cmd, check=True):
++    p = subprocess.run([str(x) for x in cmd], cwd=out, capture_output=True, text=True)
++    if check and p.returncode:
++        sys.exit(f'FAIL: {Path(str(cmd[0])).name} exited {p.returncode}\n{p.stdout}{p.stderr}')
++    return p.returncode, p.stdout + p.stderr
++
++
++bad = 0
++for isa, pad in (('thumb', '0x110000'), ('arm', '0x2100000')):
++    for name, cold, live in (('live', ' add r0, r0, r12', True),
++                             ('dead', ' mov r12, #7\n add r0, r0, r12', False)):
++        tag = f'{isa}-{name}'
++        (out / f'{tag}.s').write_text(source(isa, cold))
++        (out / 'in.ld').write_text(LD)
++        (out / 'prof.fdata').write_text(FDATA)
++        run([tc / 'llvm-mc', '-arm-add-build-attributes', '-filetype=obj',
++             '-triple=armv7-unknown-linux-gnueabi', f'{tag}.s', '-o', f'{tag}.o'])
++        run([tc / 'ld.lld', '--emit-relocs', '-T', 'in.ld', f'{tag}.o', '-o', f'{tag}.exe'])
++        rc, log = run([tc / 'llvm-bolt', f'{tag}.exe', '-o', f'{tag}.bolt', '--no-huge-pages',
++                       '-lite=0', '-data=prof.fdata', '--split-functions', '--split-all-cold',
++                       f'--pad-funcs-before=pad:{pad}'], check=False)
++        (out / f'{tag}.log').write_text(log)
++        split = 'f.cold' in run([tc / 'llvm-nm', f'{tag}.bolt'], check=False)[1] if rc == 0 else None
++        if live:
++            ok = rc != 0 and 'r12 is live there (R8)' in log
++        else:
++            ok = rc == 0 and split
++        print(f"{'PASS' if ok else 'FAIL'}: {tag}: rc={rc} split={split}")
++        if not ok:
++            print(log[-1500:])
++        bad += not ok
++sys.exit(1 if bad else 0)
+--- /dev/null
++++ b/bolt/test/ARM/arm-r12-local-stub.test
+@@ -0,0 +1,5 @@
++## R8: a LongJmp stub on a local (hot -> cold) branch uses r12. BOLT refuses when
++## r12 is live at the target block and accepts the split when it is dead.
++
++RUN: rm -rf %t.dir
++RUN: %python %p/Inputs/check-arm-r12-stub.py %t.dir

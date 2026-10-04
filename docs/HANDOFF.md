@@ -46,7 +46,7 @@ Everything needed to continue is in this repo:
 - **Certified input image:** `fixtures/lk-rpi4-bolt-test-424606a8.elf`
   (see `fixtures/README.md`); the skip list is in
   `docs/results/lk_coverage_20261004_r6.json` (`skip_funcs`).
-- **Backend source:** overlays `overlay/llvm/patches/atfe/0001–0059`; the WSL
+- **Backend source:** overlays `overlay/llvm/patches/atfe/0001–0061`; the WSL
   live tree must replay them exactly (`scripts/verify-atfe-overlays.py`).
   Do not run `scripts/apply-overlays.sh` on the dirty live tree.
 - **Commands:**
@@ -112,7 +112,7 @@ T1 and T2 lead the resume order.
 
 | Holder | Since | Purpose |
 |---|---|---|
-| Claude | 2026-10-04 | T2b: SMP-safe AArch32 instrumentation counters (overlay 0060) |
+| — (free) | 2026-10-04 | Released by Claude after overlays 0060–0061 |
 
 ## Claims (consolidated TODO)
 
@@ -131,13 +131,11 @@ Take items in the order below; groups reflect dependencies, not ownership.
 
 | Order | ID | Item | Priority | Owner | Status | Part of | Notes |
 |---|---|---|---|---|---|---|---|
-| 2b | T2b | SMP instrumentation: the ARM counter update masks IRQ around a 64-bit increment (not atomic across cores), so the contract stays `privileged-single-core-no-fiq`; needs a cross-core-atomic counter path (or per-core counters) + tests + Pi check | P1 | Claude | In progress | 9, 10 | Profiles from all cores are already available via PC sampling (certified chain) |
 
 **C. Correctness defects (small)**
 
 | Order | ID | Item | Priority | Owner | Status | Part of | Notes |
 |---|---|---|---|---|---|---|---|
-| 7 | R8 | r12 clobbered by local-branch LongJmp stubs | P1 | — | Open | 13 | Liveness check or rejection |
 | 9 | R12 | ADR to an inline TBB/TBH table (`vsnprintf`) | P2 | — | Open | 12 | Last coverage item |
 | 10a | R21 | A32 `-O0` load-then-jump tables (`add rB, pc, #k; ldr rX, [rB, rI, lsl #2]; mov pc, rX` / `bx rX`) still rejected as PC read | P2 | — | Open | 12 | Found by R17 after R18 (`c_switch_arm_o0`, `c_switch_marm_o0`); extend 0057's table model to a register jump |
 | 10b | T3 | Secure-SVC parity on the Pi | P2 | — | Deferred TODO (user, 2026-10-04): Secure armstub is built (`tools/pi4-armstub-secure/`, sha `af4a5512…`, install/rollback in its README) but not installed; the SD-card step and the Secure re-runs wait until the user asks | 9 | All Pi results so far are Non-secure SVC; BOLT rewriting is state-agnostic, so T3 is a parity confirmation |
@@ -186,6 +184,8 @@ Take items in the order below; groups reflect dependencies, not ownership.
 | 6b | Oracle contracts for the declared configurations | P0 | Claude + user | — | Active `pi4` contracts: full LK v7 (`424606a8`), bolt_edge 1/1b/2, A55 (`47c73bc0`), A55 SMP (`e1139981`), A55 whole-module `-marm` SMP (`00d9c42d`); all certified. Contract descriptions corrected (workloads are the default Thumb module; erratum in the draft). New configurations still need the user's review |
 | 6a | Every gate proves execution | P0 | Claude | — | Pi gates certify (full_image_verify, smp_verify); QEMU routes are labelled diagnostics that fail closed (G1/G2 done, G3 n/a by user decision); wrappers audited; overlays 0001–0059 pass in both assertion modes (assertions-off `build-atfe-noassert`: ARM lit 50/50, BOLT lit 719 + 110 unsupported asserts-only + the known AArch64 failure) |
 | T1 | ARMv8-A AArch32 (Cortex-A55) admission and decode; v8-A Pi image, coverage and certified gate | P0 | Claude | 6b, 7, 11 | Done and certified: contract `47c73bc0` approved (d3c8253); certified gate 10 reps, 18/18, both redirects executed; Image `lk-rpi4-bolt-test-a55-47c73bc0.elf`: 406/416 admitted, rewritten image 2x18 on the Pi; evidence `docs/results/t1_a55_20261004.json`. Build: `make rpi4-bolt-test RPI4_ARM_CPU=cortex-a55` |
+| T2b | SMP instrumentation | P1 | Claude | 9, 10 | 0060: `--arm-instrumentation-contract=privileged-smp-no-fiq` routes every counter through an injected A32 LDREXD/STREXD helper (single-core snippet unchanged); injected ARM functions get $a/$t mapping symbols; `arm-counter-smp.test`. Pi (A55 SMP image, 4 cores): all 74 moved counters exact, while the old snippet loses up to ~1.9M increments on 9 hot counters (`scripts/pi4/smp_counter_check.py`, logs `docs/results/t2b_*_counters_pi_20261004.log`). Also fixed: `instrument-lk-bolt.sh` now passes `--no-huge-pages` (instrumented code landed outside LK's reserved window and crashed) |
+| R8 | r12 clobbered by local-branch LongJmp stubs | P1 | Claude | 13 | 0061: before stubbing a local branch on ARM, LongJmp computes r12 liveness at the target block (backward CFG fixpoint; calls kill, returns dead) and fails with a clear error when live; `arm-r12-local-stub.test` (ARM+Thumb: live rejected, dead splits with real r12 stubs) |
 | R11 | Skip-and-report admission mode | P1 | Codex | — | 0054; [diagnostic contract/evidence](ARM_ADMISSION_REPORT.md); one scan, same 399/417 coverage; both assertion modes + scoped Pi |
 
 ## Coverage goal
@@ -219,6 +219,33 @@ plus genuine fallthrough such as `bzero`: about 98% of functions.
 4. Update the *Claims* table and LK_COVERAGE.md together.
 
 ## Handoff log
+
+### 2026-10-04 — Claude: T2b and R8 done (overlays 0060, 0061); lock released
+
+- **T2b (0060):** new contract value `privileged-smp-no-fiq` (option moved to
+  Passes/Instrumentation.cpp). Each probe saves r0-r3/r12/lr, keeps CPSR in
+  r12, masks IRQ and calls the injected A32 `__bolt_instr_counter_incr`
+  (`ldrexd/adds/adc/strexd` retry loop). The single-core snippet and its byte
+  test are unchanged. Injected ARM functions now get `$a`/`$t` mapping
+  symbols (the helper after a Thumb function was decoded as Thumb).
+- **Pi proof** (`scripts/pi4/smp_counter_check.py`, A55 SMP fixture, 15
+  concurrent-set workloads instrumented): single runs → dump C1, then
+  `bolt_bench smp 4` → dump C2; exact model C2 = 5·C1 + 16·D (banner/quiet
+  paths). SMP contract: 74/74 moved counters exact. Old snippet: 9 hot
+  counters lose updates (e.g. 20,999,979 expected, 19,080,915 seen).
+- **Found and fixed:** instrumented images crashed on the Pi (undefined abort
+  in the first instrumented function): `instrument-lk-bolt.sh` used BOLT's
+  huge-page layout (code 0x80400000, counters 0x80601000), outside the 1 MB
+  window LK reserves after `_end` (patch 0006), so LK's page array overwrote
+  them. The wrapper now passes `--no-huge-pages` (image 6.3 MB → 0.87 MB).
+- **R8 (0061):** LongJmp checks r12 liveness before stubbing a local ARM
+  branch and refuses when live (calls/tail calls exempt by AAPCS).
+- Tests: ARM lit 52/52; BOLT lit 746 + the known AArch64 failure;
+  0001–0061 replay exactly (`aa28c8df…`).
+- Known tooling gap: `check-no-fpu.sh` on BOLT *output* images misreads the
+  original `.text` (BOLT drops the input's `$t` symbols there) and reports
+  false NEON; check inputs and new code, or decode with the input's mapping
+  symbols. Next in order: R12.
 
 ### 2026-10-04 — Claude: T3 deferred (user)
 
