@@ -84,7 +84,7 @@ Take items in the order below; groups reflect dependencies, not ownership.
 
 | Order | ID | Item | Priority | Owner | Status | Part of | Notes |
 |---|---|---|---|---|---|---|---|
-| 2 | R17 | Synthesized edge-case test image (`bolt_edge`), stage 1 (68 cases) | P1 | Claude | Stage 1 done; contract needs user review | 7, 8, 11, 12 | [Plan](R17_BOLT_EDGE_PLAN.md); [evidence](results/bolt_edge_stage1_20261004.json); stage 2 (randomized generator) open |
+| 2 | R17 | Synthesized edge-case test image (`bolt_edge`), stage 1 (68 cases) | P1 | Claude | Stage 1 done and certified (scoped); stage 2 open | 7, 8, 11, 12 | [Plan](R17_BOLT_EDGE_PLAN.md); [evidence](results/bolt_edge_stage1_20261004.json); [certified receipt](results/bolt_edge_certified_20261004.json) |
 
 **B. P0 certification (finish)**
 
@@ -93,7 +93,7 @@ Take items in the order below; groups reflect dependencies, not ownership.
 | 3 | 6a | Every gate proves execution: close G1 (fixed-path intermediates), G2 (seal profile chain in QEMU certificate), G3 (contracts for QEMU LK builds) | P0 | — | Partial | — | Pi sealed chain certified; G3 needs user review; 0054 ON/OFF builds and scoped Pi runs verified, remaining gate routes still open |
 | 4 | 6c | Legacy/manual hook admission | P0 | — | Partial | — | R9 done; includes R13 |
 | 5 | 6d | Durable receipts on every certification route | P0 | — | Partial | — | Pi gate + coverage report receipts exist |
-| 6 | 6b | Oracle contracts for further configurations (Thumb workloads, `bolt_edge` images) | P0 | — | Partial | — | Full-LK `pi4` contract active; each new contract needs user review |
+| 6 | 6b | Oracle contracts for further configurations (Thumb workloads, `bolt_edge` stage-2 images) | P0 | — | Partial | — | Active `pi4` contracts: full LK (`424606a8…`) and bolt_edge stage 1 (`0895d7bc…`); each new contract needs user review |
 
 **C. Correctness defects (small)**
 
@@ -169,6 +169,25 @@ plus genuine fallthrough such as `bzero`: about 98% of functions.
 4. Update the *Claims* table and LK_COVERAGE.md together.
 
 ## Handoff log
+
+### 2026-10-04 — Claude: bolt_edge contract approved; certified run
+
+- The user approved the `pi4` contract for `fixtures/lk-rpi4-bolt-edge-0895d7bc.elf`
+  (908753f): 18 bolt_bench sinks as for full LK, plus the 68 bolt_edge sinks
+  bound by the manifest and generator hashes. `check_edge_results()` in
+  `scripts/qemu_bench_oracle.py`; `full_image_verify.py` runs `bolt_edge all`
+  on baseline and candidate when a contract binds a manifest (outside the
+  sampled window). Gate unit tests pass; an altered sink is rejected.
+- Certified run (`full_image_verify.py`, 478 emitted, 2 sampled workload
+  redirects, 10 repetitions): 18/18 + 68/68 on baseline and candidate,
+  33,847 samples, execution observed in both redirected workloads.
+  Receipt: `docs/results/bolt_edge_certified_20261004.json`.
+- **Scope:** the build restores `.rodata`, so non-redirected edge cases run
+  their original code through the case table; the certificate proves correct
+  results from the rewritten image, not rewritten edge-case execution. That
+  is covered by the uncertified 25-redirect run (68 × 2, 0 mismatches). A
+  gate mode that accepts redirect-plus-result evidence without PC samples
+  for short functions would close this gap (record under 6a/6d).
 
 ### 2026-10-04 — Claude: R17 stage 1 done (68-case bolt_edge image)
 

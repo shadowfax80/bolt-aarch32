@@ -39,3 +39,11 @@ values equal to `reference_results()`.
 
 Once approved, `scripts/pi4/full_image_verify.py` can certify full-image Pi
 runs (item 6a).
+
+## Second approved contract: bolt_edge stage 1 (2026-10-04)
+
+`0895d7bc1b0dcaa7b60869fd0e3182b6c8cb9a32aebb742c6e5336dd468208dd`
+(`fixtures/lk-rpi4-bolt-edge-0895d7bc.elf`): bolt_bench sources as above plus
+the 68 bolt_edge cases, whose expected sinks come from the Python models in
+`scripts/bolt_edge/gen.py` (generator sha256 `ca2d98b7…`, manifest sha256
+`dbc9835f…`, LF-normalized). Approved by the user; active in `CONTRACTS`.
