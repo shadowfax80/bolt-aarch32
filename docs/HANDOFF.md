@@ -37,7 +37,7 @@ and update it before stopping. `AGENTS.md` and `CLAUDE.md` point here.
 
 | Holder | Since | Purpose |
 |---|---|---|
-| Claude | 2026-10-04 | R5 done; R6 next (both reassigned by the user) |
+| — (free) | 2026-10-04 | Released by Claude after overlay 0053 |
 
 ## Claims (consolidated TODO)
 
@@ -59,7 +59,7 @@ is listed under it; closing the R item does not close the queue item.
 | R4 | Conditional tail calls crash (`LLVM ERROR`) | P1 | Claude | Done | 8 | 0051; Pi: 676 IRQs via rewritten `platform_irq` |
 | R16 | Full-image coverage report | P1 | Claude | Done | 6d | `scripts/lk_coverage_report.py`, [LK_COVERAGE.md](LK_COVERAGE.md) |
 | R5 | Noreturn calls at function end (~80 LK functions) | P1 | Claude | Done | 8 | 0052; `arm-noreturn-calls.test`; LK 276 → 354 functions |
-| R6 | Predicated returns in IT blocks (46 LK functions) | P1 | Claude | In progress | 8 | Reassigned by the user |
+| R6 | Predicated returns and calls in IT blocks (45 LK functions) | P1 | Claude | Done | 8 | 0053; `arm-predicated-returns-calls.test`; LK 354 → 399 functions |
 | R8 | r12 clobber in local-branch LongJmp stubs | P1 | Codex | Open | 13 | |
 | R11 | Skip-and-report admission mode | P2 | Codex | Open | — | |
 | R12 | ADR to inline TBB/TBH table (`vsnprintf`) | P2 | Codex | Open | 12 | |
@@ -70,7 +70,7 @@ is listed under it; closing the R item does not close the queue item.
 | 6c | Legacy/manual hook admission | P0 | Codex | Partial | — | R9 done, R13 open |
 | 6d | Durable coverage receipts on every route | P0 | Codex | Partial | — | R16 adds LK coverage receipts |
 | 7 | Relocation/literal/veneer matrix | P1 | Codex | Partial | — | R1–R3, R7, R14 done |
-| 8 | CFG and mutation invariants (predicated-return gap) | P1 | Codex | Partial | — | R4 done; R5, R6 with Claude |
+| 8 | CFG and mutation invariants (predicated-return gap) | P1 | Codex | Partial | — | R4, R5, R6 done (0051–0053) |
 | 9 | Interrupt/reentrancy/reset boundaries | P1 | Codex | Partial | — | |
 | 10 | Sampling/PMU ownership | P1 | Codex | Open | — | |
 | 11 | Entries/symbols/reference routes | P1 | Codex | Partial | — | R9 done |
@@ -88,7 +88,7 @@ Raise BOLT coverage of the full LK test binary, measured only by
 | Baseline 2026-10-04 | — | — | 273/417 (65.5%); 79.1% of code bytes |
 | 1 | R4 conditional tail calls (crash) — **done, 0051** | 3 | 276/417 (66.2%); 79.2% of code bytes |
 | 2 | R5 noreturn calls at function end — **done, 0052** | 78 | 354/417 (84.9%); 92.6% of code bytes |
-| 3 | R6 predicated returns in IT blocks | ~46 | ~96% |
+| 3 | R6 predicated returns and calls in IT blocks — **done, 0053** | 45 | 399/417 (95.7%); 97.9% of code bytes |
 | 4 | R12 ADR to inline switch table | 1 | ~96% |
 | 5 | R15 try-lock reservation guard | instrumentation of the image | — |
 
@@ -109,6 +109,37 @@ plus genuine fallthrough such as `bzero`: about 98% of functions.
 4. Update the *Claims* table and LK_COVERAGE.md together.
 
 ## Handoff log
+
+### 2026-10-04 — Claude: R6 done (overlay 0053); lock released
+
+- **Change:** a group-final predicated return (`bx<c> lr`, `pop<c> {…,pc}`)
+  or predicated call (`bl<c>`, `blx<c>`) in a Thumb IT block now stays inside
+  its block, the model A32 predicated returns already use; the IT group is
+  emitted unchanged. `adjustCallForTargetMode()` now keeps the call's
+  condition (it rebuilt every call as unconditional: T32 IT calls and A32
+  `BL<c>` via LongJmp/veneer paths) and fails on a conditional A32 call that
+  would need BLX. `BL_pred` is now symbolized: A32 `BL<c>` previously kept its
+  input displacement after moving.
+- **Codex tests changed (please review):** `check-arm-it-boundaries.py`: the
+  `return` case now expects the fallthrough diagnostic (still rejected: the
+  return ends the function), and the `call` case is a positive check that
+  `it eq; bleq helper` is emitted unchanged. `check-arm-inline-safety.py`:
+  the four IT-call modes now require success and that the call is kept, not
+  inlined (the inliner's unpredicated-BL guard holds).
+- **Tests:** new `arm-predicated-returns-calls.test` (IT returns, `itt`,
+  `ite`, IT `bl`/`blx`, A32 `bleq`; default, reversed and far/LongJmp
+  layouts). ARM lit 45/45; BOLT lit 855/856 (same unrelated AArch64 test);
+  CoreTests 58; JITLink AArch32 15/15; overlays 0001–0053 replay exactly.
+- **Coverage:** 354 → 399/417 functions; 92.6% → 97.9% of code bytes. Left:
+  7 PC-write, `arm_reset`/`arm_secondary_entry`, `vsnprintf` (R12),
+  `bcopy`/`bzero`.
+- **Pi:** `out/full-check-claude-r6`, 400 emitted, 51 entries redirected
+  (16 R6-recovered, incl. `io_write`, `io_read`, `cbuf_write_char`,
+  `thread_resched`, `thread_timer_tick`): 3 repetitions, 18/18 equal baseline
+  and the reference formulas; no faults. The console path that carried the
+  results runs through the rewritten `io_write`/`io_read`.
+- **Next for Codex:** 6a, R8, R11–R13, R15. The coverage goal is met except
+  R12 (`vsnprintf`).
 
 ### 2026-10-04 — Claude: R5 done (overlay 0052); lock kept for R6
 

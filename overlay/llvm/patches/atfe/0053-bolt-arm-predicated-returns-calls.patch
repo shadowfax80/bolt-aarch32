@@ -1,0 +1,395 @@
+--- a/bolt/lib/Core/BinaryFunction.cpp
++++ b/bolt/lib/Core/BinaryFunction.cpp
+@@ -1549,8 +1549,19 @@
+         if (MIB->isBranch(Instruction) || MIB->isCall(Instruction) ||
+             MIB->isReturn(Instruction) || MIB->isTerminator(Instruction)) {
+           MCInst &Prefix = Instructions.at(PrefixOffset);
+-          if (PrefixRemaining ||
+-              !MIB->normalizePredicatedBranch(Prefix, Instruction))
++          // A group-final predicated return or call stays inside its block,
++          // as A32 predicated returns do: when the condition fails,
++          // execution continues with the next instruction of the block. The
++          // whole IT group stays together; nothing is inserted inside it.
++          const bool KeepPredicated =
++              !PrefixRemaining && isPredicatedARM(BC, *MIB, Instruction) &&
++              !MIB->isTailCall(Instruction) &&
++              ((MIB->isReturn(Instruction) &&
++                !MIB->isTerminator(Instruction)) ||
++               (MIB->isCall(Instruction) && !MIB->isBranch(Instruction)));
++          if (!KeepPredicated &&
++              (PrefixRemaining ||
++               !MIB->normalizePredicatedBranch(Prefix, Instruction)))
+             return createFatalBOLTError(
+                 "unsupported control transfer in Thumb IT group in " + getPrintName());
+           MIB->setOffset(Prefix, static_cast<uint32_t>(PrefixOffset));
+--- a/bolt/lib/Target/ARM/ARMMCPlusBuilder.cpp
++++ b/bolt/lib/Target/ARM/ARMMCPlusBuilder.cpp
+@@ -821,6 +821,7 @@
+     // displacement, which is only right while their blocks do not move.)
+     case ARM::B:
+     case ARM::BL:
++    case ARM::BL_pred: // BL<c>: (target, pred, predreg)
+     case ARM::BLXi:
+     case ARM::Bcc:
+       OpNum = 0;
+@@ -1031,24 +1032,34 @@
+       return;
+     const bool Cross = SrcThumb != DstThumb;
+     const bool WasTail = isTailCall(Inst);
++    // Keep the call's condition: an A32 BL<c>, or a T32 call that ends an IT
++    // group (its predicate operand carries the IT condition).
++    int64_t CC = ARMCC::AL;
++    const int PredIdx = Info->get(Inst.getOpcode()).findFirstPredOperandIdx();
++    if (PredIdx >= 0 && static_cast<unsigned>(PredIdx) < Inst.getNumOperands() &&
++        Inst.getOperand(PredIdx).isImm())
++      CC = Inst.getOperand(PredIdx).getImm();
++    const MCPhysReg CCReg = CC == ARMCC::AL ? MCPhysReg(0) : MCPhysReg(ARM::CPSR);
+     if (SrcThumb) {
+-      if (Cross)
+-        Inst = MCInstBuilder(ARM::tBLXi)
+-                   .addImm(ARMCC::AL)
+-                   .addReg(0)
+-                   .addExpr(MCSymbolRefExpr::create(Target, *Ctx));
+-      else
+-        Inst = MCInstBuilder(ARM::tBL)
+-                   .addImm(ARMCC::AL)
+-                   .addReg(0)
+-                   .addExpr(MCSymbolRefExpr::create(Target, *Ctx));
++      Inst = MCInstBuilder(Cross ? ARM::tBLXi : ARM::tBL)
++                 .addImm(CC)
++                 .addReg(CCReg)
++                 .addExpr(MCSymbolRefExpr::create(Target, *Ctx));
++    } else if (Cross) {
++      // BLX (immediate) has no condition field.
++      if (CC != ARMCC::AL)
++        report_fatal_error("conditional A32 call cannot switch to Thumb state",
++                           false);
++      Inst = MCInstBuilder(ARM::BLXi)
++                 .addExpr(MCSymbolRefExpr::create(Target, *Ctx));
++    } else if (CC != ARMCC::AL) {
++      Inst = MCInstBuilder(ARM::BL_pred)
++                 .addExpr(MCSymbolRefExpr::create(Target, *Ctx))
++                 .addImm(CC)
++                 .addReg(CCReg);
+     } else {
+-      if (Cross)
+-        Inst = MCInstBuilder(ARM::BLXi)
+-                   .addExpr(MCSymbolRefExpr::create(Target, *Ctx));
+-      else
+-        Inst = MCInstBuilder(ARM::BL).addExpr(
+-            MCSymbolRefExpr::create(Target, *Ctx));
++      Inst = MCInstBuilder(ARM::BL).addExpr(
++          MCSymbolRefExpr::create(Target, *Ctx));
+     }
+     if (WasTail)
+       setTailCall(Inst);
+--- a/bolt/test/ARM/Inputs/check-arm-it-boundaries.py
++++ b/bolt/test/ARM/Inputs/check-arm-it-boundaries.py
+@@ -73,8 +73,9 @@
+ # Raw IT headers bypass assembler legality checks so malformed and excluded
+ # control transfers reach BOLT's admission boundary.
+ negatives = {
+-    'return': ('.inst.n 0xbf08\nbx lr', 'unsupported control transfer'),
+-    'call': ('.inst.n 0xbf08\nbl helper\nbx lr', 'unsupported control transfer'),
++    # A group-final predicated return is kept in its block (0053), but here
++    # it ends the function: the failing condition would run off the end.
++    'return': ('.inst.n 0xbf08\nbx lr', 'unmodeled AArch32 function fallthrough'),
+     'early-branch': ('.inst.n 0xbf04\nb end\nmov r0,r0\nend: bx lr', 'unsupported control transfer'),
+     'nested': ('.inst.n 0xbf08\n.inst.n 0xbf08\nmov r0,r0\nbx lr', 'nested Thumb IT group'),
+     'truncated': ('.inst.n 0xbf04\nmov r0,r0', 'truncated Thumb IT group'),
+@@ -87,4 +88,17 @@
+     text = run(label+'-bolt',['llvm-bolt',elf,'-o',candidate,'--no-huge-pages','-lite=0','--funcs=bad'],expected=1)
+     if diagnostic not in text: raise RuntimeError(label+': missing diagnostic\n'+text)
+     if candidate.exists(): raise RuntimeError(label+': rejection left an output')
+-print('PASS: IT loop fallthrough/layout and seven rejection boundaries')
++
++# A group-final predicated call is admitted (0053) and emitted unchanged:
++# the IT header still governs the BL, which still reaches the moved helper.
++elf = link('call', start+function('bad','.inst.n 0xbf08\nbl helper\nbx lr')+function('helper','bx lr'))
++candidate = out/'call-out.elf'
++run('call-bolt',['llvm-bolt',elf,'-o',candidate,'--no-huge-pages','-lite=0','--funcs=bad,helper'])
++text = run('call-disasm',['llvm-objdump','-d','--no-show-raw-insn',candidate])
++match = re.search(r'<bad>:\n(.*?)(?:\n\n|\Z)',text,re.S)
++body = [l.split(':',1)[1].split('@')[0].strip() for l in match[1].splitlines() if ':' in l] if match else []
++helper = re.search(r'^([0-9a-f]+) <helper>:',text,re.M)
++if not helper or len(body) < 3 or body[0] != 'it\teq' or \
++        not re.fullmatch(r'bleq\s+0x'+helper[1].lstrip('0')+r' <helper>', body[1]) or body[2] != 'bx\tlr':
++    raise RuntimeError('predicated call not preserved\n'+text)
++print('PASS: IT loop fallthrough/layout, six rejection boundaries and an admitted predicated call')
+--- a/bolt/test/ARM/Inputs/check-arm-inline-safety.py
++++ b/bolt/test/ARM/Inputs/check-arm-inline-safety.py
+@@ -83,15 +83,31 @@
+ for r in bad:print(r['mode'],r['caller'],'calls',r['calls'])
+ if bad and not a.observe:raise RuntimeError('unsafe forced inlining or safe leaf not inlined')
+ 
+-# A Thumb IT call cannot bypass disassembly admission under any inlining option.
++# A Thumb IT call is admitted (0053) but must never be inlined under any
++# inlining option: the caller is rewritten with `it eq; bleq callee` intact.
+ it=out/'it-call.s'
+ it.write_text('.syntax unified\n.arch armv7-a\n.text\n.thumb\n.global _start\n.type _start,%function\n.thumb_func\n_start:\npush {r4,lr}\ncmp r0,#0\nit eq\nbleq callee\npop {r4,pc}\n.size _start,.-_start\n.balign 4\n.global callee\n.type callee,%function\n.thumb_func\ncallee:\nadd.w r0,r0,#7\nbx lr\n.size callee,.-callee\n')
+ run('it-mc',['llvm-mc','-triple=armv7-none-eabi','-arm-add-build-attributes','-filetype=obj',it,'-o',out/'it-call.o'])
+ run('it-link',['ld.lld','--emit-relocs','-T',out/'layout.ld',out/'it-call.o','-o',out/'it-call.elf'])
+ for mode,options in [('force',['--force-inline=callee']),('reverse',['--force-inline=callee','--reorder-blocks=reverse']),('all',['--inline-all']),('small',['--inline-small-functions','--inline-small-functions-bytes=10000'])]:
+     candidate=out/('it-call-'+mode+'.elf')
+-    r=subprocess.run(['llvm-bolt',str(out/'it-call.elf'),'-o',str(candidate),'--no-huge-pages','-lite=0',*options],capture_output=True,text=True)
++    fmap=out/('it-call-'+mode+'.funcmap')
++    r=subprocess.run(['llvm-bolt',str(out/'it-call.elf'),'-o',str(candidate),'--no-huge-pages','-lite=0',*options,'--emit-function-map='+str(fmap)],capture_output=True,text=True)
+     (out/('it-call-'+mode+'.log')).write_text(r.stdout+r.stderr)
+-    if r.returncode!=1 or 'unsupported control transfer in Thumb IT group' not in r.stdout+r.stderr or candidate.exists():
+-        raise RuntimeError('IT call admitted under '+mode+'\n'+r.stdout+r.stderr)
+-print('PASS: 84 forced/automatic/size-based inlining cases, eight PC-read rejections and four IT-call rejections')
++    if r.returncode!=0 or not candidate.exists():
++        raise RuntimeError('IT call caller rejected under '+mode+'\n'+r.stdout+r.stderr)
++    rows={p[0]:[int(x,16) for x in p[1:]] for line in fmap.read_text().splitlines() if (p:=line.split())}
++    if '_start' not in rows or 'callee' not in rows:
++        raise RuntimeError('IT call caller or callee not emitted under '+mode)
++    _,address,size=rows['_start']
++    text=run('it-call-'+mode+'-disasm',['llvm-objdump','-d','--no-show-raw-insn',candidate])
++    body=[]
++    for line in text.splitlines():
++        m=re.match(r'\s*([0-9a-f]+):\s+(\S+)\s*([^@]*)',line)
++        if m and address<=int(m[1],16)<address+size:body.append((m[2],m[3].strip()))
++    names=[x[0] for x in body]
++    callee=f'0x{rows["callee"][1]:x} <callee>'
++    if 'it' not in names or names[names.index('it')+1:names.index('it')+2]!=['bleq'] or \
++            body[names.index('it')+1][1]!=callee or any(n.startswith('add') for n in names):
++        raise RuntimeError('IT call inlined or altered under '+mode+'\n'+repr(body))
++print('PASS: 84 forced/automatic/size-based inlining cases, eight PC-read rejections and four IT calls kept, not inlined')
+--- /dev/null
++++ b/bolt/test/ARM/Inputs/check-arm-predicated-returns-calls.py
+@@ -0,0 +1,226 @@
++from pathlib import Path
++import re
++import shutil
++import subprocess
++import sys
++import tempfile
++
++# Group-final predicated returns and calls in Thumb IT blocks, and A32 BL<c>,
++# stay inside their block. Check the emitted bytes: every IT group keeps its
++# mask and predicated body (returns stay predicated returns), every call keeps
++# its condition and reaches the moved callee (directly or through a LongJmp
++# stub when the callee is far), in both block layouts.
++tc = Path(shutil.which('llvm-bolt')).resolve().parent
++evidence = Path(sys.argv[1])
++evidence.mkdir(parents=True, exist_ok=True)
++out = Path(tempfile.mkdtemp(prefix='run-', dir=evidence))
++print('Evidence:', out)
++
++SRC = r''' .syntax unified
++ .text
++ .arm
++ .global _start
++ .type _start,%function
++_start:
++ blx t_ret
++ blx t_pop
++ blx t_ite
++ blx t_call
++ blx t_callx
++ bl a_call
++ b _start
++ .size _start,.-_start
++
++ .global a_call
++ .type a_call,%function
++a_call:
++ push {r4, lr}
++ cmp r0, #0
++ bleq a_callee
++ add r0, r0, #3
++ pop {r4, pc}
++ .size a_call,.-a_call
++
++ .global a_callee
++ .type a_callee,%function
++a_callee:
++ add r0, r0, #1
++ bx lr
++ .size a_callee,.-a_callee
++
++ .thumb
++ .global t_ret
++ .type t_ret,%function
++ .thumb_func
++t_ret:
++ cmp r0, #0
++ it eq
++ bxeq lr
++ adds r0, #1
++ bx lr
++ .size t_ret,.-t_ret
++
++ .global t_pop
++ .type t_pop,%function
++ .thumb_func
++t_pop:
++ push {r4, lr}
++ cmp r0, #5
++ itt ne
++ movne r0, #1
++ popne {r4, pc}
++ movs r0, #2
++ pop {r4, pc}
++ .size t_pop,.-t_pop
++
++ .global t_ite
++ .type t_ite,%function
++ .thumb_func
++t_ite:
++ cmp r0, #9
++ ite eq
++ moveq r0, #3
++ bxne lr
++ adds r0, #4
++ bx lr
++ .size t_ite,.-t_ite
++
++ .global t_call
++ .type t_call,%function
++ .thumb_func
++t_call:
++ push {r4, lr}
++ cmp r0, #0
++ it ne
++ blne t_callee
++ adds r0, #1
++ pop {r4, pc}
++ .size t_call,.-t_call
++
++ .global t_callx
++ .type t_callx,%function
++ .thumb_func
++t_callx:
++ push {r4, lr}
++ cmp r0, #0
++ it gt
++ blxgt a_callee
++ adds r0, #1
++ pop {r4, pc}
++ .size t_callx,.-t_callx
++
++ .global t_callee
++ .type t_callee,%function
++ .thumb_func
++t_callee:
++ adds r0, #2
++ bx lr
++ .size t_callee,.-t_callee
++'''
++
++LD = 'ENTRY(_start)\nSECTIONS {\n  . = 0x8000;\n  .text : { *(.text*) }\n}\n'
++FUNCS = ('t_ret', 't_pop', 't_ite', 't_call', 't_callx', 'a_call')
++CALLS = {'t_call': ('blne', 't_callee'), 't_callx': ('blxgt', 'a_callee'),
++         'a_call': ('bleq', 'a_callee')}
++
++
++def run(cmd):
++    p = subprocess.run([str(x) for x in cmd], cwd=out, capture_output=True,
++                       text=True)
++    if p.returncode:
++        sys.exit(f'FAIL: {cmd[0]} exited {p.returncode}\n{p.stdout}{p.stderr}')
++    return p.stdout + p.stderr
++
++
++def disassemble(exe):
++    dis = run([tc / 'llvm-objdump', '-d', '--no-show-raw-insn', exe])
++    funcs, insts, order, cur = {}, {}, [], None
++    for line in dis.splitlines():
++        m = re.match(r'^([0-9a-f]+) <(\w+)>:', line)
++        if m:
++            cur = m.group(2)
++            funcs[cur] = int(m.group(1), 16)
++            continue
++        m = re.match(r'\s*([0-9a-f]+):\s+(\S+)\s*([^@]*)', line)
++        if m and cur:
++            a = int(m.group(1), 16)
++            insts[a] = (cur, m.group(2), m.group(3).strip())
++            order.append(a)
++    return funcs, insts, order
++
++
++def it_groups(name, insts, order):
++    """IT groups of a function as (it, mask, body) with targets removed."""
++    seq = [insts[a][1:] for a in order if insts[a][0] == name]
++    groups = []
++    for i, (mn, ops) in enumerate(seq):
++        if re.fullmatch(r'it[te]*', mn):
++            body = tuple((m, re.sub(r'0x[0-9a-f]+ <[^>]*>', '<T>', o))
++                         for m, o in seq[i + 1:i + len(mn)])
++            groups.append((mn, ops, body))
++    return sorted(groups)
++
++
++def call_dest(addr, insts, funcs, order, depth=0):
++    """Final function reached by a call, following a LongJmp stub."""
++    _, mn, ops = insts[addr]
++    m = re.search(r'<(\w+)(\+0x[0-9a-f]+)?>', ops)
++    if m and not m.group(2):
++        return m.group(1)
++    if depth > 2:
++        return None
++    # Stub: movw/movt r12, #imm; bx r12 at the call's target.
++    tgt = int(ops.split()[0], 16)
++    i = order.index(tgt)
++    lo = hi = None
++    for a in order[i:i + 3]:
++        mn2, ops2 = insts[a][1:]
++        v = re.search(r'#0x([0-9a-f]+)|#(\d+)', ops2)
++        if mn2 == 'movw' and v:
++            lo = int(v.group(1), 16) if v.group(1) else int(v.group(2))
++        if mn2 == 'movt' and v:
++            hi = int(v.group(1), 16) if v.group(1) else int(v.group(2))
++    if lo is None or hi is None:
++        return None
++    dest = ((hi << 16) | lo) & ~1
++    return next((f for f, a in funcs.items() if a == dest), None)
++
++
++(out / 'in.s').write_text(SRC)
++(out / 'in.ld').write_text(LD)
++run([tc / 'llvm-mc', '-arm-add-build-attributes', '-filetype=obj',
++     '-triple=armv7-unknown-linux-gnueabi', 'in.s', '-o', 'in.o'])
++run([tc / 'ld.lld', '--emit-relocs', '-T', 'in.ld', 'in.o', '-o', 'in.exe'])
++in_funcs, in_insts, in_order = disassemble(out / 'in.exe')
++
++bad = 0
++far = ['--pad-funcs-before=t_callee:0x2100000',
++       '--pad-funcs-before=a_callee:0x2100000']
++for mode, extra in (('default', []), ('reverse', ['--reorder-blocks=reverse']),
++                    ('far', far)):
++    log = run([tc / 'llvm-bolt', 'in.exe', '-o', f'{mode}.exe', '-lite=0',
++               '--no-huge-pages', *extra])
++    (out / f'{mode}.log').write_text(log)
++    if 'ERROR' in log:
++        print(f'FAIL: {mode}: {log[-800:]}')
++        bad += 1
++        continue
++    funcs, insts, order = disassemble(out / f'{mode}.exe')
++    for name in FUNCS:
++        moved = funcs.get(name, 0) != in_funcs[name]
++        same = it_groups(name, insts, order) == it_groups(name, in_insts, in_order)
++        ok = moved and same
++        detail = ''
++        if name in CALLS:
++            mn, callee = CALLS[name]
++            sites = [a for a in order if insts[a][0] == name and insts[a][1] == mn]
++            dest = call_dest(sites[0], insts, funcs, order) if len(sites) == 1 else None
++            ok = ok and dest == callee
++            detail = f'; {mn} reaches {dest}'
++        bad += not ok
++        print(f"{'PASS' if ok else 'FAIL'}: {mode}: {name}: moved={moved} "
++              f"IT groups unchanged={same}{detail}")
++    if mode == 'far' and 'Inserted 0 stubs' in log:
++        print('FAIL: far: no LongJmp stub inserted')
++        bad += 1
++sys.exit(1 if bad else 0)
+--- /dev/null
++++ b/bolt/test/ARM/arm-predicated-returns-calls.test
+@@ -0,0 +1,6 @@
++## Group-final predicated returns and calls in Thumb IT blocks, and A32 BL<c>,
++## stay inside their block: IT groups are emitted unchanged and calls keep
++## their condition and reach the moved callee, also through LongJmp stubs.
++
++RUN: rm -rf %t.dir
++RUN: %python %p/Inputs/check-arm-predicated-returns-calls.py %t.dir

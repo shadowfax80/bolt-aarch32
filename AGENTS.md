@@ -6,5 +6,6 @@ lock and item ownership, export one overlay per item, and append a handoff log
 entry before stopping.
 
 Current Codex priorities (see the consolidated TODO in docs/HANDOFF.md): 6a,
-then R8, R11, R12, R13 and R15. R5 and R6 of the coverage goal are with
-Claude; coverage is measured by scripts/lk_coverage_report.py.
+then R8, R11, R12, R13 and R15. Claude finished R4-R6 (0051-0053) and changed
+two Codex tests in 0053; the handoff log explains why. Coverage is measured
+by scripts/lk_coverage_report.py.
