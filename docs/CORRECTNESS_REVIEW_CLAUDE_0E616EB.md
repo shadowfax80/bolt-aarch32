@@ -24,6 +24,7 @@ full-image pipeline hides it by restoring the original text afterwards.
 | R11 | Admission | Every rejection is fatal; the LK skip list needed 57 reruns. | Confirmed. | Skip-and-report mode; fatal stays default for certification. |
 | R12 | Admission | `adr.w r2, #4` before `tbh [pc, …]` in `vsnprintf` is rejected as a PC read. | Confirmed. | Model ADR to an inline table as a table-label reference. |
 | R13 | Scripts | `redirect-bolt-entries.py` refuses functions starting with a 16-bit instruction. | Confirmed: `bolt_bench_it_cond`, `bolt_bench_far_call`. | Relocate the displaced prefix into the stub. |
+| R14 | Relocations | ARM cases were inserted between `riscv64` and `riscv32` in nine `Relocation.cpp` dispatchers, so RISC-V 64 uses the ARM helpers. | Code; hidden because RISC-V is not built here (53 tests unsupported). | Restore upstream order (0047). |
 
 ## LK rejection profile
 

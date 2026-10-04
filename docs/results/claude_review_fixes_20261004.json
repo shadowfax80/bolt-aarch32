@@ -1,0 +1,58 @@
+{
+ "schema": 1,
+ "date": "2026-10-04",
+ "author": "Claude",
+ "base_commit": "0e616eb",
+ "items": {
+  "R1-R3": "0046",
+  "R14": "0047",
+  "R9": "0048",
+  "R7": "0049",
+  "R10": "0050"
+ },
+ "patch_sha256": {
+  "0046-bolt-arm-external-branch-repatch.patch": "6ccc1a49c8a5b16af4d7aa8891ed14c87d3d673b7413b25068577f7558f3e223",
+  "0047-bolt-riscv64-relocation-dispatch.patch": "c3fce9dcc183f9c82b6c294fd9db8391e151c7a9dad80de400b89937405df713",
+  "0048-bolt-arm-patch-entries-isa.patch": "9acb8b922b50495a7fcb854820139837f200116024f68fd11dae5330535a3c4e",
+  "0049-bolt-arm-far-tail-call-stub.patch": "712826a14905ed55aedce1e52ab0d16724d38f9ecc4facd2040aa11106fa8cb7",
+  "0050-bolt-arm-isa-traps-and-nops.patch": "db2fcee830f74874cb13262232bf16463f28bac155d955e37c2d1387c7104f97"
+ },
+ "replay": {
+  "overlays": "0001-0050",
+  "success": true,
+  "mismatched": [],
+  "uncovered": [],
+  "source_identity_sha256": "58377b74344464f607cd536c43aaee02893c8895b59a449ed298ce114b88e998"
+ },
+ "tests": {
+  "bolt_arm_lit": "42/42",
+  "bolt_lit": "852/853 (fail: AArch64/constant_island_pie_update.s, not rechecked on pre-0046 binary)",
+  "core_tests": "58 passed, 31 skipped",
+  "jitlink_aarch32": "15/15",
+  "new_lit": [
+   "arm-external-branch-repatch.test",
+   "arm-patch-entries.test",
+   "arm-far-tail-call.test",
+   "arm-trap-fill.test"
+  ]
+ },
+ "before_after": {
+  "lk_raw_original_text_bad_sites": [
+   61,
+   0
+  ],
+  "repatch_fixture": "before: 8/9 sites wrong (A32 unpatched, Thumb blx->bl, b.w/bne.w overwritten with A32 encodings); after: 9/9",
+  "patch_entries_fixture": "before: Thumb entry not a T32 sequence; after: T32 movw/movt/bx r12 to new|1",
+  "far_tail_call_fixture": "before: B became BL to stub (A32 and T32); after: B / B.W",
+  "trap_fill_fixture": "before: llvm-bolt assertion in ARMMCCodeEmitter (A32 MOVr NOP in T32 function); after: UDF per ISA, run succeeds"
+ },
+ "pi": {
+  "input_sha256_prefix": "424606a8",
+  "build": "out/full-check-claude-0050 (138 skips, 2 redirects, 274/417 emitted)",
+  "result": "baseline and candidate: 18/18 equal, 18/18 equal reference_results(); no faults",
+  "scope": "uncertified (no pi4 oracle contract); pipeline restores original text, so 0046 is not exercised on hardware"
+ },
+ "untested": [
+  "0047: RISC-V not in LLVM_TARGETS_TO_BUILD"
+ ]
+}

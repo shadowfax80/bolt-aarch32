@@ -1,0 +1,130 @@
+--- a/bolt/lib/Passes/LongJmp.cpp
++++ b/bolt/lib/Passes/LongJmp.cpp
+@@ -298,7 +298,9 @@
+     }
+   }
+   MIB->replaceBranchTarget(Inst, StubSymbol, BC.Ctx.get());
+-  if (BC.isARM() && MIB->isCall(Inst))
++  // isCall() includes tail calls. A tail call must stay a branch to the
++  // same-ISA stub; BL/BLX would overwrite LR and return into the stub.
++  if (BC.isARM() && MIB->isCall(Inst) && !MIB->isTailCall(Inst))
+     MIB->adjustCallForTargetMode(Inst, Func.isARMThumb(),
+                                  StubBB->getFunction()->isARMThumb(),
+                                  BC.Ctx.get());
+--- /dev/null
++++ b/bolt/test/ARM/Inputs/check-arm-far-tail-call.py
+@@ -0,0 +1,106 @@
++from pathlib import Path
++import re
++import shutil
++import subprocess
++import sys
++import tempfile
++
++# A tail call whose target is padded out of range goes through a LongJmp stub.
++# The tail call must stay a branch (B / B.W): turning it into BL/BLX would
++# overwrite LR, and the callee would return into the caller's tail.
++tc = Path(shutil.which('llvm-bolt')).resolve().parent
++evidence = Path(sys.argv[1])
++evidence.mkdir(parents=True, exist_ok=True)
++out = Path(tempfile.mkdtemp(prefix='run-', dir=evidence))
++print('Evidence:', out)
++
++SRC = r''' .syntax unified
++ .text
++ .arm
++ .global _start
++ .type _start,%function
++_start:
++ bl arm_tail
++ blx thumb_tail
++ b _start
++ .size _start,.-_start
++
++ .global arm_tail
++ .type arm_tail,%function
++arm_tail:
++ add r0, r0, #1
++ b far_away
++ .size arm_tail,.-arm_tail
++
++ .thumb
++ .global thumb_tail
++ .type thumb_tail,%function
++ .thumb_func
++thumb_tail:
++ adds r0, #1
++ b.w far_thumb
++ .size thumb_tail,.-thumb_tail
++
++ .global far_thumb
++ .type far_thumb,%function
++ .thumb_func
++far_thumb:
++ adds r0, #2
++ bx lr
++ .size far_thumb,.-far_thumb
++
++ .arm
++ .global far_away
++ .type far_away,%function
++far_away:
++ add r0, r0, #2
++ bx lr
++ .size far_away,.-far_away
++'''
++
++LD = 'ENTRY(_start)\nSECTIONS {\n  . = 0x10000;\n  .text : { *(.text*) }\n}\n'
++
++
++def run(cmd, check=True):
++    p = subprocess.run([str(x) for x in cmd], cwd=out, capture_output=True,
++                       text=True)
++    if check and p.returncode:
++        sys.exit(f'FAIL: {cmd[0]} exited {p.returncode}\n{p.stdout}{p.stderr}')
++    return p.stdout + p.stderr
++
++
++(out / 'in.s').write_text(SRC)
++(out / 'in.ld').write_text(LD)
++run([tc / 'llvm-mc', '-arm-add-build-attributes', '-filetype=obj',
++     '-triple=armv7-unknown-linux-gnueabi', 'in.s', '-o', 'in.o'])
++run([tc / 'ld.lld', '--emit-relocs', '-T', 'in.ld', 'in.o', '-o', 'in.exe'])
++log = run([tc / 'llvm-bolt', 'in.exe', '-o', 'out.exe', '--no-huge-pages',
++           '-lite=0', '--pad-funcs-before=far_away:0x2100000',
++           '--pad-funcs-before=far_thumb:0x2100000'])
++(out / 'bolt.log').write_text(log)
++if 'BOLT-ERROR' in log:
++    sys.exit('FAIL: BOLT-ERROR\n' + log)
++
++dis = run([tc / 'llvm-objdump', '-d', '--no-show-raw-insn', 'out.exe'])
++(out / 'out.dis').write_text(dis)
++
++
++def body(name):
++    m = re.search(r'<' + re.escape(name) + r'>:\n(.*?)(?:\n\n|\Z)', dis, re.S)
++    if not m:
++        sys.exit(f'FAIL: {name} not in output')
++    return [l.split(':', 1)[1].split('@')[0].strip()
++            for l in m.group(1).splitlines() if ':' in l]
++
++
++bad = 0
++for name, want in (('arm_tail', 'b'), ('thumb_tail', 'b.w')):
++    insts = body(name)
++    # The stub lands inside the function body: B/B.W to it, then BX r12.
++    calls = [i for i in insts if i.split()[0] in ('bl', 'blx')]
++    ok = not calls and any(i.split()[0] == want for i in insts)
++    bad += not ok
++    print(f"{'PASS' if ok else 'FAIL'}: {name}: {'; '.join(insts)}")
++if 'stubs' not in log:
++    sys.exit('FAIL: no LongJmp stub was inserted')
++sys.exit(1 if bad else 0)
+--- /dev/null
++++ b/bolt/test/ARM/arm-far-tail-call.test
+@@ -0,0 +1,5 @@
++## A far tail call routed through a LongJmp stub stays a branch (B / B.W);
++## it must not become BL/BLX, which would overwrite LR.
++
++RUN: rm -rf %t.dir
++RUN: %python %p/Inputs/check-arm-far-tail-call.py %t.dir

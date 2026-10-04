@@ -1,0 +1,191 @@
+--- a/bolt/lib/Core/BinaryFunction.cpp
++++ b/bolt/lib/Core/BinaryFunction.cpp
+@@ -1581,7 +1581,7 @@
+               errs() << "BOLT-WARNING: jump past end detected at 0x"
+                      << Twine::utohexstr(AbsoluteInstrAddr) << " in function "
+                      << *this << " : replacing with nop.\n";
+-              BC.MIB->createNoop(Instruction);
++              MIB->createNoop(Instruction);
+               if (IsCondBranch) {
+                 // Register branch offset for profile validation.
+                 IgnoredBranches.emplace_back(Offset, Offset + Size);
+--- a/bolt/lib/Rewrite/RewriteInstance.cpp
++++ b/bolt/lib/Rewrite/RewriteInstance.cpp
+@@ -7470,7 +7470,9 @@
+       if (!BF.getFileOffset() || !BF.isEmitted())
+         continue;
+       OS.seek(BF.getFileOffset());
+-      StringRef TrapInstr = BC->MIB->getTrapFillValue();
++      // AArch32: trap in the ISA of the code being overwritten.
++      StringRef TrapInstr =
++          BC->getMIBFor(BC->isARM() && BF.isARMThumb())->getTrapFillValue();
+       unsigned NInstr = BF.getMaxSize() / TrapInstr.size();
+       for (unsigned I = 0; I < NInstr; ++I)
+         OS.write(TrapInstr.data(), TrapInstr.size());
+--- a/bolt/lib/Target/ARM/ARMMCPlusBuilder.cpp
++++ b/bolt/lib/Target/ARM/ARMMCPlusBuilder.cpp
+@@ -1429,7 +1429,10 @@
+     return Insts;
+   }
+ 
+-  void createTrap(MCInst &Inst) const override { Inst = MCInstBuilder(ARM::TRAP); }
++  // UDF in the builder's ISA: A32 0xe7ffdefe, T32 0xdefe.
++  void createTrap(MCInst &Inst) const override {
++    Inst = MCInstBuilder(InThumbMode() ? ARM::tTRAP : ARM::TRAP);
++  }
+ 
+   void createNoop(MCInst &Inst) const override {
+     if (InThumbMode())
+@@ -1439,15 +1442,20 @@
+                  .addImm(ARMCC::AL)
+                  .addReg(0);
+     else
++      // MOVr: Rd, Rm, pred, predreg, cc_out (no flag update).
+       Inst = MCInstBuilder(ARM::MOVr)
+                  .addReg(ARM::R0)
+                  .addReg(ARM::R0)
+                  .addImm(ARMCC::AL)
++                 .addReg(0)
+                  .addReg(0);
+   }
+ 
++  // Must fault if executed: stale entries into trapped old code stop here
++  // instead of sliding through. The T32 value is one halfword.
+   StringRef getTrapFillValue() const override {
+-    return StringRef("\x00\xf0\x20\xe3", 4);
++    return InThumbMode() ? StringRef("\xfe\xde", 2)
++                         : StringRef("\xfe\xde\xff\xe7", 4);
+   }
+ 
+   uint16_t getMinFunctionAlignment() const override {
+--- /dev/null
++++ b/bolt/test/ARM/Inputs/check-arm-trap-fill.py
+@@ -0,0 +1,119 @@
++from pathlib import Path
++import re
++import shutil
++import struct
++import subprocess
++import sys
++import tempfile
++
++# Code BOLT creates on its own must match the ISA of the function it lands in:
++# --trap-old-code fills moved A32/T32 bodies with UDF (not a NOP), and a
++# branch past the end of a Thumb function becomes a T32 NOP.
++tc = Path(shutil.which('llvm-bolt')).resolve().parent
++evidence = Path(sys.argv[1])
++evidence.mkdir(parents=True, exist_ok=True)
++out = Path(tempfile.mkdtemp(prefix='run-', dir=evidence))
++print('Evidence:', out)
++
++SRC = r''' .syntax unified
++ .text
++ .arm
++ .global _start
++ .type _start,%function
++_start:
++ bl arm_fn
++ blx thumb_fn
++ b _start
++ .size _start,.-_start
++
++ .global arm_fn
++ .type arm_fn,%function
++arm_fn:
++ add r0, r0, #1
++ add r0, r0, #2
++ bx lr
++ .size arm_fn,.-arm_fn
++
++ .thumb
++ .global thumb_fn
++ .type thumb_fn,%function
++ .thumb_func
++thumb_fn:
++ cmp r0, #0
++ beq.w 1f
++ adds r0, #1
++ adds r0, #2
++ bx lr
++1:
++ .size thumb_fn,.-thumb_fn
++ .p2align 4
++ .arm
++ .global tail_pad
++ .type tail_pad,%function
++tail_pad:
++ bx lr
++ .size tail_pad,.-tail_pad
++'''
++
++LD = 'ENTRY(_start)\nSECTIONS {\n  . = 0x8000;\n  .text : { *(.text*) }\n}\n'
++
++
++def run(cmd):
++    p = subprocess.run([str(x) for x in cmd], cwd=out, capture_output=True,
++                       text=True)
++    if p.returncode:
++        sys.exit(f'FAIL: {cmd[0]} exited {p.returncode}\n{p.stdout}{p.stderr}')
++    return p.stdout + p.stderr
++
++
++def symbols(elf):
++    syms = {}
++    for line in run([tc / 'llvm-nm', '-S', elf]).splitlines():
++        parts = line.split()
++        if len(parts) == 4:
++            syms[parts[3]] = (int(parts[0], 16), int(parts[1], 16))
++    return syms
++
++
++(out / 'in.s').write_text(SRC)
++(out / 'in.ld').write_text(LD)
++run([tc / 'llvm-mc', '-arm-add-build-attributes', '-filetype=obj',
++     '-triple=armv7-unknown-linux-gnueabi', 'in.s', '-o', 'in.o'])
++run([tc / 'ld.lld', '--emit-relocs', '-T', 'in.ld', 'in.o', '-o', 'in.exe'])
++log = run([tc / 'llvm-bolt', 'in.exe', '-o', 'out.exe', '-lite=0',
++           '--trap-old-code'])
++(out / 'bolt.log').write_text(log)
++if 'BOLT-ERROR' in log:
++    sys.exit('FAIL: BOLT-ERROR\n' + log)
++
++old = symbols(out / 'in.exe')
++sec = run([tc / 'llvm-readelf', '-S', 'out.exe'])
++m = re.search(r'\.bolt\.org\.text\s+PROGBITS\s+([0-9a-f]+)', sec)
++if not m:
++    sys.exit('FAIL: no .bolt.org.text in output')
++base = int(m.group(1), 16)
++run([tc / 'llvm-objcopy', '-O', 'binary', '--only-section=.bolt.org.text',
++     'out.exe', 'org.bin'])
++org = (out / 'org.bin').read_bytes()
++
++bad = 0
++for name, unit in (('arm_fn', b'\xfe\xde\xff\xe7'), ('thumb_fn', b'\xfe\xde')):
++    addr, size = old[name]
++    addr &= ~1
++    body = org[addr - base:addr - base + size]
++    ok = len(body) == size and body == unit * (size // len(unit))
++    bad += not ok
++    print(f"{'PASS' if ok else 'FAIL'}: {name} old body: {body.hex()}")
++
++# The branch past the end of thumb_fn is replaced by a NOP. An A32 NOP in a
++# T32 function used to abort the encoder; BOLT later strips the NOP, so the
++# emitted body must simply decode as T32.
++dis = run([tc / 'llvm-objdump', '-d', '--no-show-raw-insn', 'out.exe'])
++m = re.search(r'<thumb_fn>:\n(.*?)(?:\n\n|\Z)', dis, re.S)
++insts = [l.split(':', 1)[1].strip() for l in m.group(1).splitlines()
++         if ':' in l] if m else []
++ok = 'jump past end' in log and bool(insts) and insts[-1] == 'bx\tlr' and \
++     not any(i.startswith('<unknown>') for i in insts)
++bad += not ok
++print(f"{'PASS' if ok else 'FAIL'}: thumb_fn emitted: {'; '.join(insts)}")
++sys.exit(1 if bad else 0)
+--- /dev/null
++++ b/bolt/test/ARM/arm-trap-fill.test
+@@ -0,0 +1,6 @@
++## Code BOLT inserts in ARM/Thumb output uses the ISA of its function:
++## --trap-old-code writes UDF per ISA, and a jump past the end of a Thumb
++## function becomes a T32 NOP.
++
++RUN: rm -rf %t.dir
++RUN: %python %p/Inputs/check-arm-trap-fill.py %t.dir

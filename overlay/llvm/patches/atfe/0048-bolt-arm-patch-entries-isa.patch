@@ -1,0 +1,208 @@
+--- a/bolt/lib/Passes/PatchEntries.cpp
++++ b/bolt/lib/Passes/PatchEntries.cpp
+@@ -56,13 +56,24 @@
+   if (opts::Verbosity >= 1)
+     BC.outs() << "BOLT-INFO: patching entries in original code\n";
+ 
+-  // Calculate the size of the patch.
+-  static size_t PatchSize = 0;
+-  if (!PatchSize) {
+-    InstructionListType Seq;
+-    BC.MIB->createLongTailCall(Seq, BC.Ctx->createTempSymbol(), BC.Ctx.get());
+-    PatchSize = BC.computeCodeSize(Seq.begin(), Seq.end());
+-  }
++  // Calculate the size of the patch. AArch32 patches use the ISA of the
++  // function they overwrite: A32 and T32 sequences differ in size.
++  static size_t PatchSizes[2] = {0, 0};
++  auto getPatchSize = [&](bool IsThumb) {
++    size_t &PatchSize = PatchSizes[IsThumb];
++    if (!PatchSize) {
++      InstructionListType Seq;
++      MCPlusBuilder *MIB = BC.getMIBFor(IsThumb);
++      MIB->createLongTailCall(Seq, BC.Ctx->createTempSymbol(), BC.Ctx.get());
++      if (BC.isARM()) {
++        for (const MCInst &Inst : Seq)
++          PatchSize += *MIB->getInstructionSize(Inst);
++      } else {
++        PatchSize = BC.computeCodeSize(Seq.begin(), Seq.end());
++      }
++    }
++    return PatchSize;
++  };
+   static size_t FillerSize = 0;
+   if (BC.isX86() && FillerSize == 0) {
+     std::array<MCInst, 1> Seq;
+@@ -82,6 +93,10 @@
+         !Function.needsPatch() && Function.getSize() < PatchThreshold)
+       continue;
+ 
++    const bool IsThumb = BC.isARM() && Function.isARMThumb();
++    MCPlusBuilder *MIB = BC.getMIBFor(IsThumb);
++    const size_t PatchSize = getPatchSize(IsThumb);
++
+     // List of patches for function entries. We either successfully patch
+     // all entries or, if we cannot patch one or more, do no patch any and
+     // mark the function as ignorable.
+@@ -136,7 +151,7 @@
+     for (Patch &Patch : PendingPatches) {
+       // Add instruction patch to the binary.
+       InstructionListType Instructions;
+-      BC.MIB->createLongTailCall(Instructions, Patch.Symbol, BC.Ctx.get());
++      MIB->createLongTailCall(Instructions, Patch.Symbol, BC.Ctx.get());
+ 
+       if (BC.isX86()) {
+         assert(Patch.PaddingAfter % FillerSize == 0 &&
+@@ -150,6 +165,9 @@
+       BinaryFunction *PatchFunction = BC.createInstructionPatch(
+           Patch.Address, Instructions,
+           NameResolver::append(Patch.Symbol->getName(), ".org.0"));
++      // Emitted in the overwritten function's ISA.
++      if (IsThumb)
++        PatchFunction->setARMThumb();
+       if (BC.usesBTI())
+         BC.MIB->applyBTIFixupToSymbol(BC, Patch.Symbol,
+                                       *(Instructions.end() - 1));
+--- /dev/null
++++ b/bolt/test/ARM/Inputs/check-arm-patch-entries.py
+@@ -0,0 +1,133 @@
++from pathlib import Path
++import re
++import shutil
++import struct
++import subprocess
++import sys
++import tempfile
++
++# PatchEntries overwrites each original entry with a jump to the new body.
++# The jump must be encoded in the ISA of the function it overwrites and must
++# target the new body (Thumb targets with bit 0 set). Decode the final bytes.
++tc = Path(shutil.which('llvm-bolt')).resolve().parent
++evidence = Path(sys.argv[1])
++evidence.mkdir(parents=True, exist_ok=True)
++out = Path(tempfile.mkdtemp(prefix='run-', dir=evidence))
++print('Evidence:', out)
++
++SRC = r''' .syntax unified
++ .text
++ .arm
++ .global _start
++ .type _start,%function
++_start:
++ bl arm_fn
++ blx thumb_fn
++ b _start
++ .size _start,.-_start
++
++ .global arm_fn
++ .type arm_fn,%function
++arm_fn:
++ add r0, r0, #1
++ add r0, r0, #2
++ add r0, r0, #3
++ add r0, r0, #4
++ bx lr
++ .size arm_fn,.-arm_fn
++
++ .thumb
++ .global thumb_fn
++ .type thumb_fn,%function
++ .thumb_func
++thumb_fn:
++ adds r0, #1
++ adds r0, #2
++ adds r0, #3
++ adds r0, #4
++ adds r0, #5
++ adds r0, #6
++ bx lr
++ .size thumb_fn,.-thumb_fn
++'''
++
++LD = 'ENTRY(_start)\nSECTIONS {\n  . = 0x8000;\n  .text : { *(.text*) }\n}\n'
++
++
++def run(cmd):
++    p = subprocess.run([str(x) for x in cmd], cwd=out, capture_output=True,
++                       text=True)
++    if p.returncode:
++        sys.exit(f'FAIL: {cmd[0]} exited {p.returncode}\n{p.stdout}{p.stderr}')
++    return p.stdout + p.stderr
++
++
++def symbols(elf):
++    syms = {}
++    for line in run([tc / 'llvm-nm', elf]).splitlines():
++        parts = line.split()
++        if len(parts) == 3:
++            syms[parts[2]] = int(parts[0], 16)
++    return syms
++
++
++(out / 'in.s').write_text(SRC)
++(out / 'in.ld').write_text(LD)
++run([tc / 'llvm-mc', '-arm-add-build-attributes', '-filetype=obj',
++     '-triple=armv7-unknown-linux-gnueabi', 'in.s', '-o', 'in.o'])
++run([tc / 'ld.lld', '--emit-relocs', '-T', 'in.ld', 'in.o', '-o', 'in.exe'])
++log = run([tc / 'llvm-bolt', 'in.exe', '-o', 'out.exe', '-lite=0',
++           '--force-patch'])
++(out / 'bolt.log').write_text(log)
++if 'BOLT-ERROR' in log or 'failed to patch' in log:
++    sys.exit('FAIL: patching failed\n' + log)
++
++old, new = symbols(out / 'in.exe'), symbols(out / 'out.exe')
++sec = run([tc / 'llvm-readelf', '-S', 'out.exe'])
++m = re.search(r'\.bolt\.org\.text\s+PROGBITS\s+([0-9a-f]+)', sec)
++if not m:
++    sys.exit('FAIL: no .bolt.org.text in output')
++base = int(m.group(1), 16)
++run([tc / 'llvm-objcopy', '-O', 'binary', '--only-section=.bolt.org.text',
++     'out.exe', 'org.bin'])
++org = (out / 'org.bin').read_bytes()
++
++
++def arm_patch(addr):
++    # MOVW r12 (A2), MOVT r12 (A1), BX r12.
++    w = struct.unpack_from('<III', org, addr - base)
++    if (w[0] & 0x0ff0f000) != 0x0300c000 or (w[1] & 0x0ff0f000) != 0x0340c000 \
++            or w[2] != 0xe12fff1c:
++        return None
++    lo = ((w[0] >> 4) & 0xf000) | (w[0] & 0xfff)
++    hi = ((w[1] >> 4) & 0xf000) | (w[1] & 0xfff)
++    return (hi << 16) | lo
++
++
++def thumb_patch(addr):
++    # MOVW r12 (T3), MOVT r12 (T1), BX r12 (T1, 0x4760).
++    h = struct.unpack_from('<HHHHH', org, addr - base)
++
++    def imm16(hi, lo):
++        return ((hi & 0xf) << 12) | (((hi >> 10) & 1) << 11) | \
++               (((lo >> 12) & 7) << 8) | (lo & 0xff)
++
++    if (h[0] & 0xfbf0) != 0xf240 or (h[1] & 0x0f00) != 0x0c00 or \
++            (h[2] & 0xfbf0) != 0xf2c0 or (h[3] & 0x0f00) != 0x0c00 or \
++            h[4] != 0x4760:
++        return None
++    return (imm16(h[2], h[3]) << 16) | imm16(h[0], h[1])
++
++
++checks = [
++    ('arm_fn', arm_patch(old['arm_fn']), new['arm_fn']),
++    ('thumb_fn', thumb_patch(old['thumb_fn'] & ~1), new['thumb_fn'] | 1),
++]
++bad = 0
++for name, got, want in checks:
++    ok = got == want and (old[name] & ~1) != (new[name] & ~1)
++    bad += not ok
++    shown = 'not a patch sequence' if got is None else f'{got:#x}'
++    print(f"{'PASS' if ok else 'FAIL'}: {name}: patch target {shown}; "
++          f"want {want:#x}")
++sys.exit(1 if bad else 0)
+--- /dev/null
++++ b/bolt/test/ARM/arm-patch-entries.test
+@@ -0,0 +1,5 @@
++## PatchEntries writes each original-entry jump in the ISA of the function
++## it overwrites and targets the new body.
++
++RUN: rm -rf %t.dir
++RUN: %python %p/Inputs/check-arm-patch-entries.py %t.dir

@@ -1,0 +1,550 @@
+--- a/bolt/include/bolt/Core/Relocation.h
++++ b/bolt/include/bolt/Core/Relocation.h
+@@ -100,6 +100,14 @@
+   /// Return true if there are enough bits to encode the relocation value.
+   static bool canEncodeValue(uint32_t Type, uint64_t Value, uint64_t PC);
+ 
++  /// ARM/Thumb direct branch re-patched in place: re-encode \p Original so it
++  /// reaches \p Target, keeping its condition and choosing BL or BLX from
++  /// \p TargetThumb (unknown keeps the original form). Return std::nullopt
++  /// when the instruction cannot reach the target in the same shape.
++  static std::optional<uint32_t>
++  encodeARMBranch(uint32_t Type, uint64_t Target, uint64_t PC,
++                  uint32_t Original, std::optional<bool> TargetThumb);
++
+   /// Extract current relocated value from binary contents. This is used for
+   /// RISC architectures where values are encoded in specific bits depending
+   /// on the relocation value. For X86, we limit to sign extending the value
+--- a/bolt/lib/Core/BinaryFunction.cpp
++++ b/bolt/lib/Core/BinaryFunction.cpp
+@@ -1765,8 +1765,15 @@
+   assert(FunctionData.size() == getMaxSize() &&
+          "function size does not match raw data size");
+ 
+-  BC.SymbolicDisAsm->setSymbolizer(
+-      BC.MIB->createTargetSymbolizer(*this, /*CreateSymbols*/ false));
++  // AArch32: Thumb functions decode, evaluate and encode with Thumb-state
++  // objects. The symbolizer goes on the disassembler that is actually used.
++  const bool IsThumb = BC.isARM() && isARMThumb();
++  MCPlusBuilder *MIB = BC.getMIBFor(IsThumb);
++  const MCSubtargetInfo &EncodeSTI =
++      (IsThumb && BC.ThumbSTI) ? *BC.ThumbSTI : *BC.STI;
++  MCDisassembler &DisAsm = getDisassembler();
++  DisAsm.setSymbolizer(
++      MIB->createTargetSymbolizer(*this, /*CreateSymbols*/ false));
+ 
+   // A list of patches for this function.
+   using PatchTy = std::pair<uint64_t, MCInst>;
+@@ -1833,10 +1840,29 @@
+     // Handle calls and branches separately as symbolization doesn't work for
+     // them yet.
+     MCSymbol *BranchTargetSymbol = nullptr;
+-    if (BC.MIB->isCall(Instruction) || BC.MIB->isBranch(Instruction)) {
++    if (MIB->isCall(Instruction) || MIB->isBranch(Instruction)) {
+       uint64_t TargetAddress = 0;
+-      BC.MIB->evaluateBranch(Instruction, AbsoluteInstrAddr, Size,
+-                             TargetAddress);
++      // With -use-old-text, A32 branches in kept code are validated and
++      // redirected by RewriteInstance::patchKeptARMCodeReferences().
++      if (BC.isARM() && !IsThumb && opts::UseOldText)
++        continue;
++      if (BC.isARM()) {
++        // The ARM symbolizer may already have replaced the target operand
++        // with an input-relocation symbol. Evaluate a plain decode instead.
++        MCDisassembler *Plain =
++            IsThumb && BC.ThumbDisAsm ? BC.ThumbDisAsm.get() : BC.DisAsm.get();
++        MCInst PlainInst;
++        uint64_t PlainSize;
++        if (Plain->getInstruction(PlainInst, PlainSize,
++                                  FunctionData.slice(Offset),
++                                  AbsoluteInstrAddr, nulls()) &&
++            PlainSize == Size)
++          MIB->evaluateBranch(PlainInst, AbsoluteInstrAddr, Size,
++                              TargetAddress);
++      } else {
++        BC.MIB->evaluateBranch(Instruction, AbsoluteInstrAddr, Size,
++                               TargetAddress);
++      }
+ 
+       // Create an entry point at reference address if needed.
+       BinaryFunction *TargetFunction =
+@@ -1859,8 +1885,8 @@
+       continue;
+ 
+     if (BranchTargetSymbol) {
+-      BC.MIB->replaceBranchTarget(Instruction, BranchTargetSymbol,
+-                                  Emitter.LocalCtx.get());
++      MIB->replaceBranchTarget(Instruction, BranchTargetSymbol,
++                               Emitter.LocalCtx.get());
+     } else {
+       analyzeInstructionForFuncReference(Instruction);
+       const bool NeedsPatch = llvm::any_of(
+@@ -1980,11 +2006,11 @@
+     // Emit the instruction using temp emitter and generate relocations.
+     SmallString<256> Code;
+     SmallVector<MCFixup, 4> Fixups;
+-    Emitter.MCE->encodeInstruction(Instruction, Code, Fixups, *BC.STI);
++    Emitter.MCE->encodeInstruction(Instruction, Code, Fixups, EncodeSTI);
+ 
+     // Create relocation for every fixup.
+     for (const MCFixup &Fixup : Fixups) {
+-      std::optional<Relocation> Rel = BC.MIB->createRelocation(Fixup, *BC.MAB);
++      std::optional<Relocation> Rel = MIB->createRelocation(Fixup, *BC.MAB);
+       if (!Rel) {
+         Success = false;
+         continue;
+@@ -2011,6 +2037,28 @@
+             TargetBF->setNeedsPatch(true);
+       }
+ 
++      if (BC.isARM() && BranchTargetSymbol) {
++        // The original branch is re-encoded in place at flush time. Reject a
++        // shape that cannot reach the target's ISA (B<c> or BL<c> to the
++        // other state). In relocation mode, an out-of-range branch may keep
++        // its original target, whose input body stays intact; with
++        // -use-old-text that body is overwritten, so it must fail instead.
++        const BinaryFunction *TargetBF =
++            BC.getFunctionForSymbol(BranchTargetSymbol);
++        const uint32_t Original =
++            Size == 4 ? support::endian::read32le(FunctionData.data() + Offset)
++                      : 0;
++        if (!TargetBF || Size != 4 ||
++            !Relocation::encodeARMBranch(Rel->Type, TargetBF->getAddress(),
++                                         AbsoluteInstrAddr, Original,
++                                         TargetBF->isARMThumb())) {
++          Success = false;
++          continue;
++        }
++        if (!opts::UseOldText)
++          Rel->setOptional();
++      }
++
+       Rel->Offset += getAddress() - getOriginSection()->getAddress() + Offset;
+       FunctionRelocations.push_back(*Rel);
+     }
+@@ -2020,7 +2068,7 @@
+   }
+ 
+   // Reset symbolizer for the disassembler.
+-  BC.SymbolicDisAsm->setSymbolizer(nullptr);
++  DisAsm.setSymbolizer(nullptr);
+ 
+   // Add relocations unless disassembly failed for this function.
+   if (!DisassemblyFailed)
+--- a/bolt/lib/Core/BinarySection.cpp
++++ b/bolt/lib/Core/BinarySection.cpp
+@@ -206,6 +206,55 @@
+       }
+     }
+ 
++    // ARM/Thumb direct branches are re-encoded from the original instruction,
++    // which carries the condition and the BL/BLX/B form.
++    if (BC.isARM()) {
++      switch (Reloc.Type) {
++      case ELF::R_ARM_PC24:
++      case ELF::R_ARM_PLT32:
++      case ELF::R_ARM_JUMP24:
++      case ELF::R_ARM_CALL:
++      case ELF::R_ARM_THM_CALL:
++      case ELF::R_ARM_THM_JUMP24:
++      case ELF::R_ARM_THM_JUMP19: {
++        if (Reloc.Offset + 4 > getContents().size()) {
++          BC.errs() << "BOLT-ERROR: ARM branch relocation outside section "
++                    << getName() << '\n';
++          exit(1);
++        }
++        const uint32_t Original = support::endian::read32le(
++            getContents().data() + Reloc.Offset);
++        std::optional<bool> TargetThumb;
++        if (Reloc.Symbol)
++          if (const BinaryFunction *BF = BC.getFunctionForSymbol(Reloc.Symbol))
++            TargetThumb = BF->isARMThumb();
++        std::optional<uint32_t> Word = Relocation::encodeARMBranch(
++            Reloc.Type, Value, SectionAddress + Reloc.Offset, Original,
++            TargetThumb);
++        if (!Word) {
++          // Optional (relocation mode): the input target body is intact.
++          if (Reloc.isOptional()) {
++            BC.errs() << "BOLT-WARNING: ARM branch at 0x"
++                      << Twine::utohexstr(SectionAddress + Reloc.Offset)
++                      << " cannot reach 0x" << Twine::utohexstr(Value)
++                      << "; keeping its original target\n";
++            ++SkippedPendingRelocations;
++            continue;
++          }
++          BC.errs() << "BOLT-ERROR: cannot re-encode ARM branch at 0x"
++                    << Twine::utohexstr(SectionAddress + Reloc.Offset)
++                    << " to 0x" << Twine::utohexstr(Value) << '\n';
++          exit(1);
++        }
++        safePWrite(OS, reinterpret_cast<const char *>(&*Word), 4,
++                   SectionFileOffset + Reloc.Offset);
++        continue;
++      }
++      default:
++        break;
++      }
++    }
++
+     // Safely skip any optional pending relocation that cannot be encoded.
+     if (Reloc.isOptional() &&
+         !Relocation::canEncodeValue(Reloc.Type, Value,
+--- a/bolt/lib/Core/Relocation.cpp
++++ b/bolt/lib/Core/Relocation.cpp
+@@ -157,6 +157,11 @@
+   case ELF::R_ARM_THM_JUMP24:
+   case ELF::R_ARM_THM_JUMP19:
+     return 4;
++  // Narrow Thumb branches are only produced for external references, where
++  // a size below 4 makes the caller fall back instead of re-patching.
++  case ELF::R_ARM_THM_JUMP11:
++  case ELF::R_ARM_THM_JUMP8:
++    return 2;
+   }
+ }
+ 
+@@ -241,6 +246,102 @@
+   return Value;
+ }
+ 
++static uint32_t encodeThumbBranchWord(int64_t Offset, uint16_t LoBase) {
++  const uint32_t S = (Offset >> 24) & 1;
++  const uint32_t J1 = (~(Offset >> 23) ^ S) & 1;
++  const uint32_t J2 = (~(Offset >> 22) ^ S) & 1;
++  const uint16_t Hi = 0xf000 | (S << 10) | ((Offset >> 12) & 0x3ff);
++  const uint16_t Lo =
++      LoBase | (J1 << 13) | (J2 << 11) | ((Offset >> 1) & 0x7ff);
++  return Hi | (static_cast<uint32_t>(Lo) << 16);
++}
++
++std::optional<uint32_t>
++Relocation::encodeARMBranch(uint32_t Type, uint64_t Target, uint64_t PC,
++                            uint32_t Original, std::optional<bool> TargetThumb) {
++  Target &= ~1ULL;
++  switch (Type) {
++  default:
++    return std::nullopt;
++  case ELF::R_ARM_PC24:
++  case ELF::R_ARM_PLT32:
++  case ELF::R_ARM_JUMP24:
++  case ELF::R_ARM_CALL: {
++    // Re-encode the original A32 instruction: keep B/Bcc/BLcc condition and
++    // choose BL or BLX from the target ISA. PC reads as the address + 8.
++    const bool IsBLX = (Original & 0xfe000000u) == 0xfa000000u;
++    const bool IsBL = !IsBLX && ((Original >> 24) & 0xf) == 0xb;
++    const bool IsB = !IsBLX && ((Original >> 24) & 0xf) == 0xa;
++    if (!IsBLX && !IsBL && !IsB)
++      return std::nullopt;
++    const bool Thumb = TargetThumb.value_or(IsBLX);
++    const int64_t Offset = int64_t(Target) - int64_t(PC + 8);
++    if (!isInt<26>(Offset))
++      return std::nullopt;
++    if (IsB) {
++      if (Thumb || (Offset & 3))
++        return std::nullopt;
++      return (Original & 0xff000000u) | ((Offset >> 2) & 0x00ffffff);
++    }
++    if (Thumb) {
++      // BLX (immediate) is unconditional; a conditional BL cannot switch ISA.
++      if (IsBL && (Original >> 28) != 0xe)
++        return std::nullopt;
++      return 0xfa000000u | (((Offset >> 1) & 1) << 24) |
++             ((Offset >> 2) & 0x00ffffff);
++    }
++    if (Offset & 3)
++      return std::nullopt;
++    const uint32_t Cond = IsBLX ? 0xe0000000u : (Original & 0xf0000000u);
++    return Cond | 0x0b000000u | ((Offset >> 2) & 0x00ffffff);
++  }
++  case ELF::R_ARM_THM_CALL:
++  case ELF::R_ARM_THM_JUMP24: {
++    // T32 BL/BLX/B.W. The first halfword is in the low 16 bits. BL and B.W
++    // have Lo bit 12 set; BLX (to A32) clears it and uses Align(PC, 4).
++    const uint16_t Lo = Original >> 16;
++    if ((Original & 0xf800) != 0xf000 || !(Lo & 0x8000))
++      return std::nullopt;
++    const bool IsCall = Lo & 0x4000;
++    const bool Thumb = TargetThumb.value_or(Lo & 0x1000);
++    uint64_t Base = PC + 4;
++    uint16_t LoBase;
++    if (!IsCall) {
++      if (!Thumb || !(Lo & 0x1000))
++        return std::nullopt;
++      LoBase = 0x9000;
++    } else if (Thumb) {
++      LoBase = 0xd000;
++    } else {
++      if (Target & 3)
++        return std::nullopt;
++      Base &= ~3ULL;
++      LoBase = 0xc000;
++    }
++    const int64_t Offset = int64_t(Target) - int64_t(Base);
++    if (!isInt<25>(Offset) || (Offset & 1))
++      return std::nullopt;
++    return encodeThumbBranchWord(Offset, LoBase);
++  }
++  case ELF::R_ARM_THM_JUMP19: {
++    // B<c>.W (T3): Hi = 11110:S:cond:imm6, Lo = 10:J1:0:J2:imm11. Keep cond.
++    const uint16_t Lo = Original >> 16;
++    if ((Original & 0xf800) != 0xf000 || (Lo & 0xd000) != 0x8000 ||
++        !TargetThumb.value_or(true))
++      return std::nullopt;
++    const int64_t Offset = int64_t(Target) - int64_t(PC + 4);
++    if (!isInt<21>(Offset) || (Offset & 1))
++      return std::nullopt;
++    const uint16_t Hi = 0xf000 | (((Offset >> 20) & 1) << 10) |
++                        (Original & 0x03c0) | ((Offset >> 12) & 0x3f);
++    const uint16_t NewLo = 0x8000 | (((Offset >> 18) & 1) << 13) |
++                           (((Offset >> 19) & 1) << 11) |
++                           ((Offset >> 1) & 0x7ff);
++    return Hi | (static_cast<uint32_t>(NewLo) << 16);
++  }
++  }
++}
++
+ static bool canEncodeValueARM(uint32_t Type, uint64_t Value, uint64_t PC) {
+   switch (Type) {
+   default:
+--- a/bolt/lib/Target/ARM/ARMMCPlusBuilder.cpp
++++ b/bolt/lib/Target/ARM/ARMMCPlusBuilder.cpp
+@@ -1495,10 +1495,12 @@
+     const uint64_t RelOffset = Fixup.getOffset();
+     const unsigned Kind = Fixup.getKind();
+     uint32_t RelType;
+-    if (Kind == ARM::fixup_arm_uncondbl || Kind == ARM::fixup_arm_condbl ||
+-        Kind == ARM::fixup_arm_blx)
++    // Match ARMELFObjectWriter: only unconditional BL/BLX use R_ARM_CALL.
++    // A conditional BL cannot become BLX, so it is a JUMP24 like B<c>.
++    if (Kind == ARM::fixup_arm_uncondbl || Kind == ARM::fixup_arm_blx)
+       RelType = ELF::R_ARM_CALL;
+-    else if (Kind == ARM::fixup_arm_condbranch ||
++    else if (Kind == ARM::fixup_arm_condbl ||
++             Kind == ARM::fixup_arm_condbranch ||
+              Kind == ARM::fixup_arm_uncondbranch)
+       RelType = ELF::R_ARM_JUMP24;
+     else if (Kind == ARM::fixup_arm_movw_lo16)
+@@ -1509,11 +1511,14 @@
+       RelType = ELF::R_ARM_THM_MOVW_ABS_NC;
+     else if (Kind == ARM::fixup_t2_movt_hi16)
+       RelType = ELF::R_ARM_THM_MOVT_ABS;
+-    else if (Kind == ARM::fixup_arm_thumb_br ||
+-             Kind == ARM::fixup_arm_thumb_bcc ||
+-             Kind == ARM::fixup_t2_uncondbranch ||
+-             Kind == ARM::fixup_t2_condbranch)
++    else if (Kind == ARM::fixup_t2_uncondbranch)
+       RelType = ELF::R_ARM_THM_JUMP24;
++    else if (Kind == ARM::fixup_t2_condbranch)
++      RelType = ELF::R_ARM_THM_JUMP19;
++    else if (Kind == ARM::fixup_arm_thumb_br)
++      RelType = ELF::R_ARM_THM_JUMP11;
++    else if (Kind == ARM::fixup_arm_thumb_bcc)
++      RelType = ELF::R_ARM_THM_JUMP8;
+     else if (Kind == ARM::fixup_arm_thumb_bl ||
+              Kind == ARM::fixup_arm_thumb_blx)
+       RelType = ELF::R_ARM_THM_CALL;
+--- /dev/null
++++ b/bolt/test/ARM/Inputs/check-arm-external-branch-repatch.py
+@@ -0,0 +1,194 @@
++from pathlib import Path
++import re
++import shutil
++import struct
++import subprocess
++import sys
++import tempfile
++
++# pop {r4, lr} is a 4-byte pop.w in Thumb, so the Thumb sites are at +2,
++# +6, +16 and +20.
++# Callers that BOLT does not emit keep their original code, but their direct
++# branches to moved functions are re-patched in place. Decode the final bytes
++# independently: every site must keep its ISA, condition and BL/BLX choice and
++# reach the callee's new address.
++tc = Path(shutil.which('llvm-bolt')).resolve().parent
++evidence = Path(sys.argv[1])
++evidence.mkdir(parents=True, exist_ok=True)
++out = Path(tempfile.mkdtemp(prefix='run-', dir=evidence))
++print('Evidence:', out)
++
++SRC = r''' .syntax unified
++ .text
++ .arm
++ .global _start
++ .type _start,%function
++_start:
++ bl arm_caller
++ blx thumb_caller
++ b _start
++ .size _start,.-_start
++
++ .global arm_caller
++ .type arm_caller,%function
++arm_caller:
++ push {r4, lr}
++ cmp r0, #0
++ bl arm_callee
++ blx thumb_callee
++ blne arm_callee
++ pop {r4, lr}
++ cmp r0, #1
++ bne arm_callee
++ b arm_callee
++ .size arm_caller,.-arm_caller
++
++ .global arm_callee
++ .type arm_callee,%function
++arm_callee:
++ add r0, r0, #1
++ add r0, r0, #2
++ add r0, r0, #3
++ bx lr
++ .size arm_callee,.-arm_callee
++
++ .thumb
++ .global thumb_caller
++ .type thumb_caller,%function
++ .thumb_func
++thumb_caller:
++ push {r4, lr}
++ bl thumb_callee
++ blx arm_callee
++ pop {r4, lr}
++ cmp r0, #1
++ bne.w thumb_callee
++ b.w thumb_callee
++ .size thumb_caller,.-thumb_caller
++
++ .global thumb_callee
++ .type thumb_callee,%function
++ .thumb_func
++thumb_callee:
++ adds r0, #1
++ adds r0, #2
++ adds r0, #3
++ adds r0, #4
++ adds r0, #5
++ adds r0, #6
++ bx lr
++ .size thumb_callee,.-thumb_callee
++'''
++
++LD = 'ENTRY(_start)\nSECTIONS {\n  . = 0x8000;\n  .text : { *(.text*) }\n}\n'
++
++
++def run(cmd):
++    p = subprocess.run([str(x) for x in cmd], cwd=out, capture_output=True,
++                       text=True)
++    if p.returncode:
++        sys.exit(f'FAIL: {cmd[0]} exited {p.returncode}\n{p.stdout}{p.stderr}')
++    return p.stdout + p.stderr
++
++
++def symbols(elf):
++    syms = {}
++    for line in run([tc / 'llvm-nm', elf]).splitlines():
++        parts = line.split()
++        if len(parts) == 3:
++            syms[parts[2]] = int(parts[0], 16)
++    return syms
++
++
++(out / 'in.s').write_text(SRC)
++(out / 'in.ld').write_text(LD)
++run([tc / 'llvm-mc', '-arm-add-build-attributes', '-filetype=obj',
++     '-triple=armv7-unknown-linux-gnueabi', 'in.s', '-o', 'in.o'])
++run([tc / 'ld.lld', '--emit-relocs', '-T', 'in.ld', 'in.o', '-o', 'in.exe'])
++log = run([tc / 'llvm-bolt', 'in.exe', '-o', 'out.exe', '-lite=0',
++           '-skip-funcs=arm_caller,thumb_caller'])
++(out / 'bolt.log').write_text(log)
++if 'BOLT-ERROR' in log:
++    sys.exit('FAIL: BOLT-ERROR\n' + log)
++
++old, new = symbols(out / 'in.exe'), symbols(out / 'out.exe')
++for f in ('arm_callee', 'thumb_callee'):
++    if (old[f] & ~1) == (new[f] & ~1):
++        sys.exit(f'FAIL: {f} did not move')
++
++# The original text keeps its input address in .bolt.org.text.
++sec = run([tc / 'llvm-readelf', '-S', 'out.exe'])
++m = re.search(r'\.bolt\.org\.text\s+PROGBITS\s+([0-9a-f]+)', sec)
++if not m:
++    sys.exit('FAIL: no .bolt.org.text in output')
++base = int(m.group(1), 16)
++run([tc / 'llvm-objcopy', '-O', 'binary', '--only-section=.bolt.org.text',
++     'out.exe', 'org.bin'])
++org = (out / 'org.bin').read_bytes()
++
++
++def word(addr):
++    return struct.unpack_from('<I', org, addr - base)[0]
++
++
++def halves(addr):
++    return struct.unpack_from('<HH', org, addr - base)
++
++
++def arm_branch(addr):
++    w = word(addr)
++    cond, op = w >> 28, (w >> 24) & 0xf
++    off = ((w & 0xffffff) ^ 0x800000) - 0x800000
++    dest = addr + 8 + (off << 2)
++    if cond == 0xf:
++        return 'blx', 0xe, dest + (((w >> 24) & 1) << 1)
++    return {0xa: 'b', 0xb: 'bl'}.get(op, f'op{op:x}'), cond, dest
++
++
++def thumb_branch(addr):
++    hi, lo = halves(addr)
++    s = (hi >> 10) & 1
++    j1, j2 = (lo >> 13) & 1, (lo >> 11) & 1
++    if lo & 0x1000 or (lo >> 14) & 1:  # B.W, BL, BLX (T4/T1/T2 J1/J2 form)
++        i1, i2 = 1 - (j1 ^ s), 1 - (j2 ^ s)
++        off = (s << 24) | (i1 << 23) | (i2 << 22) | ((hi & 0x3ff) << 12) | \
++              ((lo & 0x7ff) << 1)
++        off = (off ^ (1 << 24)) - (1 << 24)
++        kind = {0x9000: 'b.w', 0xd000: 'bl', 0xc000: 'blx'}.get(
++            lo & 0xd000, f'lo{lo:x}')
++        base_pc = addr + 4
++        if kind == 'blx':
++            base_pc &= ~3
++        return kind, 0xe, base_pc + off
++    off = (s << 20) | (j2 << 19) | (j1 << 18) | ((hi & 0x3f) << 12) | \
++          ((lo & 0x7ff) << 1)
++    off = (off ^ (1 << 20)) - (1 << 20)
++    return 'bcc.w', (hi >> 6) & 0xf, addr + 4 + off
++
++
++AL, NE = 0xe, 0x1
++arm = old['arm_caller']
++thumb = old['thumb_caller'] & ~1
++ac, tc_ = new['arm_callee'] & ~1, new['thumb_callee'] & ~1
++expect = [
++    ('arm bl', arm_branch(arm + 8), ('bl', AL, ac)),
++    ('arm blx', arm_branch(arm + 12), ('blx', AL, tc_)),
++    ('arm blne', arm_branch(arm + 16), ('bl', NE, ac)),
++    ('arm bne', arm_branch(arm + 28), ('b', NE, ac)),
++    ('arm b', arm_branch(arm + 32), ('b', AL, ac)),
++    ('thumb bl', thumb_branch(thumb + 2), ('bl', AL, tc_)),
++    ('thumb blx', thumb_branch(thumb + 6), ('blx', AL, ac)),
++    # B<c>.W reaches +-1 MiB; the moved callee is farther, so the branch must
++    # keep its original target (the input body stays intact) and condition.
++    ('thumb bne.w', thumb_branch(thumb + 16), ('bcc.w', NE, old['thumb_callee'] & ~1)),
++    ('thumb b.w', thumb_branch(thumb + 20), ('b.w', AL, tc_)),
++]
++if 'cannot reach' not in log:
++    sys.exit('FAIL: no warning for the out-of-range B<c>.W')
++bad = 0
++for name, got, want in expect:
++    ok = got == want
++    bad += not ok
++    print(f"{'PASS' if ok else 'FAIL'}: {name}: got {got[0]} cond={got[1]:x} "
++          f"dest={got[2]:#x}; want {want[0]} cond={want[1]:x} dest={want[2]:#x}")
++sys.exit(1 if bad else 0)
+--- /dev/null
++++ b/bolt/test/ARM/arm-external-branch-repatch.test
+@@ -0,0 +1,5 @@
++## Direct branches from functions BOLT does not emit are re-patched in place:
++## each keeps its ISA, condition and BL/BLX form and reaches the moved callee.
++
++RUN: rm -rf %t.dir
++RUN: %python %p/Inputs/check-arm-external-branch-repatch.py %t.dir

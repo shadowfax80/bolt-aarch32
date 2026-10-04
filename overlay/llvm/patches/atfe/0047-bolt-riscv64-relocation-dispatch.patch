@@ -1,0 +1,101 @@
+--- a/bolt/lib/Core/Relocation.cpp
++++ b/bolt/lib/Core/Relocation.cpp
+@@ -1075,9 +1075,9 @@
+     llvm_unreachable("Unsupported architecture");
+   case Triple::aarch64:
+     return getSizeForTypeAArch64(Type);
+-  case Triple::riscv64:
+   case Triple::arm:
+     return getSizeForTypeARM(Type);
++  case Triple::riscv64:
+   case Triple::riscv32:
+     return getSizeForTypeRISCV(Type);
+   case Triple::x86_64:
+@@ -1091,9 +1091,9 @@
+     llvm_unreachable("Unsupported architecture");
+   case Triple::aarch64:
+     return skipRelocationTypeAArch64(Type);
+-  case Triple::riscv64:
+   case Triple::arm:
+     return skipRelocationTypeARM(Type);
++  case Triple::riscv64:
+   case Triple::riscv32:
+     return skipRelocationTypeRISCV(Type);
+   case Triple::x86_64:
+@@ -1107,9 +1107,9 @@
+     llvm_unreachable("Unsupported architecture");
+   case Triple::aarch64:
+     return encodeValueAArch64(Type, Value, PC);
+-  case Triple::riscv64:
+   case Triple::arm:
+     return encodeValueARM(Type, Value, PC);
++  case Triple::riscv64:
+   case Triple::riscv32:
+     return encodeValueRISCV(Type, Value, PC);
+   case Triple::x86_64:
+@@ -1123,9 +1123,9 @@
+     llvm_unreachable("Unsupported architecture");
+   case Triple::aarch64:
+     return canEncodeValueAArch64(Type, Value, PC);
+-  case Triple::riscv64:
+   case Triple::arm:
+     return canEncodeValueARM(Type, Value, PC);
++  case Triple::riscv64:
+   case Triple::riscv32:
+     return canEncodeValueRISCV(Type, Value, PC);
+   case Triple::x86_64:
+@@ -1140,9 +1140,9 @@
+     llvm_unreachable("Unsupported architecture");
+   case Triple::aarch64:
+     return extractValueAArch64(Type, Contents, PC);
+-  case Triple::riscv64:
+   case Triple::arm:
+     return extractValueARM(Type, Contents, PC);
++  case Triple::riscv64:
+   case Triple::riscv32:
+     return extractValueRISCV(Type, Contents, PC);
+   case Triple::x86_64:
+@@ -1248,9 +1248,9 @@
+     llvm_unreachable("Unsupported architecture");
+   case Triple::aarch64:
+     return ELF::R_AARCH64_NONE;
+-  case Triple::riscv64:
+   case Triple::arm:
+     return ELF::R_ARM_NONE;
++  case Triple::riscv64:
+   case Triple::riscv32:
+     return ELF::R_RISCV_NONE;
+   case Triple::x86_64:
+@@ -1264,9 +1264,9 @@
+     llvm_unreachable("Unsupported architecture");
+   case Triple::aarch64:
+     return ELF::R_AARCH64_PREL32;
+-  case Triple::riscv64:
+   case Triple::arm:
+     return ELF::R_ARM_REL32;
++  case Triple::riscv64:
+   case Triple::riscv32:
+     return ELF::R_RISCV_32_PCREL;
+   case Triple::x86_64:
+@@ -1280,9 +1280,9 @@
+     llvm_unreachable("Unsupported architecture");
+   case Triple::aarch64:
+     return ELF::R_AARCH64_PREL64;
+-  case Triple::riscv64:
+   case Triple::arm:
+     return ELF::R_ARM_ABS32;
++  case Triple::riscv64:
+   case Triple::riscv32:
+     llvm_unreachable("not implemented");
+   case Triple::x86_64:
+@@ -1302,9 +1302,9 @@
+     llvm_unreachable("Unsupported architecture");
+   case Triple::aarch64:
+     return isPCRelativeAArch64(Type);
+-  case Triple::riscv64:
+   case Triple::arm:
+     return isPCRelativeARM(Type);
++  case Triple::riscv64:
+   case Triple::riscv32:
+     return isPCRelativeRISCV(Type);
+   case Triple::x86_64:
