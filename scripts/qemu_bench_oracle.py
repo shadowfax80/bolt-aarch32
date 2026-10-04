@@ -26,6 +26,20 @@ CONTRACTS = {
         'rules_sha256': 'c34149eda9808d114cdc8da415a0863ed5de2d2effa3de3c133ed385d3b5a38e',
         'configuration': 'LK rpi4-bolt-test (ARM_CPU_CORTEX_A15, Thumb-2 kernel); bolt_bench -marm, WITH_BOLT_PGO off; STAIR_M=10, STAIR_X=0, input variant=0; 0 FP/NEON instructions',
     },
+    # Approved by the user 2026-10-04: R17 stage-1 bolt_edge image
+    # (fixtures/lk-rpi4-bolt-edge-0895d7bc.elf). bolt_bench sources equal the
+    # full-LK contract's; the 68 bolt_edge sinks come from the generator's
+    # Python models (docs/bolt_edge/manifest.json, LF-normalized hashes).
+    '0895d7bc1b0dcaa7b60869fd0e3182b6c8cb9a32aebb742c6e5336dd468208dd': {
+        'name': 'bolt-edge-stage1-20261004',
+        'platform': 'pi4',
+        'bench_source_sha256': 'a48247945d47b359c04f40883361b72c1be87a4a7983aecc299d7c121d0d96d0',
+        'composite_source_sha256': '8d830b9ca2a3884270f81cc3b00811f16d6744d5ac838d754664e2ec0ea12adb',
+        'rules_sha256': 'c34149eda9808d114cdc8da415a0863ed5de2d2effa3de3c133ed385d3b5a38e',
+        'edge_manifest_sha256': 'dbc9835fd35ab6adde8379240dc024061ab5e8b23035b1c9b3699d64b502a565',
+        'edge_generator_sha256': 'ca2d98b7a9986ee8200e89fbc751b45eb22351ae4b2984c16fe204e19bc9b3f9',
+        'configuration': 'LK rpi4-bolt-edge (rpi4-bolt-test + generated app/bolt_edge, -mfpu=none); bolt_bench as in the full-LK contract; 0 FP/NEON instructions',
+    },
 }
 
 
@@ -110,6 +124,33 @@ def check_contract(image_sha256,platform='qemu-virt'):
     if image_sha256 not in CONTRACTS or CONTRACTS[image_sha256]['platform']!=platform:
         raise ValueError('no reviewed independent oracle contract for input image')
     return CONTRACTS[image_sha256]
+
+
+def check_edge_results(image_sha256,text,platform='pi4'):
+    """R17: when the contract binds a bolt_edge manifest, every case of exactly
+    one complete `bolt_edge all` run in `text` must equal the manifest's
+    model-computed sink. Returns None for contracts without bolt_edge."""
+    import hashlib,json,re
+    from pathlib import Path
+    contract=check_contract(image_sha256,platform)
+    if 'edge_manifest_sha256' not in contract:
+        return None
+    root=Path(__file__).resolve().parents[1]
+    raw=(root/'docs/bolt_edge/manifest.json').read_bytes().replace(b'\r\n',b'\n')
+    gen=(root/'scripts/bolt_edge/gen.py').read_bytes().replace(b'\r\n',b'\n')
+    if hashlib.sha256(raw).hexdigest()!=contract['edge_manifest_sha256'] or \
+            hashlib.sha256(gen).hexdigest()!=contract['edge_generator_sha256']:
+        raise ValueError('bolt_edge manifest/generator differs from the reviewed contract')
+    cases=json.loads(raw)['cases']
+    done=re.findall(r'bolt_edge: done (\d+) cases',text)
+    if done!=[str(len(cases))]:
+        raise ValueError('expected exactly one complete bolt_edge run')
+    seen=re.findall(r'bolt_edge: (\w+) sink=(0x[0-9a-f]{8})',text)
+    if len(seen)!=len(cases) or dict(seen)!={c['name']:c['expected_sink'] for c in cases}:
+        wrong=[c['name'] for c in cases if dict(seen).get(c['name'])!=c['expected_sink']]
+        raise ValueError('bolt_edge oracle mismatch: '+','.join(wrong or ['unexpected cases']))
+    return {'input_sha256':image_sha256,'contract':contract['name'],'matched_cases':len(cases),
+            'scope':'generator-model sinks for approved bolt_edge input; not execution/state proof'}
 
 
 def check_results(image_sha256,actual,platform='qemu-virt'):

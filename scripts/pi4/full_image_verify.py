@@ -27,7 +27,7 @@ from proc_util import run_bounded
 from bolt_dump_reassemble import validate_single_dump
 from profile_identity import check_profile
 from pi4_sample_profile import validate_capture
-from qemu_bench_oracle import check_contract,check_results
+from qemu_bench_oracle import check_contract,check_results,check_edge_results
 
 
 def sha256(path):
@@ -243,15 +243,20 @@ def main():
             raise ValueError(f'{name} child failed ({run.returncode}); see {evidence_dir}')
         return text
 
-    baseline = boot('baseline', uploads['baseline'], ['bolt_bench all'])
+    # R17: a contract that binds a bolt_edge manifest also checks every edge case
+    # once per boot, outside the sampled window.
+    edge = ['bolt_edge all'] if 'edge_manifest_sha256' in check_contract(manifest['input_sha256'], 'pi4') else []
+    baseline = boot('baseline', uploads['baseline'], ['bolt_bench all', *edge])
     expected = parse_results(baseline)
     baseline_oracle=check_results(manifest['input_sha256'],expected,'pi4')
     buffer = manifest['sample_buffer']
     candidate = boot('candidate', uploads['candidate'], [f'bolt_sample start {args.period}',
-                     *(['bolt_bench all'] * args.repeat), 'bolt_sample stop',
+                     *(['bolt_bench all'] * args.repeat), 'bolt_sample stop', *edge,
                      f'bolt_dump {buffer["address"]:x} {buffer["size"]:x}'])
     actual = parse_results(candidate, args.repeat)
     candidate_oracle=check_results(manifest['input_sha256'],actual,'pi4')
+    edge_oracles = {name: check_edge_results(manifest['input_sha256'], text, 'pi4')
+                    for name, text in (('baseline', baseline), ('candidate', candidate))} if edge else None
     if expected != actual:
         raise ValueError('candidate workload results differ from baseline')
     check_artifacts(out, manifest)  # Do not certify artifacts modified during a run.
@@ -277,6 +282,7 @@ def main():
                   redirected_functions=[r['name'] for r in manifest['redirected']],
                   expected_workload_results=expected,
                   independent_oracles=dict(baseline=baseline_oracle,candidate=candidate_oracle),
+                  edge_oracles=edge_oracles,
                   repository_revision=revision, script_sha256=script_hashes,
                   build_provenance={key: manifest.get(key) for key in ('repository_revision', 'bolt_options', 'tool_sha256', 'patch_sha256', 'script_sha256')},
                   baseline_log_sha256=sha256(evidence_dir / 'baseline.log'),
