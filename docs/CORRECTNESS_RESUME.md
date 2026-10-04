@@ -1,5 +1,18 @@
 # ATFE correctness checkpoint - 2026-10-04
 
+## Current coordination: shared Claude/Codex work pool
+
+Read [HANDOFF.md](HANDOFF.md) first. Its *Claims* tables contain the current
+status, ownership and resume order for both agents; its *Live-tree lock* controls
+edits and rebuilds of shared WSL ATFE. Either agent may claim any unowned item,
+regardless of origin, by committing and pushing the claim before implementation.
+The next listed item is **R11**, then R17 and the remaining ordered groups.
+[CORRECTNESS_PRIORITY_TODO.md](CORRECTNESS_PRIORITY_TODO.md) retains certification
+closure criteria; the checkpoints below predate Claude's overlays 0046–0053,
+approved Pi oracle and sealed-chain milestone. Use the latest handoff for status.
+This sync did not start a work item. A subsequent requested access check started
+WSL successfully and confirmed the Pi's LK shell responds on COM5 at 3 Mbaud.
+
 ## Current: stopped at verified oracle/Pi milestone and fresh review
 
 2026-10-04: **work is stopped at the requested next milestone**. The latest

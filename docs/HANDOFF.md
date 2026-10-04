@@ -142,6 +142,32 @@ plus genuine fallthrough such as `bzero`: about 98% of functions.
 
 ## Handoff log
 
+### 2026-10-04 — Codex: repository sync and shared-pool handoff acknowledged
+
+- Fast-forwarded the Windows checkout from `0e616eb` to `baa8bcd` and read
+  `AGENTS.md`, `CLAUDE.md`, this protocol, the Claude review, coverage report,
+  approved Pi contract and latest certification handoffs. Both agents may claim
+  any unowned item; origin does not assign ownership. Current ownership and
+  resume order come from *Claims* here, while the correctness queue retains
+  certification closure criteria. Earlier 0045 checkpoints are historical
+  where superseded by overlays 0046–0053 and the approved Pi contract.
+- No TODO item claimed or started. No live-tree lock taken; it remains free.
+  Next on a requested work resume: claim **R11**, commit and push the claim,
+  and take the live-tree lock before editing/rebuilding shared ATFE; then R17
+  and the remaining groups in the listed order. Recheck remote claims first.
+- Documentation-only sync plus the user's requested access check: WSL Ubuntu
+  starts and executes commands, and its repo is at `baa8bcd` (`third_party/`
+  remains untracked). Pi serial access is available on COM5 at 3 Mbaud: `help`
+  returns the LK command list and shell prompt; the port was closed afterward.
+  No backend/image edits, builds, test runs or Pi uploads. WSL is now running.
+  Live ATFE/build content is taken from Claude's preceding 0053 handoff, not
+  revalidated in this turn. Unrelated
+  `Microsoft/`, dirty live trees and raw evidence are preserved.
+- Published coverage is unchanged: **399/417 functions (95.7%)**, **97.9% of
+  function code bytes**. No regeneration is needed without backend or LK image
+  changes. Claude's Pi and sealed-chain receipts were read, not rerun; remaining
+  P0 gaps and the second assertion-mode build stay open as listed above.
+
 ### 2026-10-04 — Open list regrouped into resume order (user request)
 
 - Groups: A unblockers (R11, R17) → B P0 certification (6a, 6c, 6d, 6b) →
