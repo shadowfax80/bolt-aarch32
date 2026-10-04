@@ -132,7 +132,7 @@ Take items in the order below; groups reflect dependencies, not ownership.
 | Order | ID | Item | Priority | Owner | Status | Part of | Notes |
 |---|---|---|---|---|---|---|---|
 | 2a | T1 | ARMv8-A AArch32 (Cortex-A55) admission and decode; v8-A Pi image, coverage and certified gate | P0 | Claude | Done and certified: contract `47c73bc0` approved (d3c8253); certified gate 10 reps, 18/18, both redirects executed | 6b, 7, 11 | Image `lk-rpi4-bolt-test-a55-47c73bc0.elf`: 406/416 admitted, rewritten image 2x18 on the Pi; evidence `docs/results/t1_a55_20261004.json`. Build: `make rpi4-bolt-test RPI4_ARM_CPU=cortex-a55` |
-| 2b | T2 | SMP: run rewritten functions concurrently on all Pi cores (results + execution per core); decide SMP instrumentation contract (counters are LDREX/STREX; reset/snapshot quiescence) | P0 | Claude | In progress | 9, 10 | Pi LK already runs `WITH_SMP` (4 cores, mailbox release); today only the boot core executes rewritten code. Change is app-level (bolt_bench/bolt_edge run cases on all cores, per-core sinks + PC evidence), not port or loader |
+| 2b | T2 | SMP: run rewritten functions concurrently on all Pi cores (results + execution per core); decide SMP instrumentation contract (counters are LDREX/STREX; reset/snapshot quiescence) | P0 | — | Partial: SMP execution verified on the Pi (uncertified); instrumentation contract, per-core PC evidence, contract + certified gate open | 9, 10 | Pi LK already runs `WITH_SMP` (4 cores, mailbox release); today only the boot core executes rewritten code. Change is app-level (bolt_bench/bolt_edge run cases on all cores, per-core sinks + PC evidence), not port or loader |
 | 3 | 6a | Every gate proves execution: close G1 (fixed-path intermediates), G2 (seal profile chain in QEMU certificate), G3 (contracts for QEMU LK builds) | P0 | — | Partial: G1/G2 done; QEMU route diagnostic (user), runs to instrumentation, then blocked by R15 | — | Pi sealed chain certified; G3 needs user review; 0054 ON/OFF builds and scoped Pi runs verified, remaining gate routes still open |
 | 4 | 6c | Legacy/manual hook admission | P0 | — | Partial | — | R9 done; includes R13 |
 | 5 | 6d | Durable receipts on every certification route | P0 | — | Partial | — | Pi gate + coverage report receipts exist |
@@ -218,6 +218,26 @@ plus genuine fallthrough such as `bzero`: about 98% of functions.
 4. Update the *Claims* table and LK_COVERAGE.md together.
 
 ## Handoff log
+
+### 2026-10-04 — Claude: T2 milestone — rewritten code verified on all 4 cores; claim released
+
+- **Harness:** `bolt_bench smp [reps]`. The sink is per core (a macro, so
+  workload code is unchanged). Phase 1 runs the full suite on each core in
+  turn (pinned thread, reports `arch_curr_cpu_num()`); phase 2 runs the 15
+  workloads with no shared state other than the sink on all cores at once,
+  `reps` times, rotated per core. memcpy, composite, stair stay out of
+  phase 2 (shared buffers / PMU state). Checker:
+  `scripts/bolt_bench_smp_check.py` (oracle values, core placement, counts).
+- **Pi (A55-built LK, `e967850f`):** original 4 cores, seq 72 + conc 240
+  sinks pass. Rewritten (403 emitted, 15 redirects): seq 72 + conc 480
+  (8 reps) pass, no faults. Evidence `docs/results/t2_smp_20261004.json`.
+- **Still open for T2:** per-core PC evidence (sampler cannot attribute PCs
+  to cores, matrix 10); SMP instrumentation contract (also blocked on full LK
+  by R15); a `pi4` contract for an image with the harness and a certified
+  gate that runs `bolt_bench smp` (`full_image_verify.py` does not yet).
+- bolt_bench source changed (sink macro + smp command), so future images get
+  new source hashes; existing fixtures and contracts are unaffected. Lock
+  free; T2 unclaimed.
 
 ### 2026-10-04 — Claude: T1 (ARMv8-A AArch32 / Cortex-A55) implemented; lock released
 

@@ -1,5 +1,6 @@
 #include <app.h>
 #include <arch/ops.h>
+#include <arch/atomic.h>
 #include <lib/cmdline.h>
 #include <lib/console.h>
 #include <lk/console_cmd.h>
@@ -31,8 +32,12 @@ static uint8_t bench_dst[4096] __attribute__((aligned(64)));
  * eliminating the loop entirely -- (void) silences the unused-variable
  * warning but proves nothing about observability to the compiler. A
  * volatile write is a real, unremovable side effect and is the only thing
- * here that reliably keeps a pure-arithmetic loop's body in the binary. */
-static volatile uint32_t g_bolt_bench_sink;
+ * here that reliably keeps a pure-arithmetic loop's body in the binary.
+ * One sink per core (T2): `bolt_bench smp` runs workloads on every core at
+ * once, and each core must see only its own result. The workload code is
+ * unchanged; the name resolves to the current core's slot. */
+static volatile uint32_t g_bolt_bench_sink_cpu[SMP_MAX_CPUS];
+#define g_bolt_bench_sink (g_bolt_bench_sink_cpu[arch_curr_cpu_num()])
 
 /* Timed regions run with interrupts masked for clean numbers -- except while `bolt_sample`
  * is on: the PC sampler is interrupt-driven (an IRQ on this non-secure Pi), so it would see
@@ -54,7 +59,13 @@ static void print_sink(const char *name) {
     printf("bolt_bench: %s sink=0x%08x\n", name, (unsigned)g_bolt_bench_sink);
 }
 
+/* Set while `bolt_bench smp` runs workloads concurrently: per-run banners
+ * from four cores would interleave; results are printed after the join. */
+static volatile int g_bench_quiet;
+
 static void bench_banner(const char *name, lk_time_t cycles) {
+    if (g_bench_quiet)
+        return;
     printf("bolt_bench: %s done (%llu cycles)\n", name, (unsigned long long)cycles);
 }
 
@@ -1113,7 +1124,111 @@ static void run_one(const char *name) {
     }
 }
 
+/* T2 (SMP): run rewritten code on every core.
+ *
+ * Phase 1 runs the full `all` suite on each core in turn (a thread pinned to
+ * that core; the others idle), checking the thread really runs there. Phase 2
+ * runs the workloads whose only shared state is the (per-core) sink on all
+ * cores at once, `reps` times in a per-core rotated order, so the same and
+ * different rewritten functions execute concurrently. memcpy (shared
+ * buffers), composite and stair (shared PMU/selector state) stay out of
+ * phase 2. Every printed sink is checked on the host against the independent
+ * oracle (scripts/bolt_bench_smp_check.py). */
+typedef void (*bench_fn)(void);
+static const struct { const char *name; bench_fn fn; } g_smp_set[] = {
+    {"hot_loop", bolt_bench_hot_loop}, {"hot_cold", bolt_bench_hot_cold},
+    {"branch_chain", bolt_bench_branch_chain}, {"far_call", bolt_bench_far_call},
+    {"it_cond", bolt_bench_it_cond}, {"interwork", bolt_bench_interwork},
+    {"switch", bolt_bench_switch}, {"spill_ret", bolt_bench_spill_ret},
+    {"litpool", bolt_bench_litpool}, {"indirect_call", bolt_bench_indirect_call},
+    {"interwork_tail", bolt_bench_interwork_tail}, {"regpressure", bolt_bench_regpressure},
+    {"hotcold_split", bolt_bench_hotcold_split}, {"icf", bolt_bench_icf},
+    {"shrinkwrap", bolt_bench_shrinkwrap},
+};
+#define SMP_SET_N (sizeof(g_smp_set) / sizeof(g_smp_set[0]))
+#define SMP_MAX_REPS 8u
+static uint32_t g_smp_result[SMP_MAX_CPUS][SMP_MAX_REPS][SMP_SET_N];
+static volatile uint32_t g_smp_ran_on[SMP_MAX_CPUS][2];
+static volatile int g_smp_ready;
+static volatile int g_smp_go;
+static uint32_t g_smp_reps;
+static uint32_t g_smp_ncpu;
+
+static int smp_seq_thread(void *arg) {
+    uint32_t cpu = (uint32_t)(uintptr_t)arg;
+    printf("bolt_bench: smp seq cpu=%u on=%u begin\n", (unsigned)cpu, (unsigned)arch_curr_cpu_num());
+    run_one("all");
+    printf("bolt_bench: smp seq cpu=%u on=%u end\n", (unsigned)cpu, (unsigned)arch_curr_cpu_num());
+    return 0;
+}
+
+static int smp_conc_thread(void *arg) {
+    uint32_t cpu = (uint32_t)(uintptr_t)arg;
+    g_smp_ran_on[cpu][0] = arch_curr_cpu_num();
+    atomic_add((volatile int *)&g_smp_ready, 1);
+    while (!g_smp_go)
+        thread_yield(); /* core 0 shares with the console thread */
+    for (uint32_t r = 0; r < g_smp_reps; r++) {
+        for (uint32_t k = 0; k < SMP_SET_N; k++) {
+            uint32_t w = (k + cpu * 4u + r) % SMP_SET_N;
+            g_smp_set[w].fn();
+            g_smp_result[cpu][r][w] = g_bolt_bench_sink;
+        }
+    }
+    g_smp_ran_on[cpu][1] = arch_curr_cpu_num();
+    return 0;
+}
+
+static void bolt_bench_smp(uint32_t reps) {
+    thread_t *t[SMP_MAX_CPUS];
+    uint32_t n = 0;
+    for (uint32_t c = 0; c < SMP_MAX_CPUS; c++)
+        if (mp_is_cpu_active(c))
+            n = c + 1;
+    g_smp_ncpu = n;
+    g_smp_reps = reps < 1 ? 1 : (reps > SMP_MAX_REPS ? SMP_MAX_REPS : reps);
+    printf("bolt_bench: smp cpus=%u reps=%u set=%u\n", (unsigned)n, (unsigned)g_smp_reps, (unsigned)SMP_SET_N);
+
+    for (uint32_t c = 0; c < n; c++) {
+        t[c] = thread_create("bb_smp_seq", smp_seq_thread, (void *)(uintptr_t)c, DEFAULT_PRIORITY, 8192);
+        thread_set_pinned_cpu(t[c], (int)c);
+        thread_resume(t[c]);
+        thread_join(t[c], NULL, INFINITE_TIME);
+    }
+
+    g_smp_ready = 0;
+    g_smp_go = 0;
+    g_bench_quiet = 1;
+    for (uint32_t c = 0; c < n; c++) {
+        t[c] = thread_create("bb_smp_conc", smp_conc_thread, (void *)(uintptr_t)c, DEFAULT_PRIORITY, 8192);
+        thread_set_pinned_cpu(t[c], (int)c);
+        thread_resume(t[c]);
+    }
+    /* The console thread shares core 0 with its worker: wait by sleeping so
+     * that worker can reach the barrier, then release all cores together. */
+    while (g_smp_ready < (int)n)
+        thread_sleep(1);
+    g_smp_go = 1;
+    for (uint32_t c = 0; c < n; c++)
+        thread_join(t[c], NULL, INFINITE_TIME);
+    g_bench_quiet = 0;
+
+    for (uint32_t c = 0; c < n; c++) {
+        printf("bolt_bench: smp conc cpu=%u on=%u,%u\n", (unsigned)c,
+               (unsigned)g_smp_ran_on[c][0], (unsigned)g_smp_ran_on[c][1]);
+        for (uint32_t r = 0; r < g_smp_reps; r++)
+            for (uint32_t w = 0; w < SMP_SET_N; w++)
+                printf("bolt_bench: smp conc cpu=%u rep=%u %s sink=0x%08x\n", (unsigned)c, (unsigned)r,
+                       g_smp_set[w].name, (unsigned)g_smp_result[c][r][w]);
+    }
+    printf("bolt_bench: smp done\n");
+}
+
 static int bolt_bench_cmd(int argc, const console_cmd_args *argv) {
+    if (argc >= 2 && !strcmp(argv[1].str, "smp")) {
+        bolt_bench_smp(argc > 2 ? (uint32_t)argv[2].u : 4u);
+        return 0;
+    }
     if (argc < 2) {
         printf("usage: bolt_bench <hot_loop|hot_cold|branch_chain|memcpy|far_call|it_cond|interwork|switch|spill_ret|litpool|indirect_call|interwork_tail|regpressure|hotcold_split|icf|shrinkwrap|composite|stair|pgo_lab|multi|all>\n");
         return -1;

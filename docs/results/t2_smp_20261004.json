@@ -1,0 +1,33 @@
+{
+ "schema": 1,
+ "item": "T2: SMP execution of rewritten code (Pi 4B, 4 x A72, AArch32 SVC)",
+ "date": "2026-10-04",
+ "harness": "`bolt_bench smp [reps]` (overlay/lk/files/app/bolt_bench/bolt_bench.c): per-core sink; phase 1 runs `all` on each core in turn (thread pinned, reports its core); phase 2 runs 15 shared-state-free workloads on all cores at once, reps x, per-core rotated order",
+ "checker": "scripts/bolt_bench_smp_check.py (independent oracle; core placement; counts)",
+ "image": "out/t2/lk-t2.elf (not a fixture yet)",
+ "image_sha256": "e967850fba57ec107d6f19ff22e4ea7bc107fe028ae6fde06d638df4b726c1a7",
+ "build": "make rpi4-bolt-test RPI4_ARM_CPU=cortex-a55 (LK 0011), -mfpu=none, 0 VFP/NEON",
+ "baseline_pi": "PASS: 4 cores; seq 72 sinks; conc 240 sinks (4 reps) equal the oracle",
+ "admission": {
+  "rejected": 10,
+  "rewritten": 402,
+  "folded (ICF)": 5,
+  "alias of rewritten function": 2
+ },
+ "rewritten_pi": {
+  "emitted": 403,
+  "redirected": 15,
+  "result": "PASS: 4 cores; seq 72 sinks; conc 480 sinks (8 reps) equal the oracle; no faults"
+ },
+ "not_in_concurrent_set": {
+  "memcpy": "shared bench_src/bench_dst",
+  "composite": "shared PMU selection state",
+  "stair": "shared PMU/selector state"
+ },
+ "open": [
+  "per-core PC evidence for redirected functions (sampler does not attribute PCs to cores; matrix 10)",
+  "SMP instrumentation contract (counters are LDREX/STREX; reset/snapshot need quiescence); full-LK instrumentation also blocked by R15",
+  "a pi4 contract for an image with this harness, then the certified gate including the smp check"
+ ],
+ "scope": "uncertified"
+}
