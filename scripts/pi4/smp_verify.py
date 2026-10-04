@@ -28,11 +28,20 @@ HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[1]
 sys.path.insert(0, str(ROOT / 'scripts'))
 from bolt_bench_smp_check import CONC_SET, check as smp_check  # noqa: E402
-from qemu_bench_oracle import check_contract  # noqa: E402
+from qemu_bench_oracle import check_contract, reference_results  # noqa: E402
+from profile_identity import write_json  # noqa: E402
 
 
 def sha(path):
     return hashlib.sha256(Path(path).read_bytes()).hexdigest()
+
+
+def observed(text):
+    """Every per-core sink line, as printed, for the receipt."""
+    seq = re.findall(r'smp seq cpu=(\d+) on=\d+ begin\n(.*?)smp seq cpu=\1', text, re.S)
+    out = {f'seq cpu{c}': dict(re.findall(r'bolt_bench: (\w+) sink=(0x[0-9a-f]{8})', body)) for c, body in seq}
+    out['conc'] = [list(t) for t in re.findall(r'smp conc cpu=(\d+) rep=(\d+) (\w+) sink=(0x[0-9a-f]{8})', text)]
+    return out
 
 
 def pi_run(image, commands, log, a):
@@ -109,12 +118,23 @@ def main():
     receipt = dict(schema=1, verified_at=datetime.now(timezone.utc).isoformat(),
                    scope='every active core: oracle-equal sinks (sequential and concurrent) on original and rewritten images; PC samples inside every required rewritten function on every core',
                    input_sha256=manifest['input_sha256'], contract=contract['name'],
+                   manifest_sha256=sha(a.dir / 'full_manifest.json'),
+                   tool_sha256=manifest.get('tool_sha256'), bolt_options=manifest.get('bolt_options'),
+                   build_script_sha256=manifest.get('script_sha256'),
+                   patch_sha256=manifest.get('patch_sha256'),
+                   build_revision=manifest.get('repository_revision'),
+                   emitted_functions=manifest.get('emitted'),
+                   redirected_functions=manifest['redirected'],
+                   fast_loader_sha256=sha(a.fast_loader),
+                   expected_sinks=reference_results(),
+                   observed=dict(baseline=observed(base_log), candidate=observed(cand_log)),
                    images=dict(baseline=sha(baseline), candidate=sha(candidate)),
                    required=required, per_core_samples=coverage, reps=a.reps, period=a.period,
                    baseline=base_summary, candidate=cand_summary,
                    logs=dict(baseline=sha(out / 'baseline.log'), candidate=sha(out / 'candidate.log')),
                    scripts=scripts, repository_revision=revision)
-    (out / 'smp_verification.json').write_text(json.dumps(receipt, indent=2) + '\n')
+    # Atomic publication (staged + replace): a late failure leaves no receipt.
+    write_json(out / 'smp_verification.json', receipt)
     print(f'PASS: {ncpu} cores; baseline seq {base_summary["seq_results"]} + conc {base_summary["conc_results"]}; '
           f'rewritten seq {cand_summary["seq_results"]} + conc {cand_summary["conc_results"]}; '
           f'per-core samples {coverage}')
