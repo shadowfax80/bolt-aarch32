@@ -145,7 +145,6 @@ Take items in the order below; groups reflect dependencies, not ownership.
 | 7 | R8 | r12 clobbered by local-branch LongJmp stubs | P1 | — | Open | 13 | Liveness check or rejection |
 | 8 | R15 | Full-LK instrumentation blocked by `arch_spin_trylock` guard (false positive) | P1 | — | Open | exclusive guards (0038/0039) | Keep must-reject tests for real cross-function pairs |
 | 9 | R12 | ADR to an inline TBB/TBH table (`vsnprintf`) | P2 | — | Open | 12 | Last coverage item |
-| 10 | R13 | Redirect functions starting with a 16-bit instruction | P1 | — | Open | 6c | If not done under 6c; raised to P1 by T1: in the A55 build 16 bolt_bench Thumb functions (incl. `bolt_bench_memcpy`) start with a 16-bit instruction |
 | 10a | R21 | A32 `-O0` load-then-jump tables (`add rB, pc, #k; ldr rX, [rB, rI, lsl #2]; mov pc, rX` / `bx rX`) still rejected as PC read | P2 | — | Open | 12 | Found by R17 after R18 (`c_switch_arm_o0`, `c_switch_marm_o0`); extend 0057's table model to a register jump |
 | 10b | T3 | Secure-SVC parity on the Pi: firmware stub that keeps LK in Secure SVC, then rerun the certified gates (rewriting is state-agnostic; PMU sampling is IRQ; no SMC calls) | P1 | — | Open (approved 2026-10-04; start after T1 and T2) | 9 | User go-ahead given for the PoC parity goal; start from the earlier Secure-SVC plan |
 | 10c | T4 | Performance and final validation on the real A55 target (A72 gains not transferable) | P2 | User | Out of scope here | — | Done by the user in the office environment, from this repo |
@@ -185,6 +184,7 @@ Take items in the order below; groups reflect dependencies, not ownership.
 | R20 | ICF aborted on A32 MOVW/MOVT `:lower16:/:upper16:` operands (found while testing R19) | P1 | Claude | 13 | 0056; `arm-icf-movw-movt.test`; ICF now folds such functions (edge image 7 → 26 folded) |
 | R18 | A32 inline `ldr pc` jump tables (clang ARM-mode switch / function-pointer tables) | P1 | Claude | 12 | 0057; `arm-ldr-pc-table.test`; edge image: all 6 such functions admitted and run correctly on the Pi |
 | R17 | Synthesized edge-case image `bolt_edge`: 146 cases (hand-written A32/T32, C at O0/O2/Os in attribute and whole-module `-marm`/`-mthumb`, 48 seeded random functions) | P1 | Claude | 7, 8, 11, 12 | [Plan](R17_BOLT_EDGE_PLAN.md); contracts `0895d7bc`, `439dfd7c`, `ce8dd005` certified; `docs/results/bolt_edge_*_20261004.json`; optional tuning: more conditional tail calls |
+| R13 | Redirect functions whose first instruction is 16-bit followed by a 32-bit one (split prefix) | P1 | Claude | 6c | `redirect-bolt-entries.py`: allowed when no branch, data word or symbol outside the function references the split bytes; unit tests; A55 image 31 redirects (7 split) pass on 4 cores; certified gate on `47c73bc0` with `it_cond` + `branch_chain` executed (`docs/results/r13_split_prefix_certified_20261004.json`) |
 | R11 | Skip-and-report admission mode | P1 | Codex | — | 0054; [diagnostic contract/evidence](ARM_ADMISSION_REPORT.md); one scan, same 399/417 coverage; both assertion modes + scoped Pi |
 
 ## Coverage goal
@@ -218,6 +218,21 @@ plus genuine fallthrough such as `bzero`: about 98% of functions.
 4. Update the *Claims* table and LK_COVERAGE.md together.
 
 ## Handoff log
+
+### 2026-10-04 — Claude: R13 done (split-prefix redirects)
+
+- `redirect-bolt-entries.py`: a 4-byte B.W over a 16-bit + 32-bit prefix is
+  allowed when no reference from outside the function (branch/call target,
+  ADR/literal comment, data word in the original `.text` disassembly) and no
+  symbol points into the split bytes; otherwise it refuses and names the
+  referencing address. Reports `split_prefix` per redirect. MOVW/MOVT-built
+  addresses are not combined (documented limit; LK uses them for entries).
+- A55 SMP image: 31 redirects (7 split, incl. branch_chain, far_call,
+  it_cond) → `bolt_bench smp 8` + `all` pass on the Pi. Certified gate on the
+  approved `47c73bc0` with `bolt_bench_it_cond` + `bolt_bench_branch_chain`
+  (both split): 10 reps, 18/18, PC evidence for both. `far_call` is too short
+  for PC sampling to observe (results still correct).
+- Script tests 28/28 (`test_execution_gate.py`).
 
 ### 2026-10-04 — Claude: T2 milestone — rewritten code verified on all 4 cores; claim released
 

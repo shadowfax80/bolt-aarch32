@@ -70,8 +70,12 @@ def nm_symbols(nm: str, elf: str) -> dict[str, tuple[int, int]]:
     return syms
 
 
-def require_whole_redirect_prefix(data,off,size,thumb):
-    """A four-byte branch must replace complete original instructions."""
+def require_whole_redirect_prefix(data,off,size,thumb,allow_split=False):
+    """A four-byte branch must replace complete original instructions, unless
+    the caller proved nothing can reach the split instruction (R13).
+
+    Returns True when the branch splits a 32-bit Thumb instruction that starts
+    two bytes into the function (16-bit first instruction)."""
     if off<0 or size<4 or off+4>len(data):
         raise SystemExit('redirect prefix is outside the original function/file')
     if thumb:
@@ -80,7 +84,39 @@ def require_whole_redirect_prefix(data,off,size,thumb):
         if first==2:
             covered+=fix.thumb_insn_len(int.from_bytes(data[off+2:off+4],'little'))
         if covered!=4:
-            raise SystemExit('four-byte redirect would split an original Thumb instruction')
+            if not allow_split or size<6:
+                raise SystemExit('four-byte redirect would split an original Thumb instruction')
+            return True
+    return False
+
+
+_HEX = re.compile(r'\b(?:0x)?([0-9a-f]{8})\b')
+
+
+def original_text_references(objdump, elf):
+    """[(source address, referenced address)] for every 8-hex-digit value in the
+    disassembly of the original .text: branch/call targets, ADR/literal results
+    in comments and data words (literal pools, tables). Over-approximates on
+    purpose; MOVW/MOVT halves are not combined (see R13 notes)."""
+    out = subprocess.run([objdump, '-d', '-j', '.text', elf], check=True,
+                         capture_output=True, text=True).stdout
+    refs = []
+    for line in out.splitlines():
+        m = re.match(r'\s*([0-9a-f]+):\s+(?:[0-9a-f]{2,8} ?)+\s+(.*)', line)
+        if not m:
+            continue
+        src = int(m.group(1), 16)
+        for v in _HEX.findall(m.group(2)):
+            refs.append((src, int(v, 16)))
+    return refs
+
+
+def split_prefix_reachable(refs, entry, size):
+    """References from outside [entry, entry+size) into the bytes a split
+    redirect leaves behind (entry+2 .. entry+3). Code inside the function only
+    runs after entering it, and every entry now goes to the rewritten copy."""
+    return sorted({(s, a) for s, a in refs
+                   if entry + 2 <= (a & ~1) < entry + 4 and not entry <= s < entry + size})
 
 
 def function_symbol(nm: str, elf: str, name: str) -> int:
@@ -241,6 +277,7 @@ def main() -> int:
     output_functions = function_symbols(readelf, args.elf)
     records = []
     patched_ranges = []
+    text_refs = None
 
     orig_syms = nm_symbols(nm, args.original)
     for name, (orig_entry, new_entry) in sorted(plan.items(), key=lambda kv: kv[1][0]):
@@ -274,7 +311,18 @@ def main() -> int:
             raise SystemExit(f"{name}: misaligned or unmoved redirect")
         orig_off = bounded_offset(secs['.bolt.org.text'], orig_entry, 4, len(data))
         input_off = bounded_offset(original_secs['.text'], orig_entry, 4, len(original_data))
-        require_whole_redirect_prefix(original_data,input_off,size,thumb)
+        split = require_whole_redirect_prefix(original_data,input_off,size,thumb,allow_split=True)
+        if split:
+            # R13: a 16-bit first instruction followed by a 32-bit one. The B.W
+            # leaves half of the second instruction behind; that is safe only
+            # if nothing outside the function can branch or point there.
+            if text_refs is None:
+                text_refs = original_text_references(os.path.join(args.toolchain, "llvm-objdump"),
+                                                     args.original)
+            reach = split_prefix_reachable(text_refs, orig_entry, size)
+            if reach:
+                raise SystemExit(f"{name}: four-byte redirect would split an original Thumb "
+                                 f"instruction that is referenced from 0x{reach[0][0]:x}")
         output_size = entries[name][2] if args.map else 4
         if output_size <= 0:
             raise SystemExit(f"{name}: empty output function")
@@ -301,7 +349,8 @@ def main() -> int:
         data[orig_off : orig_off + 4] = branch
         patched_ranges.append((orig_entry, orig_entry + 4))
         records.append(dict(name=name, input=orig_entry, output=new_entry,
-                            output_size=output_size, thumb=thumb, branch_hex=branch.hex()))
+                            output_size=output_size, thumb=thumb, branch_hex=branch.hex(),
+                            split_prefix=split))
         print(f"redirected {name}: 0x{orig_entry:x} -> {'b.w' if thumb else 'b'} 0x{new_entry:x}")
 
     with open(args.elf, "wb") as fh:

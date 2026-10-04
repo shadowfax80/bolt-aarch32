@@ -54,6 +54,18 @@ class ExecutionGateTests(unittest.TestCase):
             with self.assertRaises(SystemExit):
                 redirect.require_whole_redirect_prefix(b'1234',off,size,True)
 
+    def test_split_prefix_allowed_only_when_unreferenced(self):
+        # R13: PUSH (2) + MOVW (4). Allowed with allow_split; reports the split.
+        self.assertTrue(redirect.require_whole_redirect_prefix(bytes.fromhex('10b540f20100'),0,6,True,allow_split=True))
+        self.assertFalse(redirect.require_whole_redirect_prefix(bytes.fromhex('10b500bf'),0,4,True,allow_split=True))
+        with self.assertRaisesRegex(SystemExit,'split'):  # too small to hold the split instruction
+            redirect.require_whole_redirect_prefix(bytes.fromhex('10b540f2'),0,4,True,allow_split=True)
+        entry,size=0x1000,0x40
+        refs=[(0x1010,0x1002),(0x2000,0x1000),(0x2000,0x1001),(0x2000,0x1004),(0x2004,0x1003)]
+        self.assertEqual(redirect.split_prefix_reachable(refs,entry,size),[(0x2004,0x1003)])
+        self.assertEqual(redirect.split_prefix_reachable([(0x2000,0x1002)],entry,size),[(0x2000,0x1002)])
+        self.assertEqual(redirect.split_prefix_reachable([(0x1004,0x1002),(0x3000,0x1000)],entry,size),[])
+
     def test_invalid_map_ranges(self):
         path = self.out / 'map'
         for row in ('f -1 2000 8', 'f 1000 100000000 8', 'f 1000 2000 0', 'f 1000 2000 8\nf 1000 2000 8'):
