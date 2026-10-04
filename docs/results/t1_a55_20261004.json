@@ -1,0 +1,65 @@
+{
+ "schema": 1,
+ "item": "T1: ARMv8-A AArch32 (Cortex-A55) admission and decode",
+ "date": "2026-10-04",
+ "overlays": {
+  "llvm": "0058-bolt-arm-v8a-aarch32.patch",
+  "lk": "0011-arm-cortex-a55-aarch32.patch"
+ },
+ "replay_identity_0001_0058": "6383f78d3eac7d726e90f1d5cd9dc9ef295387e86ef481dc8572934b5498b827",
+ "image": "fixtures/lk-rpi4-bolt-test-a55-47c73bc0.elf",
+ "image_sha256": "47c73bc08b71f37aa90c4f601305954d860a38abd985d583e7100511dafa5a33",
+ "build": "make rpi4-bolt-test RPI4_ARM_CPU=cortex-a55 (TOOLCHAIN=clang, -mcpu=cortex-a55 -mfpu=none); Tag_CPU_arch v8-A; 0 VFP/NEON",
+ "isa_scan": {
+  "unknown_as_armv7a": 23,
+  "unknown_as_armv8a": 0,
+  "unknown_as_armv8_2a": 0,
+  "v8_instructions": {
+   "lda": 2,
+   "stl": 2,
+   "stlex": 1
+  },
+  "beyond_v8_0": "none (A72 executes it)"
+ },
+ "baseline_pi": "18/18 sinks equal the independent oracle (A72, AArch32, Non-secure SVC)",
+ "admission": {
+  "functions": 416,
+  "status_counts": {
+   "rejected": 10,
+   "rewritten": 399,
+   "folded (ICF)": 5,
+   "alias of rewritten function": 2
+  },
+  "rejected": "exception vectors/startup, bcopy+bzero fallthrough, vsnprintf (R12): same classes as the v7 build"
+ },
+ "rewritten_pi": {
+  "emitted": 400,
+  "redirected": 15,
+  "redirected_functions": [
+   "bolt_bench_far_target",
+   "bolt_bench_interwork",
+   "bolt_bench_spill_ret",
+   "bolt_bench_indirect_call",
+   "bolt_bench_hotcold_split",
+   "bolt_bench_icf_a",
+   "bolt_bench_composite",
+   "bolt_bench_stair",
+   "bolt_bench_mf0",
+   "bolt_bench_mf2",
+   "bolt_bench_mf3",
+   "bolt_bench_mf4",
+   "bolt_bench_mf5",
+   "bolt_bench_multi",
+   "bolt_bench_stair_init"
+  ],
+  "result": "2 runs x 18 sinks: 0 mismatches vs the independent oracle; no faults"
+ },
+ "finding_r13": "16 bolt_bench Thumb functions (incl. bolt_bench_memcpy) start with a 16-bit instruction when built for cortex-a55 and cannot be redirected until R13",
+ "tests": {
+  "arm_lit": "50/50 (new arm-v8-aarch32.test; arm-isa-contract.test now admits armv8a and checks v8 runtime vs v7 input)",
+  "bolt_lit": "744 passed, 1 known unrelated failure (AArch64/constant_island_pie_update.s)",
+  "core_tests": 58,
+  "jitlink_aarch32": "15/15"
+ },
+ "scope": "uncertified until the user approves a pi4 contract for this image"
+}

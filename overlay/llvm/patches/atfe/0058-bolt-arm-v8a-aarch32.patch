@@ -1,0 +1,193 @@
+--- a/bolt/lib/RuntimeLibs/RuntimeLibrary.cpp
++++ b/bolt/lib/RuntimeLibs/RuntimeLibrary.cpp
+@@ -153,10 +153,13 @@
+   auto value = [&](unsigned Tag) {
+     return Attributes.getAttributeValue(Tag).value_or(0);
+   };
+-  if (value(ARMBuildAttrs::CPU_arch) != ARMBuildAttrs::v7 ||
++  // ARMv7-A, or ARMv8-A in AArch32 state (Tag_CPU_arch v8_A covers v8.x-A,
++  // e.g. Cortex-A55). ARMv9-A and other profiles stay rejected.
++  if ((value(ARMBuildAttrs::CPU_arch) != ARMBuildAttrs::v7 &&
++       value(ARMBuildAttrs::CPU_arch) != ARMBuildAttrs::v8_A) ||
+       value(ARMBuildAttrs::CPU_arch_profile) !=
+           ARMBuildAttrs::ApplicationProfile)
+-    return fail("requires explicit ARMv7-A architecture/profile");
++    return fail("requires explicit ARMv7-A or ARMv8-A architecture/profile");
+   if (value(ARMBuildAttrs::ARM_ISA_use) != ARMBuildAttrs::Allowed ||
+       (value(ARMBuildAttrs::THUMB_ISA_use) != ARMBuildAttrs::AllowThumb32 &&
+        value(ARMBuildAttrs::THUMB_ISA_use) != ARMBuildAttrs::AllowThumbDerived))
+@@ -286,6 +289,8 @@
+         check_error(createFatalBOLTError("AArch32 runtime ISA exceeds input: " +
+                                          Feature), LibPath);
+     };
++    requireFeature(value(ARMBuildAttrs::CPU_arch) == ARMBuildAttrs::v8_A,
++                   "+v8");
+     requireFeature(value(ARMBuildAttrs::DIV_use) == ARMBuildAttrs::AllowDIVExt,
+                    "+hwdiv,+hwdiv-arm");
+     requireFeature(value(ARMBuildAttrs::MPextension_use) ||
+--- a/bolt/lib/Rewrite/RewriteInstance.cpp
++++ b/bolt/lib/Rewrite/RewriteInstance.cpp
+@@ -582,6 +582,13 @@
+     Features->AddFeature("v7");
+     Features->AddFeature("aclass");
+     Features->AddFeature("thumb2");
++    // ARMv8-A AArch32 input: decode every v8.x-A integer encoding the build
++    // attributes allow (Tag_CPU_arch v8_A does not say which v8.x). "v8.2a"
++    // implies v8.1a/v8 (acquire-release, perfmon) but no FP or NEON; those
++    // still come only from the FP/SIMD attributes.
++    if (Attributes.getAttributeValue(ARMBuildAttrs::CPU_arch).value_or(0) ==
++        ARMBuildAttrs::v8_A)
++      Features->AddFeature("v8.2a");
+     if (std::optional<unsigned> V =
+             Attributes.getAttributeValue(ARMBuildAttrs::Virtualization_use)) {
+       if (*V & 1)
+--- a/bolt/test/ARM/Inputs/check-arm-isa-contract.py
++++ b/bolt/test/ARM/Inputs/check-arm-isa-contract.py
+@@ -23,9 +23,9 @@
+ def add(name,pairs=None,valid=False,flags=0x05000200,blob=None,**extra):
+  cases.append(dict(name=name,attributes=attrs(base if pairs is None else pairs) if blob is None else blob,valid=valid,flags=flags,**extra))
+ def replace(tag,val):return [(k,val if k==tag else v) for k,v in base]
+-for name,pairs in [('base',base),('derived-thumb',replace(9,3)),('extensions',base+[(42,1),(44,2),(68,3)]),('softfp',base+[(10,3),(12,1),(28,0)]),('unspecified-float-flags',base)]:
++for name,pairs in [('base',base),('derived-thumb',replace(9,3)),('armv8a',replace(6,14)),('armv8a-derived-thumb',[(6,14),(7,65),(8,1),(9,3)]),('extensions',base+[(42,1),(44,2),(68,3)]),('softfp',base+[(10,3),(12,1),(28,0)]),('unspecified-float-flags',base)]:
+  add(name,pairs,True,flags=0x05000000 if name=='unspecified-float-flags' else 0x05000200)
+-for name,tag,value in [('armv6',6,6),('armv6t2',6,8),('armv8a',6,14),('armv9a',6,22),('v7r',7,82),('v7m',7,77),('profile-neutral',7,0),('system-profile',7,83),('no-arm',8,0),('invalid-arm',8,2),('no-thumb',9,0),('thumb1',9,1),('invalid-thumb',9,4)]:add(name,replace(tag,value))
++for name,tag,value in [('armv6',6,6),('armv6t2',6,8),('armv9a',6,22),('v7r',7,82),('v7m',7,77),('profile-neutral',7,0),('system-profile',7,83),('no-arm',8,0),('invalid-arm',8,2),('no-thumb',9,0),('thumb1',9,1),('invalid-thumb',9,4)]:add(name,replace(tag,value))
+ for tag in (6,7,8,9):add('missing-tag-'+str(tag),[(k,v) for k,v in base if k!=tag])
+ for name,pairs in [('v6m',replace(6,11)),('v7em',replace(6,13)),('v8m',replace(6,17)),('vfp-args',base+[(28,1)]),('custom-vfp-args',base+[(28,2)]),('compatible-vfp-args',base+[(28,3)]),('wmmx',base+[(11,1)]),('wmmx-args',base+[(29,1)]),('custom-pcs',base+[(13,1)]),('mve',base+[(48,1)]),('thumb-ee',base+[(66,1)]),('pac',base+[(50,1)]),('bti',base+[(52,1)]),('bti-use',base+[(74,1)]),('pac-use',base+[(76,1)]),('dsp-extension',base+[(46,1)]),('nodefaults-zero',base+[(64,0)]),('nodefaults-one',base+[(64,1)]),('alternative-arch',base+[(65,b'\x06\x06')]),('mp-conflict-forward',base+[(42,0),(70,1)]),('mp-conflict-backward',base+[(42,1),(70,0)]),('simd-no-fp',base+[(12,1)]),('new-fp',base+[(10,7)]),('new-simd',base+[(10,5),(12,3)]),('duplicate-same',base+[(6,10)]),('duplicate-conflict',base+[(6,6)]),('unknown-tag',base+[(100,1)]),('large-value',base+[(44,1<<40)])]:add(name,pairs)
+ for name,flag in [('hard-float',0x05000400),('both-float-flags',0x05000600),('be8',0x05800200),('le8-reserved',0x05400200),('legacy-flags',0x05000201),('eabi0',0x200),('eabi4',0x04000200),('future-eabi',0x06000200)]:add(name,flags=flag)
+@@ -81,7 +81,7 @@
+ rshoff=struct.unpack_from('<I',rtbase,32)[0];rsize,rnum=struct.unpack_from('<HH',rtbase,46)
+ rheaders=[struct.unpack_from('<10I',rtbase,rshoff+i*rsize) for i in range(rnum)]
+ rindex=next(i for i,h in enumerate(rheaders) if h[1]==0x70000003)
+-rtcases=[('baseline',base,True,None),('v6',replace(6,6),False,None),('new-arch',replace(6,14),False,None),('hard-float',base,False,'hard'),('vfp',base+[(10,3)],False,None),('neon',base+[(10,3),(12,1)],False,None),('missing',base,False,'missing'),('duplicate',base+[(6,10)],False,None),('divide',base+[(44,2)],False,None),('mp',base+[(42,1)],False,None),('tz',base+[(68,1)],False,None),('virtualization',base+[(68,2)],False,None),('rich',base+[(42,1),(44,2),(68,3)],True,'rich-input')]
++rtcases=[('baseline',base,True,None),('v6',replace(6,6),False,None),('new-arch',replace(6,14),False,None),('hard-float',base,False,'hard'),('vfp',base+[(10,3)],False,None),('neon',base+[(10,3),(12,1)],False,None),('missing',base,False,'missing'),('duplicate',base+[(6,10)],False,None),('divide',base+[(44,2)],False,None),('mp',base+[(42,1)],False,None),('tz',base+[(68,1)],False,None),('virtualization',base+[(68,2)],False,None),('rich',base+[(42,1),(44,2),(68,3)],True,'rich-input'),('v8-runtime-v8-input',replace(6,14),True,'v8-input')]
+ for isa in ('arm','thumb'):
+  for name,pairs,valid,change in rtcases:
+   for form in ('object','archive'):
+@@ -94,6 +94,7 @@
+     lib=work/'runtime.a';p=run(work,'archive',[tc/'llvm-ar','rcs',lib,obj]);assert p.returncode==0,p.stdout+p.stderr
+    image=out/isa/'base.elf'
+    if change=='rich-input':image=out/isa/'extensions/in.elf'
++   if change=='v8-input':image=out/isa/'armv8a/in.elf'
+    candidate=work/'out.elf';cmd=[tc/'llvm-bolt',image,'-o',candidate,'--no-huge-pages','-lite=0','--funcs=.*','--instrument','--instrument-calls=false','--arm-instrumentation-contract=privileged-single-core-no-fiq','--instrumentation-sleep-time=1','--runtime-instrumentation-lib='+str(lib)]
+    p=run(work,'bolt',cmd);assert p.returncode==(0 if valid else 1) and candidate.exists()==valid,(name,form,p.returncode,p.stdout+p.stderr)
+    if not valid:assert 'AArch32' in p.stdout+p.stderr,p.stdout+p.stderr
+--- /dev/null
++++ b/bolt/test/ARM/Inputs/check-arm-v8-aarch32.py
+@@ -0,0 +1,108 @@
++from pathlib import Path
++import re
++import shutil
++import subprocess
++import sys
++import tempfile
++
++# ARMv8-A AArch32 input (Cortex-A55 build attributes, no FP/NEON): BOLT admits
++# it, decodes the v8 integer instructions (acquire/release, exclusive
++# acquire/release, sevl, dmb ishld) in A32 and T32, and re-emits each function
++# at a new address with the same instruction sequence.
++tc = Path(shutil.which('llvm-bolt')).resolve().parent
++evidence = Path(sys.argv[1])
++evidence.mkdir(parents=True, exist_ok=True)
++out = Path(tempfile.mkdtemp(prefix='run-', dir=evidence))
++print('Evidence:', out)
++
++V8 = ['lda r0, [r1]', 'stl r0, [r1]', 'ldab r2, [r1]', 'stlh r2, [r1]',
++      'ldaex r0, [r1]', 'stlex r2, r0, [r1]', 'sevl', 'dmb ishld']
++SRC = ''' .syntax unified
++ .text
++ .arm
++ .global _start
++ .type _start,%function
++_start:
++ bl v8_arm
++ blx v8_thumb
++ b _start
++ .size _start,.-_start
++
++ .p2align 2
++ .global v8_arm
++ .type v8_arm,%function
++v8_arm:
++''' + ''.join(f' {i}\n' for i in V8) + ''' cmp r0, #0
++ beq 1f
++ add r0, r0, #1
++1:
++ bx lr
++ .size v8_arm,.-v8_arm
++
++ .p2align 2
++ .thumb
++ .global v8_thumb
++ .type v8_thumb,%function
++ .thumb_func
++v8_thumb:
++''' + ''.join(f' {i}\n' for i in V8) + ''' cmp r0, #0
++ beq 1f
++ adds r0, r0, #1
++1:
++ bx lr
++ .size v8_thumb,.-v8_thumb
++'''
++LD = 'ENTRY(_start)\nSECTIONS {\n  . = 0x8000;\n  .text : { *(.text*) }\n}\n'
++
++
++def run(cmd, check=True):
++    p = subprocess.run([str(x) for x in cmd], cwd=out, capture_output=True, text=True)
++    if check and p.returncode:
++        sys.exit(f'FAIL: {Path(str(cmd[0])).name} exited {p.returncode}\n{p.stdout}{p.stderr}')
++    return p.returncode, p.stdout + p.stderr
++
++
++(out / 'v8.s').write_text(SRC)
++(out / 'in.ld').write_text(LD)
++run([tc / 'llvm-mc', '-triple=armv8.2a-none-eabi', '-mcpu=cortex-a55',
++     '-mattr=-neon,-fp-armv8,-fullfp16,-vfp2sp,-dotprod,-crypto',
++     '-arm-add-build-attributes', '-filetype=obj', 'v8.s', '-o', 'v8.o'])
++run([tc / 'ld.lld', '--emit-relocs', '-T', 'in.ld', 'v8.o', '-o', 'v8.exe'])
++_, attrs = run([tc / 'llvm-readelf', '-A', 'v8.exe'])
++assert 'ARM v8-A' in attrs and 'NEON' not in attrs and 'VFP' not in attrs, attrs
++
++
++def body(dis, name):
++    m = re.search(r'^([0-9a-f]+) <' + name + r'>:\n(.*?)(?:\n\n|\Z)', dis, re.S | re.M)
++    if not m:
++        return None, []
++    ops = []
++    for line in m.group(2).splitlines():
++        r = re.match(r'\s*[0-9a-f]+:\s+(\S+)\s*([^@<]*)', line)
++        if r:
++            ops.append((r.group(1) + ' ' + re.sub(r'\s+', ' ', r.group(2)).strip()).strip())
++    return int(m.group(1), 16), ops
++
++
++_, before = run([tc / 'llvm-objdump', '-d', '--no-show-raw-insn', 'v8.exe'])
++bad = 0
++for mode, extra in (('default', []), ('reverse', ['--reorder-blocks=reverse'])):
++    rc, log = run([tc / 'llvm-bolt', 'v8.exe', '-o', f'v8.{mode}.bolt', '-lite=0',
++                   '--funcs=v8_arm,v8_thumb', *extra], check=False)
++    (out / f'{mode}.log').write_text(log)
++    if rc:
++        print(f'FAIL: {mode}: llvm-bolt exited {rc}\n{log[-1500:]}')
++        bad += 1
++        continue
++    _, after = run([tc / 'llvm-objdump', '-d', '--no-show-raw-insn', f'v8.{mode}.bolt'])
++    for name in ('v8_arm', 'v8_thumb'):
++        old_addr, old_ops = body(before, name)
++        new_addr, new_ops = body(after, name)
++        v8_old = [o for o in old_ops if o.split()[0] in ('lda', 'stl', 'ldab', 'stlh', 'ldaex', 'stlex', 'sevl', 'dmb')]
++        v8_new = [o for o in new_ops if o.split()[0] in ('lda', 'stl', 'ldab', 'stlh', 'ldaex', 'stlex', 'sevl', 'dmb')]
++        ok = (new_addr is not None and new_addr >= 0x400000 and len(v8_old) == len(V8)
++              and v8_new == v8_old and not any('unknown' in o for o in new_ops))
++        print(f"{'PASS' if ok else 'FAIL'}: {mode}/{name}: moved to {new_addr and hex(new_addr)}, "
++              f'{len(v8_new)}/{len(V8)} v8 instructions preserved')
++        bad += not ok
++sys.exit(1 if bad else 0)
+--- /dev/null
++++ b/bolt/test/ARM/arm-v8-aarch32.test
+@@ -0,0 +1,5 @@
++## ARMv8-A AArch32 input (Cortex-A55 attributes, no FP/NEON): admitted, v8 integer
++## instructions decoded and preserved in A32 and T32 functions that BOLT moves.
++
++RUN: rm -rf %t.dir
++RUN: %python %p/Inputs/check-arm-v8-aarch32.py %t.dir

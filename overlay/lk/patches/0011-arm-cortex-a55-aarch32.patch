@@ -1,0 +1,89 @@
+diff --git a/arch/arm/rules.mk b/arch/arm/rules.mk
+--- a/arch/arm/rules.mk
++++ b/arch/arm/rules.mk
+@@ -170,6 +170,25 @@
+ else
+ GLOBAL_DEFINES += WITH_NO_FP=1
+ endif
++HANDLED_CORE := true
++endif
++# bolt-aarch32: Cortex-A55 (ARMv8.2-A) in AArch32 state, the PoC target. LK's
++# ARMv7-A code paths (CP15 caches/TLB/MMU, Thumb-2) are architecturally valid
++# in AArch32 on ARMv8-A, so the v7-A defines apply. Firmware may enter in Hyp
++# (the Pi does), so keep the HYP->SVC drop. The target has no FPU/NEON.
++ifeq ($(ARM_CPU),cortex-a55)
++GLOBAL_DEFINES += \
++	ARM_WITH_CP15=1 \
++	ARCH_HAS_MMU=1 \
++	ARM_ISA_ARMv7=1 \
++	ARM_ISA_ARMv7A=1 \
++	ARM_ISA_ARMv8=1 \
++	ARM_WITH_THUMB=1 \
++	ARM_WITH_THUMB2=1 \
++	ARM_WITH_CACHE=1 \
++	ARM_WITH_L2=1 \
++	ARM_WITH_HYP=1 \
++	WITH_NO_FP=1
+ HANDLED_CORE := true
+ endif
+ ifeq ($(ARM_CPU),cortex-a8)
+diff --git a/arch/arm/toolchain.mk b/arch/arm/toolchain.mk
+--- a/arch/arm/toolchain.mk
++++ b/arch/arm/toolchain.mk
+@@ -114,6 +114,11 @@
+ ARCH_arm_COMPILEFLAGS += -mcpu=$(ARM_CPU)
+ ARCH_arm_COMPILEFLAGS_FLOAT += -mfpu=neon -mfloat-abi=softfp
+ endif
++# bolt-aarch32: no FPU/NEON on the target, so float modules get no FP unit either.
++ifeq ($(ARM_CPU),cortex-a55)
++ARCH_arm_COMPILEFLAGS += -mcpu=$(ARM_CPU) -mfpu=none
++ARCH_arm_COMPILEFLAGS_FLOAT += -mfpu=none
++endif
+ ifeq ($(ARM_CPU),arm1136j-s)
+ ARCH_arm_COMPILEFLAGS += -mcpu=$(ARM_CPU)
+ endif
+diff --git a/arch/arm/include/arch/defines.h b/arch/arm/include/arch/defines.h
+--- a/arch/arm/include/arch/defines.h
++++ b/arch/arm/include/arch/defines.h
+@@ -41,6 +41,8 @@
+ #define CACHE_LINE 32
+ #elif ARM_CPU_CORTEX_A15
+ #define CACHE_LINE 64
++#elif ARM_CPU_CORTEX_A55
++#define CACHE_LINE 64
+ #elif ARM_CPU_CORTEX_R4F
+ #define CACHE_LINE 64
+ #else
+diff --git a/arch/arm/include/arch/arm/cores.h b/arch/arm/include/arch/arm/cores.h
+--- a/arch/arm/include/arch/arm/cores.h
++++ b/arch/arm/include/arch/arm/cores.h
+@@ -34,7 +34,12 @@
+ #if defined(__ARM_ARCH_8R__)
+ #define ARM_ARCH_8R 1
+ #endif
+-#if defined(__ARM_ARCH_8A__) || defined(ARM_ARCH_8R)
++/* bolt-aarch32: clang names ARMv8.x-A (e.g. Cortex-A55, v8.2-A) as
++ * __ARM_ARCH_8_xA__ rather than __ARM_ARCH_8A__; treat every A-profile v8.x
++ * as ARMv8-A. */
++#if defined(__ARM_ARCH_8A__) || defined(ARM_ARCH_8R) || \
++    (defined(__ARM_ARCH) && __ARM_ARCH >= 8 && defined(__ARM_ARCH_PROFILE) && \
++     __ARM_ARCH_PROFILE == 'A')
+ #define ARM_ARCH_8A 1
+ #endif
+ #if defined(__ARM_ARCH_8__) || defined(ARM_ARCH_8A) || defined(ARM_ARCH_8M)
+diff --git a/platform/bcm28xx/rules.mk b/platform/bcm28xx/rules.mk
+--- a/platform/bcm28xx/rules.mk
++++ b/platform/bcm28xx/rules.mk
+@@ -68,7 +68,11 @@
+ 
+ else ifeq ($(TARGET),rpi4)
+ ARCH := arm
+-ARM_CPU := cortex-a15
++# bolt-aarch32: RPI4_ARM_CPU=cortex-a55 builds the image as the PoC target's
++# core (AArch32, ARMv8.2-A); the A72 executes the v8.0 subset of that code.
++# Default stays cortex-a15 so existing fixtures rebuild unchanged.
++RPI4_ARM_CPU ?= cortex-a15
++ARM_CPU := $(RPI4_ARM_CPU)
+ 
+ # The target platform (the real PoC target) is a multi-core Cortex-A55 with no
+ # FPU and no NEON -- match that here rather than validating a

@@ -46,7 +46,7 @@ Everything needed to continue is in this repo:
 - **Certified input image:** `fixtures/lk-rpi4-bolt-test-424606a8.elf`
   (see `fixtures/README.md`); the skip list is in
   `docs/results/lk_coverage_20261004_r6.json` (`skip_funcs`).
-- **Backend source:** overlays `overlay/llvm/patches/atfe/0001–0053`; the WSL
+- **Backend source:** overlays `overlay/llvm/patches/atfe/0001–0058`; the WSL
   live tree must replay them exactly (`scripts/verify-atfe-overlays.py`).
   Do not run `scripts/apply-overlays.sh` on the dirty live tree.
 - **Commands:**
@@ -112,7 +112,7 @@ T1 and T2 lead the resume order.
 
 | Holder | Since | Purpose |
 |---|---|---|
-| Claude | 2026-10-04 | T1: ARMv8-A AArch32 admission/decode (new overlay 0058) |
+| — (free) | 2026-10-04 | Released by Claude after overlay 0058 |
 
 ## Claims (consolidated TODO)
 
@@ -131,7 +131,7 @@ Take items in the order below; groups reflect dependencies, not ownership.
 
 | Order | ID | Item | Priority | Owner | Status | Part of | Notes |
 |---|---|---|---|---|---|---|---|
-| 2a | T1 | ARMv8-A AArch32 (Cortex-A55) admission and decode: accept v8-A build attributes, decode v8 AArch32 integer instructions (LDA/STL, LDAEX/STLEX, `dmb ishld`, `sevl`), keep rejecting FP/NEON; lit tests; Pi image built for v8-A AArch32, coverage + certified gate | P0 | Claude | In progress | 6b, 7, 11 | Target is A55; 0041 rejects `armv8a` today (must-reject test); A72 on the Pi executes v8 AArch32. **LK port change needed:** upstream `arch/arm` has no ARMv8 AArch32 `ARM_CPU` (only v7 and older) - add one (e.g. `cortex-a55`: v7-A-compatible defines, `ARM_WITH_HYP` for the Pi's Hyp entry, `-mcpu=cortex-a55` or `-march=armv8-a`, `-mfpu=none`, no NEON float flags) as an LK overlay patch, selectable for `rpi4-bolt-test`/`-edge`; verify the image only uses instructions the A72 (v8.0) implements. Pi loader/firmware: no change |
+| 2a | T1 | ARMv8-A AArch32 (Cortex-A55) admission and decode; v8-A Pi image, coverage and certified gate | P0 | Claude | Backend + LK done (0058, LK 0011); Pi-verified uncertified; contract pending user approval | 6b, 7, 11 | Image `lk-rpi4-bolt-test-a55-47c73bc0.elf`: 406/416 admitted, rewritten image 2x18 on the Pi; evidence `docs/results/t1_a55_20261004.json`. Build: `make rpi4-bolt-test RPI4_ARM_CPU=cortex-a55` |
 | 2b | T2 | SMP: run rewritten functions concurrently on all Pi cores (results + execution per core); decide SMP instrumentation contract (counters are LDREX/STREX; reset/snapshot quiescence) | P0 | — | Open | 9, 10 | Pi LK already runs `WITH_SMP` (4 cores, mailbox release); today only the boot core executes rewritten code. Change is app-level (bolt_bench/bolt_edge run cases on all cores, per-core sinks + PC evidence), not port or loader |
 | 3 | 6a | Every gate proves execution: close G1 (fixed-path intermediates), G2 (seal profile chain in QEMU certificate), G3 (contracts for QEMU LK builds) | P0 | — | Partial: G1/G2 done; QEMU route diagnostic (user), runs to instrumentation, then blocked by R15 | — | Pi sealed chain certified; G3 needs user review; 0054 ON/OFF builds and scoped Pi runs verified, remaining gate routes still open |
 | 4 | 6c | Legacy/manual hook admission | P0 | — | Partial | — | R9 done; includes R13 |
@@ -145,7 +145,7 @@ Take items in the order below; groups reflect dependencies, not ownership.
 | 7 | R8 | r12 clobbered by local-branch LongJmp stubs | P1 | — | Open | 13 | Liveness check or rejection |
 | 8 | R15 | Full-LK instrumentation blocked by `arch_spin_trylock` guard (false positive) | P1 | — | Open | exclusive guards (0038/0039) | Keep must-reject tests for real cross-function pairs |
 | 9 | R12 | ADR to an inline TBB/TBH table (`vsnprintf`) | P2 | — | Open | 12 | Last coverage item |
-| 10 | R13 | Redirect functions starting with a 16-bit instruction | P2 | — | Open | 6c | If not done under 6c |
+| 10 | R13 | Redirect functions starting with a 16-bit instruction | P1 | — | Open | 6c | If not done under 6c; raised to P1 by T1: in the A55 build 16 bolt_bench Thumb functions (incl. `bolt_bench_memcpy`) start with a 16-bit instruction |
 | 10a | R21 | A32 `-O0` load-then-jump tables (`add rB, pc, #k; ldr rX, [rB, rI, lsl #2]; mov pc, rX` / `bx rX`) still rejected as PC read | P2 | — | Open | 12 | Found by R17 after R18 (`c_switch_arm_o0`, `c_switch_marm_o0`); extend 0057's table model to a register jump |
 | 10b | T3 | Secure-SVC parity on the Pi: firmware stub that keeps LK in Secure SVC, then rerun the certified gates (rewriting is state-agnostic; PMU sampling is IRQ; no SMC calls) | P1 | — | Open (approved 2026-10-04; start after T1 and T2) | 9 | User go-ahead given for the PoC parity goal; start from the earlier Secure-SVC plan |
 | 10c | T4 | Performance and final validation on the real A55 target (A72 gains not transferable) | P2 | User | Out of scope here | — | Done by the user in the office environment, from this repo |
@@ -164,7 +164,7 @@ Take items in the order below; groups reflect dependencies, not ownership.
 | 17 | 10 | Sampling/PMU ownership | P1 | — | Open | |
 | 18 | 14 | Clean build/content provenance | P1 | — | Partial | Overlay replay only; ISA-aware no-FPU output scanning/metadata needed (0054 audit) |
 
-**Needs the user:** new oracle contracts (6b, T1 v8-A image).
+**Needs the user:** new oracle contracts (6b, T1 v8-A image `47c73bc0`).
 
 ### Done
 
@@ -218,6 +218,34 @@ plus genuine fallthrough such as `bzero`: about 98% of functions.
 4. Update the *Claims* table and LK_COVERAGE.md together.
 
 ## Handoff log
+
+### 2026-10-04 — Claude: T1 (ARMv8-A AArch32 / Cortex-A55) implemented; lock released
+
+- **LK (overlay/lk/patches/0011):** `ARM_CPU=cortex-a55` (v7-A-compatible LK
+  defines + `ARM_ISA_ARMv8`, `ARM_WITH_HYP`, `WITH_NO_FP`; `-mcpu=cortex-a55
+  -mfpu=none`, no FP for float modules); `cores.h` recognises clang's
+  `__ARM_ARCH_8_2A__`; rpi4 CPU selectable via `RPI4_ARM_CPU` (default stays
+  cortex-a15, so existing fixtures rebuild unchanged). Secondary-core count
+  uses LK's generic path (no A15 `L2CTLR`).
+- **Backend (overlay 0058):** admission accepts `Tag_CPU_arch` v8-A (v9 and
+  other profiles still rejected); decoding adds `v8.2a` (acquire/release,
+  perfmon; no FP/NEON); a v8 runtime library needs a v8 input. Tests: new
+  `arm-v8-aarch32.test` (A32+T32 `lda/stl/ldab/stlh/ldaex/stlex/sevl/dmb
+  ishld` preserved in moved functions, default and reversed layout),
+  `arm-isa-contract.test` now admits armv8a and checks v8-runtime/v8-input.
+  ARM lit 50/50; BOLT lit 744 passed + the known AArch64 failure; CoreTests
+  58; JITLink AArch32 15/15; 0001–0058 replay exactly (`6383f78d…`).
+- **Pi (A72):** A55-built LK `lk-rpi4-bolt-test-a55-47c73bc0.elf` boots, 18/18 sinks equal the
+  independent oracle. Admission 406/416 (same rejection classes as v7).
+  Rewritten image (400 emitted, 15 redirects) 2 × 18 on the Pi, 0
+  mismatches, no faults. ISA scan: only v8.0 instructions (`lda`, `stl`,
+  `stlex`), so the A72 runs it.
+- **Finding:** 16 bolt_bench Thumb functions, incl. `bolt_bench_memcpy`
+  (a certified-gate redirect), start with a 16-bit instruction in the A55
+  build → R13 raised to P1.
+- **Next:** user approval of a `pi4` contract for `47c73bc0`, then the
+  certified gate (redirect e.g. `bolt_bench_interwork` + `bolt_bench_spill_ret`,
+  since memcpy needs R13); then T2 (SMP). Lock free.
 
 ### 2026-10-04 — Claude: Secure SVC on the Pi approved (T3)
 
