@@ -1,0 +1,8528 @@
+{
+  "schema": 1,
+  "verified_at": "2026-10-04T14:51:45.967764+00:00",
+  "scope": "every active core: oracle-equal sinks (sequential and concurrent) on original and rewritten images; PC samples inside every required rewritten function on every core",
+  "input_sha256": "00d9c42dad3c48cc77e3c856e3f66f084379ff3963ebeca8475e7fcf55fc64a3",
+  "contract": "full-lk-rpi4-bolt-test-a55-marm-smp-20261004",
+  "manifest_sha256": "ef1cffe433bbc0e32fb2be2ec9dfcd71508e4ca66c17995cb2279bd5d991fa95",
+  "tool_sha256": {
+    "llvm-bolt": "226a472644d77caae5955d45040efa02b0b76f517205747d147924c5770e207c",
+    "llvm-objcopy": "f80e39c3121994c8b5baf3b9c2e586d4ffcd8da332e6c2c51b9f86fb482207de",
+    "llvm-readelf": "34ffb11d9ed81366c93817f462483e1d76b341c90d35f85895d5b768b0b974ac",
+    "llvm-nm": "73c4b2a3e9d39cbaa531208f78d0e29f20d74fe00dfc64da8848d1f9562ea791"
+  },
+  "bolt_options": [
+    "--no-huge-pages",
+    "-lite=0",
+    "-reorder-blocks=ext-tsp",
+    "-reorder-functions=hfsort+",
+    "-icf=all",
+    "-skip-funcs=arm_reset,arm_secondary_setup,arm_undefined,arm_syscall,arm_prefetch_abort,arm_data_abort,arm_irq,arm_fiq,bcopy,bzero,vsnprintf"
+  ],
+  "build_script_sha256": {
+    "scripts/pi4/full_image_build.py": "7d103abf40776f6d82cf95a1fd3496494e815a4031df149e38d3e7d66687625e",
+    "scripts/redirect-bolt-entries.py": "af4b10a1f48a690c46564c7429e9e3a38d0c14e3f652c0948aace9db9a45435e",
+    "scripts/fix-kernel-elf-sections.py": "ac234f4fd1fafe97ffbea75df4532cd3abd959ed6bbd14f7964eaed865187934",
+    "scripts/fix-kernel-elf-entry.py": "3c3a3d3643aa80cd9701c0a9ba701f0777a2e357485f4ec7900dc3e44bd15833",
+    "scripts/fix-kernel-elf-paddr.py": "76409f97c93f9c0a41301104d5da92461181ecdd37d637c24f1729503363fc96",
+    "scripts/profile_identity.py": "7e6fedf6de313a6029525f381e3d1c571656e922bd32bb14daa097c71ab79689"
+  },
+  "patch_sha256": {
+    "0001-emit-bolt-instr-tables-on-elf.patch": "49269895b37e21ee39d410a2717417b08bddb42974b5e99fba87636e227de16f",
+    "0002-tolerate-secondary-entrypoint-outside-code-section.patch": "2460f45fbe39ad520a591d37edf5925e74d7acc2e107e399ad87607e4dfab41d",
+    "0003-bolt-arm-elf32-and-target.patch": "cb2ed805a49b73c6122d4c6c0481c9703009689fa8873c4c3a06632af354d2f5",
+    "0004-bolt-arm-mcplusbuilder.patch": "d2025105313fefb9c7e304a6dda4df227e483cd4be93ab55902451949932bbb0",
+    "0005-bolt-arm-relocations.patch": "27b15ca9aaf28792ba9b98aaaf2edacc3f46a1e4730deee882e40a4698fe2800",
+    "0006-bolt-arm-rewrite-dispatch.patch": "825de9a51c22543e9c7d9a0cee01a526b4c5fb7e0d1b6b6be9171cea1287dba3",
+    "0007-bolt-arm-lit-tests.patch": "ae0e05384a0d24f6475f425f5cfb90fca98ca94c53d8d0487a151045b70c3d5a",
+    "0008-jitlink-arm-generic-archkind.patch": "7a30ef8fec31cda68bb63e128edecd75eb3bc0aad4141d0a2267e9e5abe3d8ff",
+    "0009-bolt-arm-longjmp-veneers.patch": "2950d0d2dddf856a83d84f45029f8c769b9832cdf10f99f486d50e7f12e7e379",
+    "0010-bolt-arm-instrumentation.patch": "1acf956dab22a687c2d53e1f0e6c49a439309957986644e8325234acb1b067a4",
+    "0011-bolt-arm-reverse-cbz.patch": "ddad8f56439d393eeb5ede2a158e3967540480be99f15425b6a64473caf7db15",
+    "0012-jitlink-arm-thumb-stub-alignment.patch": "15494da3e1e735474b84b39664b3acbadd9cdcc49b34f0a324372852fe6f267d",
+    "0013-bolt-emit-function-map.patch": "99d3c782f692bff0cfb4580d94c549e20ce664aa68eef6762cb5a2ca9282f397",
+    "0014-bolt-arm-literal-loads.patch": "8861406e0bfbd6bb6747adec762b22a85c5dfe87726c5dd4623a0d21acad1da8",
+    "0015-bolt-arm-unwind-rejection.patch": "ade687b385030923f6870345bfb287df44ff8e551749e6366b564383eee8ce54",
+    "0016-bolt-arm-data-fixup-width.patch": "2751b9ac14c11453f4f0cfe90477c157aba202280bac6b18103a6affda4dc568",
+    "0017-jitlink-arm-blx-stub-link.patch": "e50459022d2bf599c619c57ebca46035989cae1c1c5a912e617ca19a0c6b358a",
+    "0018-bolt-arm-pop-terminators.patch": "01722cd389cd657c60045bea3b7ded528e57343444aa58cc75602aee378cf6de",
+    "0019-deterministic-arm-stubs-and-alignment.patch": "179e2642d141217d73ab34a2170a59cdc868de47fb54f7d73afa4de77af530ec",
+    "0020-preserve-flags-in-cbz-long-branches.patch": "9b0923d9d680d3e8453fb755166809db921262ca32fdca577d26dc456b19c315",
+    "0021-preserve-thumb-entry-and-symbol-state.patch": "faaac1ec8a3b0a46fd1808a311b800500b60003175dcbe8d7c9950669f116ae2",
+    "0022-bolt-arm-thumb-jump19-split-functions.patch": "8d51bf51f92eaadb5b23e701c77179a65b17b68ca4705d3c898f96cc252958cd",
+    "0023-bolt-arm-generic-passes.patch": "cc93b6883bab0531ff041d43473128b16b4bb6ca70654c29496a3f0b48801806",
+    "0024-bolt-arm-inline-switch-tables.patch": "b1856915369978bf779613bab9ba40753cc39e52edf2258c55ef0cdf3d61d3a1",
+    "0025-bolt-arm-attributes-kept-code.patch": "72aaaa063316350a7a368b0bff5323febfc8ee161b5ccaba1974d246e36d60f5",
+    "0026-bolt-arm-full-width-counters.patch": "52743dc6e4a099df4b6a107537ae18807e3f9ca1ff068c1b715eebe6519c468e",
+    "0027-bolt-arm-terminal-it-branches.patch": "e9fb10d80d9ab3720bfb43b8a73f3dccfbbe4ff235efe52b14d61330150eaa30",
+    "0028-bolt-arm-instrumentation-contract.patch": "b203cacc72fcae4d3b83df4fc2d4c9c704a44f7b599ad0efc921b24bf5143703",
+    "0029-bolt-arm-pseudo-count-invariants.patch": "941bf3095f1d2080606c1b1c17a584e774d1c52e48b8aef08116ddd71eb85ba2",
+    "0030-bolt-arm-function-fallthrough.patch": "7b99d65e9c9abd569b7e55cb0af4461ea34355fb830575db9ad02a290bad43a9",
+    "0031-bolt-arm-self-move-flags.patch": "5388caa9e8d318682d001a9a52f88e010f2012fd99ee130bff10fc696d605ee0",
+    "0032-bolt-arm-inline-safety.patch": "4be51041d90091485bbd1110371d01de2ccaa9e8320f2eef7c879d938247bb70",
+    "0033-bolt-arm-pc-write-admission.patch": "717127d4b5298022246d70fd7647d7dc4d5600301cb73b485e303526e2b1dd96",
+    "0034-bolt-arm-inline-pass-tests.patch": "e9001fa210bb1656060cce70d661d5286e71c035e1b712f92756e6594ab1116c",
+    "0035-bolt-arm-exception-return-admission.patch": "a5fb2a2af1d8c1a79a88dbf67c70a6f11cec5d3a149af2ee448b629189e98609",
+    "0036-bolt-arm-conditional-return-instrumentation.patch": "0855669ab274d51c2d47e7910adbbb32fca38d3ae634a514252480fb2ba13de9",
+    "0037-bolt-arm-exclusive-instrumentation.patch": "2ead60639d5a3572b47901dbf67d6f0bb6e0e075768798b2115d05c8770ee602",
+    "0038-bolt-arm-cross-function-exclusive-reservations.patch": "21fe8aa4cceb0392131bef1a7e54ac27221b6eda369e1767665f5d2a6c72eba6",
+    "0039-bolt-arm-interior-exclusive-reservations.patch": "9960b704ba3cc5a96313c9fdd38bf5ab7416cd0943e3fbd7227728cbc5e713a2",
+    "0040-bolt-arm-instrumentation-startup.patch": "972fc766e581961659a2ad38d81af086f231fbfedac02c3969b2647a4ff9ef34",
+    "0041-bolt-arm-isa-abi-contract.patch": "c07a6d1d304b3b49051a1a1e6d08ed7eb9e6105507133e8c599e8a6833d3fa2e",
+    "0042-bolt-arm-fixed-load-contract.patch": "3b1308b69c9d775dd1f12deaa7a090ed07bdbed9645399e7c1d0cf43e19c416b",
+    "0043-bolt-arm-profile-source-identity.patch": "9eb4b60aad28cd052cff602bfaa59f51287eef8f53ac2eeee53b107aa770da17",
+    "0044-bolt-arm-thumb-far-stub-isa.patch": "7e401a3682e13e423c4f62246ba13cc868f441d9bfad64cc09da6a9f456f8a3b",
+    "0045-bolt-arm-pc-read-admission.patch": "a4a7c764b473977024e30f921b58c013e0a9f0fc965d3ed0f03c866d020c2dbe",
+    "0046-bolt-arm-external-branch-repatch.patch": "6ccc1a49c8a5b16af4d7aa8891ed14c87d3d673b7413b25068577f7558f3e223",
+    "0047-bolt-riscv64-relocation-dispatch.patch": "c3fce9dcc183f9c82b6c294fd9db8391e151c7a9dad80de400b89937405df713",
+    "0048-bolt-arm-patch-entries-isa.patch": "9acb8b922b50495a7fcb854820139837f200116024f68fd11dae5330535a3c4e",
+    "0049-bolt-arm-far-tail-call-stub.patch": "712826a14905ed55aedce1e52ab0d16724d38f9ecc4facd2040aa11106fa8cb7",
+    "0050-bolt-arm-isa-traps-and-nops.patch": "db2fcee830f74874cb13262232bf16463f28bac155d955e37c2d1387c7104f97",
+    "0051-bolt-arm-conditional-tail-calls.patch": "542f9963c424cc502d86425be5a54eec86d126e5cac416fbf0ccdc8690de0878",
+    "0052-bolt-arm-noreturn-calls.patch": "390245901cc275e6ca77ceda6f8f26ab6ccee4a5c7a5371dcbdff84a964a4ef7",
+    "0053-bolt-arm-predicated-returns-calls.patch": "97e0cb7e401fa2a812935fc1a2954b68e07129b6dd0a5165849fd25ab75c3460",
+    "0054-bolt-arm-admission-report.patch": "00a8585f9f49c0135d89c5c2c1d0c3332cbeaddfdbedb26cd68447ef918ab3ef",
+    "0055-bolt-arm-mov-lr-pc-call.patch": "bb8ff9d570b65aaa2c9e059943952bbb0d4b329c14bf62494bbeaafa9ef130d9",
+    "0056-bolt-arm-icf-specifier-exprs.patch": "b30081fed3f27e1c3177ae00da57ba1cb7850def0d938f67cc5bf51a91fa186f",
+    "0057-bolt-arm-ldr-pc-inline-tables.patch": "99911f7eed4e8399907cb67ac3d4286d0f98e8d92b620dcf5463f6d781f579c7",
+    "0058-bolt-arm-v8a-aarch32.patch": "296b16d3bccf6554ddf492702b556e2b24cf1c2b56b09ad1c5b29660ff059439",
+    "0059-bolt-arm-abandoned-reservation.patch": "0981aaa1044ec212ac6bcaee5deb42250d3166158bd2ed30c018d032b20e84fc"
+  },
+  "build_revision": "a23d00ac671ec121ec1dd96ad666bd6195273524",
+  "emitted_functions": [
+    {
+      "name": "_start",
+      "input": 2147516416,
+      "output": 2148376576,
+      "output_size": 4
+    },
+    {
+      "name": "platform_init_mmu_mappings",
+      "input": 2147517168,
+      "output": 2148376580,
+      "output_size": 2
+    },
+    {
+      "name": "bcm2711_gic_init/1",
+      "input": 2147517170,
+      "output": 2148376584,
+      "output_size": 12
+    },
+    {
+      "name": "platform_early_init",
+      "input": 2147517182,
+      "output": 2148376596,
+      "output_size": 422
+    },
+    {
+      "name": "platform_init",
+      "input": 2147517598,
+      "output": 2148377024,
+      "output_size": 4
+    },
+    {
+      "name": "platform_dputc",
+      "input": 2147517602,
+      "output": 2148377028,
+      "output_size": 28
+    },
+    {
+      "name": "platform_dgetc",
+      "input": 2147517630,
+      "output": 2148377056,
+      "output_size": 24
+    },
+    {
+      "name": "platform_halt",
+      "input": 2147517654,
+      "output": 2148377088,
+      "output_size": 20
+    },
+    {
+      "name": "bcm28xx_watchdog_reset/1",
+      "input": 2147517674,
+      "output": 2148377108,
+      "output_size": 48
+    },
+    {
+      "name": "bcm28xx_poweroff/1",
+      "input": 2147517720,
+      "output": 2148377156,
+      "output_size": 72
+    },
+    {
+      "name": "uart_init",
+      "input": 2147517790,
+      "output": 2148377228,
+      "output_size": 72
+    },
+    {
+      "name": "uart_irq/1",
+      "input": 2147517862,
+      "output": 2148377300,
+      "output_size": 72
+    },
+    {
+      "name": "uart_init_early",
+      "input": 2147517934,
+      "output": 2148377372,
+      "output_size": 16
+    },
+    {
+      "name": "uart_putc",
+      "input": 2147517950,
+      "output": 2148377408,
+      "output_size": 20
+    },
+    {
+      "name": "uart_getc",
+      "input": 2147517970,
+      "output": 2148377428,
+      "output_size": 48
+    },
+    {
+      "name": "uart_flush_tx",
+      "input": 2147518018,
+      "output": 2148377476,
+      "output_size": 26
+    },
+    {
+      "name": "dcc_worker_entry/1",
+      "input": 2147518042,
+      "output": 2148377536,
+      "output_size": 74
+    },
+    {
+      "name": "cmd_dcc/1",
+      "input": 2147518110,
+      "output": 2148377612,
+      "output_size": 474
+    },
+    {
+      "name": "dcc_rx_callback/1",
+      "input": 2147518560,
+      "output": 2148378112,
+      "output_size": 62
+    },
+    {
+      "name": "arm_syscall_handler",
+      "input": 2147518622,
+      "output": 2148378176,
+      "output_size": 38
+    },
+    {
+      "name": "arm_undefined_handler",
+      "input": 2147518660,
+      "output": 2148378240,
+      "output_size": 56
+    },
+    {
+      "name": "arm_data_abort_handler",
+      "input": 2147518716,
+      "output": 2148378304,
+      "output_size": 502
+    },
+    {
+      "name": "arm_prefetch_abort_handler",
+      "input": 2147519156,
+      "output": 2148378816,
+      "output_size": 294
+    },
+    {
+      "name": "dump_fault_frame/1",
+      "input": 2147519390,
+      "output": 2148379136,
+      "output_size": 158
+    },
+    {
+      "name": "dump_mode_regs/1",
+      "input": 2147519548,
+      "output": 2148379328,
+      "output_size": 376
+    },
+    {
+      "name": "dump_iframe/1",
+      "input": 2147519882,
+      "output": 2148379712,
+      "output_size": 82
+    },
+    {
+      "name": "arm_mmu_init",
+      "input": 2147519966,
+      "output": 2148379796,
+      "output_size": 194
+    },
+    {
+      "name": "arch_mmu_context_switch",
+      "input": 2147520148,
+      "output": 2148379992,
+      "output_size": 48
+    },
+    {
+      "name": "arch_mmu_query",
+      "input": 2147520192,
+      "output": 2148380040,
+      "output_size": 404
+    },
+    {
+      "name": "arch_mmu_map",
+      "input": 2147520568,
+      "output": 2148380444,
+      "output_size": 900
+    },
+    {
+      "name": "arch_mmu_unmap",
+      "input": 2147521420,
+      "output": 2148381376,
+      "output_size": 620
+    },
+    {
+      "name": "arch_mmu_init_aspace",
+      "input": 2147522020,
+      "output": 2148382016,
+      "output_size": 170
+    },
+    {
+      "name": "arch_mmu_destroy_aspace",
+      "input": 2147522188,
+      "output": 2148382208,
+      "output_size": 42
+    },
+    {
+      "name": "arch_mmu_supports_user_aspaces",
+      "input": 2147522230,
+      "output": 2148382252,
+      "output_size": 4
+    },
+    {
+      "name": "arch_thread_initialize",
+      "input": 2147522234,
+      "output": 2148382272,
+      "output_size": 44
+    },
+    {
+      "name": "initial_thread_func/1",
+      "input": 2147522278,
+      "output": 2148382336,
+      "output_size": 20
+    },
+    {
+      "name": "arch_context_switch",
+      "input": 2147522298,
+      "output": 2148382356,
+      "output_size": 14
+    },
+    {
+      "name": "arch_dump_thread",
+      "input": 2147522306,
+      "output": 2148382400,
+      "output_size": 42
+    },
+    {
+      "name": "spin_unlock/1",
+      "input": 2147522348,
+      "output": 2148382444,
+      "output_size": 18
+    },
+    {
+      "name": "arch_mp_send_ipi",
+      "input": 2147522360,
+      "output": 2148382464,
+      "output_size": 26
+    },
+    {
+      "name": "arm_ipi_generic_handler",
+      "input": 2147522386,
+      "output": 2148382492,
+      "output_size": 4
+    },
+    {
+      "name": "arm_ipi_reschedule_handler",
+      "input": 2147522390,
+      "output": 2148382496,
+      "output_size": 4
+    },
+    {
+      "name": "arch_mp_init_percpu",
+      "input": 2147522394,
+      "output": 2148382528,
+      "output_size": 38
+    },
+    {
+      "name": "arm_context_switch",
+      "input": 2147522432,
+      "output": 2148382592,
+      "output_size": 24
+    },
+    {
+      "name": "arm_save_mode_regs",
+      "input": 2147522456,
+      "output": 2148382616,
+      "output_size": 92
+    },
+    {
+      "name": "arm_chain_load",
+      "input": 2147522548,
+      "output": 2148382720,
+      "output_size": 40
+    },
+    {
+      "name": "arch_disable_cache",
+      "input": 2147522588,
+      "output": 2148382784,
+      "output_size": 104
+    },
+    {
+      "name": "arch_enable_cache",
+      "input": 2147522692,
+      "output": 2148382912,
+      "output_size": 400
+    },
+    {
+      "name": "arch_clean_cache_range",
+      "input": 2147523092,
+      "output": 2148383312,
+      "output_size": 36
+    },
+    {
+      "name": "arch_clean_invalidate_cache_range",
+      "input": 2147523128,
+      "output": 2148383360,
+      "output_size": 36
+    },
+    {
+      "name": "arch_invalidate_cache_range",
+      "input": 2147523164,
+      "output": 2148383424,
+      "output_size": 36
+    },
+    {
+      "name": "arch_sync_cache_range",
+      "input": 2147523200,
+      "output": 2148383460,
+      "output_size": 20
+    },
+    {
+      "name": "arch_spin_trylock",
+      "input": 2147523220,
+      "output": 2148383488,
+      "output_size": 28
+    },
+    {
+      "name": "arch_spin_lock",
+      "input": 2147523248,
+      "output": 2148383516,
+      "output_size": 36
+    },
+    {
+      "name": "arch_spin_unlock",
+      "input": 2147523284,
+      "output": 2148383552,
+      "output_size": 24
+    },
+    {
+      "name": "arch_idle",
+      "input": 2147523308,
+      "output": 2148383576,
+      "output_size": 8
+    },
+    {
+      "name": "arm_invalidate_tlb",
+      "input": 2147523316,
+      "output": 2148383584,
+      "output_size": 12
+    },
+    {
+      "name": "arm_reserved",
+      "input": 2147523592,
+      "output": 2148383596,
+      "output_size": 4
+    },
+    {
+      "name": "arch_early_init",
+      "input": 2147523772,
+      "output": 2148383616,
+      "output_size": 116
+    },
+    {
+      "name": "arm_basic_setup/1",
+      "input": 2147523888,
+      "output": 2148383744,
+      "output_size": 88
+    },
+    {
+      "name": "arch_init",
+      "input": 2147523976,
+      "output": 2148383832,
+      "output_size": 136
+    },
+    {
+      "name": "arm_secondary_entry",
+      "input": 2147524104,
+      "output": 2148384000,
+      "output_size": 112
+    },
+    {
+      "name": "arm_vtop",
+      "input": 2147524216,
+      "output": 2148384128,
+      "output_size": 84
+    },
+    {
+      "name": "panic",
+      "input": 2147524300,
+      "output": 2148384212,
+      "output_size": 40
+    },
+    {
+      "name": "assert_fail",
+      "input": 2147524340,
+      "output": 2148384256,
+      "output_size": 26
+    },
+    {
+      "name": "hexdump",
+      "input": 2147524366,
+      "output": 2148384284,
+      "output_size": 280
+    },
+    {
+      "name": "lk_init_level",
+      "input": 2147524638,
+      "output": 2148384576,
+      "output_size": 246
+    },
+    {
+      "name": "lk_main",
+      "input": 2147524868,
+      "output": 2148384832,
+      "output_size": 230
+    },
+    {
+      "name": "lk_primary_cpu_init_level/1",
+      "input": 2147525098,
+      "output": 2148385064,
+      "output_size": 10
+    },
+    {
+      "name": "call_constructors/1",
+      "input": 2147525108,
+      "output": 2148385088,
+      "output_size": 44
+    },
+    {
+      "name": "bootstrap2/1",
+      "input": 2147525152,
+      "output": 2148385152,
+      "output_size": 140
+    },
+    {
+      "name": "lk_secondary_cpu_entry_early",
+      "input": 2147525292,
+      "output": 2148385292,
+      "output_size": 22
+    },
+    {
+      "name": "lk_secondary_cpu_entry",
+      "input": 2147525314,
+      "output": 2148385344,
+      "output_size": 80
+    },
+    {
+      "name": "lk_init_secondary_cpus",
+      "input": 2147525394,
+      "output": 2148385424,
+      "output_size": 148
+    },
+    {
+      "name": "secondary_cpu_bootstrap_thread/1",
+      "input": 2147525534,
+      "output": 2148385572,
+      "output_size": 20
+    },
+    {
+      "name": "apps_init",
+      "input": 2147525554,
+      "output": 2148385600,
+      "output_size": 152
+    },
+    {
+      "name": "app_start_by_name",
+      "input": 2147525702,
+      "output": 2148385752,
+      "output_size": 176
+    },
+    {
+      "name": "app_thread_entry/1",
+      "input": 2147525870,
+      "output": 2148385928,
+      "output_size": 12
+    },
+    {
+      "name": "cmd_app/1",
+      "input": 2147525882,
+      "output": 2148385940,
+      "output_size": 200
+    },
+    {
+      "name": "cmd_start/1",
+      "input": 2147526072,
+      "output": 2148386140,
+      "output_size": 32
+    },
+    {
+      "name": "bolt_bench_hot_loop",
+      "input": 2147526104,
+      "output": 2148386176,
+      "output_size": 96
+    },
+    {
+      "name": "bolt_bench_hot_cold",
+      "input": 2147526200,
+      "output": 2148386304,
+      "output_size": 92
+    },
+    {
+      "name": "bolt_bench_branch_chain",
+      "input": 2147526292,
+      "output": 2148386396,
+      "output_size": 244
+    },
+    {
+      "name": "bolt_bench_far_target",
+      "input": 2147526536,
+      "output": 2148386640,
+      "output_size": 16
+    },
+    {
+      "name": "bolt_bench_far_call",
+      "input": 2147526552,
+      "output": 2148386688,
+      "output_size": 60
+    },
+    {
+      "name": "bolt_bench_it_cond",
+      "input": 2147526604,
+      "output": 2148386752,
+      "output_size": 148
+    },
+    {
+      "name": "bolt_bench_arm_callee/1",
+      "input": 2147526752,
+      "output": 2148386900,
+      "output_size": 8
+    },
+    {
+      "name": "bolt_bench_thumb_callee/1",
+      "input": 2147526760,
+      "output": 2148386908,
+      "output_size": 6
+    },
+    {
+      "name": "bolt_bench_interwork",
+      "input": 2147526768,
+      "output": 2148386944,
+      "output_size": 164
+    },
+    {
+      "name": "bolt_bench_switch",
+      "input": 2147526932,
+      "output": 2148387136,
+      "output_size": 124
+    },
+    {
+      "name": "bolt_bench_switch_pick/1",
+      "input": 2147527056,
+      "output": 2148387264,
+      "output_size": 152
+    },
+    {
+      "name": "bolt_bench_spill_ret",
+      "input": 2147527172,
+      "output": 2148387416,
+      "output_size": 164
+    },
+    {
+      "name": "bolt_bench_spill_helper/1",
+      "input": 2147527336,
+      "output": 2148387584,
+      "output_size": 16
+    },
+    {
+      "name": "bolt_bench_litpool",
+      "input": 2147527352,
+      "output": 2148387600,
+      "output_size": 156
+    },
+    {
+      "name": "bolt_bench_memcpy",
+      "input": 2147527512,
+      "output": 2148387776,
+      "output_size": 272
+    },
+    {
+      "name": "bolt_bench_ind_thumb_target/1",
+      "input": 2147527784,
+      "output": 2148388048,
+      "output_size": 4
+    },
+    {
+      "name": "bolt_bench_ind_arm_target/1",
+      "input": 2147527788,
+      "output": 2148388052,
+      "output_size": 12
+    },
+    {
+      "name": "bolt_bench_indirect_call",
+      "input": 2147527800,
+      "output": 2148388096,
+      "output_size": 176
+    },
+    {
+      "name": "bolt_bench_tail_arm_callee/1",
+      "input": 2147527976,
+      "output": 2148388288,
+      "output_size": 16
+    },
+    {
+      "name": "bolt_bench_interwork_tail",
+      "input": 2147527992,
+      "output": 2148388304,
+      "output_size": 120
+    },
+    {
+      "name": "bolt_bench_tail_thumb_caller/1",
+      "input": 2147528112,
+      "output": 2148388424,
+      "output_size": 10
+    },
+    {
+      "name": "bolt_bench_regpressure",
+      "input": 2147528116,
+      "output": 2148388436,
+      "output_size": 120
+    },
+    {
+      "name": "bolt_bench_regpressure_calc/1",
+      "input": 2147528236,
+      "output": 2148388556,
+      "output_size": 116
+    },
+    {
+      "name": "bolt_bench_hotcold_split",
+      "input": 2147528352,
+      "output": 2148388672,
+      "output_size": 160
+    },
+    {
+      "name": "bolt_bench_cold_path/1",
+      "input": 2147528512,
+      "output": 2148388864,
+      "output_size": 320
+    },
+    {
+      "name": "bolt_bench_icf_a",
+      "input": 2147528832,
+      "output": 2148389184,
+      "output_size": 28
+    },
+    {
+      "name": "bolt_bench_icf",
+      "input": 2147528888,
+      "output": 2148389212,
+      "output_size": 132
+    },
+    {
+      "name": "bolt_bench_shrinkwrap",
+      "input": 2147529020,
+      "output": 2148389376,
+      "output_size": 196
+    },
+    {
+      "name": "bolt_bench_composite",
+      "input": 2147529216,
+      "output": 2148389572,
+      "output_size": 624
+    },
+    {
+      "name": "bolt_pmu_report/1",
+      "input": 2147529840,
+      "output": 2148390208,
+      "output_size": 384
+    },
+    {
+      "name": "bolt_bench_stair_kernel",
+      "input": 2147530216,
+      "output": 2148390592,
+      "output_size": 23008
+    },
+    {
+      "name": "bolt_bench_stair",
+      "input": 2147553224,
+      "output": 2148413632,
+      "output_size": 820
+    },
+    {
+      "name": "bolt_bench_pgo_lab",
+      "input": 2147554044,
+      "output": 2148414464,
+      "output_size": 276
+    },
+    {
+      "name": "pl_run/1",
+      "input": 2147554320,
+      "output": 2148414740,
+      "output_size": 628
+    },
+    {
+      "name": "pl_a/1",
+      "input": 2147554948,
+      "output": 2148415368,
+      "output_size": 180
+    },
+    {
+      "name": "pl_b/1",
+      "input": 2147555128,
+      "output": 2148415552,
+      "output_size": 696
+    },
+    {
+      "name": "pl_c/1",
+      "input": 2147555760,
+      "output": 2148416256,
+      "output_size": 396
+    },
+    {
+      "name": "pl_d/1",
+      "input": 2147556156,
+      "output": 2148416652,
+      "output_size": 160
+    },
+    {
+      "name": "bolt_bench_mf0",
+      "input": 2147565568,
+      "output": 2148416832,
+      "output_size": 7072
+    },
+    {
+      "name": "bolt_bench_mf1",
+      "input": 2147581952,
+      "output": 2148423936,
+      "output_size": 7132
+    },
+    {
+      "name": "bolt_bench_mf2",
+      "input": 2147598336,
+      "output": 2148431068,
+      "output_size": 7132
+    },
+    {
+      "name": "bolt_bench_mf3",
+      "input": 2147614720,
+      "output": 2148438208,
+      "output_size": 7072
+    },
+    {
+      "name": "bolt_bench_mf4",
+      "input": 2147631104,
+      "output": 2148445312,
+      "output_size": 7132
+    },
+    {
+      "name": "bolt_bench_mf5",
+      "input": 2147647488,
+      "output": 2148452444,
+      "output_size": 11028
+    },
+    {
+      "name": "bolt_bench_multi",
+      "input": 2147658516,
+      "output": 2148463488,
+      "output_size": 716
+    },
+    {
+      "name": "bolt_sample_on_irq",
+      "input": 2147659232,
+      "output": 2148464204,
+      "output_size": 288
+    },
+    {
+      "name": "bolt_bench_app_entry/1",
+      "input": 2147659520,
+      "output": 2148464512,
+      "output_size": 84
+    },
+    {
+      "name": "bolt_pmu_init_this_cpu/1",
+      "input": 2147659604,
+      "output": 2148464596,
+      "output_size": 168
+    },
+    {
+      "name": "pl_mix/1",
+      "input": 2147659772,
+      "output": 2148464768,
+      "output_size": 408
+    },
+    {
+      "name": "pl_rare/1",
+      "input": 2147660180,
+      "output": 2148465176,
+      "output_size": 104
+    },
+    {
+      "name": "bolt_bench_cmd/1",
+      "input": 2147660284,
+      "output": 2148465280,
+      "output_size": 2544
+    },
+    {
+      "name": "bolt_dump_cmd/1",
+      "input": 2147662828,
+      "output": 2148467840,
+      "output_size": 308
+    },
+    {
+      "name": "wdog_cmd/1",
+      "input": 2147663136,
+      "output": 2148468160,
+      "output_size": 332
+    },
+    {
+      "name": "sample_cmd/1",
+      "input": 2147663468,
+      "output": 2148468492,
+      "output_size": 1156
+    },
+    {
+      "name": "run_one/1",
+      "input": 2147664624,
+      "output": 2148469648,
+      "output_size": 1300
+    },
+    {
+      "name": "smp_seq_thread/1",
+      "input": 2147665908,
+      "output": 2148470976,
+      "output_size": 76
+    },
+    {
+      "name": "smp_conc_thread/1",
+      "input": 2147665984,
+      "output": 2148471052,
+      "output_size": 316
+    },
+    {
+      "name": "pp_kernel/1",
+      "input": 2147666300,
+      "output": 2148471368,
+      "output_size": 128
+    },
+    {
+      "name": "pp_leaf/1",
+      "input": 2147666428,
+      "output": 2148471496,
+      "output_size": 12
+    },
+    {
+      "name": "wdog_tick/1",
+      "input": 2147666440,
+      "output": 2148471508,
+      "output_size": 100
+    },
+    {
+      "name": "sample_arm_this_cpu/1",
+      "input": 2147666540,
+      "output": 2148471616,
+      "output_size": 56
+    },
+    {
+      "name": "sample_disarm_this_cpu/1",
+      "input": 2147666596,
+      "output": 2148471680,
+      "output_size": 24
+    },
+    {
+      "name": "composite_process",
+      "input": 2147666620,
+      "output": 2148471704,
+      "output_size": 24
+    },
+    {
+      "name": "composite_report_cold",
+      "input": 2147666644,
+      "output": 2148471744,
+      "output_size": 24
+    },
+    {
+      "name": "bolt_bench_stair_init",
+      "input": 2147666660,
+      "output": 2148471768,
+      "output_size": 44
+    },
+    {
+      "name": "bolt_bench_stair_step",
+      "input": 2147666704,
+      "output": 2148471812,
+      "output_size": 288
+    },
+    {
+      "name": "shell_entry/1",
+      "input": 2147666992,
+      "output": 2148472128,
+      "output_size": 168
+    },
+    {
+      "name": "get_int_handler",
+      "input": 2147667148,
+      "output": 2148472320,
+      "output_size": 40
+    },
+    {
+      "name": "register_int_handler",
+      "input": 2147667188,
+      "output": 2148472384,
+      "output_size": 198
+    },
+    {
+      "name": "gic_set_enable/1",
+      "input": 2147667380,
+      "output": 2148472584,
+      "output_size": 194
+    },
+    {
+      "name": "arm_gic_init_percpu/1",
+      "input": 2147667558,
+      "output": 2148472780,
+      "output_size": 26
+    },
+    {
+      "name": "arm_gic_suspend_cpu/1",
+      "input": 2147667580,
+      "output": 2148472832,
+      "output_size": 26
+    },
+    {
+      "name": "arm_gic_resume_cpu/1",
+      "input": 2147667606,
+      "output": 2148472860,
+      "output_size": 270
+    },
+    {
+      "name": "gic_configure_interrupt",
+      "input": 2147667864,
+      "output": 2148473152,
+      "output_size": 92
+    },
+    {
+      "name": "arm_gic_init_map",
+      "input": 2147667956,
+      "output": 2148473244,
+      "output_size": 434
+    },
+    {
+      "name": "arm_gic_sgi",
+      "input": 2147668368,
+      "output": 2148473680,
+      "output_size": 36
+    },
+    {
+      "name": "unmask_interrupt",
+      "input": 2147668400,
+      "output": 2148473728,
+      "output_size": 68
+    },
+    {
+      "name": "platform_irq",
+      "input": 2147668464,
+      "output": 2148473796,
+      "output_size": 26
+    },
+    {
+      "name": "platform_fiq",
+      "input": 2147668486,
+      "output": 2148473824,
+      "output_size": 26
+    },
+    {
+      "name": "arm_gicv2_init_percpu",
+      "input": 2147668508,
+      "output": 2148473856,
+      "output_size": 24
+    },
+    {
+      "name": "arm_gicv2_init",
+      "input": 2147668532,
+      "output": 2148473880,
+      "output_size": 302
+    },
+    {
+      "name": "arm_gicv2_sgi",
+      "input": 2147668830,
+      "output": 2148474184,
+      "output_size": 34
+    },
+    {
+      "name": "arm_gicv2_platform_irq",
+      "input": 2147668864,
+      "output": 2148474240,
+      "output_size": 108
+    },
+    {
+      "name": "arm_gicv2_platform_fiq",
+      "input": 2147668966,
+      "output": 2148474368,
+      "output_size": 22
+    },
+    {
+      "name": "arm_gicv3_wait_for_write_complete",
+      "input": 2147668988,
+      "output": 2148474392,
+      "output_size": 18
+    },
+    {
+      "name": "arm_gicv3_init",
+      "input": 2147669006,
+      "output": 2148474432,
+      "output_size": 322
+    },
+    {
+      "name": "arm_gicv3_init_percpu",
+      "input": 2147669328,
+      "output": 2148474756,
+      "output_size": 396
+    },
+    {
+      "name": "arm_gicv3_configure_irq_locked",
+      "input": 2147669714,
+      "output": 2148475152,
+      "output_size": 278
+    },
+    {
+      "name": "arm_gicv3_suspend_cpu",
+      "input": 2147669990,
+      "output": 2148475456,
+      "output_size": 228
+    },
+    {
+      "name": "arm_gicv3_resume_cpu_locked",
+      "input": 2147670214,
+      "output": 2148475712,
+      "output_size": 246
+    },
+    {
+      "name": "arm_gicv3_sgi",
+      "input": 2147670460,
+      "output": 2148475968,
+      "output_size": 140
+    },
+    {
+      "name": "arm_gicv3_platform_irq",
+      "input": 2147670596,
+      "output": 2148476108,
+      "output_size": 90
+    },
+    {
+      "name": "arm_gicv3_platform_fiq",
+      "input": 2147670680,
+      "output": 2148476224,
+      "output_size": 24
+    },
+    {
+      "name": "platform_set_oneshot_timer",
+      "input": 2147670704,
+      "output": 2148476248,
+      "output_size": 138
+    },
+    {
+      "name": "platform_stop_timer",
+      "input": 2147670836,
+      "output": 2148476388,
+      "output_size": 12
+    },
+    {
+      "name": "current_time_hires",
+      "input": 2147670848,
+      "output": 2148476416,
+      "output_size": 88
+    },
+    {
+      "name": "current_time",
+      "input": 2147670936,
+      "output": 2148476504,
+      "output_size": 54
+    },
+    {
+      "name": "arm_generic_timer_init",
+      "input": 2147670990,
+      "output": 2148476560,
+      "output_size": 3068
+    },
+    {
+      "name": "arm_generic_timer_init_postvm/1",
+      "input": 2147674048,
+      "output": 2148479628,
+      "output_size": 56
+    },
+    {
+      "name": "arm_generic_timer_init_secondary_cpu/1",
+      "input": 2147674104,
+      "output": 2148479684,
+      "output_size": 36
+    },
+    {
+      "name": "arm_generic_timer_resume_cpu/1",
+      "input": 2147674140,
+      "output": 2148479720,
+      "output_size": 22
+    },
+    {
+      "name": "platform_tick/1",
+      "input": 2147674162,
+      "output": 2148479744,
+      "output_size": 88
+    },
+    {
+      "name": "cmd_threads/1",
+      "input": 2147674250,
+      "output": 2148479832,
+      "output_size": 22
+    },
+    {
+      "name": "cmd_threads_panic/1",
+      "input": 2147674272,
+      "output": 2148479872,
+      "output_size": 22
+    },
+    {
+      "name": "cmd_threadstats/1",
+      "input": 2147674294,
+      "output": 2148479896,
+      "output_size": 260
+    },
+    {
+      "name": "cmd_threadload/1",
+      "input": 2147674550,
+      "output": 2148480156,
+      "output_size": 78
+    },
+    {
+      "name": "threadload/1",
+      "input": 2147674622,
+      "output": 2148480256,
+      "output_size": 338
+    },
+    {
+      "name": "event_init",
+      "input": 2147674956,
+      "output": 2148480596,
+      "output_size": 42
+    },
+    {
+      "name": "event_wait_timeout",
+      "input": 2147674998,
+      "output": 2148480640,
+      "output_size": 124
+    },
+    {
+      "name": "event_signal",
+      "input": 2147675116,
+      "output": 2148480768,
+      "output_size": 158
+    },
+    {
+      "name": "event_unsignal",
+      "input": 2147675266,
+      "output": 2148480960,
+      "output_size": 46
+    },
+    {
+      "name": "kernel_init_early",
+      "input": 2147675312,
+      "output": 2148481008,
+      "output_size": 4
+    },
+    {
+      "name": "kernel_init",
+      "input": 2147675316,
+      "output": 2148481024,
+      "output_size": 70
+    },
+    {
+      "name": "mutex_threading_ready_init_func/1",
+      "input": 2147675386,
+      "output": 2148481096,
+      "output_size": 14
+    },
+    {
+      "name": "mutex_init",
+      "input": 2147675400,
+      "output": 2148481112,
+      "output_size": 38
+    },
+    {
+      "name": "mutex_acquire_timeout",
+      "input": 2147675438,
+      "output": 2148481152,
+      "output_size": 226
+    },
+    {
+      "name": "mutex_release",
+      "input": 2147675662,
+      "output": 2148481408,
+      "output_size": 176
+    },
+    {
+      "name": "thread_create_etc",
+      "input": 2147675836,
+      "output": 2148481600,
+      "output_size": 314
+    },
+    {
+      "name": "thread_create",
+      "input": 2147676136,
+      "output": 2148481920,
+      "output_size": 34
+    },
+    {
+      "name": "thread_resume",
+      "input": 2147676170,
+      "output": 2148481984,
+      "output_size": 228
+    },
+    {
+      "name": "insert_in_run_queue_head/1",
+      "input": 2147676388,
+      "output": 2148482240,
+      "output_size": 226
+    },
+    {
+      "name": "thread_yield",
+      "input": 2147676614,
+      "output": 2148482496,
+      "output_size": 174
+    },
+    {
+      "name": "thread_detach_and_resume",
+      "input": 2147676788,
+      "output": 2148482688,
+      "output_size": 26
+    },
+    {
+      "name": "thread_detach",
+      "input": 2147676814,
+      "output": 2148482716,
+      "output_size": 152
+    },
+    {
+      "name": "thread_join",
+      "input": 2147676966,
+      "output": 2148482880,
+      "output_size": 374
+    },
+    {
+      "name": "wait_queue_block",
+      "input": 2147677334,
+      "output": 2148483264,
+      "output_size": 248
+    },
+    {
+      "name": "wait_queue_wake_all",
+      "input": 2147677580,
+      "output": 2148483520,
+      "output_size": 350
+    },
+    {
+      "name": "thread_exit",
+      "input": 2147677920,
+      "output": 2148483904,
+      "output_size": 222
+    },
+    {
+      "name": "thread_resched/1",
+      "input": 2147678136,
+      "output": 2148484160,
+      "output_size": 692
+    },
+    {
+      "name": "insert_in_run_queue_tail/1",
+      "input": 2147678814,
+      "output": 2148484864,
+      "output_size": 228
+    },
+    {
+      "name": "thread_preempt",
+      "input": 2147679042,
+      "output": 2148485120,
+      "output_size": 194
+    },
+    {
+      "name": "thread_timer_tick",
+      "input": 2147679234,
+      "output": 2148485316,
+      "output_size": 32
+    },
+    {
+      "name": "thread_sleep",
+      "input": 2147679266,
+      "output": 2148485376,
+      "output_size": 228
+    },
+    {
+      "name": "thread_sleep_handler/1",
+      "input": 2147679494,
+      "output": 2148485632,
+      "output_size": 152
+    },
+    {
+      "name": "thread_init_early",
+      "input": 2147679646,
+      "output": 2148485784,
+      "output_size": 422
+    },
+    {
+      "name": "thread_init",
+      "input": 2147680068,
+      "output": 2148486208,
+      "output_size": 44
+    },
+    {
+      "name": "thread_set_name",
+      "input": 2147680112,
+      "output": 2148486252,
+      "output_size": 14
+    },
+    {
+      "name": "thread_become_idle",
+      "input": 2147680126,
+      "output": 2148486272,
+      "output_size": 130
+    },
+    {
+      "name": "idle_thread_routine/1",
+      "input": 2147680256,
+      "output": 2148486404,
+      "output_size": 8
+    },
+    {
+      "name": "thread_secondary_cpu_init_early",
+      "input": 2147680262,
+      "output": 2148486412,
+      "output_size": 106
+    },
+    {
+      "name": "thread_create_secondary_cpu_idle_thread",
+      "input": 2147680368,
+      "output": 2148486528,
+      "output_size": 188
+    },
+    {
+      "name": "thread_secondary_cpu_entry",
+      "input": 2147680556,
+      "output": 2148486720,
+      "output_size": 94
+    },
+    {
+      "name": "arch_thread_get_backtrace_regs",
+      "input": 2147680646,
+      "output": 2148486816,
+      "output_size": 4
+    },
+    {
+      "name": "dump_thread",
+      "input": 2147680650,
+      "output": 2148486848,
+      "output_size": 194
+    },
+    {
+      "name": "dump_all_threads_unlocked",
+      "input": 2147680838,
+      "output": 2148487044,
+      "output_size": 78
+    },
+    {
+      "name": "dump_all_threads",
+      "input": 2147680916,
+      "output": 2148487124,
+      "output_size": 120
+    },
+    {
+      "name": "dump_threads_stats",
+      "input": 2147681034,
+      "output": 2148487244,
+      "output_size": 258
+    },
+    {
+      "name": "wait_queue_timeout_handler/1",
+      "input": 2147681288,
+      "output": 2148487504,
+      "output_size": 80
+    },
+    {
+      "name": "wait_queue_wake_one",
+      "input": 2147681368,
+      "output": 2148487616,
+      "output_size": 296
+    },
+    {
+      "name": "thread_unblock_from_wait_queue",
+      "input": 2147681654,
+      "output": 2148487936,
+      "output_size": 290
+    },
+    {
+      "name": "timer_initialize",
+      "input": 2147681942,
+      "output": 2148488228,
+      "output_size": 26
+    },
+    {
+      "name": "timer_set_oneshot",
+      "input": 2147681968,
+      "output": 2148488256,
+      "output_size": 26
+    },
+    {
+      "name": "timer_set/1",
+      "input": 2147681994,
+      "output": 2148488284,
+      "output_size": 274
+    },
+    {
+      "name": "timer_set_periodic",
+      "input": 2147682262,
+      "output": 2148488576,
+      "output_size": 26
+    },
+    {
+      "name": "timer_cancel",
+      "input": 2147682288,
+      "output": 2148488604,
+      "output_size": 202
+    },
+    {
+      "name": "timer_tick/1",
+      "input": 2147682488,
+      "output": 2148488832,
+      "output_size": 414
+    },
+    {
+      "name": "timer_init",
+      "input": 2147682882,
+      "output": 2148489280,
+      "output_size": 50
+    },
+    {
+      "name": "insert_timer_in_queue/1",
+      "input": 2147682932,
+      "output": 2148489344,
+      "output_size": 100
+    },
+    {
+      "name": "mp_init",
+      "input": 2147683032,
+      "output": 2148489472,
+      "output_size": 38
+    },
+    {
+      "name": "mp_reschedule",
+      "input": 2147683070,
+      "output": 2148489536,
+      "output_size": 100
+    },
+    {
+      "name": "mp_set_curr_cpu_active",
+      "input": 2147683160,
+      "output": 2148489664,
+      "output_size": 70
+    },
+    {
+      "name": "mp_sync_exec",
+      "input": 2147683224,
+      "output": 2148489736,
+      "output_size": 356
+    },
+    {
+      "name": "mp_mbx_generic_irq",
+      "input": 2147683570,
+      "output": 2148490112,
+      "output_size": 150
+    },
+    {
+      "name": "mp_mbx_reschedule_irq",
+      "input": 2147683720,
+      "output": 2148490264,
+      "output_size": 56
+    },
+    {
+      "name": "port_init",
+      "input": 2147683776,
+      "output": 2148490320,
+      "output_size": 14
+    },
+    {
+      "name": "cbuf_initialize",
+      "input": 2147683790,
+      "output": 2148490336,
+      "output_size": 26
+    },
+    {
+      "name": "cbuf_initialize_etc",
+      "input": 2147683816,
+      "output": 2148490368,
+      "output_size": 150
+    },
+    {
+      "name": "cbuf_write_char",
+      "input": 2147683954,
+      "output": 2148490520,
+      "output_size": 158
+    },
+    {
+      "name": "cbuf_read_char",
+      "input": 2147684110,
+      "output": 2148490688,
+      "output_size": 192
+    },
+    {
+      "name": "fdt_ro_probe_",
+      "input": 2147684292,
+      "output": 2148490880,
+      "output_size": 126
+    },
+    {
+      "name": "fdt_check_header",
+      "input": 2147684416,
+      "output": 2148491008,
+      "output_size": 254
+    },
+    {
+      "name": "fdt_offset_ptr",
+      "input": 2147684654,
+      "output": 2148491264,
+      "output_size": 100
+    },
+    {
+      "name": "fdt_next_tag",
+      "input": 2147684752,
+      "output": 2148491392,
+      "output_size": 234
+    },
+    {
+      "name": "fdt_check_node_offset_",
+      "input": 2147684952,
+      "output": 2148491648,
+      "output_size": 38
+    },
+    {
+      "name": "fdt_check_prop_offset_",
+      "input": 2147684990,
+      "output": 2148491712,
+      "output_size": 38
+    },
+    {
+      "name": "fdt_next_node",
+      "input": 2147685028,
+      "output": 2148491776,
+      "output_size": 144
+    },
+    {
+      "name": "fdt_address_cells",
+      "input": 2147685162,
+      "output": 2148491920,
+      "output_size": 64
+    },
+    {
+      "name": "fdt_size_cells",
+      "input": 2147685218,
+      "output": 2148491984,
+      "output_size": 66
+    },
+    {
+      "name": "fdt_get_string",
+      "input": 2147685280,
+      "output": 2148492052,
+      "output_size": 172
+    },
+    {
+      "name": "fdt_get_name",
+      "input": 2147685442,
+      "output": 2148492224,
+      "output_size": 138
+    },
+    {
+      "name": "fdt_get_property_namelen_/1",
+      "input": 2147685574,
+      "output": 2148492364,
+      "output_size": 286
+    },
+    {
+      "name": "fdt_getprop",
+      "input": 2147685842,
+      "output": 2148492672,
+      "output_size": 84
+    },
+    {
+      "name": "platform_halt_default",
+      "input": 2147685926,
+      "output": 2148492756,
+      "output_size": 106
+    },
+    {
+      "name": "cmd_reboot/1",
+      "input": 2147686020,
+      "output": 2148492864,
+      "output_size": 8
+    },
+    {
+      "name": "cmd_poweroff/1",
+      "input": 2147686028,
+      "output": 2148492872,
+      "output_size": 8
+    },
+    {
+      "name": "boot_alloc_mem",
+      "input": 2147686040,
+      "output": 2148492880,
+      "output_size": 28
+    },
+    {
+      "name": "vm_page_to_paddr",
+      "input": 2147686068,
+      "output": 2148492928,
+      "output_size": 78
+    },
+    {
+      "name": "paddr_to_vm_page",
+      "input": 2147686144,
+      "output": 2148493008,
+      "output_size": 58
+    },
+    {
+      "name": "pmm_add_arena",
+      "input": 2147686200,
+      "output": 2148493068,
+      "output_size": 214
+    },
+    {
+      "name": "pmm_alloc_pages",
+      "input": 2147686412,
+      "output": 2148493312,
+      "output_size": 148
+    },
+    {
+      "name": "pmm_alloc_page",
+      "input": 2147686550,
+      "output": 2148493460,
+      "output_size": 174
+    },
+    {
+      "name": "pmm_alloc_range",
+      "input": 2147686710,
+      "output": 2148493636,
+      "output_size": 254
+    },
+    {
+      "name": "pmm_free",
+      "input": 2147686958,
+      "output": 2148493892,
+      "output_size": 182
+    },
+    {
+      "name": "pmm_free_page",
+      "input": 2147687134,
+      "output": 2148494080,
+      "output_size": 24
+    },
+    {
+      "name": "pmm_alloc_kpages",
+      "input": 2147687158,
+      "output": 2148494104,
+      "output_size": 138
+    },
+    {
+      "name": "pmm_alloc_contiguous",
+      "input": 2147687284,
+      "output": 2148494272,
+      "output_size": 424
+    },
+    {
+      "name": "pmm_free_kpages",
+      "input": 2147687698,
+      "output": 2148494720,
+      "output_size": 118
+    },
+    {
+      "name": "cmd_pmm/1",
+      "input": 2147687806,
+      "output": 2148494848,
+      "output_size": 1336
+    },
+    {
+      "name": "paddr_to_kvaddr",
+      "input": 2147689098,
+      "output": 2148496192,
+      "output_size": 70
+    },
+    {
+      "name": "vaddr_to_paddr",
+      "input": 2147689158,
+      "output": 2148496264,
+      "output_size": 78
+    },
+    {
+      "name": "vm_init_preheap/1",
+      "input": 2147689230,
+      "output": 2148496344,
+      "output_size": 266
+    },
+    {
+      "name": "vm_init_postheap/1",
+      "input": 2147689488,
+      "output": 2148496640,
+      "output_size": 78
+    },
+    {
+      "name": "cmd_vm/1",
+      "input": 2147689558,
+      "output": 2148496720,
+      "output_size": 570
+    },
+    {
+      "name": "vmm_init_preheap",
+      "input": 2147690082,
+      "output": 2148497292,
+      "output_size": 84
+    },
+    {
+      "name": "arch_mmu_pick_spot",
+      "input": 2147690168,
+      "output": 2148497376,
+      "output_size": 12
+    },
+    {
+      "name": "vmm_reserve_space",
+      "input": 2147690180,
+      "output": 2148497408,
+      "output_size": 232
+    },
+    {
+      "name": "alloc_region/1",
+      "input": 2147690412,
+      "output": 2148497664,
+      "output_size": 542
+    },
+    {
+      "name": "vmm_alloc_physical",
+      "input": 2147690932,
+      "output": 2148498240,
+      "output_size": 334
+    },
+    {
+      "name": "vmm_remove_region_locked/1",
+      "input": 2147691248,
+      "output": 2148498576,
+      "output_size": 192
+    },
+    {
+      "name": "vmm_alloc_contiguous",
+      "input": 2147691432,
+      "output": 2148498768,
+      "output_size": 400
+    },
+    {
+      "name": "vmm_alloc",
+      "input": 2147691822,
+      "output": 2148499200,
+      "output_size": 550
+    },
+    {
+      "name": "vmm_free_region",
+      "input": 2147692370,
+      "output": 2148499776,
+      "output_size": 130
+    },
+    {
+      "name": "vmm_create_aspace",
+      "input": 2147692492,
+      "output": 2148499908,
+      "output_size": 210
+    },
+    {
+      "name": "vmm_free_aspace",
+      "input": 2147692700,
+      "output": 2148500120,
+      "output_size": 294
+    },
+    {
+      "name": "vmm_context_switch",
+      "input": 2147692992,
+      "output": 2148500416,
+      "output_size": 58
+    },
+    {
+      "name": "cmd_vmm/1",
+      "input": 2147693046,
+      "output": 2148500480,
+      "output_size": 922
+    },
+    {
+      "name": "cmdline_cmd_show/1",
+      "input": 2147693950,
+      "output": 2148501404,
+      "output_size": 106
+    },
+    {
+      "name": "cmdline_cmd_present/1",
+      "input": 2147694052,
+      "output": 2148501512,
+      "output_size": 116
+    },
+    {
+      "name": "cmdline_cmd_value/1",
+      "input": 2147694164,
+      "output": 2148501632,
+      "output_size": 218
+    },
+    {
+      "name": "cmdline_cmd_string/1",
+      "input": 2147694348,
+      "output": 2148501852,
+      "output_size": 318
+    },
+    {
+      "name": "cmdline_cmd_bool/1",
+      "input": 2147694616,
+      "output": 2148502172,
+      "output_size": 222
+    },
+    {
+      "name": "cmdline_cmd_u32/1",
+      "input": 2147694804,
+      "output": 2148502400,
+      "output_size": 202
+    },
+    {
+      "name": "cmdline_cmd_u64/1",
+      "input": 2147694968,
+      "output": 2148502604,
+      "output_size": 206
+    },
+    {
+      "name": "cmdline_cmd_int/1",
+      "input": 2147695136,
+      "output": 2148502812,
+      "output_size": 198
+    },
+    {
+      "name": "cmdline_print_escaped/1",
+      "input": 2147695296,
+      "output": 2148503040,
+      "output_size": 300
+    },
+    {
+      "name": "cmdline_get_value",
+      "input": 2147695498,
+      "output": 2148503360,
+      "output_size": 92
+    },
+    {
+      "name": "find_variable/1",
+      "input": 2147695588,
+      "output": 2148503452,
+      "output_size": 486
+    },
+    {
+      "name": "cmdline_is_present",
+      "input": 2147696034,
+      "output": 2148503940,
+      "output_size": 54
+    },
+    {
+      "name": "cmdline_get_string",
+      "input": 2147696088,
+      "output": 2148504000,
+      "output_size": 364
+    },
+    {
+      "name": "cmdline_get_bool",
+      "input": 2147696364,
+      "output": 2148504384,
+      "output_size": 230
+    },
+    {
+      "name": "cmdline_get_uint32",
+      "input": 2147696560,
+      "output": 2148504640,
+      "output_size": 114
+    },
+    {
+      "name": "parse_unsigned_int/1",
+      "input": 2147696662,
+      "output": 2148504768,
+      "output_size": 280
+    },
+    {
+      "name": "cmdline_get_uint64",
+      "input": 2147696926,
+      "output": 2148505048,
+      "output_size": 94
+    },
+    {
+      "name": "cmdline_get_int",
+      "input": 2147697016,
+      "output": 2148505152,
+      "output_size": 166
+    },
+    {
+      "name": "cmdline_get_raw_string",
+      "input": 2147697168,
+      "output": 2148505320,
+      "output_size": 12
+    },
+    {
+      "name": "cmdline_get_raw_size",
+      "input": 2147697180,
+      "output": 2148505344,
+      "output_size": 12
+    },
+    {
+      "name": "console_set_current",
+      "input": 2147697192,
+      "output": 2148505356,
+      "output_size": 20
+    },
+    {
+      "name": "console_create",
+      "input": 2147697212,
+      "output": 2148505408,
+      "output_size": 60
+    },
+    {
+      "name": "console_start",
+      "input": 2147697268,
+      "output": 2148505472,
+      "output_size": 94
+    },
+    {
+      "name": "command_loop/1",
+      "input": 2147697362,
+      "output": 2148505600,
+      "output_size": 1164
+    },
+    {
+      "name": "read_debug_line/1",
+      "input": 2147698452,
+      "output": 2148506764,
+      "output_size": 600
+    },
+    {
+      "name": "console_run_script",
+      "input": 2147698974,
+      "output": 2148507392,
+      "output_size": 154
+    },
+    {
+      "name": "console_run_script_locked",
+      "input": 2147699116,
+      "output": 2148507548,
+      "output_size": 156
+    },
+    {
+      "name": "convert_args/1",
+      "input": 2147699260,
+      "output": 2148507712,
+      "output_size": 194
+    },
+    {
+      "name": "cmd_help/1",
+      "input": 2147699440,
+      "output": 2148507908,
+      "output_size": 214
+    },
+    {
+      "name": "cmd_help_panic/1",
+      "input": 2147699644,
+      "output": 2148508124,
+      "output_size": 146
+    },
+    {
+      "name": "cmd_echo/1",
+      "input": 2147699784,
+      "output": 2148508288,
+      "output_size": 52
+    },
+    {
+      "name": "cmd_test/1",
+      "input": 2147699832,
+      "output": 2148508352,
+      "output_size": 78
+    },
+    {
+      "name": "cmd_history/1",
+      "input": 2147699910,
+      "output": 2148508432,
+      "output_size": 110
+    },
+    {
+      "name": "cmd_repeat/1",
+      "input": 2147700012,
+      "output": 2148508544,
+      "output_size": 242
+    },
+    {
+      "name": "compare_cmds/1",
+      "input": 2147700242,
+      "output": 2148508788,
+      "output_size": 8
+    },
+    {
+      "name": "background_command_exec/1",
+      "input": 2147700250,
+      "output": 2148508800,
+      "output_size": 64
+    },
+    {
+      "name": "fetch_next_line/1",
+      "input": 2147700314,
+      "output": 2148508864,
+      "output_size": 80
+    },
+    {
+      "name": "fp_32_64_snprintf",
+      "input": 2147700388,
+      "output": 2148508944,
+      "output_size": 238
+    },
+    {
+      "name": "heap_init",
+      "input": 2147700620,
+      "output": 2148509184,
+      "output_size": 32
+    },
+    {
+      "name": "heap_free_delayed_list/1",
+      "input": 2147700652,
+      "output": 2148509248,
+      "output_size": 126
+    },
+    {
+      "name": "malloc",
+      "input": 2147700778,
+      "output": 2148509376,
+      "output_size": 70
+    },
+    {
+      "name": "calloc",
+      "input": 2147700848,
+      "output": 2148509448,
+      "output_size": 100
+    },
+    {
+      "name": "realloc",
+      "input": 2147700948,
+      "output": 2148509568,
+      "output_size": 80
+    },
+    {
+      "name": "free",
+      "input": 2147701028,
+      "output": 2148509648,
+      "output_size": 44
+    },
+    {
+      "name": "heap_delayed_free",
+      "input": 2147701072,
+      "output": 2148509696,
+      "output_size": 96
+    },
+    {
+      "name": "cmd_heap/1",
+      "input": 2147701168,
+      "output": 2148509824,
+      "output_size": 580
+    },
+    {
+      "name": "page_alloc",
+      "input": 2147701732,
+      "output": 2148510404,
+      "output_size": 6
+    },
+    {
+      "name": "page_free",
+      "input": 2147701738,
+      "output": 2148510412,
+      "output_size": 36
+    },
+    {
+      "name": "page_first_alloc",
+      "input": 2147701770,
+      "output": 2148510448,
+      "output_size": 14
+    },
+    {
+      "name": "cmd_page_alloc/1",
+      "input": 2147701784,
+      "output": 2148510464,
+      "output_size": 100
+    },
+    {
+      "name": "memcpy",
+      "input": 2147701892,
+      "output": 2148510592,
+      "output_size": 256
+    },
+    {
+      "name": "memset",
+      "input": 2147702156,
+      "output": 2148510848,
+      "output_size": 148
+    },
+    {
+      "name": "atol",
+      "input": 2147702304,
+      "output": 2148510996,
+      "output_size": 208
+    },
+    {
+      "name": "atoul",
+      "input": 2147702490,
+      "output": 2148511232,
+      "output_size": 136
+    },
+    {
+      "name": "atoull",
+      "input": 2147702622,
+      "output": 2148511368,
+      "output_size": 172
+    },
+    {
+      "name": "strtoul",
+      "input": 2147702780,
+      "output": 2148511552,
+      "output_size": 264
+    },
+    {
+      "name": "isspace",
+      "input": 2147703026,
+      "output": 2148511816,
+      "output_size": 36
+    },
+    {
+      "name": "isdigit",
+      "input": 2147703062,
+      "output": 2148511852,
+      "output_size": 14
+    },
+    {
+      "name": "isalnum",
+      "input": 2147703076,
+      "output": 2148511872,
+      "output_size": 36
+    },
+    {
+      "name": "isxdigit",
+      "input": 2147703112,
+      "output": 2148511936,
+      "output_size": 36
+    },
+    {
+      "name": "isprint",
+      "input": 2147703148,
+      "output": 2148511972,
+      "output_size": 14
+    },
+    {
+      "name": "tolower",
+      "input": 2147703162,
+      "output": 2148512000,
+      "output_size": 14
+    },
+    {
+      "name": "__geterrno",
+      "input": 2147703176,
+      "output": 2148512016,
+      "output_size": 8
+    },
+    {
+      "name": "snprintf",
+      "input": 2147703184,
+      "output": 2148512024,
+      "output_size": 26
+    },
+    {
+      "name": "vfprintf",
+      "input": 2147705088,
+      "output": 2148512064,
+      "output_size": 2118
+    },
+    {
+      "name": "printf",
+      "input": 2147706858,
+      "output": 2148514184,
+      "output_size": 42
+    },
+    {
+      "name": "vprintf",
+      "input": 2147706900,
+      "output": 2148514240,
+      "output_size": 18
+    },
+    {
+      "name": "_printf_longlong_to_string",
+      "input": 2147706918,
+      "output": 2148514260,
+      "output_size": 208
+    },
+    {
+      "name": "_printf_longlong_to_hexstring",
+      "input": 2147707126,
+      "output": 2148514496,
+      "output_size": 68
+    },
+    {
+      "name": "qsort",
+      "input": 2147707194,
+      "output": 2148514564,
+      "output_size": 1476
+    },
+    {
+      "name": "putchar",
+      "input": 2147708606,
+      "output": 2148516040,
+      "output_size": 46
+    },
+    {
+      "name": "fputs",
+      "input": 2147708652,
+      "output": 2148516096,
+      "output_size": 38
+    },
+    {
+      "name": "getchar",
+      "input": 2147708690,
+      "output": 2148516160,
+      "output_size": 42
+    },
+    {
+      "name": "_fprintf_output_func",
+      "input": 2147708732,
+      "output": 2148516224,
+      "output_size": 20
+    },
+    {
+      "name": "__udivmoddi4",
+      "input": 2147708752,
+      "output": 2148516244,
+      "output_size": 190
+    },
+    {
+      "name": "__aeabi_uldivmod",
+      "input": 2147708934,
+      "output": 2148516436,
+      "output_size": 20
+    },
+    {
+      "name": "memchr",
+      "input": 2147708954,
+      "output": 2148516456,
+      "output_size": 26
+    },
+    {
+      "name": "memcmp",
+      "input": 2147708976,
+      "output": 2148516484,
+      "output_size": 42
+    },
+    {
+      "name": "strcmp",
+      "input": 2147709018,
+      "output": 2148516544,
+      "output_size": 24
+    },
+    {
+      "name": "strdup",
+      "input": 2147709038,
+      "output": 2148516568,
+      "output_size": 36
+    },
+    {
+      "name": "strlcpy",
+      "input": 2147709074,
+      "output": 2148516608,
+      "output_size": 62
+    },
+    {
+      "name": "strlen",
+      "input": 2147709128,
+      "output": 2148516672,
+      "output_size": 14
+    },
+    {
+      "name": "strncmp",
+      "input": 2147709142,
+      "output": 2148516688,
+      "output_size": 48
+    },
+    {
+      "name": "strncasecmp",
+      "input": 2147709186,
+      "output": 2148516736,
+      "output_size": 94
+    },
+    {
+      "name": "strnlen",
+      "input": 2147709270,
+      "output": 2148516832,
+      "output_size": 34
+    },
+    {
+      "name": "strrchr",
+      "input": 2147709296,
+      "output": 2148516868,
+      "output_size": 34
+    },
+    {
+      "name": "miniheap_dump",
+      "input": 2147709326,
+      "output": 2148516928,
+      "output_size": 108
+    },
+    {
+      "name": "miniheap_alloc",
+      "input": 2147709430,
+      "output": 2148517056,
+      "output_size": 666
+    },
+    {
+      "name": "heap_create_free_chunk/1",
+      "input": 2147710082,
+      "output": 2148517724,
+      "output_size": 58
+    },
+    {
+      "name": "miniheap_realloc",
+      "input": 2147710140,
+      "output": 2148517784,
+      "output_size": 458
+    },
+    {
+      "name": "miniheap_free",
+      "input": 2147710578,
+      "output": 2148518272,
+      "output_size": 182
+    },
+    {
+      "name": "heap_insert_free_chunk/1",
+      "input": 2147710756,
+      "output": 2148518464,
+      "output_size": 162
+    },
+    {
+      "name": "miniheap_trim",
+      "input": 2147710904,
+      "output": 2148518656,
+      "output_size": 348
+    },
+    {
+      "name": "miniheap_init",
+      "input": 2147711234,
+      "output": 2148519004,
+      "output_size": 154
+    },
+    {
+      "name": "__debug_stdio_write/1",
+      "input": 2147711382,
+      "output": 2148519168,
+      "output_size": 122
+    },
+    {
+      "name": "__debug_stdio_read/1",
+      "input": 2147711496,
+      "output": 2148519296,
+      "output_size": 32
+    },
+    {
+      "name": "io_write",
+      "input": 2147711528,
+      "output": 2148519360,
+      "output_size": 56
+    },
+    {
+      "name": "io_read",
+      "input": 2147711584,
+      "output": 2148519424,
+      "output_size": 56
+    },
+    {
+      "name": "__Thumbv7ABSLongThunk_arm_context_switch/1",
+      "input": 2147711640,
+      "output": 2148519488,
+      "output_size": 10
+    },
+    {
+      "name": "__Thumbv7ABSLongThunk_arch_spin_unlock/1",
+      "input": 2147711650,
+      "output": 2148519500,
+      "output_size": 10
+    },
+    {
+      "name": "__ARMv7ABSLongThunk_thread_preempt/1",
+      "input": 2147711660,
+      "output": 2148519512,
+      "output_size": 12
+    },
+    {
+      "name": "__ARMv7ABSLongThunk_arm_mmu_init/1",
+      "input": 2147711672,
+      "output": 2148519524,
+      "output_size": 12
+    },
+    {
+      "name": "__ARMv7ABSLongThunk_printf/1",
+      "input": 2147711684,
+      "output": 2148519536,
+      "output_size": 12
+    },
+    {
+      "name": "__Thumbv7ABSLongThunk_bolt_bench_tail_arm_callee/1",
+      "input": 2147711696,
+      "output": 2148519552,
+      "output_size": 10
+    }
+  ],
+  "redirected_functions": [
+    {
+      "name": "bolt_bench_it_cond",
+      "input": 2147526604,
+      "output": 2148386752,
+      "output_size": 148,
+      "thumb": false,
+      "branch_hex": "fb4703ea",
+      "split_prefix": false
+    },
+    {
+      "name": "bolt_bench_interwork",
+      "input": 2147526768,
+      "output": 2148386944,
+      "output_size": 164,
+      "thumb": false,
+      "branch_hex": "024803ea",
+      "split_prefix": false
+    },
+    {
+      "name": "bolt_bench_spill_ret",
+      "input": 2147527172,
+      "output": 2148387416,
+      "output_size": 164,
+      "thumb": false,
+      "branch_hex": "134803ea",
+      "split_prefix": false
+    }
+  ],
+  "fast_loader_sha256": "20d8a44f44c62ce001c3cd49007a0b73b9a6890d92bdb37f9d5a573246453ab0",
+  "expected_sinks": {
+    "hot_loop": "0x6a4ae6e0",
+    "hot_cold": "0x00000000",
+    "branch_chain": "0x007a5100",
+    "far_call": "0xb7082fa9",
+    "it_cond": "0x021e8480",
+    "memcpy": "0x5acd3dc5",
+    "interwork": "0x2fb21555",
+    "switch": "0xa953bbf0",
+    "spill_ret": "0x504980a0",
+    "litpool": "0x16b596e0",
+    "indirect_call": "0x0e6aac80",
+    "interwork_tail": "0xda3416f0",
+    "regpressure": "0xc5da3550",
+    "hotcold_split": "0xd4751003",
+    "icf": "0xdc7c3be0",
+    "shrinkwrap": "0x6a1b87d4",
+    "composite": "0x939f4ea0",
+    "stair": "0x9fef2a18"
+  },
+  "observed": {
+    "baseline": {
+      "seq cpu0": {
+        "hot_loop": "0x6a4ae6e0",
+        "hot_cold": "0x00000000",
+        "branch_chain": "0x007a5100",
+        "memcpy": "0x5acd3dc5",
+        "far_call": "0xb7082fa9",
+        "it_cond": "0x021e8480",
+        "interwork": "0x2fb21555",
+        "switch": "0xa953bbf0",
+        "spill_ret": "0x504980a0",
+        "litpool": "0x16b596e0",
+        "indirect_call": "0x0e6aac80",
+        "interwork_tail": "0xda3416f0",
+        "regpressure": "0xc5da3550",
+        "hotcold_split": "0xd4751003",
+        "icf": "0xdc7c3be0",
+        "shrinkwrap": "0x6a1b87d4",
+        "composite": "0x939f4ea0",
+        "stair": "0x9fef2a18"
+      },
+      "seq cpu1": {
+        "hot_loop": "0x6a4ae6e0",
+        "hot_cold": "0x00000000",
+        "branch_chain": "0x007a5100",
+        "memcpy": "0x5acd3dc5",
+        "far_call": "0xb7082fa9",
+        "it_cond": "0x021e8480",
+        "interwork": "0x2fb21555",
+        "switch": "0xa953bbf0",
+        "spill_ret": "0x504980a0",
+        "litpool": "0x16b596e0",
+        "indirect_call": "0x0e6aac80",
+        "interwork_tail": "0xda3416f0",
+        "regpressure": "0xc5da3550",
+        "hotcold_split": "0xd4751003",
+        "icf": "0xdc7c3be0",
+        "shrinkwrap": "0x6a1b87d4",
+        "composite": "0x939f4ea0",
+        "stair": "0x9fef2a18"
+      },
+      "seq cpu2": {
+        "hot_loop": "0x6a4ae6e0",
+        "hot_cold": "0x00000000",
+        "branch_chain": "0x007a5100",
+        "memcpy": "0x5acd3dc5",
+        "far_call": "0xb7082fa9",
+        "it_cond": "0x021e8480",
+        "interwork": "0x2fb21555",
+        "switch": "0xa953bbf0",
+        "spill_ret": "0x504980a0",
+        "litpool": "0x16b596e0",
+        "indirect_call": "0x0e6aac80",
+        "interwork_tail": "0xda3416f0",
+        "regpressure": "0xc5da3550",
+        "hotcold_split": "0xd4751003",
+        "icf": "0xdc7c3be0",
+        "shrinkwrap": "0x6a1b87d4",
+        "composite": "0x939f4ea0",
+        "stair": "0x9fef2a18"
+      },
+      "seq cpu3": {
+        "hot_loop": "0x6a4ae6e0",
+        "hot_cold": "0x00000000",
+        "branch_chain": "0x007a5100",
+        "memcpy": "0x5acd3dc5",
+        "far_call": "0xb7082fa9",
+        "it_cond": "0x021e8480",
+        "interwork": "0x2fb21555",
+        "switch": "0xa953bbf0",
+        "spill_ret": "0x504980a0",
+        "litpool": "0x16b596e0",
+        "indirect_call": "0x0e6aac80",
+        "interwork_tail": "0xda3416f0",
+        "regpressure": "0xc5da3550",
+        "hotcold_split": "0xd4751003",
+        "icf": "0xdc7c3be0",
+        "shrinkwrap": "0x6a1b87d4",
+        "composite": "0x939f4ea0",
+        "stair": "0x9fef2a18"
+      },
+      "conc": [
+        [
+          "0",
+          "0",
+          "hot_loop",
+          "0x6a4ae6e0"
+        ],
+        [
+          "0",
+          "0",
+          "hot_cold",
+          "0x00000000"
+        ],
+        [
+          "0",
+          "0",
+          "branch_chain",
+          "0x007a5100"
+        ],
+        [
+          "0",
+          "0",
+          "far_call",
+          "0xb7082fa9"
+        ],
+        [
+          "0",
+          "0",
+          "it_cond",
+          "0x021e8480"
+        ],
+        [
+          "0",
+          "0",
+          "interwork",
+          "0x2fb21555"
+        ],
+        [
+          "0",
+          "0",
+          "switch",
+          "0xa953bbf0"
+        ],
+        [
+          "0",
+          "0",
+          "spill_ret",
+          "0x504980a0"
+        ],
+        [
+          "0",
+          "0",
+          "litpool",
+          "0x16b596e0"
+        ],
+        [
+          "0",
+          "0",
+          "indirect_call",
+          "0x0e6aac80"
+        ],
+        [
+          "0",
+          "0",
+          "interwork_tail",
+          "0xda3416f0"
+        ],
+        [
+          "0",
+          "0",
+          "regpressure",
+          "0xc5da3550"
+        ],
+        [
+          "0",
+          "0",
+          "hotcold_split",
+          "0xd4751003"
+        ],
+        [
+          "0",
+          "0",
+          "icf",
+          "0xdc7c3be0"
+        ],
+        [
+          "0",
+          "0",
+          "shrinkwrap",
+          "0x6a1b87d4"
+        ],
+        [
+          "0",
+          "1",
+          "hot_loop",
+          "0x6a4ae6e0"
+        ],
+        [
+          "0",
+          "1",
+          "hot_cold",
+          "0x00000000"
+        ],
+        [
+          "0",
+          "1",
+          "branch_chain",
+          "0x007a5100"
+        ],
+        [
+          "0",
+          "1",
+          "far_call",
+          "0xb7082fa9"
+        ],
+        [
+          "0",
+          "1",
+          "it_cond",
+          "0x021e8480"
+        ],
+        [
+          "0",
+          "1",
+          "interwork",
+          "0x2fb21555"
+        ],
+        [
+          "0",
+          "1",
+          "switch",
+          "0xa953bbf0"
+        ],
+        [
+          "0",
+          "1",
+          "spill_ret",
+          "0x504980a0"
+        ],
+        [
+          "0",
+          "1",
+          "litpool",
+          "0x16b596e0"
+        ],
+        [
+          "0",
+          "1",
+          "indirect_call",
+          "0x0e6aac80"
+        ],
+        [
+          "0",
+          "1",
+          "interwork_tail",
+          "0xda3416f0"
+        ],
+        [
+          "0",
+          "1",
+          "regpressure",
+          "0xc5da3550"
+        ],
+        [
+          "0",
+          "1",
+          "hotcold_split",
+          "0xd4751003"
+        ],
+        [
+          "0",
+          "1",
+          "icf",
+          "0xdc7c3be0"
+        ],
+        [
+          "0",
+          "1",
+          "shrinkwrap",
+          "0x6a1b87d4"
+        ],
+        [
+          "0",
+          "2",
+          "hot_loop",
+          "0x6a4ae6e0"
+        ],
+        [
+          "0",
+          "2",
+          "hot_cold",
+          "0x00000000"
+        ],
+        [
+          "0",
+          "2",
+          "branch_chain",
+          "0x007a5100"
+        ],
+        [
+          "0",
+          "2",
+          "far_call",
+          "0xb7082fa9"
+        ],
+        [
+          "0",
+          "2",
+          "it_cond",
+          "0x021e8480"
+        ],
+        [
+          "0",
+          "2",
+          "interwork",
+          "0x2fb21555"
+        ],
+        [
+          "0",
+          "2",
+          "switch",
+          "0xa953bbf0"
+        ],
+        [
+          "0",
+          "2",
+          "spill_ret",
+          "0x504980a0"
+        ],
+        [
+          "0",
+          "2",
+          "litpool",
+          "0x16b596e0"
+        ],
+        [
+          "0",
+          "2",
+          "indirect_call",
+          "0x0e6aac80"
+        ],
+        [
+          "0",
+          "2",
+          "interwork_tail",
+          "0xda3416f0"
+        ],
+        [
+          "0",
+          "2",
+          "regpressure",
+          "0xc5da3550"
+        ],
+        [
+          "0",
+          "2",
+          "hotcold_split",
+          "0xd4751003"
+        ],
+        [
+          "0",
+          "2",
+          "icf",
+          "0xdc7c3be0"
+        ],
+        [
+          "0",
+          "2",
+          "shrinkwrap",
+          "0x6a1b87d4"
+        ],
+        [
+          "0",
+          "3",
+          "hot_loop",
+          "0x6a4ae6e0"
+        ],
+        [
+          "0",
+          "3",
+          "hot_cold",
+          "0x00000000"
+        ],
+        [
+          "0",
+          "3",
+          "branch_chain",
+          "0x007a5100"
+        ],
+        [
+          "0",
+          "3",
+          "far_call",
+          "0xb7082fa9"
+        ],
+        [
+          "0",
+          "3",
+          "it_cond",
+          "0x021e8480"
+        ],
+        [
+          "0",
+          "3",
+          "interwork",
+          "0x2fb21555"
+        ],
+        [
+          "0",
+          "3",
+          "switch",
+          "0xa953bbf0"
+        ],
+        [
+          "0",
+          "3",
+          "spill_ret",
+          "0x504980a0"
+        ],
+        [
+          "0",
+          "3",
+          "litpool",
+          "0x16b596e0"
+        ],
+        [
+          "0",
+          "3",
+          "indirect_call",
+          "0x0e6aac80"
+        ],
+        [
+          "0",
+          "3",
+          "interwork_tail",
+          "0xda3416f0"
+        ],
+        [
+          "0",
+          "3",
+          "regpressure",
+          "0xc5da3550"
+        ],
+        [
+          "0",
+          "3",
+          "hotcold_split",
+          "0xd4751003"
+        ],
+        [
+          "0",
+          "3",
+          "icf",
+          "0xdc7c3be0"
+        ],
+        [
+          "0",
+          "3",
+          "shrinkwrap",
+          "0x6a1b87d4"
+        ],
+        [
+          "0",
+          "4",
+          "hot_loop",
+          "0x6a4ae6e0"
+        ],
+        [
+          "0",
+          "4",
+          "hot_cold",
+          "0x00000000"
+        ],
+        [
+          "0",
+          "4",
+          "branch_chain",
+          "0x007a5100"
+        ],
+        [
+          "0",
+          "4",
+          "far_call",
+          "0xb7082fa9"
+        ],
+        [
+          "0",
+          "4",
+          "it_cond",
+          "0x021e8480"
+        ],
+        [
+          "0",
+          "4",
+          "interwork",
+          "0x2fb21555"
+        ],
+        [
+          "0",
+          "4",
+          "switch",
+          "0xa953bbf0"
+        ],
+        [
+          "0",
+          "4",
+          "spill_ret",
+          "0x504980a0"
+        ],
+        [
+          "0",
+          "4",
+          "litpool",
+          "0x16b596e0"
+        ],
+        [
+          "0",
+          "4",
+          "indirect_call",
+          "0x0e6aac80"
+        ],
+        [
+          "0",
+          "4",
+          "interwork_tail",
+          "0xda3416f0"
+        ],
+        [
+          "0",
+          "4",
+          "regpressure",
+          "0xc5da3550"
+        ],
+        [
+          "0",
+          "4",
+          "hotcold_split",
+          "0xd4751003"
+        ],
+        [
+          "0",
+          "4",
+          "icf",
+          "0xdc7c3be0"
+        ],
+        [
+          "0",
+          "4",
+          "shrinkwrap",
+          "0x6a1b87d4"
+        ],
+        [
+          "0",
+          "5",
+          "hot_loop",
+          "0x6a4ae6e0"
+        ],
+        [
+          "0",
+          "5",
+          "hot_cold",
+          "0x00000000"
+        ],
+        [
+          "0",
+          "5",
+          "branch_chain",
+          "0x007a5100"
+        ],
+        [
+          "0",
+          "5",
+          "far_call",
+          "0xb7082fa9"
+        ],
+        [
+          "0",
+          "5",
+          "it_cond",
+          "0x021e8480"
+        ],
+        [
+          "0",
+          "5",
+          "interwork",
+          "0x2fb21555"
+        ],
+        [
+          "0",
+          "5",
+          "switch",
+          "0xa953bbf0"
+        ],
+        [
+          "0",
+          "5",
+          "spill_ret",
+          "0x504980a0"
+        ],
+        [
+          "0",
+          "5",
+          "litpool",
+          "0x16b596e0"
+        ],
+        [
+          "0",
+          "5",
+          "indirect_call",
+          "0x0e6aac80"
+        ],
+        [
+          "0",
+          "5",
+          "interwork_tail",
+          "0xda3416f0"
+        ],
+        [
+          "0",
+          "5",
+          "regpressure",
+          "0xc5da3550"
+        ],
+        [
+          "0",
+          "5",
+          "hotcold_split",
+          "0xd4751003"
+        ],
+        [
+          "0",
+          "5",
+          "icf",
+          "0xdc7c3be0"
+        ],
+        [
+          "0",
+          "5",
+          "shrinkwrap",
+          "0x6a1b87d4"
+        ],
+        [
+          "0",
+          "6",
+          "hot_loop",
+          "0x6a4ae6e0"
+        ],
+        [
+          "0",
+          "6",
+          "hot_cold",
+          "0x00000000"
+        ],
+        [
+          "0",
+          "6",
+          "branch_chain",
+          "0x007a5100"
+        ],
+        [
+          "0",
+          "6",
+          "far_call",
+          "0xb7082fa9"
+        ],
+        [
+          "0",
+          "6",
+          "it_cond",
+          "0x021e8480"
+        ],
+        [
+          "0",
+          "6",
+          "interwork",
+          "0x2fb21555"
+        ],
+        [
+          "0",
+          "6",
+          "switch",
+          "0xa953bbf0"
+        ],
+        [
+          "0",
+          "6",
+          "spill_ret",
+          "0x504980a0"
+        ],
+        [
+          "0",
+          "6",
+          "litpool",
+          "0x16b596e0"
+        ],
+        [
+          "0",
+          "6",
+          "indirect_call",
+          "0x0e6aac80"
+        ],
+        [
+          "0",
+          "6",
+          "interwork_tail",
+          "0xda3416f0"
+        ],
+        [
+          "0",
+          "6",
+          "regpressure",
+          "0xc5da3550"
+        ],
+        [
+          "0",
+          "6",
+          "hotcold_split",
+          "0xd4751003"
+        ],
+        [
+          "0",
+          "6",
+          "icf",
+          "0xdc7c3be0"
+        ],
+        [
+          "0",
+          "6",
+          "shrinkwrap",
+          "0x6a1b87d4"
+        ],
+        [
+          "0",
+          "7",
+          "hot_loop",
+          "0x6a4ae6e0"
+        ],
+        [
+          "0",
+          "7",
+          "hot_cold",
+          "0x00000000"
+        ],
+        [
+          "0",
+          "7",
+          "branch_chain",
+          "0x007a5100"
+        ],
+        [
+          "0",
+          "7",
+          "far_call",
+          "0xb7082fa9"
+        ],
+        [
+          "0",
+          "7",
+          "it_cond",
+          "0x021e8480"
+        ],
+        [
+          "0",
+          "7",
+          "interwork",
+          "0x2fb21555"
+        ],
+        [
+          "0",
+          "7",
+          "switch",
+          "0xa953bbf0"
+        ],
+        [
+          "0",
+          "7",
+          "spill_ret",
+          "0x504980a0"
+        ],
+        [
+          "0",
+          "7",
+          "litpool",
+          "0x16b596e0"
+        ],
+        [
+          "0",
+          "7",
+          "indirect_call",
+          "0x0e6aac80"
+        ],
+        [
+          "0",
+          "7",
+          "interwork_tail",
+          "0xda3416f0"
+        ],
+        [
+          "0",
+          "7",
+          "regpressure",
+          "0xc5da3550"
+        ],
+        [
+          "0",
+          "7",
+          "hotcold_split",
+          "0xd4751003"
+        ],
+        [
+          "0",
+          "7",
+          "icf",
+          "0xdc7c3be0"
+        ],
+        [
+          "0",
+          "7",
+          "shrinkwrap",
+          "0x6a1b87d4"
+        ],
+        [
+          "1",
+          "0",
+          "hot_loop",
+          "0x6a4ae6e0"
+        ],
+        [
+          "1",
+          "0",
+          "hot_cold",
+          "0x00000000"
+        ],
+        [
+          "1",
+          "0",
+          "branch_chain",
+          "0x007a5100"
+        ],
+        [
+          "1",
+          "0",
+          "far_call",
+          "0xb7082fa9"
+        ],
+        [
+          "1",
+          "0",
+          "it_cond",
+          "0x021e8480"
+        ],
+        [
+          "1",
+          "0",
+          "interwork",
+          "0x2fb21555"
+        ],
+        [
+          "1",
+          "0",
+          "switch",
+          "0xa953bbf0"
+        ],
+        [
+          "1",
+          "0",
+          "spill_ret",
+          "0x504980a0"
+        ],
+        [
+          "1",
+          "0",
+          "litpool",
+          "0x16b596e0"
+        ],
+        [
+          "1",
+          "0",
+          "indirect_call",
+          "0x0e6aac80"
+        ],
+        [
+          "1",
+          "0",
+          "interwork_tail",
+          "0xda3416f0"
+        ],
+        [
+          "1",
+          "0",
+          "regpressure",
+          "0xc5da3550"
+        ],
+        [
+          "1",
+          "0",
+          "hotcold_split",
+          "0xd4751003"
+        ],
+        [
+          "1",
+          "0",
+          "icf",
+          "0xdc7c3be0"
+        ],
+        [
+          "1",
+          "0",
+          "shrinkwrap",
+          "0x6a1b87d4"
+        ],
+        [
+          "1",
+          "1",
+          "hot_loop",
+          "0x6a4ae6e0"
+        ],
+        [
+          "1",
+          "1",
+          "hot_cold",
+          "0x00000000"
+        ],
+        [
+          "1",
+          "1",
+          "branch_chain",
+          "0x007a5100"
+        ],
+        [
+          "1",
+          "1",
+          "far_call",
+          "0xb7082fa9"
+        ],
+        [
+          "1",
+          "1",
+          "it_cond",
+          "0x021e8480"
+        ],
+        [
+          "1",
+          "1",
+          "interwork",
+          "0x2fb21555"
+        ],
+        [
+          "1",
+          "1",
+          "switch",
+          "0xa953bbf0"
+        ],
+        [
+          "1",
+          "1",
+          "spill_ret",
+          "0x504980a0"
+        ],
+        [
+          "1",
+          "1",
+          "litpool",
+          "0x16b596e0"
+        ],
+        [
+          "1",
+          "1",
+          "indirect_call",
+          "0x0e6aac80"
+        ],
+        [
+          "1",
+          "1",
+          "interwork_tail",
+          "0xda3416f0"
+        ],
+        [
+          "1",
+          "1",
+          "regpressure",
+          "0xc5da3550"
+        ],
+        [
+          "1",
+          "1",
+          "hotcold_split",
+          "0xd4751003"
+        ],
+        [
+          "1",
+          "1",
+          "icf",
+          "0xdc7c3be0"
+        ],
+        [
+          "1",
+          "1",
+          "shrinkwrap",
+          "0x6a1b87d4"
+        ],
+        [
+          "1",
+          "2",
+          "hot_loop",
+          "0x6a4ae6e0"
+        ],
+        [
+          "1",
+          "2",
+          "hot_cold",
+          "0x00000000"
+        ],
+        [
+          "1",
+          "2",
+          "branch_chain",
+          "0x007a5100"
+        ],
+        [
+          "1",
+          "2",
+          "far_call",
+          "0xb7082fa9"
+        ],
+        [
+          "1",
+          "2",
+          "it_cond",
+          "0x021e8480"
+        ],
+        [
+          "1",
+          "2",
+          "interwork",
+          "0x2fb21555"
+        ],
+        [
+          "1",
+          "2",
+          "switch",
+          "0xa953bbf0"
+        ],
+        [
+          "1",
+          "2",
+          "spill_ret",
+          "0x504980a0"
+        ],
+        [
+          "1",
+          "2",
+          "litpool",
+          "0x16b596e0"
+        ],
+        [
+          "1",
+          "2",
+          "indirect_call",
+          "0x0e6aac80"
+        ],
+        [
+          "1",
+          "2",
+          "interwork_tail",
+          "0xda3416f0"
+        ],
+        [
+          "1",
+          "2",
+          "regpressure",
+          "0xc5da3550"
+        ],
+        [
+          "1",
+          "2",
+          "hotcold_split",
+          "0xd4751003"
+        ],
+        [
+          "1",
+          "2",
+          "icf",
+          "0xdc7c3be0"
+        ],
+        [
+          "1",
+          "2",
+          "shrinkwrap",
+          "0x6a1b87d4"
+        ],
+        [
+          "1",
+          "3",
+          "hot_loop",
+          "0x6a4ae6e0"
+        ],
+        [
+          "1",
+          "3",
+          "hot_cold",
+          "0x00000000"
+        ],
+        [
+          "1",
+          "3",
+          "branch_chain",
+          "0x007a5100"
+        ],
+        [
+          "1",
+          "3",
+          "far_call",
+          "0xb7082fa9"
+        ],
+        [
+          "1",
+          "3",
+          "it_cond",
+          "0x021e8480"
+        ],
+        [
+          "1",
+          "3",
+          "interwork",
+          "0x2fb21555"
+        ],
+        [
+          "1",
+          "3",
+          "switch",
+          "0xa953bbf0"
+        ],
+        [
+          "1",
+          "3",
+          "spill_ret",
+          "0x504980a0"
+        ],
+        [
+          "1",
+          "3",
+          "litpool",
+          "0x16b596e0"
+        ],
+        [
+          "1",
+          "3",
+          "indirect_call",
+          "0x0e6aac80"
+        ],
+        [
+          "1",
+          "3",
+          "interwork_tail",
+          "0xda3416f0"
+        ],
+        [
+          "1",
+          "3",
+          "regpressure",
+          "0xc5da3550"
+        ],
+        [
+          "1",
+          "3",
+          "hotcold_split",
+          "0xd4751003"
+        ],
+        [
+          "1",
+          "3",
+          "icf",
+          "0xdc7c3be0"
+        ],
+        [
+          "1",
+          "3",
+          "shrinkwrap",
+          "0x6a1b87d4"
+        ],
+        [
+          "1",
+          "4",
+          "hot_loop",
+          "0x6a4ae6e0"
+        ],
+        [
+          "1",
+          "4",
+          "hot_cold",
+          "0x00000000"
+        ],
+        [
+          "1",
+          "4",
+          "branch_chain",
+          "0x007a5100"
+        ],
+        [
+          "1",
+          "4",
+          "far_call",
+          "0xb7082fa9"
+        ],
+        [
+          "1",
+          "4",
+          "it_cond",
+          "0x021e8480"
+        ],
+        [
+          "1",
+          "4",
+          "interwork",
+          "0x2fb21555"
+        ],
+        [
+          "1",
+          "4",
+          "switch",
+          "0xa953bbf0"
+        ],
+        [
+          "1",
+          "4",
+          "spill_ret",
+          "0x504980a0"
+        ],
+        [
+          "1",
+          "4",
+          "litpool",
+          "0x16b596e0"
+        ],
+        [
+          "1",
+          "4",
+          "indirect_call",
+          "0x0e6aac80"
+        ],
+        [
+          "1",
+          "4",
+          "interwork_tail",
+          "0xda3416f0"
+        ],
+        [
+          "1",
+          "4",
+          "regpressure",
+          "0xc5da3550"
+        ],
+        [
+          "1",
+          "4",
+          "hotcold_split",
+          "0xd4751003"
+        ],
+        [
+          "1",
+          "4",
+          "icf",
+          "0xdc7c3be0"
+        ],
+        [
+          "1",
+          "4",
+          "shrinkwrap",
+          "0x6a1b87d4"
+        ],
+        [
+          "1",
+          "5",
+          "hot_loop",
+          "0x6a4ae6e0"
+        ],
+        [
+          "1",
+          "5",
+          "hot_cold",
+          "0x00000000"
+        ],
+        [
+          "1",
+          "5",
+          "branch_chain",
+          "0x007a5100"
+        ],
+        [
+          "1",
+          "5",
+          "far_call",
+          "0xb7082fa9"
+        ],
+        [
+          "1",
+          "5",
+          "it_cond",
+          "0x021e8480"
+        ],
+        [
+          "1",
+          "5",
+          "interwork",
+          "0x2fb21555"
+        ],
+        [
+          "1",
+          "5",
+          "switch",
+          "0xa953bbf0"
+        ],
+        [
+          "1",
+          "5",
+          "spill_ret",
+          "0x504980a0"
+        ],
+        [
+          "1",
+          "5",
+          "litpool",
+          "0x16b596e0"
+        ],
+        [
+          "1",
+          "5",
+          "indirect_call",
+          "0x0e6aac80"
+        ],
+        [
+          "1",
+          "5",
+          "interwork_tail",
+          "0xda3416f0"
+        ],
+        [
+          "1",
+          "5",
+          "regpressure",
+          "0xc5da3550"
+        ],
+        [
+          "1",
+          "5",
+          "hotcold_split",
+          "0xd4751003"
+        ],
+        [
+          "1",
+          "5",
+          "icf",
+          "0xdc7c3be0"
+        ],
+        [
+          "1",
+          "5",
+          "shrinkwrap",
+          "0x6a1b87d4"
+        ],
+        [
+          "1",
+          "6",
+          "hot_loop",
+          "0x6a4ae6e0"
+        ],
+        [
+          "1",
+          "6",
+          "hot_cold",
+          "0x00000000"
+        ],
+        [
+          "1",
+          "6",
+          "branch_chain",
+          "0x007a5100"
+        ],
+        [
+          "1",
+          "6",
+          "far_call",
+          "0xb7082fa9"
+        ],
+        [
+          "1",
+          "6",
+          "it_cond",
+          "0x021e8480"
+        ],
+        [
+          "1",
+          "6",
+          "interwork",
+          "0x2fb21555"
+        ],
+        [
+          "1",
+          "6",
+          "switch",
+          "0xa953bbf0"
+        ],
+        [
+          "1",
+          "6",
+          "spill_ret",
+          "0x504980a0"
+        ],
+        [
+          "1",
+          "6",
+          "litpool",
+          "0x16b596e0"
+        ],
+        [
+          "1",
+          "6",
+          "indirect_call",
+          "0x0e6aac80"
+        ],
+        [
+          "1",
+          "6",
+          "interwork_tail",
+          "0xda3416f0"
+        ],
+        [
+          "1",
+          "6",
+          "regpressure",
+          "0xc5da3550"
+        ],
+        [
+          "1",
+          "6",
+          "hotcold_split",
+          "0xd4751003"
+        ],
+        [
+          "1",
+          "6",
+          "icf",
+          "0xdc7c3be0"
+        ],
+        [
+          "1",
+          "6",
+          "shrinkwrap",
+          "0x6a1b87d4"
+        ],
+        [
+          "1",
+          "7",
+          "hot_loop",
+          "0x6a4ae6e0"
+        ],
+        [
+          "1",
+          "7",
+          "hot_cold",
+          "0x00000000"
+        ],
+        [
+          "1",
+          "7",
+          "branch_chain",
+          "0x007a5100"
+        ],
+        [
+          "1",
+          "7",
+          "far_call",
+          "0xb7082fa9"
+        ],
+        [
+          "1",
+          "7",
+          "it_cond",
+          "0x021e8480"
+        ],
+        [
+          "1",
+          "7",
+          "interwork",
+          "0x2fb21555"
+        ],
+        [
+          "1",
+          "7",
+          "switch",
+          "0xa953bbf0"
+        ],
+        [
+          "1",
+          "7",
+          "spill_ret",
+          "0x504980a0"
+        ],
+        [
+          "1",
+          "7",
+          "litpool",
+          "0x16b596e0"
+        ],
+        [
+          "1",
+          "7",
+          "indirect_call",
+          "0x0e6aac80"
+        ],
+        [
+          "1",
+          "7",
+          "interwork_tail",
+          "0xda3416f0"
+        ],
+        [
+          "1",
+          "7",
+          "regpressure",
+          "0xc5da3550"
+        ],
+        [
+          "1",
+          "7",
+          "hotcold_split",
+          "0xd4751003"
+        ],
+        [
+          "1",
+          "7",
+          "icf",
+          "0xdc7c3be0"
+        ],
+        [
+          "1",
+          "7",
+          "shrinkwrap",
+          "0x6a1b87d4"
+        ],
+        [
+          "2",
+          "0",
+          "hot_loop",
+          "0x6a4ae6e0"
+        ],
+        [
+          "2",
+          "0",
+          "hot_cold",
+          "0x00000000"
+        ],
+        [
+          "2",
+          "0",
+          "branch_chain",
+          "0x007a5100"
+        ],
+        [
+          "2",
+          "0",
+          "far_call",
+          "0xb7082fa9"
+        ],
+        [
+          "2",
+          "0",
+          "it_cond",
+          "0x021e8480"
+        ],
+        [
+          "2",
+          "0",
+          "interwork",
+          "0x2fb21555"
+        ],
+        [
+          "2",
+          "0",
+          "switch",
+          "0xa953bbf0"
+        ],
+        [
+          "2",
+          "0",
+          "spill_ret",
+          "0x504980a0"
+        ],
+        [
+          "2",
+          "0",
+          "litpool",
+          "0x16b596e0"
+        ],
+        [
+          "2",
+          "0",
+          "indirect_call",
+          "0x0e6aac80"
+        ],
+        [
+          "2",
+          "0",
+          "interwork_tail",
+          "0xda3416f0"
+        ],
+        [
+          "2",
+          "0",
+          "regpressure",
+          "0xc5da3550"
+        ],
+        [
+          "2",
+          "0",
+          "hotcold_split",
+          "0xd4751003"
+        ],
+        [
+          "2",
+          "0",
+          "icf",
+          "0xdc7c3be0"
+        ],
+        [
+          "2",
+          "0",
+          "shrinkwrap",
+          "0x6a1b87d4"
+        ],
+        [
+          "2",
+          "1",
+          "hot_loop",
+          "0x6a4ae6e0"
+        ],
+        [
+          "2",
+          "1",
+          "hot_cold",
+          "0x00000000"
+        ],
+        [
+          "2",
+          "1",
+          "branch_chain",
+          "0x007a5100"
+        ],
+        [
+          "2",
+          "1",
+          "far_call",
+          "0xb7082fa9"
+        ],
+        [
+          "2",
+          "1",
+          "it_cond",
+          "0x021e8480"
+        ],
+        [
+          "2",
+          "1",
+          "interwork",
+          "0x2fb21555"
+        ],
+        [
+          "2",
+          "1",
+          "switch",
+          "0xa953bbf0"
+        ],
+        [
+          "2",
+          "1",
+          "spill_ret",
+          "0x504980a0"
+        ],
+        [
+          "2",
+          "1",
+          "litpool",
+          "0x16b596e0"
+        ],
+        [
+          "2",
+          "1",
+          "indirect_call",
+          "0x0e6aac80"
+        ],
+        [
+          "2",
+          "1",
+          "interwork_tail",
+          "0xda3416f0"
+        ],
+        [
+          "2",
+          "1",
+          "regpressure",
+          "0xc5da3550"
+        ],
+        [
+          "2",
+          "1",
+          "hotcold_split",
+          "0xd4751003"
+        ],
+        [
+          "2",
+          "1",
+          "icf",
+          "0xdc7c3be0"
+        ],
+        [
+          "2",
+          "1",
+          "shrinkwrap",
+          "0x6a1b87d4"
+        ],
+        [
+          "2",
+          "2",
+          "hot_loop",
+          "0x6a4ae6e0"
+        ],
+        [
+          "2",
+          "2",
+          "hot_cold",
+          "0x00000000"
+        ],
+        [
+          "2",
+          "2",
+          "branch_chain",
+          "0x007a5100"
+        ],
+        [
+          "2",
+          "2",
+          "far_call",
+          "0xb7082fa9"
+        ],
+        [
+          "2",
+          "2",
+          "it_cond",
+          "0x021e8480"
+        ],
+        [
+          "2",
+          "2",
+          "interwork",
+          "0x2fb21555"
+        ],
+        [
+          "2",
+          "2",
+          "switch",
+          "0xa953bbf0"
+        ],
+        [
+          "2",
+          "2",
+          "spill_ret",
+          "0x504980a0"
+        ],
+        [
+          "2",
+          "2",
+          "litpool",
+          "0x16b596e0"
+        ],
+        [
+          "2",
+          "2",
+          "indirect_call",
+          "0x0e6aac80"
+        ],
+        [
+          "2",
+          "2",
+          "interwork_tail",
+          "0xda3416f0"
+        ],
+        [
+          "2",
+          "2",
+          "regpressure",
+          "0xc5da3550"
+        ],
+        [
+          "2",
+          "2",
+          "hotcold_split",
+          "0xd4751003"
+        ],
+        [
+          "2",
+          "2",
+          "icf",
+          "0xdc7c3be0"
+        ],
+        [
+          "2",
+          "2",
+          "shrinkwrap",
+          "0x6a1b87d4"
+        ],
+        [
+          "2",
+          "3",
+          "hot_loop",
+          "0x6a4ae6e0"
+        ],
+        [
+          "2",
+          "3",
+          "hot_cold",
+          "0x00000000"
+        ],
+        [
+          "2",
+          "3",
+          "branch_chain",
+          "0x007a5100"
+        ],
+        [
+          "2",
+          "3",
+          "far_call",
+          "0xb7082fa9"
+        ],
+        [
+          "2",
+          "3",
+          "it_cond",
+          "0x021e8480"
+        ],
+        [
+          "2",
+          "3",
+          "interwork",
+          "0x2fb21555"
+        ],
+        [
+          "2",
+          "3",
+          "switch",
+          "0xa953bbf0"
+        ],
+        [
+          "2",
+          "3",
+          "spill_ret",
+          "0x504980a0"
+        ],
+        [
+          "2",
+          "3",
+          "litpool",
+          "0x16b596e0"
+        ],
+        [
+          "2",
+          "3",
+          "indirect_call",
+          "0x0e6aac80"
+        ],
+        [
+          "2",
+          "3",
+          "interwork_tail",
+          "0xda3416f0"
+        ],
+        [
+          "2",
+          "3",
+          "regpressure",
+          "0xc5da3550"
+        ],
+        [
+          "2",
+          "3",
+          "hotcold_split",
+          "0xd4751003"
+        ],
+        [
+          "2",
+          "3",
+          "icf",
+          "0xdc7c3be0"
+        ],
+        [
+          "2",
+          "3",
+          "shrinkwrap",
+          "0x6a1b87d4"
+        ],
+        [
+          "2",
+          "4",
+          "hot_loop",
+          "0x6a4ae6e0"
+        ],
+        [
+          "2",
+          "4",
+          "hot_cold",
+          "0x00000000"
+        ],
+        [
+          "2",
+          "4",
+          "branch_chain",
+          "0x007a5100"
+        ],
+        [
+          "2",
+          "4",
+          "far_call",
+          "0xb7082fa9"
+        ],
+        [
+          "2",
+          "4",
+          "it_cond",
+          "0x021e8480"
+        ],
+        [
+          "2",
+          "4",
+          "interwork",
+          "0x2fb21555"
+        ],
+        [
+          "2",
+          "4",
+          "switch",
+          "0xa953bbf0"
+        ],
+        [
+          "2",
+          "4",
+          "spill_ret",
+          "0x504980a0"
+        ],
+        [
+          "2",
+          "4",
+          "litpool",
+          "0x16b596e0"
+        ],
+        [
+          "2",
+          "4",
+          "indirect_call",
+          "0x0e6aac80"
+        ],
+        [
+          "2",
+          "4",
+          "interwork_tail",
+          "0xda3416f0"
+        ],
+        [
+          "2",
+          "4",
+          "regpressure",
+          "0xc5da3550"
+        ],
+        [
+          "2",
+          "4",
+          "hotcold_split",
+          "0xd4751003"
+        ],
+        [
+          "2",
+          "4",
+          "icf",
+          "0xdc7c3be0"
+        ],
+        [
+          "2",
+          "4",
+          "shrinkwrap",
+          "0x6a1b87d4"
+        ],
+        [
+          "2",
+          "5",
+          "hot_loop",
+          "0x6a4ae6e0"
+        ],
+        [
+          "2",
+          "5",
+          "hot_cold",
+          "0x00000000"
+        ],
+        [
+          "2",
+          "5",
+          "branch_chain",
+          "0x007a5100"
+        ],
+        [
+          "2",
+          "5",
+          "far_call",
+          "0xb7082fa9"
+        ],
+        [
+          "2",
+          "5",
+          "it_cond",
+          "0x021e8480"
+        ],
+        [
+          "2",
+          "5",
+          "interwork",
+          "0x2fb21555"
+        ],
+        [
+          "2",
+          "5",
+          "switch",
+          "0xa953bbf0"
+        ],
+        [
+          "2",
+          "5",
+          "spill_ret",
+          "0x504980a0"
+        ],
+        [
+          "2",
+          "5",
+          "litpool",
+          "0x16b596e0"
+        ],
+        [
+          "2",
+          "5",
+          "indirect_call",
+          "0x0e6aac80"
+        ],
+        [
+          "2",
+          "5",
+          "interwork_tail",
+          "0xda3416f0"
+        ],
+        [
+          "2",
+          "5",
+          "regpressure",
+          "0xc5da3550"
+        ],
+        [
+          "2",
+          "5",
+          "hotcold_split",
+          "0xd4751003"
+        ],
+        [
+          "2",
+          "5",
+          "icf",
+          "0xdc7c3be0"
+        ],
+        [
+          "2",
+          "5",
+          "shrinkwrap",
+          "0x6a1b87d4"
+        ],
+        [
+          "2",
+          "6",
+          "hot_loop",
+          "0x6a4ae6e0"
+        ],
+        [
+          "2",
+          "6",
+          "hot_cold",
+          "0x00000000"
+        ],
+        [
+          "2",
+          "6",
+          "branch_chain",
+          "0x007a5100"
+        ],
+        [
+          "2",
+          "6",
+          "far_call",
+          "0xb7082fa9"
+        ],
+        [
+          "2",
+          "6",
+          "it_cond",
+          "0x021e8480"
+        ],
+        [
+          "2",
+          "6",
+          "interwork",
+          "0x2fb21555"
+        ],
+        [
+          "2",
+          "6",
+          "switch",
+          "0xa953bbf0"
+        ],
+        [
+          "2",
+          "6",
+          "spill_ret",
+          "0x504980a0"
+        ],
+        [
+          "2",
+          "6",
+          "litpool",
+          "0x16b596e0"
+        ],
+        [
+          "2",
+          "6",
+          "indirect_call",
+          "0x0e6aac80"
+        ],
+        [
+          "2",
+          "6",
+          "interwork_tail",
+          "0xda3416f0"
+        ],
+        [
+          "2",
+          "6",
+          "regpressure",
+          "0xc5da3550"
+        ],
+        [
+          "2",
+          "6",
+          "hotcold_split",
+          "0xd4751003"
+        ],
+        [
+          "2",
+          "6",
+          "icf",
+          "0xdc7c3be0"
+        ],
+        [
+          "2",
+          "6",
+          "shrinkwrap",
+          "0x6a1b87d4"
+        ],
+        [
+          "2",
+          "7",
+          "hot_loop",
+          "0x6a4ae6e0"
+        ],
+        [
+          "2",
+          "7",
+          "hot_cold",
+          "0x00000000"
+        ],
+        [
+          "2",
+          "7",
+          "branch_chain",
+          "0x007a5100"
+        ],
+        [
+          "2",
+          "7",
+          "far_call",
+          "0xb7082fa9"
+        ],
+        [
+          "2",
+          "7",
+          "it_cond",
+          "0x021e8480"
+        ],
+        [
+          "2",
+          "7",
+          "interwork",
+          "0x2fb21555"
+        ],
+        [
+          "2",
+          "7",
+          "switch",
+          "0xa953bbf0"
+        ],
+        [
+          "2",
+          "7",
+          "spill_ret",
+          "0x504980a0"
+        ],
+        [
+          "2",
+          "7",
+          "litpool",
+          "0x16b596e0"
+        ],
+        [
+          "2",
+          "7",
+          "indirect_call",
+          "0x0e6aac80"
+        ],
+        [
+          "2",
+          "7",
+          "interwork_tail",
+          "0xda3416f0"
+        ],
+        [
+          "2",
+          "7",
+          "regpressure",
+          "0xc5da3550"
+        ],
+        [
+          "2",
+          "7",
+          "hotcold_split",
+          "0xd4751003"
+        ],
+        [
+          "2",
+          "7",
+          "icf",
+          "0xdc7c3be0"
+        ],
+        [
+          "2",
+          "7",
+          "shrinkwrap",
+          "0x6a1b87d4"
+        ],
+        [
+          "3",
+          "0",
+          "hot_loop",
+          "0x6a4ae6e0"
+        ],
+        [
+          "3",
+          "0",
+          "hot_cold",
+          "0x00000000"
+        ],
+        [
+          "3",
+          "0",
+          "branch_chain",
+          "0x007a5100"
+        ],
+        [
+          "3",
+          "0",
+          "far_call",
+          "0xb7082fa9"
+        ],
+        [
+          "3",
+          "0",
+          "it_cond",
+          "0x021e8480"
+        ],
+        [
+          "3",
+          "0",
+          "interwork",
+          "0x2fb21555"
+        ],
+        [
+          "3",
+          "0",
+          "switch",
+          "0xa953bbf0"
+        ],
+        [
+          "3",
+          "0",
+          "spill_ret",
+          "0x504980a0"
+        ],
+        [
+          "3",
+          "0",
+          "litpool",
+          "0x16b596e0"
+        ],
+        [
+          "3",
+          "0",
+          "indirect_call",
+          "0x0e6aac80"
+        ],
+        [
+          "3",
+          "0",
+          "interwork_tail",
+          "0xda3416f0"
+        ],
+        [
+          "3",
+          "0",
+          "regpressure",
+          "0xc5da3550"
+        ],
+        [
+          "3",
+          "0",
+          "hotcold_split",
+          "0xd4751003"
+        ],
+        [
+          "3",
+          "0",
+          "icf",
+          "0xdc7c3be0"
+        ],
+        [
+          "3",
+          "0",
+          "shrinkwrap",
+          "0x6a1b87d4"
+        ],
+        [
+          "3",
+          "1",
+          "hot_loop",
+          "0x6a4ae6e0"
+        ],
+        [
+          "3",
+          "1",
+          "hot_cold",
+          "0x00000000"
+        ],
+        [
+          "3",
+          "1",
+          "branch_chain",
+          "0x007a5100"
+        ],
+        [
+          "3",
+          "1",
+          "far_call",
+          "0xb7082fa9"
+        ],
+        [
+          "3",
+          "1",
+          "it_cond",
+          "0x021e8480"
+        ],
+        [
+          "3",
+          "1",
+          "interwork",
+          "0x2fb21555"
+        ],
+        [
+          "3",
+          "1",
+          "switch",
+          "0xa953bbf0"
+        ],
+        [
+          "3",
+          "1",
+          "spill_ret",
+          "0x504980a0"
+        ],
+        [
+          "3",
+          "1",
+          "litpool",
+          "0x16b596e0"
+        ],
+        [
+          "3",
+          "1",
+          "indirect_call",
+          "0x0e6aac80"
+        ],
+        [
+          "3",
+          "1",
+          "interwork_tail",
+          "0xda3416f0"
+        ],
+        [
+          "3",
+          "1",
+          "regpressure",
+          "0xc5da3550"
+        ],
+        [
+          "3",
+          "1",
+          "hotcold_split",
+          "0xd4751003"
+        ],
+        [
+          "3",
+          "1",
+          "icf",
+          "0xdc7c3be0"
+        ],
+        [
+          "3",
+          "1",
+          "shrinkwrap",
+          "0x6a1b87d4"
+        ],
+        [
+          "3",
+          "2",
+          "hot_loop",
+          "0x6a4ae6e0"
+        ],
+        [
+          "3",
+          "2",
+          "hot_cold",
+          "0x00000000"
+        ],
+        [
+          "3",
+          "2",
+          "branch_chain",
+          "0x007a5100"
+        ],
+        [
+          "3",
+          "2",
+          "far_call",
+          "0xb7082fa9"
+        ],
+        [
+          "3",
+          "2",
+          "it_cond",
+          "0x021e8480"
+        ],
+        [
+          "3",
+          "2",
+          "interwork",
+          "0x2fb21555"
+        ],
+        [
+          "3",
+          "2",
+          "switch",
+          "0xa953bbf0"
+        ],
+        [
+          "3",
+          "2",
+          "spill_ret",
+          "0x504980a0"
+        ],
+        [
+          "3",
+          "2",
+          "litpool",
+          "0x16b596e0"
+        ],
+        [
+          "3",
+          "2",
+          "indirect_call",
+          "0x0e6aac80"
+        ],
+        [
+          "3",
+          "2",
+          "interwork_tail",
+          "0xda3416f0"
+        ],
+        [
+          "3",
+          "2",
+          "regpressure",
+          "0xc5da3550"
+        ],
+        [
+          "3",
+          "2",
+          "hotcold_split",
+          "0xd4751003"
+        ],
+        [
+          "3",
+          "2",
+          "icf",
+          "0xdc7c3be0"
+        ],
+        [
+          "3",
+          "2",
+          "shrinkwrap",
+          "0x6a1b87d4"
+        ],
+        [
+          "3",
+          "3",
+          "hot_loop",
+          "0x6a4ae6e0"
+        ],
+        [
+          "3",
+          "3",
+          "hot_cold",
+          "0x00000000"
+        ],
+        [
+          "3",
+          "3",
+          "branch_chain",
+          "0x007a5100"
+        ],
+        [
+          "3",
+          "3",
+          "far_call",
+          "0xb7082fa9"
+        ],
+        [
+          "3",
+          "3",
+          "it_cond",
+          "0x021e8480"
+        ],
+        [
+          "3",
+          "3",
+          "interwork",
+          "0x2fb21555"
+        ],
+        [
+          "3",
+          "3",
+          "switch",
+          "0xa953bbf0"
+        ],
+        [
+          "3",
+          "3",
+          "spill_ret",
+          "0x504980a0"
+        ],
+        [
+          "3",
+          "3",
+          "litpool",
+          "0x16b596e0"
+        ],
+        [
+          "3",
+          "3",
+          "indirect_call",
+          "0x0e6aac80"
+        ],
+        [
+          "3",
+          "3",
+          "interwork_tail",
+          "0xda3416f0"
+        ],
+        [
+          "3",
+          "3",
+          "regpressure",
+          "0xc5da3550"
+        ],
+        [
+          "3",
+          "3",
+          "hotcold_split",
+          "0xd4751003"
+        ],
+        [
+          "3",
+          "3",
+          "icf",
+          "0xdc7c3be0"
+        ],
+        [
+          "3",
+          "3",
+          "shrinkwrap",
+          "0x6a1b87d4"
+        ],
+        [
+          "3",
+          "4",
+          "hot_loop",
+          "0x6a4ae6e0"
+        ],
+        [
+          "3",
+          "4",
+          "hot_cold",
+          "0x00000000"
+        ],
+        [
+          "3",
+          "4",
+          "branch_chain",
+          "0x007a5100"
+        ],
+        [
+          "3",
+          "4",
+          "far_call",
+          "0xb7082fa9"
+        ],
+        [
+          "3",
+          "4",
+          "it_cond",
+          "0x021e8480"
+        ],
+        [
+          "3",
+          "4",
+          "interwork",
+          "0x2fb21555"
+        ],
+        [
+          "3",
+          "4",
+          "switch",
+          "0xa953bbf0"
+        ],
+        [
+          "3",
+          "4",
+          "spill_ret",
+          "0x504980a0"
+        ],
+        [
+          "3",
+          "4",
+          "litpool",
+          "0x16b596e0"
+        ],
+        [
+          "3",
+          "4",
+          "indirect_call",
+          "0x0e6aac80"
+        ],
+        [
+          "3",
+          "4",
+          "interwork_tail",
+          "0xda3416f0"
+        ],
+        [
+          "3",
+          "4",
+          "regpressure",
+          "0xc5da3550"
+        ],
+        [
+          "3",
+          "4",
+          "hotcold_split",
+          "0xd4751003"
+        ],
+        [
+          "3",
+          "4",
+          "icf",
+          "0xdc7c3be0"
+        ],
+        [
+          "3",
+          "4",
+          "shrinkwrap",
+          "0x6a1b87d4"
+        ],
+        [
+          "3",
+          "5",
+          "hot_loop",
+          "0x6a4ae6e0"
+        ],
+        [
+          "3",
+          "5",
+          "hot_cold",
+          "0x00000000"
+        ],
+        [
+          "3",
+          "5",
+          "branch_chain",
+          "0x007a5100"
+        ],
+        [
+          "3",
+          "5",
+          "far_call",
+          "0xb7082fa9"
+        ],
+        [
+          "3",
+          "5",
+          "it_cond",
+          "0x021e8480"
+        ],
+        [
+          "3",
+          "5",
+          "interwork",
+          "0x2fb21555"
+        ],
+        [
+          "3",
+          "5",
+          "switch",
+          "0xa953bbf0"
+        ],
+        [
+          "3",
+          "5",
+          "spill_ret",
+          "0x504980a0"
+        ],
+        [
+          "3",
+          "5",
+          "litpool",
+          "0x16b596e0"
+        ],
+        [
+          "3",
+          "5",
+          "indirect_call",
+          "0x0e6aac80"
+        ],
+        [
+          "3",
+          "5",
+          "interwork_tail",
+          "0xda3416f0"
+        ],
+        [
+          "3",
+          "5",
+          "regpressure",
+          "0xc5da3550"
+        ],
+        [
+          "3",
+          "5",
+          "hotcold_split",
+          "0xd4751003"
+        ],
+        [
+          "3",
+          "5",
+          "icf",
+          "0xdc7c3be0"
+        ],
+        [
+          "3",
+          "5",
+          "shrinkwrap",
+          "0x6a1b87d4"
+        ],
+        [
+          "3",
+          "6",
+          "hot_loop",
+          "0x6a4ae6e0"
+        ],
+        [
+          "3",
+          "6",
+          "hot_cold",
+          "0x00000000"
+        ],
+        [
+          "3",
+          "6",
+          "branch_chain",
+          "0x007a5100"
+        ],
+        [
+          "3",
+          "6",
+          "far_call",
+          "0xb7082fa9"
+        ],
+        [
+          "3",
+          "6",
+          "it_cond",
+          "0x021e8480"
+        ],
+        [
+          "3",
+          "6",
+          "interwork",
+          "0x2fb21555"
+        ],
+        [
+          "3",
+          "6",
+          "switch",
+          "0xa953bbf0"
+        ],
+        [
+          "3",
+          "6",
+          "spill_ret",
+          "0x504980a0"
+        ],
+        [
+          "3",
+          "6",
+          "litpool",
+          "0x16b596e0"
+        ],
+        [
+          "3",
+          "6",
+          "indirect_call",
+          "0x0e6aac80"
+        ],
+        [
+          "3",
+          "6",
+          "interwork_tail",
+          "0xda3416f0"
+        ],
+        [
+          "3",
+          "6",
+          "regpressure",
+          "0xc5da3550"
+        ],
+        [
+          "3",
+          "6",
+          "hotcold_split",
+          "0xd4751003"
+        ],
+        [
+          "3",
+          "6",
+          "icf",
+          "0xdc7c3be0"
+        ],
+        [
+          "3",
+          "6",
+          "shrinkwrap",
+          "0x6a1b87d4"
+        ],
+        [
+          "3",
+          "7",
+          "hot_loop",
+          "0x6a4ae6e0"
+        ],
+        [
+          "3",
+          "7",
+          "hot_cold",
+          "0x00000000"
+        ],
+        [
+          "3",
+          "7",
+          "branch_chain",
+          "0x007a5100"
+        ],
+        [
+          "3",
+          "7",
+          "far_call",
+          "0xb7082fa9"
+        ],
+        [
+          "3",
+          "7",
+          "it_cond",
+          "0x021e8480"
+        ],
+        [
+          "3",
+          "7",
+          "interwork",
+          "0x2fb21555"
+        ],
+        [
+          "3",
+          "7",
+          "switch",
+          "0xa953bbf0"
+        ],
+        [
+          "3",
+          "7",
+          "spill_ret",
+          "0x504980a0"
+        ],
+        [
+          "3",
+          "7",
+          "litpool",
+          "0x16b596e0"
+        ],
+        [
+          "3",
+          "7",
+          "indirect_call",
+          "0x0e6aac80"
+        ],
+        [
+          "3",
+          "7",
+          "interwork_tail",
+          "0xda3416f0"
+        ],
+        [
+          "3",
+          "7",
+          "regpressure",
+          "0xc5da3550"
+        ],
+        [
+          "3",
+          "7",
+          "hotcold_split",
+          "0xd4751003"
+        ],
+        [
+          "3",
+          "7",
+          "icf",
+          "0xdc7c3be0"
+        ],
+        [
+          "3",
+          "7",
+          "shrinkwrap",
+          "0x6a1b87d4"
+        ]
+      ]
+    },
+    "candidate": {
+      "seq cpu0": {
+        "hot_loop": "0x6a4ae6e0",
+        "hot_cold": "0x00000000",
+        "branch_chain": "0x007a5100",
+        "memcpy": "0x5acd3dc5",
+        "far_call": "0xb7082fa9",
+        "it_cond": "0x021e8480",
+        "interwork": "0x2fb21555",
+        "switch": "0xa953bbf0",
+        "spill_ret": "0x504980a0",
+        "litpool": "0x16b596e0",
+        "indirect_call": "0x0e6aac80",
+        "interwork_tail": "0xda3416f0",
+        "regpressure": "0xc5da3550",
+        "hotcold_split": "0xd4751003",
+        "icf": "0xdc7c3be0",
+        "shrinkwrap": "0x6a1b87d4",
+        "composite": "0x939f4ea0",
+        "stair": "0x9fef2a18"
+      },
+      "seq cpu1": {
+        "hot_loop": "0x6a4ae6e0",
+        "hot_cold": "0x00000000",
+        "branch_chain": "0x007a5100",
+        "memcpy": "0x5acd3dc5",
+        "far_call": "0xb7082fa9",
+        "it_cond": "0x021e8480",
+        "interwork": "0x2fb21555",
+        "switch": "0xa953bbf0",
+        "spill_ret": "0x504980a0",
+        "litpool": "0x16b596e0",
+        "indirect_call": "0x0e6aac80",
+        "interwork_tail": "0xda3416f0",
+        "regpressure": "0xc5da3550",
+        "hotcold_split": "0xd4751003",
+        "icf": "0xdc7c3be0",
+        "shrinkwrap": "0x6a1b87d4",
+        "composite": "0x939f4ea0",
+        "stair": "0x9fef2a18"
+      },
+      "seq cpu2": {
+        "hot_loop": "0x6a4ae6e0",
+        "hot_cold": "0x00000000",
+        "branch_chain": "0x007a5100",
+        "memcpy": "0x5acd3dc5",
+        "far_call": "0xb7082fa9",
+        "it_cond": "0x021e8480",
+        "interwork": "0x2fb21555",
+        "switch": "0xa953bbf0",
+        "spill_ret": "0x504980a0",
+        "litpool": "0x16b596e0",
+        "indirect_call": "0x0e6aac80",
+        "interwork_tail": "0xda3416f0",
+        "regpressure": "0xc5da3550",
+        "hotcold_split": "0xd4751003",
+        "icf": "0xdc7c3be0",
+        "shrinkwrap": "0x6a1b87d4",
+        "composite": "0x939f4ea0",
+        "stair": "0x9fef2a18"
+      },
+      "seq cpu3": {
+        "hot_loop": "0x6a4ae6e0",
+        "hot_cold": "0x00000000",
+        "branch_chain": "0x007a5100",
+        "memcpy": "0x5acd3dc5",
+        "far_call": "0xb7082fa9",
+        "it_cond": "0x021e8480",
+        "interwork": "0x2fb21555",
+        "switch": "0xa953bbf0",
+        "spill_ret": "0x504980a0",
+        "litpool": "0x16b596e0",
+        "indirect_call": "0x0e6aac80",
+        "interwork_tail": "0xda3416f0",
+        "regpressure": "0xc5da3550",
+        "hotcold_split": "0xd4751003",
+        "icf": "0xdc7c3be0",
+        "shrinkwrap": "0x6a1b87d4",
+        "composite": "0x939f4ea0",
+        "stair": "0x9fef2a18"
+      },
+      "conc": [
+        [
+          "0",
+          "0",
+          "hot_loop",
+          "0x6a4ae6e0"
+        ],
+        [
+          "0",
+          "0",
+          "hot_cold",
+          "0x00000000"
+        ],
+        [
+          "0",
+          "0",
+          "branch_chain",
+          "0x007a5100"
+        ],
+        [
+          "0",
+          "0",
+          "far_call",
+          "0xb7082fa9"
+        ],
+        [
+          "0",
+          "0",
+          "it_cond",
+          "0x021e8480"
+        ],
+        [
+          "0",
+          "0",
+          "interwork",
+          "0x2fb21555"
+        ],
+        [
+          "0",
+          "0",
+          "switch",
+          "0xa953bbf0"
+        ],
+        [
+          "0",
+          "0",
+          "spill_ret",
+          "0x504980a0"
+        ],
+        [
+          "0",
+          "0",
+          "litpool",
+          "0x16b596e0"
+        ],
+        [
+          "0",
+          "0",
+          "indirect_call",
+          "0x0e6aac80"
+        ],
+        [
+          "0",
+          "0",
+          "interwork_tail",
+          "0xda3416f0"
+        ],
+        [
+          "0",
+          "0",
+          "regpressure",
+          "0xc5da3550"
+        ],
+        [
+          "0",
+          "0",
+          "hotcold_split",
+          "0xd4751003"
+        ],
+        [
+          "0",
+          "0",
+          "icf",
+          "0xdc7c3be0"
+        ],
+        [
+          "0",
+          "0",
+          "shrinkwrap",
+          "0x6a1b87d4"
+        ],
+        [
+          "0",
+          "1",
+          "hot_loop",
+          "0x6a4ae6e0"
+        ],
+        [
+          "0",
+          "1",
+          "hot_cold",
+          "0x00000000"
+        ],
+        [
+          "0",
+          "1",
+          "branch_chain",
+          "0x007a5100"
+        ],
+        [
+          "0",
+          "1",
+          "far_call",
+          "0xb7082fa9"
+        ],
+        [
+          "0",
+          "1",
+          "it_cond",
+          "0x021e8480"
+        ],
+        [
+          "0",
+          "1",
+          "interwork",
+          "0x2fb21555"
+        ],
+        [
+          "0",
+          "1",
+          "switch",
+          "0xa953bbf0"
+        ],
+        [
+          "0",
+          "1",
+          "spill_ret",
+          "0x504980a0"
+        ],
+        [
+          "0",
+          "1",
+          "litpool",
+          "0x16b596e0"
+        ],
+        [
+          "0",
+          "1",
+          "indirect_call",
+          "0x0e6aac80"
+        ],
+        [
+          "0",
+          "1",
+          "interwork_tail",
+          "0xda3416f0"
+        ],
+        [
+          "0",
+          "1",
+          "regpressure",
+          "0xc5da3550"
+        ],
+        [
+          "0",
+          "1",
+          "hotcold_split",
+          "0xd4751003"
+        ],
+        [
+          "0",
+          "1",
+          "icf",
+          "0xdc7c3be0"
+        ],
+        [
+          "0",
+          "1",
+          "shrinkwrap",
+          "0x6a1b87d4"
+        ],
+        [
+          "0",
+          "2",
+          "hot_loop",
+          "0x6a4ae6e0"
+        ],
+        [
+          "0",
+          "2",
+          "hot_cold",
+          "0x00000000"
+        ],
+        [
+          "0",
+          "2",
+          "branch_chain",
+          "0x007a5100"
+        ],
+        [
+          "0",
+          "2",
+          "far_call",
+          "0xb7082fa9"
+        ],
+        [
+          "0",
+          "2",
+          "it_cond",
+          "0x021e8480"
+        ],
+        [
+          "0",
+          "2",
+          "interwork",
+          "0x2fb21555"
+        ],
+        [
+          "0",
+          "2",
+          "switch",
+          "0xa953bbf0"
+        ],
+        [
+          "0",
+          "2",
+          "spill_ret",
+          "0x504980a0"
+        ],
+        [
+          "0",
+          "2",
+          "litpool",
+          "0x16b596e0"
+        ],
+        [
+          "0",
+          "2",
+          "indirect_call",
+          "0x0e6aac80"
+        ],
+        [
+          "0",
+          "2",
+          "interwork_tail",
+          "0xda3416f0"
+        ],
+        [
+          "0",
+          "2",
+          "regpressure",
+          "0xc5da3550"
+        ],
+        [
+          "0",
+          "2",
+          "hotcold_split",
+          "0xd4751003"
+        ],
+        [
+          "0",
+          "2",
+          "icf",
+          "0xdc7c3be0"
+        ],
+        [
+          "0",
+          "2",
+          "shrinkwrap",
+          "0x6a1b87d4"
+        ],
+        [
+          "0",
+          "3",
+          "hot_loop",
+          "0x6a4ae6e0"
+        ],
+        [
+          "0",
+          "3",
+          "hot_cold",
+          "0x00000000"
+        ],
+        [
+          "0",
+          "3",
+          "branch_chain",
+          "0x007a5100"
+        ],
+        [
+          "0",
+          "3",
+          "far_call",
+          "0xb7082fa9"
+        ],
+        [
+          "0",
+          "3",
+          "it_cond",
+          "0x021e8480"
+        ],
+        [
+          "0",
+          "3",
+          "interwork",
+          "0x2fb21555"
+        ],
+        [
+          "0",
+          "3",
+          "switch",
+          "0xa953bbf0"
+        ],
+        [
+          "0",
+          "3",
+          "spill_ret",
+          "0x504980a0"
+        ],
+        [
+          "0",
+          "3",
+          "litpool",
+          "0x16b596e0"
+        ],
+        [
+          "0",
+          "3",
+          "indirect_call",
+          "0x0e6aac80"
+        ],
+        [
+          "0",
+          "3",
+          "interwork_tail",
+          "0xda3416f0"
+        ],
+        [
+          "0",
+          "3",
+          "regpressure",
+          "0xc5da3550"
+        ],
+        [
+          "0",
+          "3",
+          "hotcold_split",
+          "0xd4751003"
+        ],
+        [
+          "0",
+          "3",
+          "icf",
+          "0xdc7c3be0"
+        ],
+        [
+          "0",
+          "3",
+          "shrinkwrap",
+          "0x6a1b87d4"
+        ],
+        [
+          "0",
+          "4",
+          "hot_loop",
+          "0x6a4ae6e0"
+        ],
+        [
+          "0",
+          "4",
+          "hot_cold",
+          "0x00000000"
+        ],
+        [
+          "0",
+          "4",
+          "branch_chain",
+          "0x007a5100"
+        ],
+        [
+          "0",
+          "4",
+          "far_call",
+          "0xb7082fa9"
+        ],
+        [
+          "0",
+          "4",
+          "it_cond",
+          "0x021e8480"
+        ],
+        [
+          "0",
+          "4",
+          "interwork",
+          "0x2fb21555"
+        ],
+        [
+          "0",
+          "4",
+          "switch",
+          "0xa953bbf0"
+        ],
+        [
+          "0",
+          "4",
+          "spill_ret",
+          "0x504980a0"
+        ],
+        [
+          "0",
+          "4",
+          "litpool",
+          "0x16b596e0"
+        ],
+        [
+          "0",
+          "4",
+          "indirect_call",
+          "0x0e6aac80"
+        ],
+        [
+          "0",
+          "4",
+          "interwork_tail",
+          "0xda3416f0"
+        ],
+        [
+          "0",
+          "4",
+          "regpressure",
+          "0xc5da3550"
+        ],
+        [
+          "0",
+          "4",
+          "hotcold_split",
+          "0xd4751003"
+        ],
+        [
+          "0",
+          "4",
+          "icf",
+          "0xdc7c3be0"
+        ],
+        [
+          "0",
+          "4",
+          "shrinkwrap",
+          "0x6a1b87d4"
+        ],
+        [
+          "0",
+          "5",
+          "hot_loop",
+          "0x6a4ae6e0"
+        ],
+        [
+          "0",
+          "5",
+          "hot_cold",
+          "0x00000000"
+        ],
+        [
+          "0",
+          "5",
+          "branch_chain",
+          "0x007a5100"
+        ],
+        [
+          "0",
+          "5",
+          "far_call",
+          "0xb7082fa9"
+        ],
+        [
+          "0",
+          "5",
+          "it_cond",
+          "0x021e8480"
+        ],
+        [
+          "0",
+          "5",
+          "interwork",
+          "0x2fb21555"
+        ],
+        [
+          "0",
+          "5",
+          "switch",
+          "0xa953bbf0"
+        ],
+        [
+          "0",
+          "5",
+          "spill_ret",
+          "0x504980a0"
+        ],
+        [
+          "0",
+          "5",
+          "litpool",
+          "0x16b596e0"
+        ],
+        [
+          "0",
+          "5",
+          "indirect_call",
+          "0x0e6aac80"
+        ],
+        [
+          "0",
+          "5",
+          "interwork_tail",
+          "0xda3416f0"
+        ],
+        [
+          "0",
+          "5",
+          "regpressure",
+          "0xc5da3550"
+        ],
+        [
+          "0",
+          "5",
+          "hotcold_split",
+          "0xd4751003"
+        ],
+        [
+          "0",
+          "5",
+          "icf",
+          "0xdc7c3be0"
+        ],
+        [
+          "0",
+          "5",
+          "shrinkwrap",
+          "0x6a1b87d4"
+        ],
+        [
+          "0",
+          "6",
+          "hot_loop",
+          "0x6a4ae6e0"
+        ],
+        [
+          "0",
+          "6",
+          "hot_cold",
+          "0x00000000"
+        ],
+        [
+          "0",
+          "6",
+          "branch_chain",
+          "0x007a5100"
+        ],
+        [
+          "0",
+          "6",
+          "far_call",
+          "0xb7082fa9"
+        ],
+        [
+          "0",
+          "6",
+          "it_cond",
+          "0x021e8480"
+        ],
+        [
+          "0",
+          "6",
+          "interwork",
+          "0x2fb21555"
+        ],
+        [
+          "0",
+          "6",
+          "switch",
+          "0xa953bbf0"
+        ],
+        [
+          "0",
+          "6",
+          "spill_ret",
+          "0x504980a0"
+        ],
+        [
+          "0",
+          "6",
+          "litpool",
+          "0x16b596e0"
+        ],
+        [
+          "0",
+          "6",
+          "indirect_call",
+          "0x0e6aac80"
+        ],
+        [
+          "0",
+          "6",
+          "interwork_tail",
+          "0xda3416f0"
+        ],
+        [
+          "0",
+          "6",
+          "regpressure",
+          "0xc5da3550"
+        ],
+        [
+          "0",
+          "6",
+          "hotcold_split",
+          "0xd4751003"
+        ],
+        [
+          "0",
+          "6",
+          "icf",
+          "0xdc7c3be0"
+        ],
+        [
+          "0",
+          "6",
+          "shrinkwrap",
+          "0x6a1b87d4"
+        ],
+        [
+          "0",
+          "7",
+          "hot_loop",
+          "0x6a4ae6e0"
+        ],
+        [
+          "0",
+          "7",
+          "hot_cold",
+          "0x00000000"
+        ],
+        [
+          "0",
+          "7",
+          "branch_chain",
+          "0x007a5100"
+        ],
+        [
+          "0",
+          "7",
+          "far_call",
+          "0xb7082fa9"
+        ],
+        [
+          "0",
+          "7",
+          "it_cond",
+          "0x021e8480"
+        ],
+        [
+          "0",
+          "7",
+          "interwork",
+          "0x2fb21555"
+        ],
+        [
+          "0",
+          "7",
+          "switch",
+          "0xa953bbf0"
+        ],
+        [
+          "0",
+          "7",
+          "spill_ret",
+          "0x504980a0"
+        ],
+        [
+          "0",
+          "7",
+          "litpool",
+          "0x16b596e0"
+        ],
+        [
+          "0",
+          "7",
+          "indirect_call",
+          "0x0e6aac80"
+        ],
+        [
+          "0",
+          "7",
+          "interwork_tail",
+          "0xda3416f0"
+        ],
+        [
+          "0",
+          "7",
+          "regpressure",
+          "0xc5da3550"
+        ],
+        [
+          "0",
+          "7",
+          "hotcold_split",
+          "0xd4751003"
+        ],
+        [
+          "0",
+          "7",
+          "icf",
+          "0xdc7c3be0"
+        ],
+        [
+          "0",
+          "7",
+          "shrinkwrap",
+          "0x6a1b87d4"
+        ],
+        [
+          "1",
+          "0",
+          "hot_loop",
+          "0x6a4ae6e0"
+        ],
+        [
+          "1",
+          "0",
+          "hot_cold",
+          "0x00000000"
+        ],
+        [
+          "1",
+          "0",
+          "branch_chain",
+          "0x007a5100"
+        ],
+        [
+          "1",
+          "0",
+          "far_call",
+          "0xb7082fa9"
+        ],
+        [
+          "1",
+          "0",
+          "it_cond",
+          "0x021e8480"
+        ],
+        [
+          "1",
+          "0",
+          "interwork",
+          "0x2fb21555"
+        ],
+        [
+          "1",
+          "0",
+          "switch",
+          "0xa953bbf0"
+        ],
+        [
+          "1",
+          "0",
+          "spill_ret",
+          "0x504980a0"
+        ],
+        [
+          "1",
+          "0",
+          "litpool",
+          "0x16b596e0"
+        ],
+        [
+          "1",
+          "0",
+          "indirect_call",
+          "0x0e6aac80"
+        ],
+        [
+          "1",
+          "0",
+          "interwork_tail",
+          "0xda3416f0"
+        ],
+        [
+          "1",
+          "0",
+          "regpressure",
+          "0xc5da3550"
+        ],
+        [
+          "1",
+          "0",
+          "hotcold_split",
+          "0xd4751003"
+        ],
+        [
+          "1",
+          "0",
+          "icf",
+          "0xdc7c3be0"
+        ],
+        [
+          "1",
+          "0",
+          "shrinkwrap",
+          "0x6a1b87d4"
+        ],
+        [
+          "1",
+          "1",
+          "hot_loop",
+          "0x6a4ae6e0"
+        ],
+        [
+          "1",
+          "1",
+          "hot_cold",
+          "0x00000000"
+        ],
+        [
+          "1",
+          "1",
+          "branch_chain",
+          "0x007a5100"
+        ],
+        [
+          "1",
+          "1",
+          "far_call",
+          "0xb7082fa9"
+        ],
+        [
+          "1",
+          "1",
+          "it_cond",
+          "0x021e8480"
+        ],
+        [
+          "1",
+          "1",
+          "interwork",
+          "0x2fb21555"
+        ],
+        [
+          "1",
+          "1",
+          "switch",
+          "0xa953bbf0"
+        ],
+        [
+          "1",
+          "1",
+          "spill_ret",
+          "0x504980a0"
+        ],
+        [
+          "1",
+          "1",
+          "litpool",
+          "0x16b596e0"
+        ],
+        [
+          "1",
+          "1",
+          "indirect_call",
+          "0x0e6aac80"
+        ],
+        [
+          "1",
+          "1",
+          "interwork_tail",
+          "0xda3416f0"
+        ],
+        [
+          "1",
+          "1",
+          "regpressure",
+          "0xc5da3550"
+        ],
+        [
+          "1",
+          "1",
+          "hotcold_split",
+          "0xd4751003"
+        ],
+        [
+          "1",
+          "1",
+          "icf",
+          "0xdc7c3be0"
+        ],
+        [
+          "1",
+          "1",
+          "shrinkwrap",
+          "0x6a1b87d4"
+        ],
+        [
+          "1",
+          "2",
+          "hot_loop",
+          "0x6a4ae6e0"
+        ],
+        [
+          "1",
+          "2",
+          "hot_cold",
+          "0x00000000"
+        ],
+        [
+          "1",
+          "2",
+          "branch_chain",
+          "0x007a5100"
+        ],
+        [
+          "1",
+          "2",
+          "far_call",
+          "0xb7082fa9"
+        ],
+        [
+          "1",
+          "2",
+          "it_cond",
+          "0x021e8480"
+        ],
+        [
+          "1",
+          "2",
+          "interwork",
+          "0x2fb21555"
+        ],
+        [
+          "1",
+          "2",
+          "switch",
+          "0xa953bbf0"
+        ],
+        [
+          "1",
+          "2",
+          "spill_ret",
+          "0x504980a0"
+        ],
+        [
+          "1",
+          "2",
+          "litpool",
+          "0x16b596e0"
+        ],
+        [
+          "1",
+          "2",
+          "indirect_call",
+          "0x0e6aac80"
+        ],
+        [
+          "1",
+          "2",
+          "interwork_tail",
+          "0xda3416f0"
+        ],
+        [
+          "1",
+          "2",
+          "regpressure",
+          "0xc5da3550"
+        ],
+        [
+          "1",
+          "2",
+          "hotcold_split",
+          "0xd4751003"
+        ],
+        [
+          "1",
+          "2",
+          "icf",
+          "0xdc7c3be0"
+        ],
+        [
+          "1",
+          "2",
+          "shrinkwrap",
+          "0x6a1b87d4"
+        ],
+        [
+          "1",
+          "3",
+          "hot_loop",
+          "0x6a4ae6e0"
+        ],
+        [
+          "1",
+          "3",
+          "hot_cold",
+          "0x00000000"
+        ],
+        [
+          "1",
+          "3",
+          "branch_chain",
+          "0x007a5100"
+        ],
+        [
+          "1",
+          "3",
+          "far_call",
+          "0xb7082fa9"
+        ],
+        [
+          "1",
+          "3",
+          "it_cond",
+          "0x021e8480"
+        ],
+        [
+          "1",
+          "3",
+          "interwork",
+          "0x2fb21555"
+        ],
+        [
+          "1",
+          "3",
+          "switch",
+          "0xa953bbf0"
+        ],
+        [
+          "1",
+          "3",
+          "spill_ret",
+          "0x504980a0"
+        ],
+        [
+          "1",
+          "3",
+          "litpool",
+          "0x16b596e0"
+        ],
+        [
+          "1",
+          "3",
+          "indirect_call",
+          "0x0e6aac80"
+        ],
+        [
+          "1",
+          "3",
+          "interwork_tail",
+          "0xda3416f0"
+        ],
+        [
+          "1",
+          "3",
+          "regpressure",
+          "0xc5da3550"
+        ],
+        [
+          "1",
+          "3",
+          "hotcold_split",
+          "0xd4751003"
+        ],
+        [
+          "1",
+          "3",
+          "icf",
+          "0xdc7c3be0"
+        ],
+        [
+          "1",
+          "3",
+          "shrinkwrap",
+          "0x6a1b87d4"
+        ],
+        [
+          "1",
+          "4",
+          "hot_loop",
+          "0x6a4ae6e0"
+        ],
+        [
+          "1",
+          "4",
+          "hot_cold",
+          "0x00000000"
+        ],
+        [
+          "1",
+          "4",
+          "branch_chain",
+          "0x007a5100"
+        ],
+        [
+          "1",
+          "4",
+          "far_call",
+          "0xb7082fa9"
+        ],
+        [
+          "1",
+          "4",
+          "it_cond",
+          "0x021e8480"
+        ],
+        [
+          "1",
+          "4",
+          "interwork",
+          "0x2fb21555"
+        ],
+        [
+          "1",
+          "4",
+          "switch",
+          "0xa953bbf0"
+        ],
+        [
+          "1",
+          "4",
+          "spill_ret",
+          "0x504980a0"
+        ],
+        [
+          "1",
+          "4",
+          "litpool",
+          "0x16b596e0"
+        ],
+        [
+          "1",
+          "4",
+          "indirect_call",
+          "0x0e6aac80"
+        ],
+        [
+          "1",
+          "4",
+          "interwork_tail",
+          "0xda3416f0"
+        ],
+        [
+          "1",
+          "4",
+          "regpressure",
+          "0xc5da3550"
+        ],
+        [
+          "1",
+          "4",
+          "hotcold_split",
+          "0xd4751003"
+        ],
+        [
+          "1",
+          "4",
+          "icf",
+          "0xdc7c3be0"
+        ],
+        [
+          "1",
+          "4",
+          "shrinkwrap",
+          "0x6a1b87d4"
+        ],
+        [
+          "1",
+          "5",
+          "hot_loop",
+          "0x6a4ae6e0"
+        ],
+        [
+          "1",
+          "5",
+          "hot_cold",
+          "0x00000000"
+        ],
+        [
+          "1",
+          "5",
+          "branch_chain",
+          "0x007a5100"
+        ],
+        [
+          "1",
+          "5",
+          "far_call",
+          "0xb7082fa9"
+        ],
+        [
+          "1",
+          "5",
+          "it_cond",
+          "0x021e8480"
+        ],
+        [
+          "1",
+          "5",
+          "interwork",
+          "0x2fb21555"
+        ],
+        [
+          "1",
+          "5",
+          "switch",
+          "0xa953bbf0"
+        ],
+        [
+          "1",
+          "5",
+          "spill_ret",
+          "0x504980a0"
+        ],
+        [
+          "1",
+          "5",
+          "litpool",
+          "0x16b596e0"
+        ],
+        [
+          "1",
+          "5",
+          "indirect_call",
+          "0x0e6aac80"
+        ],
+        [
+          "1",
+          "5",
+          "interwork_tail",
+          "0xda3416f0"
+        ],
+        [
+          "1",
+          "5",
+          "regpressure",
+          "0xc5da3550"
+        ],
+        [
+          "1",
+          "5",
+          "hotcold_split",
+          "0xd4751003"
+        ],
+        [
+          "1",
+          "5",
+          "icf",
+          "0xdc7c3be0"
+        ],
+        [
+          "1",
+          "5",
+          "shrinkwrap",
+          "0x6a1b87d4"
+        ],
+        [
+          "1",
+          "6",
+          "hot_loop",
+          "0x6a4ae6e0"
+        ],
+        [
+          "1",
+          "6",
+          "hot_cold",
+          "0x00000000"
+        ],
+        [
+          "1",
+          "6",
+          "branch_chain",
+          "0x007a5100"
+        ],
+        [
+          "1",
+          "6",
+          "far_call",
+          "0xb7082fa9"
+        ],
+        [
+          "1",
+          "6",
+          "it_cond",
+          "0x021e8480"
+        ],
+        [
+          "1",
+          "6",
+          "interwork",
+          "0x2fb21555"
+        ],
+        [
+          "1",
+          "6",
+          "switch",
+          "0xa953bbf0"
+        ],
+        [
+          "1",
+          "6",
+          "spill_ret",
+          "0x504980a0"
+        ],
+        [
+          "1",
+          "6",
+          "litpool",
+          "0x16b596e0"
+        ],
+        [
+          "1",
+          "6",
+          "indirect_call",
+          "0x0e6aac80"
+        ],
+        [
+          "1",
+          "6",
+          "interwork_tail",
+          "0xda3416f0"
+        ],
+        [
+          "1",
+          "6",
+          "regpressure",
+          "0xc5da3550"
+        ],
+        [
+          "1",
+          "6",
+          "hotcold_split",
+          "0xd4751003"
+        ],
+        [
+          "1",
+          "6",
+          "icf",
+          "0xdc7c3be0"
+        ],
+        [
+          "1",
+          "6",
+          "shrinkwrap",
+          "0x6a1b87d4"
+        ],
+        [
+          "1",
+          "7",
+          "hot_loop",
+          "0x6a4ae6e0"
+        ],
+        [
+          "1",
+          "7",
+          "hot_cold",
+          "0x00000000"
+        ],
+        [
+          "1",
+          "7",
+          "branch_chain",
+          "0x007a5100"
+        ],
+        [
+          "1",
+          "7",
+          "far_call",
+          "0xb7082fa9"
+        ],
+        [
+          "1",
+          "7",
+          "it_cond",
+          "0x021e8480"
+        ],
+        [
+          "1",
+          "7",
+          "interwork",
+          "0x2fb21555"
+        ],
+        [
+          "1",
+          "7",
+          "switch",
+          "0xa953bbf0"
+        ],
+        [
+          "1",
+          "7",
+          "spill_ret",
+          "0x504980a0"
+        ],
+        [
+          "1",
+          "7",
+          "litpool",
+          "0x16b596e0"
+        ],
+        [
+          "1",
+          "7",
+          "indirect_call",
+          "0x0e6aac80"
+        ],
+        [
+          "1",
+          "7",
+          "interwork_tail",
+          "0xda3416f0"
+        ],
+        [
+          "1",
+          "7",
+          "regpressure",
+          "0xc5da3550"
+        ],
+        [
+          "1",
+          "7",
+          "hotcold_split",
+          "0xd4751003"
+        ],
+        [
+          "1",
+          "7",
+          "icf",
+          "0xdc7c3be0"
+        ],
+        [
+          "1",
+          "7",
+          "shrinkwrap",
+          "0x6a1b87d4"
+        ],
+        [
+          "2",
+          "0",
+          "hot_loop",
+          "0x6a4ae6e0"
+        ],
+        [
+          "2",
+          "0",
+          "hot_cold",
+          "0x00000000"
+        ],
+        [
+          "2",
+          "0",
+          "branch_chain",
+          "0x007a5100"
+        ],
+        [
+          "2",
+          "0",
+          "far_call",
+          "0xb7082fa9"
+        ],
+        [
+          "2",
+          "0",
+          "it_cond",
+          "0x021e8480"
+        ],
+        [
+          "2",
+          "0",
+          "interwork",
+          "0x2fb21555"
+        ],
+        [
+          "2",
+          "0",
+          "switch",
+          "0xa953bbf0"
+        ],
+        [
+          "2",
+          "0",
+          "spill_ret",
+          "0x504980a0"
+        ],
+        [
+          "2",
+          "0",
+          "litpool",
+          "0x16b596e0"
+        ],
+        [
+          "2",
+          "0",
+          "indirect_call",
+          "0x0e6aac80"
+        ],
+        [
+          "2",
+          "0",
+          "interwork_tail",
+          "0xda3416f0"
+        ],
+        [
+          "2",
+          "0",
+          "regpressure",
+          "0xc5da3550"
+        ],
+        [
+          "2",
+          "0",
+          "hotcold_split",
+          "0xd4751003"
+        ],
+        [
+          "2",
+          "0",
+          "icf",
+          "0xdc7c3be0"
+        ],
+        [
+          "2",
+          "0",
+          "shrinkwrap",
+          "0x6a1b87d4"
+        ],
+        [
+          "2",
+          "1",
+          "hot_loop",
+          "0x6a4ae6e0"
+        ],
+        [
+          "2",
+          "1",
+          "hot_cold",
+          "0x00000000"
+        ],
+        [
+          "2",
+          "1",
+          "branch_chain",
+          "0x007a5100"
+        ],
+        [
+          "2",
+          "1",
+          "far_call",
+          "0xb7082fa9"
+        ],
+        [
+          "2",
+          "1",
+          "it_cond",
+          "0x021e8480"
+        ],
+        [
+          "2",
+          "1",
+          "interwork",
+          "0x2fb21555"
+        ],
+        [
+          "2",
+          "1",
+          "switch",
+          "0xa953bbf0"
+        ],
+        [
+          "2",
+          "1",
+          "spill_ret",
+          "0x504980a0"
+        ],
+        [
+          "2",
+          "1",
+          "litpool",
+          "0x16b596e0"
+        ],
+        [
+          "2",
+          "1",
+          "indirect_call",
+          "0x0e6aac80"
+        ],
+        [
+          "2",
+          "1",
+          "interwork_tail",
+          "0xda3416f0"
+        ],
+        [
+          "2",
+          "1",
+          "regpressure",
+          "0xc5da3550"
+        ],
+        [
+          "2",
+          "1",
+          "hotcold_split",
+          "0xd4751003"
+        ],
+        [
+          "2",
+          "1",
+          "icf",
+          "0xdc7c3be0"
+        ],
+        [
+          "2",
+          "1",
+          "shrinkwrap",
+          "0x6a1b87d4"
+        ],
+        [
+          "2",
+          "2",
+          "hot_loop",
+          "0x6a4ae6e0"
+        ],
+        [
+          "2",
+          "2",
+          "hot_cold",
+          "0x00000000"
+        ],
+        [
+          "2",
+          "2",
+          "branch_chain",
+          "0x007a5100"
+        ],
+        [
+          "2",
+          "2",
+          "far_call",
+          "0xb7082fa9"
+        ],
+        [
+          "2",
+          "2",
+          "it_cond",
+          "0x021e8480"
+        ],
+        [
+          "2",
+          "2",
+          "interwork",
+          "0x2fb21555"
+        ],
+        [
+          "2",
+          "2",
+          "switch",
+          "0xa953bbf0"
+        ],
+        [
+          "2",
+          "2",
+          "spill_ret",
+          "0x504980a0"
+        ],
+        [
+          "2",
+          "2",
+          "litpool",
+          "0x16b596e0"
+        ],
+        [
+          "2",
+          "2",
+          "indirect_call",
+          "0x0e6aac80"
+        ],
+        [
+          "2",
+          "2",
+          "interwork_tail",
+          "0xda3416f0"
+        ],
+        [
+          "2",
+          "2",
+          "regpressure",
+          "0xc5da3550"
+        ],
+        [
+          "2",
+          "2",
+          "hotcold_split",
+          "0xd4751003"
+        ],
+        [
+          "2",
+          "2",
+          "icf",
+          "0xdc7c3be0"
+        ],
+        [
+          "2",
+          "2",
+          "shrinkwrap",
+          "0x6a1b87d4"
+        ],
+        [
+          "2",
+          "3",
+          "hot_loop",
+          "0x6a4ae6e0"
+        ],
+        [
+          "2",
+          "3",
+          "hot_cold",
+          "0x00000000"
+        ],
+        [
+          "2",
+          "3",
+          "branch_chain",
+          "0x007a5100"
+        ],
+        [
+          "2",
+          "3",
+          "far_call",
+          "0xb7082fa9"
+        ],
+        [
+          "2",
+          "3",
+          "it_cond",
+          "0x021e8480"
+        ],
+        [
+          "2",
+          "3",
+          "interwork",
+          "0x2fb21555"
+        ],
+        [
+          "2",
+          "3",
+          "switch",
+          "0xa953bbf0"
+        ],
+        [
+          "2",
+          "3",
+          "spill_ret",
+          "0x504980a0"
+        ],
+        [
+          "2",
+          "3",
+          "litpool",
+          "0x16b596e0"
+        ],
+        [
+          "2",
+          "3",
+          "indirect_call",
+          "0x0e6aac80"
+        ],
+        [
+          "2",
+          "3",
+          "interwork_tail",
+          "0xda3416f0"
+        ],
+        [
+          "2",
+          "3",
+          "regpressure",
+          "0xc5da3550"
+        ],
+        [
+          "2",
+          "3",
+          "hotcold_split",
+          "0xd4751003"
+        ],
+        [
+          "2",
+          "3",
+          "icf",
+          "0xdc7c3be0"
+        ],
+        [
+          "2",
+          "3",
+          "shrinkwrap",
+          "0x6a1b87d4"
+        ],
+        [
+          "2",
+          "4",
+          "hot_loop",
+          "0x6a4ae6e0"
+        ],
+        [
+          "2",
+          "4",
+          "hot_cold",
+          "0x00000000"
+        ],
+        [
+          "2",
+          "4",
+          "branch_chain",
+          "0x007a5100"
+        ],
+        [
+          "2",
+          "4",
+          "far_call",
+          "0xb7082fa9"
+        ],
+        [
+          "2",
+          "4",
+          "it_cond",
+          "0x021e8480"
+        ],
+        [
+          "2",
+          "4",
+          "interwork",
+          "0x2fb21555"
+        ],
+        [
+          "2",
+          "4",
+          "switch",
+          "0xa953bbf0"
+        ],
+        [
+          "2",
+          "4",
+          "spill_ret",
+          "0x504980a0"
+        ],
+        [
+          "2",
+          "4",
+          "litpool",
+          "0x16b596e0"
+        ],
+        [
+          "2",
+          "4",
+          "indirect_call",
+          "0x0e6aac80"
+        ],
+        [
+          "2",
+          "4",
+          "interwork_tail",
+          "0xda3416f0"
+        ],
+        [
+          "2",
+          "4",
+          "regpressure",
+          "0xc5da3550"
+        ],
+        [
+          "2",
+          "4",
+          "hotcold_split",
+          "0xd4751003"
+        ],
+        [
+          "2",
+          "4",
+          "icf",
+          "0xdc7c3be0"
+        ],
+        [
+          "2",
+          "4",
+          "shrinkwrap",
+          "0x6a1b87d4"
+        ],
+        [
+          "2",
+          "5",
+          "hot_loop",
+          "0x6a4ae6e0"
+        ],
+        [
+          "2",
+          "5",
+          "hot_cold",
+          "0x00000000"
+        ],
+        [
+          "2",
+          "5",
+          "branch_chain",
+          "0x007a5100"
+        ],
+        [
+          "2",
+          "5",
+          "far_call",
+          "0xb7082fa9"
+        ],
+        [
+          "2",
+          "5",
+          "it_cond",
+          "0x021e8480"
+        ],
+        [
+          "2",
+          "5",
+          "interwork",
+          "0x2fb21555"
+        ],
+        [
+          "2",
+          "5",
+          "switch",
+          "0xa953bbf0"
+        ],
+        [
+          "2",
+          "5",
+          "spill_ret",
+          "0x504980a0"
+        ],
+        [
+          "2",
+          "5",
+          "litpool",
+          "0x16b596e0"
+        ],
+        [
+          "2",
+          "5",
+          "indirect_call",
+          "0x0e6aac80"
+        ],
+        [
+          "2",
+          "5",
+          "interwork_tail",
+          "0xda3416f0"
+        ],
+        [
+          "2",
+          "5",
+          "regpressure",
+          "0xc5da3550"
+        ],
+        [
+          "2",
+          "5",
+          "hotcold_split",
+          "0xd4751003"
+        ],
+        [
+          "2",
+          "5",
+          "icf",
+          "0xdc7c3be0"
+        ],
+        [
+          "2",
+          "5",
+          "shrinkwrap",
+          "0x6a1b87d4"
+        ],
+        [
+          "2",
+          "6",
+          "hot_loop",
+          "0x6a4ae6e0"
+        ],
+        [
+          "2",
+          "6",
+          "hot_cold",
+          "0x00000000"
+        ],
+        [
+          "2",
+          "6",
+          "branch_chain",
+          "0x007a5100"
+        ],
+        [
+          "2",
+          "6",
+          "far_call",
+          "0xb7082fa9"
+        ],
+        [
+          "2",
+          "6",
+          "it_cond",
+          "0x021e8480"
+        ],
+        [
+          "2",
+          "6",
+          "interwork",
+          "0x2fb21555"
+        ],
+        [
+          "2",
+          "6",
+          "switch",
+          "0xa953bbf0"
+        ],
+        [
+          "2",
+          "6",
+          "spill_ret",
+          "0x504980a0"
+        ],
+        [
+          "2",
+          "6",
+          "litpool",
+          "0x16b596e0"
+        ],
+        [
+          "2",
+          "6",
+          "indirect_call",
+          "0x0e6aac80"
+        ],
+        [
+          "2",
+          "6",
+          "interwork_tail",
+          "0xda3416f0"
+        ],
+        [
+          "2",
+          "6",
+          "regpressure",
+          "0xc5da3550"
+        ],
+        [
+          "2",
+          "6",
+          "hotcold_split",
+          "0xd4751003"
+        ],
+        [
+          "2",
+          "6",
+          "icf",
+          "0xdc7c3be0"
+        ],
+        [
+          "2",
+          "6",
+          "shrinkwrap",
+          "0x6a1b87d4"
+        ],
+        [
+          "2",
+          "7",
+          "hot_loop",
+          "0x6a4ae6e0"
+        ],
+        [
+          "2",
+          "7",
+          "hot_cold",
+          "0x00000000"
+        ],
+        [
+          "2",
+          "7",
+          "branch_chain",
+          "0x007a5100"
+        ],
+        [
+          "2",
+          "7",
+          "far_call",
+          "0xb7082fa9"
+        ],
+        [
+          "2",
+          "7",
+          "it_cond",
+          "0x021e8480"
+        ],
+        [
+          "2",
+          "7",
+          "interwork",
+          "0x2fb21555"
+        ],
+        [
+          "2",
+          "7",
+          "switch",
+          "0xa953bbf0"
+        ],
+        [
+          "2",
+          "7",
+          "spill_ret",
+          "0x504980a0"
+        ],
+        [
+          "2",
+          "7",
+          "litpool",
+          "0x16b596e0"
+        ],
+        [
+          "2",
+          "7",
+          "indirect_call",
+          "0x0e6aac80"
+        ],
+        [
+          "2",
+          "7",
+          "interwork_tail",
+          "0xda3416f0"
+        ],
+        [
+          "2",
+          "7",
+          "regpressure",
+          "0xc5da3550"
+        ],
+        [
+          "2",
+          "7",
+          "hotcold_split",
+          "0xd4751003"
+        ],
+        [
+          "2",
+          "7",
+          "icf",
+          "0xdc7c3be0"
+        ],
+        [
+          "2",
+          "7",
+          "shrinkwrap",
+          "0x6a1b87d4"
+        ],
+        [
+          "3",
+          "0",
+          "hot_loop",
+          "0x6a4ae6e0"
+        ],
+        [
+          "3",
+          "0",
+          "hot_cold",
+          "0x00000000"
+        ],
+        [
+          "3",
+          "0",
+          "branch_chain",
+          "0x007a5100"
+        ],
+        [
+          "3",
+          "0",
+          "far_call",
+          "0xb7082fa9"
+        ],
+        [
+          "3",
+          "0",
+          "it_cond",
+          "0x021e8480"
+        ],
+        [
+          "3",
+          "0",
+          "interwork",
+          "0x2fb21555"
+        ],
+        [
+          "3",
+          "0",
+          "switch",
+          "0xa953bbf0"
+        ],
+        [
+          "3",
+          "0",
+          "spill_ret",
+          "0x504980a0"
+        ],
+        [
+          "3",
+          "0",
+          "litpool",
+          "0x16b596e0"
+        ],
+        [
+          "3",
+          "0",
+          "indirect_call",
+          "0x0e6aac80"
+        ],
+        [
+          "3",
+          "0",
+          "interwork_tail",
+          "0xda3416f0"
+        ],
+        [
+          "3",
+          "0",
+          "regpressure",
+          "0xc5da3550"
+        ],
+        [
+          "3",
+          "0",
+          "hotcold_split",
+          "0xd4751003"
+        ],
+        [
+          "3",
+          "0",
+          "icf",
+          "0xdc7c3be0"
+        ],
+        [
+          "3",
+          "0",
+          "shrinkwrap",
+          "0x6a1b87d4"
+        ],
+        [
+          "3",
+          "1",
+          "hot_loop",
+          "0x6a4ae6e0"
+        ],
+        [
+          "3",
+          "1",
+          "hot_cold",
+          "0x00000000"
+        ],
+        [
+          "3",
+          "1",
+          "branch_chain",
+          "0x007a5100"
+        ],
+        [
+          "3",
+          "1",
+          "far_call",
+          "0xb7082fa9"
+        ],
+        [
+          "3",
+          "1",
+          "it_cond",
+          "0x021e8480"
+        ],
+        [
+          "3",
+          "1",
+          "interwork",
+          "0x2fb21555"
+        ],
+        [
+          "3",
+          "1",
+          "switch",
+          "0xa953bbf0"
+        ],
+        [
+          "3",
+          "1",
+          "spill_ret",
+          "0x504980a0"
+        ],
+        [
+          "3",
+          "1",
+          "litpool",
+          "0x16b596e0"
+        ],
+        [
+          "3",
+          "1",
+          "indirect_call",
+          "0x0e6aac80"
+        ],
+        [
+          "3",
+          "1",
+          "interwork_tail",
+          "0xda3416f0"
+        ],
+        [
+          "3",
+          "1",
+          "regpressure",
+          "0xc5da3550"
+        ],
+        [
+          "3",
+          "1",
+          "hotcold_split",
+          "0xd4751003"
+        ],
+        [
+          "3",
+          "1",
+          "icf",
+          "0xdc7c3be0"
+        ],
+        [
+          "3",
+          "1",
+          "shrinkwrap",
+          "0x6a1b87d4"
+        ],
+        [
+          "3",
+          "2",
+          "hot_loop",
+          "0x6a4ae6e0"
+        ],
+        [
+          "3",
+          "2",
+          "hot_cold",
+          "0x00000000"
+        ],
+        [
+          "3",
+          "2",
+          "branch_chain",
+          "0x007a5100"
+        ],
+        [
+          "3",
+          "2",
+          "far_call",
+          "0xb7082fa9"
+        ],
+        [
+          "3",
+          "2",
+          "it_cond",
+          "0x021e8480"
+        ],
+        [
+          "3",
+          "2",
+          "interwork",
+          "0x2fb21555"
+        ],
+        [
+          "3",
+          "2",
+          "switch",
+          "0xa953bbf0"
+        ],
+        [
+          "3",
+          "2",
+          "spill_ret",
+          "0x504980a0"
+        ],
+        [
+          "3",
+          "2",
+          "litpool",
+          "0x16b596e0"
+        ],
+        [
+          "3",
+          "2",
+          "indirect_call",
+          "0x0e6aac80"
+        ],
+        [
+          "3",
+          "2",
+          "interwork_tail",
+          "0xda3416f0"
+        ],
+        [
+          "3",
+          "2",
+          "regpressure",
+          "0xc5da3550"
+        ],
+        [
+          "3",
+          "2",
+          "hotcold_split",
+          "0xd4751003"
+        ],
+        [
+          "3",
+          "2",
+          "icf",
+          "0xdc7c3be0"
+        ],
+        [
+          "3",
+          "2",
+          "shrinkwrap",
+          "0x6a1b87d4"
+        ],
+        [
+          "3",
+          "3",
+          "hot_loop",
+          "0x6a4ae6e0"
+        ],
+        [
+          "3",
+          "3",
+          "hot_cold",
+          "0x00000000"
+        ],
+        [
+          "3",
+          "3",
+          "branch_chain",
+          "0x007a5100"
+        ],
+        [
+          "3",
+          "3",
+          "far_call",
+          "0xb7082fa9"
+        ],
+        [
+          "3",
+          "3",
+          "it_cond",
+          "0x021e8480"
+        ],
+        [
+          "3",
+          "3",
+          "interwork",
+          "0x2fb21555"
+        ],
+        [
+          "3",
+          "3",
+          "switch",
+          "0xa953bbf0"
+        ],
+        [
+          "3",
+          "3",
+          "spill_ret",
+          "0x504980a0"
+        ],
+        [
+          "3",
+          "3",
+          "litpool",
+          "0x16b596e0"
+        ],
+        [
+          "3",
+          "3",
+          "indirect_call",
+          "0x0e6aac80"
+        ],
+        [
+          "3",
+          "3",
+          "interwork_tail",
+          "0xda3416f0"
+        ],
+        [
+          "3",
+          "3",
+          "regpressure",
+          "0xc5da3550"
+        ],
+        [
+          "3",
+          "3",
+          "hotcold_split",
+          "0xd4751003"
+        ],
+        [
+          "3",
+          "3",
+          "icf",
+          "0xdc7c3be0"
+        ],
+        [
+          "3",
+          "3",
+          "shrinkwrap",
+          "0x6a1b87d4"
+        ],
+        [
+          "3",
+          "4",
+          "hot_loop",
+          "0x6a4ae6e0"
+        ],
+        [
+          "3",
+          "4",
+          "hot_cold",
+          "0x00000000"
+        ],
+        [
+          "3",
+          "4",
+          "branch_chain",
+          "0x007a5100"
+        ],
+        [
+          "3",
+          "4",
+          "far_call",
+          "0xb7082fa9"
+        ],
+        [
+          "3",
+          "4",
+          "it_cond",
+          "0x021e8480"
+        ],
+        [
+          "3",
+          "4",
+          "interwork",
+          "0x2fb21555"
+        ],
+        [
+          "3",
+          "4",
+          "switch",
+          "0xa953bbf0"
+        ],
+        [
+          "3",
+          "4",
+          "spill_ret",
+          "0x504980a0"
+        ],
+        [
+          "3",
+          "4",
+          "litpool",
+          "0x16b596e0"
+        ],
+        [
+          "3",
+          "4",
+          "indirect_call",
+          "0x0e6aac80"
+        ],
+        [
+          "3",
+          "4",
+          "interwork_tail",
+          "0xda3416f0"
+        ],
+        [
+          "3",
+          "4",
+          "regpressure",
+          "0xc5da3550"
+        ],
+        [
+          "3",
+          "4",
+          "hotcold_split",
+          "0xd4751003"
+        ],
+        [
+          "3",
+          "4",
+          "icf",
+          "0xdc7c3be0"
+        ],
+        [
+          "3",
+          "4",
+          "shrinkwrap",
+          "0x6a1b87d4"
+        ],
+        [
+          "3",
+          "5",
+          "hot_loop",
+          "0x6a4ae6e0"
+        ],
+        [
+          "3",
+          "5",
+          "hot_cold",
+          "0x00000000"
+        ],
+        [
+          "3",
+          "5",
+          "branch_chain",
+          "0x007a5100"
+        ],
+        [
+          "3",
+          "5",
+          "far_call",
+          "0xb7082fa9"
+        ],
+        [
+          "3",
+          "5",
+          "it_cond",
+          "0x021e8480"
+        ],
+        [
+          "3",
+          "5",
+          "interwork",
+          "0x2fb21555"
+        ],
+        [
+          "3",
+          "5",
+          "switch",
+          "0xa953bbf0"
+        ],
+        [
+          "3",
+          "5",
+          "spill_ret",
+          "0x504980a0"
+        ],
+        [
+          "3",
+          "5",
+          "litpool",
+          "0x16b596e0"
+        ],
+        [
+          "3",
+          "5",
+          "indirect_call",
+          "0x0e6aac80"
+        ],
+        [
+          "3",
+          "5",
+          "interwork_tail",
+          "0xda3416f0"
+        ],
+        [
+          "3",
+          "5",
+          "regpressure",
+          "0xc5da3550"
+        ],
+        [
+          "3",
+          "5",
+          "hotcold_split",
+          "0xd4751003"
+        ],
+        [
+          "3",
+          "5",
+          "icf",
+          "0xdc7c3be0"
+        ],
+        [
+          "3",
+          "5",
+          "shrinkwrap",
+          "0x6a1b87d4"
+        ],
+        [
+          "3",
+          "6",
+          "hot_loop",
+          "0x6a4ae6e0"
+        ],
+        [
+          "3",
+          "6",
+          "hot_cold",
+          "0x00000000"
+        ],
+        [
+          "3",
+          "6",
+          "branch_chain",
+          "0x007a5100"
+        ],
+        [
+          "3",
+          "6",
+          "far_call",
+          "0xb7082fa9"
+        ],
+        [
+          "3",
+          "6",
+          "it_cond",
+          "0x021e8480"
+        ],
+        [
+          "3",
+          "6",
+          "interwork",
+          "0x2fb21555"
+        ],
+        [
+          "3",
+          "6",
+          "switch",
+          "0xa953bbf0"
+        ],
+        [
+          "3",
+          "6",
+          "spill_ret",
+          "0x504980a0"
+        ],
+        [
+          "3",
+          "6",
+          "litpool",
+          "0x16b596e0"
+        ],
+        [
+          "3",
+          "6",
+          "indirect_call",
+          "0x0e6aac80"
+        ],
+        [
+          "3",
+          "6",
+          "interwork_tail",
+          "0xda3416f0"
+        ],
+        [
+          "3",
+          "6",
+          "regpressure",
+          "0xc5da3550"
+        ],
+        [
+          "3",
+          "6",
+          "hotcold_split",
+          "0xd4751003"
+        ],
+        [
+          "3",
+          "6",
+          "icf",
+          "0xdc7c3be0"
+        ],
+        [
+          "3",
+          "6",
+          "shrinkwrap",
+          "0x6a1b87d4"
+        ],
+        [
+          "3",
+          "7",
+          "hot_loop",
+          "0x6a4ae6e0"
+        ],
+        [
+          "3",
+          "7",
+          "hot_cold",
+          "0x00000000"
+        ],
+        [
+          "3",
+          "7",
+          "branch_chain",
+          "0x007a5100"
+        ],
+        [
+          "3",
+          "7",
+          "far_call",
+          "0xb7082fa9"
+        ],
+        [
+          "3",
+          "7",
+          "it_cond",
+          "0x021e8480"
+        ],
+        [
+          "3",
+          "7",
+          "interwork",
+          "0x2fb21555"
+        ],
+        [
+          "3",
+          "7",
+          "switch",
+          "0xa953bbf0"
+        ],
+        [
+          "3",
+          "7",
+          "spill_ret",
+          "0x504980a0"
+        ],
+        [
+          "3",
+          "7",
+          "litpool",
+          "0x16b596e0"
+        ],
+        [
+          "3",
+          "7",
+          "indirect_call",
+          "0x0e6aac80"
+        ],
+        [
+          "3",
+          "7",
+          "interwork_tail",
+          "0xda3416f0"
+        ],
+        [
+          "3",
+          "7",
+          "regpressure",
+          "0xc5da3550"
+        ],
+        [
+          "3",
+          "7",
+          "hotcold_split",
+          "0xd4751003"
+        ],
+        [
+          "3",
+          "7",
+          "icf",
+          "0xdc7c3be0"
+        ],
+        [
+          "3",
+          "7",
+          "shrinkwrap",
+          "0x6a1b87d4"
+        ]
+      ]
+    }
+  },
+  "images": {
+    "baseline": "300a43f0dba5f4a157d790a25f431c8f08b5dec6067a72bc11cf911599fb01fc",
+    "candidate": "58fe0b82b6e307f3189a720fce5fc77a963352144831eceab790bdf866ce96da"
+  },
+  "required": [
+    "bolt_bench_interwork",
+    "bolt_bench_spill_ret",
+    "bolt_bench_it_cond"
+  ],
+  "per_core_samples": {
+    "bolt_bench_interwork": [
+      29,
+      34,
+      30,
+      27
+    ],
+    "bolt_bench_spill_ret": [
+      283,
+      315,
+      469,
+      440
+    ],
+    "bolt_bench_it_cond": [
+      2267,
+      2266,
+      2267,
+      2265
+    ]
+  },
+  "reps": 8,
+  "period": 20000,
+  "baseline": {
+    "cpus": 4,
+    "reps": 8,
+    "seq_results": 72,
+    "conc_results": 480
+  },
+  "candidate": {
+    "cpus": 4,
+    "reps": 8,
+    "seq_results": 72,
+    "conc_results": 480
+  },
+  "logs": {
+    "baseline": "7b6b188098361727aef7d68cce3211cd02bf77d742728d106a07376deddac35d",
+    "candidate": "1bb8a3333998933665f4f8e6e30768324621b18d36b599873d40b04f465f4613"
+  },
+  "scripts": {
+    "scripts/pi4/smp_verify.py": "c3a1b666f2d2f09443950f688e3d2de5ae4d078120419246342fdb1859ed83c6",
+    "scripts/pi4/pi4_run.py": "bb640ab00a8a301c81a040127612d6953e0ae47036348e6035084b97ce3401ba",
+    "scripts/bolt_bench_smp_check.py": "080e371a06e2b5a61a563f3e7261bdb0d3755ced5f6ff0b03d42f54a0fdad5b0",
+    "scripts/qemu_bench_oracle.py": "27692e33bbc0cc3422491a6c4cdf906403485d4e8fb66e6e80253c942690f5d6"
+  },
+  "repository_revision": "a23d00ac671ec121ec1dd96ad666bd6195273524"
+}
