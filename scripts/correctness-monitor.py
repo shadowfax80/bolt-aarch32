@@ -1,22 +1,17 @@
 #!/usr/bin/env python3
-"""Watch the recorded correctness tracker and Git commits; does not run fixes."""
+"""Watch current HANDOFF work tables and Git commits; does not run fixes."""
 import argparse
 import datetime
 import json
 from pathlib import Path
 import subprocess
 import time
+from handoff_state import read_items
 
 
 def snapshot(root):
-    tracker = root / "docs/CORRECTNESS_STATUS.md"
-    items = []
-    for line in tracker.read_text(encoding="utf-8").splitlines():
-        columns = [column.strip() for column in line.split("|")[1:-1]]
-        if len(columns) == 4 and columns[0].isdigit():
-            items.append(dict(zip(("number", "item", "status", "remaining"), columns)))
-    if len(items) != 12:
-        raise ValueError(f"Expected 12 tracker items, found {len(items)}")
+    tracker = root / "docs/HANDOFF.md"
+    items = read_items(tracker)
     result = subprocess.run(
         ["git", "log", "-1", "--format=%h %s"], cwd=root,
         capture_output=True, text=True, timeout=10, check=True,
@@ -27,6 +22,7 @@ def snapshot(root):
             tracker.stat().st_mtime, datetime.timezone.utc).isoformat(),
         "commit": result.stdout.strip(),
         "items": items,
+        "tracker": "docs/HANDOFF.md",
         "note": "Recorded tracker status only; a running monitor does not mean fixes are running.",
     }
 

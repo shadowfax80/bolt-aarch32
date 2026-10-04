@@ -1,5 +1,9 @@
 # Pi sampling profile identity
 
+> Reserve the Pi and shared build resources under [HANDOFF.md](HANDOFF.md)
+> before running commands. Hardware receipts below are dated and scoped;
+> current status and later contract extensions belong to the handoff.
+
 Seal the exact ARM ELF/binary pair before collecting samples. Run on the build
 host with the ATFE toolchain; this checks every allocated file-backed ELF section
 against the binary and records source functions, the sample buffer, tool digests

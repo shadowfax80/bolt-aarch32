@@ -1,5 +1,9 @@
 # Isolated ATFE source replay
 
+> Commands/contracts and dated evidence below retain their stated scope.
+> Current overlay inventory, item status and any later extensions are in
+> [HANDOFF.md](HANDOFF.md); old "next" or stop statements are historical.
+
 The fresh 0038 review replay applies all 38 overlays with no uncovered or
 mismatched source files and preserves the live dirty tree. Source identity:
 `d2e9272859daa806082419c5c9e8522bdc8233693659c81453538e42c31f2b56`.

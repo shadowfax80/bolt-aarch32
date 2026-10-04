@@ -1,5 +1,16 @@
 # AArch32 ISA and ABI admission contract
 
+Overlay 0058 extends the initial contract to ARMv8-A AArch32 build attributes
+and v8 integer decoding, with runtime features bounded by the input. The
+project's certified fixtures use no FPU/NEON. T1's A55-built image is certified
+on the Pi's executed A72-compatible subset; this is not A55-only instruction
+or target-platform proof. Overlay 0060 adds the privileged SMP instrumentation
+contract. Current limits and tested build versions are in
+[HANDOFF.md](HANDOFF.md); the metadata/ABI exclusions below retain their
+original scope except where these later overlays explicitly extend it.
+
+## Initial 0041 contract and dated evidence
+
 Overlay 0041 establishes the initial supported metadata boundary. Ordinary
 rewriting and instrumentation both require little-endian ELF32, EABI5, ELF OSABI
 NONE/version zero, explicit ARMv7-A and permission for ARM plus Thumb-2 (including

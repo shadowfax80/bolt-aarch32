@@ -1,5 +1,9 @@
 # Pi 4 inlining and branch semantics fixture
 
+> Reserve the Pi and shared build resources under [HANDOFF.md](HANDOFF.md)
+> before running commands. Hardware receipts below are dated and scoped;
+> current status and later contract extensions belong to the handoff.
+
 Requires ATFE overlays through 0032. This isolated fixture executes generated
 ARM/Thumb wrappers through eleven explicit original-entry redirects; firmware
 startup and caller data stay at their original addresses. Fifty-five independent

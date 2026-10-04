@@ -1,5 +1,10 @@
 # AArch32 correctness review through overlay 0045
 
+> Dated reference/history. Current ATFE status, ownership, limitations and work
+> order are in [HANDOFF.md](HANDOFF.md), with the
+> [latest reconciled review](CORRECTNESS_REVIEW_ASTRA_0057.md). Older phase,
+> runtime-contract and verification statements below retain their original scope.
+
 Reviewed 2026-10-04 against the live ATFE source at
 `bcc08884995ff3cbee70749524621803b9bd258a` with overlays 0001–0045,
 and the current verification scripts. Upstream is outside this assessment.

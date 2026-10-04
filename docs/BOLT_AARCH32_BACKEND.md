@@ -1,5 +1,10 @@
 # BOLT AArch32 Backend — design, implementation, and user guide
 
+> Dated reference/history. Current ATFE status, ownership, limitations and work
+> order are in [HANDOFF.md](HANDOFF.md), with the
+> [latest reconciled review](CORRECTNESS_REVIEW_ASTRA_0057.md). Older phase,
+> runtime-contract and verification statements below retain their original scope.
+
 This document is the reference for the ARM/Thumb (AArch32) backend added to
 LLVM BOLT in this repo. For the rung-by-rung upstreaming checklist and dated
 verification log, see [aarch32-bolt.md](aarch32-bolt.md); this doc is the

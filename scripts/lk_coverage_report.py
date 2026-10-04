@@ -39,13 +39,13 @@ BOLT_OPTS = ['--no-huge-pages', '-lite=0', '-reorder-blocks=ext-tsp',
 CLASSES = [
     ('fallthrough', r'unmodeled AArch32 function fallthrough',
      'Usually a terminal call to a noreturn callee; real fallthrough (e.g. '
-     'bzero into memset) must stay rejected.', 'R5 (Codex)'),
+     'bzero into memset) must stay rejected.', 'keep real fallthrough out; otherwise triage via HANDOFF'),
     ('it-transfer', r'unsupported control transfer in Thumb IT group',
      'Predicated return or branch inside an IT block; unsafe to move until '
-     'modeled.', 'R6 (Codex)'),
+     'modeled.', 'unsupported IT shape: triage via HANDOFF'),
     ('cfg-crash', r'invalid AArch32 CFG after branch post-processing',
      'Not justified: crash on an IT-predicated conditional tail call.',
-     'R4 (Codex)'),
+     'CFG failure: triage via HANDOFF'),
     ('pc-write', r'PC-writing control transfer',
      'Exception-return or computed PC write; vectors and early setup stay in '
      'place permanently.', 'keep out'),

@@ -1,5 +1,10 @@
 # BOLT AArch32 (ATFE) functionality review — 2026-10-01
 
+> Dated reference/history. Current ATFE status, ownership, limitations and work
+> order are in [HANDOFF.md](HANDOFF.md), with the
+> [latest reconciled review](CORRECTNESS_REVIEW_ASTRA_0057.md). Older phase,
+> runtime-contract and verification statements below retain their original scope.
+
 > This is a historical functionality/pass survey with follow-up progress below.
 > Current correctness claims and exclusions are in the
 > [0038 review](CORRECTNESS_REVIEW_0038.md); the

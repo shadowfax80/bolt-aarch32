@@ -1,5 +1,9 @@
 # AArch32 profile identity contract — overlay 0043
 
+> Commands/contracts and dated evidence below retain their stated scope.
+> Current overlay inventory, item status and any later extensions are in
+> [HANDOFF.md](HANDOFF.md); old "next" or stop statements are historical.
+
 Consolidated queue item 5 is verified within the repository's sealed ARM counter
 and PC-sampling pipelines. This is an artifact identity and source-range check.
 Execution coverage, workload semantics, PMU ownership and clean build provenance

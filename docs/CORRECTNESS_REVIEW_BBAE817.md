@@ -1,5 +1,10 @@
 # ATFE correctness re-evaluation at bbae817
 
+> Dated reference/history. Current ATFE status, ownership, limitations and work
+> order are in [HANDOFF.md](HANDOFF.md), with the
+> [latest reconciled review](CORRECTNESS_REVIEW_ASTRA_0057.md). Older phase,
+> runtime-contract and verification statements below retain their original scope.
+
 > Historical review through overlay 0024. See the current
 > [0038 review](CORRECTNESS_REVIEW_0038.md) and
 > [ordered work items](CORRECTNESS_PRIORITY_TODO.md).

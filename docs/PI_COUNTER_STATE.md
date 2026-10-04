@@ -1,5 +1,9 @@
 # Pi instrumentation-state verification
 
+> Reserve the Pi and shared build resources under [HANDOFF.md](HANDOFF.md)
+> before running commands. Hardware receipts below are dated and scoped;
+> current status and later contract extensions belong to the handoff.
+
 This fixture checks actual ATFE-generated ARM and Thumb leaf counter bodies on
 Pi 4. The temporary firmware runs with MMU/caches off, a private aligned stack,
 other cores parked by the serial loader and no active interrupt sources. It

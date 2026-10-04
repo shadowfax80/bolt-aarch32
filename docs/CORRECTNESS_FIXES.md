@@ -1,5 +1,10 @@
 # Correctness fixes
 
+> Dated reference/history. Current ATFE status, ownership, limitations and work
+> order are in [HANDOFF.md](HANDOFF.md), with the
+> [latest reconciled review](CORRECTNESS_REVIEW_ASTRA_0057.md). Older phase,
+> runtime-contract and verification statements below retain their original scope.
+
 ## Latest: item 6 ARM/Thumb far-call stage verified in 0044
 
 Overlay 0044 fixes eight reproduced Thumb-caller far-stub link failures by

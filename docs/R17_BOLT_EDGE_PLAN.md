@@ -1,7 +1,10 @@
 # R17: synthesized edge-case test image (`bolt_edge`)
 
-Approved by the user 2026-10-04 as open item R17 (P1, shared pool). Depends on
-R11 (skip-and-report) so must-reject cases do not need one rerun each.
+R17's declared 146-case stage-two milestone is Done. Approved fixtures,
+contracts and execution scope are recorded in [HANDOFF.md](HANDOFF.md) and
+`docs/bolt_edge/stage2/manifest.json`. The design below is the original plan;
+its stage sizes and dependency statuses are historical. R11 has since been
+reopened for decoder-state isolation; see the current shared queue.
 
 ## Goal
 
@@ -21,7 +24,7 @@ A Python generator emits:
 3. **Execution oracle:** each case returns a checksum from fixed inputs; the
    generator's own model computes the expected values. Each generated image
    needs a reviewed oracle contract (6b); reviewing the generator once covers
-   its images.
+   its generator logic; each new input/configuration contract still needs review.
 
 Runs in QEMU for iteration and on the Pi (watchdog armed, fast loader) as the
 final check, through the existing gates (`full_image_build.py`,

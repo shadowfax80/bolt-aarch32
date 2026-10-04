@@ -1,5 +1,9 @@
 # Independent oracle and wider Pi execution milestone
 
+> Commands/contracts and dated evidence below retain their stated scope.
+> Current overlay inventory, item status and any later extensions are in
+> [HANDOFF.md](HANDOFF.md); old "next" or stop statements are historical.
+
 2026-10-04, ATFE through overlay 0045. This is the requested stopping milestone;
 consolidated P0 item 6 and original #12 remain open. See the
 [review](CORRECTNESS_REVIEW_0045.md), [fresh prioritized table](CORRECTNESS_PRIORITY_TODO.md)

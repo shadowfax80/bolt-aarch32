@@ -1,5 +1,10 @@
 # ATFE correctness review - 2026-10-01
 
+> Dated reference/history. Current ATFE status, ownership, limitations and work
+> order are in [HANDOFF.md](HANDOFF.md), with the
+> [latest reconciled review](CORRECTNESS_REVIEW_ASTRA_0057.md). Older phase,
+> runtime-contract and verification statements below retain their original scope.
+
 > Historical review before overlays 0022-0024. The current re-evaluation is
 > [CORRECTNESS_REVIEW_0038.md](CORRECTNESS_REVIEW_0038.md), with a fresh
 > [priority queue](CORRECTNESS_PRIORITY_TODO.md). It credits subsequent fixes

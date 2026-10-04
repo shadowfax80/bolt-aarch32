@@ -22,6 +22,13 @@ owner's request. The older RunPod docs ([RUNPOD.md](RUNPOD.md), [RESUME.md](RESU
   With `memory=12GB` the machine ran short of memory during the LLVM build and the build
   was killed.
 
+## Coordination before using shared resources
+
+Read [HANDOFF.md](HANDOFF.md), publish the item claim/live-tree lock before
+source or build mutations, and reserve the Pi separately before serial access.
+The setup steps below are for a fresh tree. For an existing dirty live tree,
+synchronize the repository with `git pull --ff-only`; do not reapply overlays.
+
 ## One-time setup
 
 ```
@@ -34,8 +41,10 @@ on WSL's own filesystem, clones ATFE (`BASE=atfe`, LLVM 24.0.0git) and LK at the
 applies every overlay patch, and builds. It takes about an hour on 8 cores.
 `JOBS=8 wsl-setup.sh build` caps the compile jobs.
 
-After editing anything in the Windows checkout, push it into WSL with
-`wsl-setup.sh sync` (rsync, then re-installs the overlay into the LK tree; no rebuild).
+`wsl-setup.sh sync` also re-installs LK overlay files, so it is a shared-source
+mutation and requires the live-tree lock. It is not a routine repository-only
+sync. Use `git pull --ff-only` in the WSL repo for published documentation/code
+changes that do not require applying source overlays.
 
 **Line endings:** a Windows checkout can have CRLF line endings, which makes `git am` fail on
 the patches and breaks shell scripts. `wsl-setup.sh` normalizes the WSL copy to LF.
@@ -63,11 +72,12 @@ only needed if LK is hung or a non-LK payload was loaded (not needed so far).
 - `wsl.exe` expands `$variables` in the Windows-side shell before they reach bash. Put the
   WSL-side steps in a script file (`multi_stage_wsl.sh`, `bolt_stage_wsl.sh`) instead of a
   quoted one-liner.
-- A stale `pi4_run.py` holds `COM5`; if a run hangs, kill it before retrying.
+- If COM5 is busy, check the published Pi reservation and process ownership.
+  Do not terminate another agent's serial session; stop only your own stale process.
 
 Results are in [RPI4_HARDWARE_VERIFICATION.md](RPI4_HARDWARE_VERIFICATION.md).
 
-## Reproducibility from a fresh clone (verified 2026-09-30)
+## Historical fresh-clone verification (2026-09-30; not proof for later overlays)
 
 A fresh `git clone` of this repo, a full toolchain build (`wsl-setup.sh build`, about 1.5 h with
 4 jobs) and `scripts/repro-compare.sh <counters.bin>` produce the same results as the everyday

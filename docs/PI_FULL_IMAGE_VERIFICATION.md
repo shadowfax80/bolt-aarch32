@@ -1,5 +1,9 @@
 # Scoped full-image verification on Pi
 
+> Reserve the Pi and shared build resources under [HANDOFF.md](HANDOFF.md)
+> before running commands. Hardware receipts below are dated and scoped;
+> current status and later contract extensions belong to the handoff.
+
 Use ATFE and a relocatable LK fixture with the sampler and watchdog. Whole-image
 emission does not mean every function executes. Choose exact map names for original
 entries to redirect; retain startup in its original code. The builder checks every

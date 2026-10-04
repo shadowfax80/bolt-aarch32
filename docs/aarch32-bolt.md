@@ -1,5 +1,10 @@
 # AArch32 BOLT — plan (P0–P11)
 
+> Dated reference/history. Current ATFE status, ownership, limitations and work
+> order are in [HANDOFF.md](HANDOFF.md), with the
+> [latest reconciled review](CORRECTNESS_REVIEW_ASTRA_0057.md). Older phase,
+> runtime-contract and verification statements below retain their original scope.
+
 **Goal:** add an ARM/Thumb backend to LLVM BOLT, prove it on bare-metal LK in QEMU, and land it in llvm-project `main` as a series of small, reviewable PRs.
 
 **Authoritative checklist:** [PROJECT_PLAN.md](PROJECT_PLAN.md) Phase 3 table.

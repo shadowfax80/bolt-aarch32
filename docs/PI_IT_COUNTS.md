@@ -1,5 +1,9 @@
 # Pi IT-mask and exact-count verification
 
+> Reserve the Pi and shared build resources under [HANDOFF.md](HANDOFF.md)
+> before running commands. Hardware receipts below are dated and scoped;
+> current status and later contract extensions belong to the handoff.
+
 Run the isolated fixture in WSL using the assertions-enabled ATFE toolchain:
 
 ```sh

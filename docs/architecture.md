@@ -5,13 +5,15 @@
 > Release **with assertions enabled**, in WSL at `/home/user/bolt-aarch32`.
 > Pi 4 is the primary execution target; QEMU is supplemental. Upstream work is
 > stopped. The historical baseline and RunPod paths below are retained as design
-> history; current correctness scope is in [CORRECTNESS_TODO.md](CORRECTNESS_TODO.md).
+> history; current builds, contracts and correctness scope are in
+> [HANDOFF.md](HANDOFF.md). Both assertion-mode builds now exist; the table below
+> describes the original toolchain, not the current build-version matrix.
 
 Bare-metal BOLT on LK: overlay patches plus host tooling. Upstream LLVM and LK stay unmodified in `third_party/`; only deltas live in `overlay/`.
 
 For why a post-link optimizer earns its place after PGO and LTO at all, see [why-bolt.md](why-bolt.md).
 
-## Toolchain baseline
+## Historical initial toolchain baseline
 
 | Choice | Value | Why |
 |--------|-------|-----|

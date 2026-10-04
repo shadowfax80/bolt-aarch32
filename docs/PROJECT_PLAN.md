@@ -1,5 +1,10 @@
 # Project plan
 
+> Dated reference/history. Current ATFE status, ownership, limitations and work
+> order are in [HANDOFF.md](HANDOFF.md), with the
+> [latest reconciled review](CORRECTNESS_REVIEW_ASTRA_0057.md). Older phase,
+> runtime-contract and verification statements below retain their original scope.
+
 **Repo:** [shadowfax80/bolt-aarch32](https://github.com/shadowfax80/bolt-aarch32)  
 **Updated:** 2026-09-14 (P0–P8 gated; interworking QEMU green)
 

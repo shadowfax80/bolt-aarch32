@@ -1,5 +1,25 @@
 # Supported AArch32 instrumentation contract
 
+Current declared contracts (see [HANDOFF.md](HANDOFF.md)):
+
+| Option value | Participating cores | Counter path |
+|---|---|---|
+| `privileged-single-core-no-fiq` | One | Original inline full-width increment |
+| `privileged-smp-no-fiq` | Multiple | Overlay 0060's A32 LDREXD/STREXD helper |
+
+Both require privileged execution, no FIQ and `--instrument-calls=false`.
+Reset and snapshot require quiescence; neither flag establishes it. The SMP
+receipt covers the declared four-core Pi workload/counter model. Active IRQ
+reentrancy, wider entry/runtime matrices and clean provenance remain bounded
+by HANDOFF's open items. User mode and FIQ are unsupported.
+
+## Historical single-core contract and evidence through 0039
+
+The older observations below are preserved as dated evidence. Subsequent
+overlays fix Thumb startup (0040), ISA/ABI admission (0041/0058), fixed-load ELF
+admission (0042), and try-lock instrumentation (0059). Their old open/unsupported
+statements are not the current work queue.
+
 Follow-up 2026-10-03: overlay 0039 closes the 0038 unnamed interior-entry
 reservation bypass for decoded original code. Every decoded acquisition is
 analyzed independently of entry metadata; unanalyzed stores reject. Other

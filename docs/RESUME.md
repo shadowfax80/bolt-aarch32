@@ -1,17 +1,9 @@
-# Resume guide
+# Historical RunPod resume notes
 
-> **Superseded 2026-09-30: nothing runs on RunPod any more.** The work moved to a local
-> WSL2 Ubuntu plus the real Pi; the second volume (`3g114i4sby`) was deleted too. To
-> resume, read [WSL_BUILD.md](WSL_BUILD.md). Everything below is RunPod-era history.
-
-> **Volume `j1d9e6wq5l` was deleted 2026-09-22** (verified nothing on it was
-> unique; storage billing stopped). Everything below that assumes it still
-> exists is stale. To resume work, start from
-> [VOLUME_RECREATION.md](VOLUME_RECREATION.md) instead — it has the exact,
-> current sequence to recreate an equivalent volume from the pinned commits
-> and the committed patch series. The rest of this doc (pod IDs, build
-> paths, phase status) predates most of the project and needs a fuller
-> rewrite; treat it as historical color, not instructions.
+> RunPod operation ended on 2026-09-30; both network volumes were deleted.
+> These resource IDs and restart commands are historical. Current work starts
+> at [HANDOFF.md](HANDOFF.md), with local setup in [WSL_BUILD.md](WSL_BUILD.md).
+> Do not provision cloud resources from these notes.
 
 **Saved:** 2026-09-14  
 **GitHub (overlay only):** [shadowfax80/bolt-aarch32](https://github.com/shadowfax80/bolt-aarch32)

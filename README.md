@@ -8,21 +8,23 @@ Upstream [llvm-project](https://github.com/llvm/llvm-project) and [lk](https://g
 
 | Doc | What |
 |-----|------|
-| [docs/TODO.md](docs/TODO.md) | Active ATFE correctness work and owner-deferred scope |
+| [docs/REPO_HEALTH.md](docs/REPO_HEALTH.md) | Hygiene audit and repeatable offline integrity checks |
+| [docs/HANDOFF.md](docs/HANDOFF.md) | **Start here** — single shared queue, current status, locks and pickup guidance |
+| [docs/TODO.md](docs/TODO.md) | Scope and work-list entry point |
 | [docs/CORRECTNESS_TODO.md](docs/CORRECTNESS_TODO.md) | Twelve correctness workstreams, priorities and completion criteria |
-| [docs/CORRECTNESS_REVIEW_0038.md](docs/CORRECTNESS_REVIEW_0038.md) | Current review through overlay 0038: fresh defects, passing evidence and correctness limits |
-| [docs/CORRECTNESS_PRIORITY_TODO.md](docs/CORRECTNESS_PRIORITY_TODO.md) | Fresh ordered work queue from the current correctness review |
-| [docs/WSL_BUILD.md](docs/WSL_BUILD.md) | **Start here** — build the toolchain locally in WSL2 and measure on the Pi |
+| [docs/CORRECTNESS_REVIEW_ASTRA_0057.md](docs/CORRECTNESS_REVIEW_ASTRA_0057.md) | Latest recovered review, reconciled through overlay 0061 |
+| [docs/CORRECTNESS_PRIORITY_TODO.md](docs/CORRECTNESS_PRIORITY_TODO.md) | Acceptance-criteria index; current queue is in HANDOFF |
+| [docs/WSL_BUILD.md](docs/WSL_BUILD.md) | Build the toolchain locally in WSL2 and measure on the Pi |
 | [docs/RPI4_HARDWARE_VERIFICATION.md](docs/RPI4_HARDWARE_VERIFICATION.md) | Real Pi 4B results: staged PGO / ThinLTO / BOLT, multi-function BOLT, PGO lab, bugs found |
 | [docs/VOLUME_RECREATION.md](docs/VOLUME_RECREATION.md) | Historical — recreating the RunPod volume (both volumes are now deleted) |
 | [docs/RESUME.md](docs/RESUME.md) | Historical resume notes (RunPod era) |
 | [docs/why-bolt.md](docs/why-bolt.md) | What BOLT does that PGO and LTO cannot, with examples |
-| [docs/PROJECT_PLAN.md](docs/PROJECT_PLAN.md) | Checklist, status, decisions |
+| [docs/PROJECT_PLAN.md](docs/PROJECT_PLAN.md) | Historical phase plan |
 | [docs/architecture.md](docs/architecture.md) | End-to-end flow, overlay split, toolchain baseline |
 | [docs/aarch64-bare-metal.md](docs/aarch64-bare-metal.md) | Delta vs stock BOLT; runtime library; LK workloads |
 | [docs/aarch32-bolt.md](docs/aarch32-bolt.md) | ARM/Thumb design, edge cases, upstream merge path |
 | [docs/BOLT_AARCH32_BACKEND.md](docs/BOLT_AARCH32_BACKEND.md) | Backend reference: design principles, interfaces, AArch64 diff, bare-metal user guide |
-| [docs/KNOWN_LIMITATIONS.md](docs/KNOWN_LIMITATIONS.md) | **Before upstreaming** — open gaps, blockers, and deferred scope, with verification status |
+| [docs/KNOWN_LIMITATIONS.md](docs/KNOWN_LIMITATIONS.md) | Historical upstream/ATFE audit; current gaps are in HANDOFF |
 | [docs/UPSTREAMING_REVIEW.md](docs/UPSTREAMING_REVIEW.md) | Submission-readiness review: what a BOLT maintainer sees on first open, what's already right, ranked fixes |
 
 ## Phases
@@ -39,19 +41,24 @@ Phase 2 exists to prove bare-metal profiling on an architecture BOLT already sup
 
 ## Quick start
 
-**Builds run in local WSL2; measurements run on the Pi.** Full walkthrough: [docs/WSL_BUILD.md](docs/WSL_BUILD.md).
+**Builds run in local WSL2; measurements run on the Pi.** Publish the required
+item claim, live-tree lock and Pi reservation in HANDOFF before resource use.
+Setup/build commands below are for a fresh tree; never reapply overlays to the
+existing dirty live tree. Full walkthrough: [docs/WSL_BUILD.md](docs/WSL_BUILD.md).
 
 ```bash
 # One time (from the Windows checkout):
 wsl -d Ubuntu -u root -- bash scripts/wsl-setup.sh deps
 wsl -d Ubuntu          -- bash scripts/wsl-setup.sh build     # ~1 h: ATFE clang/lld/BOLT + runtimes
-# After edits:
-wsl -d Ubuntu          -- bash scripts/wsl-setup.sh sync
+# Sync tracked repo changes without mutating shared source/builds:
+wsl -d Ubuntu          -- git -C /home/user/bolt-aarch32 pull --ff-only
 # One staged Pi measurement (PGO -> ThinLTO -> BOLT), from Git Bash with the Pi on COM5:
 scripts/pi4/bolt_stage.sh 6:3
 ```
 
-The QEMU path (`scripts/run-qemu-lk.sh`, `scripts/verify-bolt-workloads.sh`) still works inside WSL for debugging; it is never the source of a reported number.
+The QEMU path is diagnostic. Some rewrite routes still need a protected code
+window; use the current handoff for route scope. Pi verification supplies
+execution evidence and reported measurements.
 
 `.env.example`'s RunPod block is legacy and unused.
 
