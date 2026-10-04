@@ -84,7 +84,7 @@ Take items in the order below; groups reflect dependencies, not ownership.
 
 | Order | ID | Item | Priority | Owner | Status | Part of | Notes |
 |---|---|---|---|---|---|---|---|
-| 2 | R17 | Synthesized edge-case test image (`bolt_edge`), stage 1 (~40 cases) | P1 | — | Open | 7, 8, 11, 12 | Plan: [R17_BOLT_EDGE_PLAN.md](R17_BOLT_EDGE_PLAN.md) |
+| 2 | R17 | Synthesized edge-case test image (`bolt_edge`), stage 1 (~40 cases) | P1 | Claude | In progress | 7, 8, 11, 12 | Plan: [R17_BOLT_EDGE_PLAN.md](R17_BOLT_EDGE_PLAN.md) |
 
 **B. P0 certification (finish)**
 
