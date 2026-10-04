@@ -14,12 +14,13 @@ MEM="${QEMU_MEM:-512}"
 SMP="${QEMU_SMP:-1}"
 CMDLINE="${BENCH_CMDLINE:-lk.bolt_bench=all}"
 
-if [[ "${REBUILD_LK:-1}" == 1 || ! -f "$ELF" ]]; then
+# Never rebuild by default: build-lk-aarch32.sh re-applies overlays (not on a dirty tree).
+if [[ "${REBUILD_LK:-0}" == 1 || ! -f "$ELF" ]]; then
   echo "=== build LK ARM32 (with bolt_bench overlay) ==="
   "$ROOT/scripts/build-lk-aarch32.sh"
 fi
 
-echo "=== complete original workload (no rewrite certificate) ==="
-python3 "$ROOT/scripts/qemu_workload_gate.py" --elf "$ELF" --qemu "$QEMU" \
+echo "=== complete original workload (DIAGNOSTIC: QEMU is a debug aid; no certificate) ==="
+python3 "$ROOT/scripts/qemu_workload_gate.py" --diagnostic --elf "$ELF" --qemu "$QEMU" \
   --machine "$MACHINE" --cpu "$CPU" --memory "$MEM" --smp "$SMP" \
   --append "$CMDLINE" --out "${OUT_DIR:-$ROOT/out/arm32-harness}" --timeout 120

@@ -133,7 +133,7 @@ Take items in the order below; groups reflect dependencies, not ownership.
 |---|---|---|---|---|---|---|---|
 | 2a | T1 | ARMv8-A AArch32 (Cortex-A55) admission and decode; v8-A Pi image, coverage and certified gate | P0 | Claude | Done and certified: contract `47c73bc0` approved (d3c8253); certified gate 10 reps, 18/18, both redirects executed | 6b, 7, 11 | Image `lk-rpi4-bolt-test-a55-47c73bc0.elf`: 406/416 admitted, rewritten image 2x18 on the Pi; evidence `docs/results/t1_a55_20261004.json`. Build: `make rpi4-bolt-test RPI4_ARM_CPU=cortex-a55` |
 | 2b | T2b | SMP instrumentation: the ARM counter update masks IRQ around a 64-bit increment (not atomic across cores), so the contract stays `privileged-single-core-no-fiq`; needs a cross-core-atomic counter path (or per-core counters) + tests + Pi check | P1 | — | Open | 9, 10 | Profiles from all cores are already available via PC sampling (certified chain) |
-| 3 | 6a | Every gate proves execution: close G1 (fixed-path intermediates), G2 (seal profile chain in QEMU certificate), G3 (contracts for QEMU LK builds) | P0 | — | Partial: G1/G2 done; QEMU route diagnostic (user), runs to instrumentation, then blocked by R15 | — | Pi sealed chain certified; G3 needs user review; 0054 ON/OFF builds and scoped Pi runs verified, remaining gate routes still open |
+| 3 | 6a | Every gate proves execution | P0 | — | Nearly done: Pi gates certify (full_image_verify, smp_verify); QEMU routes are labelled diagnostics that fail closed; wrappers audited (G1/G2 done, G3 n/a by user decision). Left: assertions-off rebuild re-check for overlays 0055–0059 | — | See 2026-10-04 6a audit log entries |
 | 4 | 6c | Legacy/manual hook admission | P0 | — | Partial | — | R9 done; includes R13 |
 | 5 | 6d | Durable receipts on every certification route | P0 | — | Partial | — | Pi gate + coverage report receipts exist |
 | 6 | 6b | Oracle contracts for further configurations (Thumb workloads, future `bolt_edge` seeds) | P0 | — | Partial | — | Active `pi4` contracts: full LK (`424606a8…`), bolt_edge stage 1 (`0895d7bc…`), 1b (`439dfd7c…`) and 2 (`ce8dd005…`); each new contract needs user review |
@@ -219,6 +219,28 @@ plus genuine fallthrough such as `bzero`: about 98% of functions.
 4. Update the *Claims* table and LK_COVERAGE.md together.
 
 ## Handoff log
+
+### 2026-10-04 — Claude: 6a wrapper audit (QEMU routes diagnostic, fail closed)
+
+- `verify-bolt-arm32-harness.sh`: `--diagnostic`; `REBUILD_LK` defaults to 0
+  (never re-applies overlays on the dirty live tree). Runs: DIAGNOSTIC
+  COMPLETE WORKLOAD.
+- `verify-bolt-arm32-milestones.sh`: all intermediates in a fresh
+  `out/arm32-milestones/run-*` (no `/tmp` reuse); P0 diagnostic; P1 scoped to
+  the selected functions (full-image rewrite correctly rejects startup code);
+  P4 delegates to the identity wrapper. P0–P3 pass in QEMU.
+- `verify-bolt-arm32-identity.sh`: certifies via `qemu_rewrite_build.py` only
+  with a reviewed qemu-virt contract; otherwise a labelled diagnostic in a
+  fresh directory. It refuses images without a protected BOLT window
+  (`__bolt_reserved_*`): on the QEMU twin, BOLT's new code sits after `_end`
+  and LK's heap overwrote it ("unhandled syscall" in the rewritten copy). So
+  QEMU rewrite diagnostics need a reserved window in the QEMU project (like
+  rpi4's LK patch 0006) — low priority, QEMU is a debug aid.
+- Already audited and sound: `full_image_verify.py`, `smp_verify.py`,
+  `qemu_rewrite_gate/build.py` (contract-bound), `qemu_workload_gate.py
+  --check-log/--diagnostic`, `passes_check.py`, `measurement_records.py`
+  (labelled, no execution claim).
+- 6a left: re-check overlays 0055–0059 in an assertions-off build.
 
 ### 2026-10-04 — Claude: T2 certified (SMP); T2b split out
 
