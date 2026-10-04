@@ -46,7 +46,7 @@ Everything needed to continue is in this repo:
 - **Certified input image:** `fixtures/lk-rpi4-bolt-test-424606a8.elf`
   (see `fixtures/README.md`); the skip list is in
   `docs/results/lk_coverage_20261004_r6.json` (`skip_funcs`).
-- **Backend source:** overlays `overlay/llvm/patches/atfe/0001–0058`; the WSL
+- **Backend source:** overlays `overlay/llvm/patches/atfe/0001–0059`; the WSL
   live tree must replay them exactly (`scripts/verify-atfe-overlays.py`).
   Do not run `scripts/apply-overlays.sh` on the dirty live tree.
 - **Commands:**
@@ -143,7 +143,6 @@ Take items in the order below; groups reflect dependencies, not ownership.
 | Order | ID | Item | Priority | Owner | Status | Part of | Notes |
 |---|---|---|---|---|---|---|---|
 | 7 | R8 | r12 clobbered by local-branch LongJmp stubs | P1 | — | Open | 13 | Liveness check or rejection |
-| 8 | R15 | Full-LK instrumentation blocked by `arch_spin_trylock` guard (false positive) | P1 | — | Open | exclusive guards (0038/0039) | Keep must-reject tests for real cross-function pairs |
 | 9 | R12 | ADR to an inline TBB/TBH table (`vsnprintf`) | P2 | — | Open | 12 | Last coverage item |
 | 10a | R21 | A32 `-O0` load-then-jump tables (`add rB, pc, #k; ldr rX, [rB, rI, lsl #2]; mov pc, rX` / `bx rX`) still rejected as PC read | P2 | — | Open | 12 | Found by R17 after R18 (`c_switch_arm_o0`, `c_switch_marm_o0`); extend 0057's table model to a register jump |
 | 10b | T3 | Secure-SVC parity on the Pi: firmware stub that keeps LK in Secure SVC, then rerun the certified gates (rewriting is state-agnostic; PMU sampling is IRQ; no SMC calls) | P1 | — | Open (approved 2026-10-04; start after T1 and T2) | 9 | User go-ahead given for the PoC parity goal; start from the earlier Secure-SVC plan |
@@ -185,6 +184,7 @@ Take items in the order below; groups reflect dependencies, not ownership.
 | R18 | A32 inline `ldr pc` jump tables (clang ARM-mode switch / function-pointer tables) | P1 | Claude | 12 | 0057; `arm-ldr-pc-table.test`; edge image: all 6 such functions admitted and run correctly on the Pi |
 | R17 | Synthesized edge-case image `bolt_edge`: 146 cases (hand-written A32/T32, C at O0/O2/Os in attribute and whole-module `-marm`/`-mthumb`, 48 seeded random functions) | P1 | Claude | 7, 8, 11, 12 | [Plan](R17_BOLT_EDGE_PLAN.md); contracts `0895d7bc`, `439dfd7c`, `ce8dd005` certified; `docs/results/bolt_edge_*_20261004.json`; optional tuning: more conditional tail calls |
 | R13 | Redirect functions whose first instruction is 16-bit followed by a 32-bit one (split prefix) | P1 | Claude | 6c | `redirect-bolt-entries.py`: allowed when no branch, data word or symbol outside the function references the split bytes; unit tests; A55 image 31 redirects (7 split) pass on 4 cores; certified gate on `47c73bc0` with `it_cond` + `branch_chain` executed (`docs/results/r13_split_prefix_certified_20261004.json`) |
+| R15 | Full-LK instrumentation blocked by the `arch_spin_trylock` exclusive-reservation guard | P1 | Claude | exclusive guards (0038/0039) | 0059: a return with a live reservation (abandoned, e.g. try-lock failure) is admitted only when a raw scan finds no exclusive store outside analyzed functions; calls/branches out stay rejected; new must-reject cases (caller store, orphan store). Full-LK instrumentation now succeeds on `424606a8` and `47c73bc0` (`docs/results/lk_coverage*_r15_20261004.json`) |
 | R11 | Skip-and-report admission mode | P1 | Codex | — | 0054; [diagnostic contract/evidence](ARM_ADMISSION_REPORT.md); one scan, same 399/417 coverage; both assertion modes + scoped Pi |
 
 ## Coverage goal
@@ -218,6 +218,26 @@ plus genuine fallthrough such as `bzero`: about 98% of functions.
 4. Update the *Claims* table and LK_COVERAGE.md together.
 
 ## Handoff log
+
+### 2026-10-04 — Claude: R15 done (overlay 0059)
+
+- The exclusive-reservation guard rejected `arch_spin_trylock` (`ldrex; cmp;
+  strexeq; bx lr`): the failure path returns with the reservation open. An
+  abandoned reservation can only be consumed by an exclusive store that has
+  no local reservation, and every analyzed store must already be locally
+  paired; so a live *return* is now admitted when a raw ARM+Thumb scan of
+  executable bytes outside analyzed functions finds no exclusive store. Calls
+  and branches out with a live reservation stay rejected. BOLT logs the
+  admission (`reservation abandoned on return in arch_spin_trylock ...`).
+- Tests: `arm-cross-function-exclusive.test` now admits `live_return`,
+  `predicated_return`, `trylock`; new must-reject `live_return_caller_store`
+  and `live_return_orphan_store` (ARM and Thumb). ARM lit 50/50; BOLT lit 744
+  + the known AArch64 failure; 0001–0059 replay exactly (`ba5196d4…`).
+- Full-LK instrumentation (bolt_bench functions, BOLT-generated per-edge
+  counters) now succeeds on `424606a8` and the A55 `47c73bc0`.
+  `lk_coverage_report.py` now uses `BOLT_INSTR_EDGES=1`; the legacy manual
+  hook path stays rejected (6c). Instrumented images are not yet run on the
+  Pi in this step.
 
 ### 2026-10-04 — Claude: R13 done (split-prefix redirects)
 
