@@ -141,7 +141,7 @@ Take items in the order below; groups reflect dependencies, not ownership.
 | 7 | R8 | r12 clobbered by local-branch LongJmp stubs | P1 | — | Open | 13 | Liveness check or rejection |
 | 9 | R12 | ADR to an inline TBB/TBH table (`vsnprintf`) | P2 | — | Open | 12 | Last coverage item |
 | 10a | R21 | A32 `-O0` load-then-jump tables (`add rB, pc, #k; ldr rX, [rB, rI, lsl #2]; mov pc, rX` / `bx rX`) still rejected as PC read | P2 | — | Open | 12 | Found by R17 after R18 (`c_switch_arm_o0`, `c_switch_marm_o0`); extend 0057's table model to a register jump |
-| 10b | T3 | Secure-SVC parity on the Pi | P1 | Claude | In progress: Secure armstub built (`tools/pi4-armstub-secure/`, 256 B, sha `af4a5512…`); waiting for the user to install it on the SD card (README: install + rollback). Then: LK Secure-state check, re-run certified gates in Secure SVC | 9 | Approved by the user; LK GIC driver and loaders already handle Secure SVC entry |
+| 10b | T3 | Secure-SVC parity on the Pi | P2 | — | Deferred TODO (user, 2026-10-04): Secure armstub is built (`tools/pi4-armstub-secure/`, sha `af4a5512…`, install/rollback in its README) but not installed; the SD-card step and the Secure re-runs wait until the user asks | 9 | All Pi results so far are Non-secure SVC; BOLT rewriting is state-agnostic, so T3 is a parity confirmation |
 | 10c | T4 | Performance and final validation on the real A55 target (A72 gains not transferable) | P2 | User | Out of scope here | — | Done by the user in the office environment, from this repo |
 
 
@@ -158,7 +158,7 @@ Take items in the order below; groups reflect dependencies, not ownership.
 | 17 | 10 | Sampling/PMU ownership | P1 | — | Open | |
 | 18 | 14 | Clean build/content provenance | P1 | — | Partial | Overlay replay only; ISA-aware no-FPU output scanning/metadata needed (0054 audit) |
 
-**Needs the user:** install the Secure armstub on the SD card (T3, `tools/pi4-armstub-secure/README.md`); new oracle contracts for new configurations.
+**Needs the user:** new oracle contracts for new configurations; T3 SD-card install only when the user decides (deferred).
 
 ### Done
 
@@ -219,6 +219,15 @@ plus genuine fallthrough such as `bzero`: about 98% of functions.
 4. Update the *Claims* table and LK_COVERAGE.md together.
 
 ## Handoff log
+
+### 2026-10-04 — Claude: T3 deferred (user)
+
+- User: mark the SD-card part of T3 as TODO and defer it. The Secure armstub
+  stays prepared in `tools/pi4-armstub-secure/` (not installed). Do not
+  start the Secure re-runs or ask for the SD change until the user asks.
+  All Pi results remain Non-secure SVC.
+- State: lock free, no claims; WSL synced; Pi idle. Remaining open: T2b
+  (SMP instrumentation), R8, R12, R21, P1 matrices, T3 (deferred), T4 (user).
 
 ### 2026-10-04 — Claude: 6a done (both assertion modes)
 
