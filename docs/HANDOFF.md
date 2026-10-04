@@ -133,6 +133,12 @@ One shared list. Review items (R*) come from the 2026-10-04 Claude review
 links an R item to the certification item it contributes to; closing the R
 item does not close that item. *Owner* is empty until someone claims it.
 
+### Requested maintenance
+
+| ID | Item | Priority | Owner | Status | Scope |
+|---|---|---|---|---|---|
+| M1 | Repository health and documentation consolidation (user request) | P2 | Codex | In progress | Docs/tooling only; no shared-source lock or Pi reservation needed |
+
 ### Remaining shared work, in resume order
 
 Take items in the order below; groups reflect dependencies, not ownership.
@@ -230,6 +236,15 @@ emission coverage, not execution or whole-backend correctness.
 4. Update the *Claims* table and LK_COVERAGE.md together.
 
 ## Handoff log
+
+### 2026-10-04 — Codex claims M1 repository health cleanup
+
+- User requested a repository health check and removal of redundant/stale
+  information. M1 is claimed for documentation and repository-check tooling.
+  Backend queue/ownership unchanged; live-tree lock free; no Pi access.
+- Preserve historical receipts and dirty local trees. Consolidate active status
+  in HANDOFF.md, retire contradictory entry points, and verify links, tracked
+  artifacts and overlay inventory before publishing the cleanup.
 
 ### 2026-10-04 — Codex/Sol: recovered Astra review consolidated through 0061
 
