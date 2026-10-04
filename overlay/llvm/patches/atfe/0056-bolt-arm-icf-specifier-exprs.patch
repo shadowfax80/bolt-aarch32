@@ -1,0 +1,75 @@
+--- a/bolt/lib/Target/ARM/ARMMCPlusBuilder.cpp
++++ b/bolt/lib/Target/ARM/ARMMCPlusBuilder.cpp
+@@ -83,6 +83,14 @@
+   MCPhysReg getStackPointer() const override { return ARM::SP; }
+   MCPhysReg getFramePointer() const override { return ARM::R11; }
+ 
++  // ICF compares operands; MOVW/MOVT carry :lower16:/:upper16: specifiers.
++  bool equals(const MCSpecifierExpr &A, const MCSpecifierExpr &B,
++              CompFuncTy Comp) const override {
++    if (A.getSpecifier() != B.getSpecifier())
++      return false;
++    return MCPlusBuilder::equals(*A.getSubExpr(), *B.getSubExpr(), Comp);
++  }
++
+   bool isPrefix(const MCInst &Inst) const override {
+     return isITOpcode(Inst.getOpcode());
+   }
+--- /dev/null
++++ b/bolt/test/ARM/arm-icf-movw-movt.test
+@@ -0,0 +1,55 @@
++## ICF compares A32 MOVW/MOVT operands carrying :lower16:/:upper16:
++## specifiers instead of aborting ("target-specific expressions are
++## unsupported"), and folds the identical pair.
++
++# RUN: split-file %s %t
++# RUN: llvm-mc -arm-add-build-attributes -filetype=obj -triple=armv7-unknown-linux-gnueabi %t/input.s -o %t.o
++# RUN: ld.lld --emit-relocs -T %t/link.ld %t.o -o %t.exe
++# RUN: llvm-bolt %t.exe -o %t.bolt -lite=0 -icf=all 2>&1 | FileCheck %s
++# RUN: llvm-nm %t.bolt | FileCheck %s --check-prefix=NM
++
++# CHECK: BOLT-INFO: ICF folded 1 out of
++# CHECK-NOT: target-specific expressions are unsupported
++
++## Both names resolve to the one kept body.
++# NM: [[ADDR:[0-9a-f]+]] T get_a
++# NM: [[ADDR]] T get_b
++
++#--- link.ld
++ENTRY(_start)
++SECTIONS { . = 0x8000; .text : { *(.text*) } .data : { *(.data*) } }
++
++#--- input.s
++ .syntax unified
++ .text
++ .arm
++ .global _start
++ .type _start,%function
++_start:
++ bl get_a
++ bl get_b
++ b _start
++ .size _start,.-_start
++
++ .global get_a
++ .type get_a,%function
++get_a:
++ movw r0, #:lower16:value
++ movt r0, #:upper16:value
++ ldr r0, [r0]
++ bx lr
++ .size get_a,.-get_a
++
++ .global get_b
++ .type get_b,%function
++get_b:
++ movw r0, #:lower16:value
++ movt r0, #:upper16:value
++ ldr r0, [r0]
++ bx lr
++ .size get_b,.-get_b
++
++ .data
++ .global value
++value:
++ .word 42

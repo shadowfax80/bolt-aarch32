@@ -65,7 +65,7 @@ Everything needed to continue is in this repo:
 
 | Holder | Since | Purpose |
 |---|---|---|
-| Claude | 2026-10-04 | R19 (`mov lr, pc; b` call idiom), overlay 0055 |
+| — (free) | 2026-10-04 | Released by Claude after overlays 0055–0056 |
 
 ## Claims (consolidated TODO)
 
@@ -104,7 +104,7 @@ Take items in the order below; groups reflect dependencies, not ownership.
 | 9 | R12 | ADR to an inline TBB/TBH table (`vsnprintf`) | P2 | — | Open | 12 | Last coverage item |
 | 10 | R13 | Redirect functions starting with a 16-bit instruction | P2 | — | Open | 6c | If not done under 6c |
 | 10a | R18 | ARM-state inline jump tables (`add rN, pc, #k; ldr pc, [rN, rI, lsl #2]; .word …`) rejected as PC read | P1 | — | Open | 12 | Found by R17 in clang ARM-mode code, both `target("arm")` and whole-module `-marm`, at O2/Os/O0 (8 functions) |
-| 10b | R19 | `mov lr, pc; b <target>` call idiom rejected as PC read | P1 | Claude | In progress | 8 | Found by R17 (`c_noret_arm_*`, `c_noret_marm_*`: clang ARM-mode call to a noreturn function via a thunk; 4 functions); position-independent while adjacent |
+
 
 **D. P1 certification matrices (as capacity allows)**
 
@@ -136,6 +136,8 @@ Take items in the order below; groups reflect dependencies, not ownership.
 | R4 | Conditional tail calls crash | P1 | Claude | 8 | 0051; Pi: 676 IRQs via rewritten `platform_irq` |
 | R5 | Noreturn calls at function end | P1 | Claude | 8 | 0052; LK 276 → 354 functions |
 | R6 | Predicated returns and calls in IT blocks | P1 | Claude | 8 | 0053; LK 354 → 399 functions |
+| R19 | `mov lr, pc; b X` call idiom (clang ARM-mode) | P1 | Claude | 8 | 0055; `arm-mov-lr-pc-call.test`; edge image: all `c_noret` ARM functions admitted; LK 399 → 400 |
+| R20 | ICF aborted on A32 MOVW/MOVT `:lower16:/:upper16:` operands (found while testing R19) | P1 | Claude | 13 | 0056; `arm-icf-movw-movt.test`; ICF now folds such functions (edge image 7 → 26 folded) |
 | R11 | Skip-and-report admission mode | P1 | Codex | — | 0054; [diagnostic contract/evidence](ARM_ADMISSION_REPORT.md); one scan, same 399/417 coverage; both assertion modes + scoped Pi |
 
 ## Coverage goal
@@ -169,6 +171,28 @@ plus genuine fallthrough such as `bzero`: about 98% of functions.
 4. Update the *Claims* table and LK_COVERAGE.md together.
 
 ## Handoff log
+
+### 2026-10-04 — Claude: R19 + R20 done (overlays 0055–0056); lock released
+
+- **R19 (0055):** A32 `mov lr, pc` (0xe1a0e00f) directly followed by an
+  unconditional `b X` is disassembled as `nop; bl X` (same return address);
+  a branch to the B alone is rejected. `isProvenNoReturnARM()` follows ld.lld
+  absolute thunks (`movw/movt r12; bx r12`, A32 and T32) to their target.
+- **R20 (0056):** ARM `equals(MCSpecifierExpr)` override (as AArch64); ICF
+  previously aborted ("target-specific expressions are unsupported") once two
+  identical functions with MOVW/MOVT symbol operands were compared.
+- **Tests:** ARM lit 48/48; BOLT lit 858/859 (same unrelated AArch64 test);
+  CoreTests 58 (rebuilt); JITLink AArch32 15/15; overlays 0001–0056 replay
+  exactly (identity `86460b1b…`).
+- **Edge image (`439dfd7c…`):** admission 99/107; only R18's 8 table
+  functions remain. Rewritten image (501 emitted, 35 redirects incl.
+  `c_noret_arm_o2/o0`): 98 × 2 runs on the Pi, 0 mismatches.
+- **Full LK:** 399 → 400/417 functions, 98.0% of code bytes; the newly
+  admitted function is `arm_secondary_entry` (its only PC read was the R19
+  pair). **Caveat:** admission is not a placement decision. Startup and
+  secondary-entry code runs before the MMU; never redirect it (the full-image
+  pipeline only redirects explicitly selected functions).
+- Next: R18 (ARM inline `ldr pc` tables), then R17 stage 2 and the open list.
 
 ### 2026-10-04 — Claude: bolt_edge stage-1b contract approved; certified
 

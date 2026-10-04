@@ -1,0 +1,273 @@
+--- a/bolt/include/bolt/Core/MCPlusBuilder.h
++++ b/bolt/include/bolt/Core/MCPlusBuilder.h
+@@ -626,6 +626,11 @@
+   /// A target PC read whose position-dependent value cannot be relocated.
+   virtual bool isUnsupportedPCRead(const MCInst &Inst) const { return false; }
+ 
++  /// AArch32: turn an unconditional direct branch into a call to the same
++  /// target operand (used for the A32 `mov lr, pc; b X` call idiom).
++  /// Return false if \p Inst is not such a branch.
++  virtual bool convertUncondBranchToCall(MCInst &Inst) const { return false; }
++
+   /// Returns the registers that are trusted at function entry.
+   ///
+   /// Each register should be treated as if a successfully authenticated
+--- a/bolt/lib/Core/BinaryFunction.cpp
++++ b/bolt/lib/Core/BinaryFunction.cpp
+@@ -1393,9 +1393,48 @@
+   return MIB.isConditionalBranch(Inst);
+ }
+ 
++// Target of an ld.lld absolute long thunk: `movw r12, #lo; movt r12, #hi;
++// bx r12` in A32 (12 bytes) or T32 (10 bytes). The thumb bit is cleared.
++static std::optional<uint64_t> armAbsLongThunkTarget(const BinaryFunction &BF) {
++  ErrorOr<ArrayRef<uint8_t>> Data = BF.getData();
++  if (!Data)
++    return std::nullopt;
++  const ArrayRef<uint8_t> D = *Data;
++  if (!BF.isARMThumb()) {
++    if (BF.getSize() != 12 || D.size() < 12)
++      return std::nullopt;
++    const uint32_t W0 = support::endian::read32le(D.data());
++    const uint32_t W1 = support::endian::read32le(D.data() + 4);
++    const uint32_t W2 = support::endian::read32le(D.data() + 8);
++    if ((W0 & 0xfff0f000) != 0xe300c000 || (W1 & 0xfff0f000) != 0xe340c000 ||
++        W2 != 0xe12fff1c)
++      return std::nullopt;
++    auto imm = [](uint32_t W) { return ((W >> 4) & 0xf000) | (W & 0xfff); };
++    return ((uint64_t(imm(W1)) << 16) | imm(W0)) & ~1ULL;
++  }
++  if (BF.getSize() != 10 || D.size() < 10)
++    return std::nullopt;
++  uint16_t H[5];
++  for (int I = 0; I < 5; ++I)
++    H[I] = support::endian::read16le(D.data() + 2 * I);
++  if ((H[0] & 0xfbf0) != 0xf240 || (H[1] & 0x0f00) != 0x0c00 ||
++      (H[2] & 0xfbf0) != 0xf2c0 || (H[3] & 0x0f00) != 0x0c00 || H[4] != 0x4760)
++    return std::nullopt;
++  auto imm = [](uint16_t Hi, uint16_t Lo) {
++    return ((Hi & 0xf) << 12) | (((Hi >> 10) & 1) << 11) |
++           (((Lo >> 12) & 7) << 8) | (Lo & 0xff);
++  };
++  return ((uint64_t(imm(H[2], H[3])) << 16) | imm(H[0], H[1])) & ~1ULL;
++}
++
+ bool BinaryFunction::isProvenNoReturnARM() const {
+   if (!BC.isARM() || !getSize() || isPseudo())
+     return false;
++  // A linker thunk to a proven noreturn function does not return either.
++  if (std::optional<uint64_t> Thunk = armAbsLongThunkTarget(*this)) {
++    const BinaryFunction *F = BC.getBinaryFunctionAtAddress(*Thunk);
++    return F && F != this && F->getAddress() == *Thunk && F->isProvenNoReturnARM();
++  }
+   std::lock_guard<std::recursive_mutex> Lock(BC.ARMNoReturnMutex);
+   auto It = BC.ARMNoReturnCache.find(this);
+   if (It != BC.ARMNoReturnCache.end())
+@@ -1493,6 +1532,8 @@
+   unsigned PrefixRemaining = 0;
+   uint64_t PrefixOffset = 0;
+   DenseSet<uint64_t> PrefixBodyOffsets;
++  // A32 `mov lr, pc; b X`: offsets of the B, which becomes `bl X`.
++  DenseSet<uint64_t> LinkCallOffsets;
+   uint64_t Size = 0; // instruction size
+   for (uint64_t Offset = 0; Offset < getSize(); Offset += Size) {
+     MCInst Instruction;
+@@ -1530,6 +1571,27 @@
+       break;
+     }
+ 
++    // A32 `mov lr, pc` (0xe1a0e00f) immediately followed by an unconditional
++    // `b X` (0xea......) is a call to X that returns after the B. Emit it as
++    // `nop; bl X`: the return address is unchanged and the PC read is gone.
++    // Entering at the B directly would skip setting LR; that is rejected
++    // after disassembly.
++    if (BC.isARM() && !isARMThumb()) {
++      if (LinkCallOffsets.contains(Offset)) {
++        if (!MIB->convertUncondBranchToCall(Instruction))
++          return createFatalBOLTError("malformed AArch32 mov-lr/b call in " +
++                                      getPrintName());
++      } else if (Size == 4 && Offset + 8 <= getSize() &&
++                 support::endian::read32le(FunctionData.data() + Offset) ==
++                     0xe1a0e00f &&
++                 (support::endian::read32le(FunctionData.data() + Offset + 4) >>
++                  24) == 0xea &&
++                 !getSizeOfDataInCodeAt(Offset + 4)) {
++        MIB->createNoop(Instruction);
++        LinkCallOffsets.insert(Offset + 4);
++      }
++    }
++
+     if (BC.isARM() && MIB->isUnsupportedPCWrite(Instruction) &&
+         !(Offset == 0 && isRecognizedARMAbsoluteVeneer(*this)))
+       return createFatalBOLTError("unsupported AArch32 PC-writing control transfer in " +
+@@ -1791,9 +1853,13 @@
+ 
+   if (PrefixRemaining)
+     return createFatalBOLTError("truncated Thumb IT group in " + getPrintName());
+-  for (const auto &Entry : Labels)
++  for (const auto &Entry : Labels) {
+     if (PrefixBodyOffsets.contains(Entry.first))
+       return createFatalBOLTError("branch into Thumb IT body in " + getPrintName());
++    if (LinkCallOffsets.contains(Entry.first))
++      return createFatalBOLTError("branch into AArch32 mov-lr/b call in " +
++                                  getPrintName());
++  }
+ 
+   // Scope-boundary markers are only consulted while assigning offsets above.
+   DebugScopeBoundaryOffsets.clear();
+--- a/bolt/lib/Target/ARM/ARMMCPlusBuilder.cpp
++++ b/bolt/lib/Target/ARM/ARMMCPlusBuilder.cpp
+@@ -1123,6 +1123,18 @@
+     }
+   }
+ 
++  // A32 `B` (decoded as Bcc AL: target, pred, predreg) -> `BL target`.
++  bool convertUncondBranchToCall(MCInst &Inst) const override {
++    if (Inst.getOpcode() != ARM::Bcc || Inst.getNumOperands() < 3 ||
++        !Inst.getOperand(1).isImm() || Inst.getOperand(1).getImm() != ARMCC::AL)
++      return false;
++    MCInst Call;
++    Call.setOpcode(ARM::BL);
++    Call.addOperand(Inst.getOperand(0));
++    Inst = Call;
++    return true;
++  }
++
+   void createDirectCall(MCInst &Inst, const MCSymbol *Target, MCContext *Ctx,
+                         bool IsTailCall) override {
+     if (IsTailCall)
+--- /dev/null
++++ b/bolt/test/ARM/Inputs/check-arm-mov-lr-pc-call.py
+@@ -0,0 +1,124 @@
++from pathlib import Path
++import re
++import shutil
++import subprocess
++import sys
++import tempfile
++
++# A32 `mov lr, pc; b X` is a call to X returning after the B (clang -marm
++# emits it, e.g. for a noreturn call through a linker thunk). BOLT admits it
++# as `nop; bl X`. A branch straight to the B (which would skip setting LR) is
++# rejected. A thunk `movw/movt r12; bx r12` to a proven noreturn function is
++# itself noreturn, so a caller ending in such a call is not a fallthrough.
++tc = Path(shutil.which('llvm-bolt')).resolve().parent
++evidence = Path(sys.argv[1])
++evidence.mkdir(parents=True, exist_ok=True)
++out = Path(tempfile.mkdtemp(prefix='run-', dir=evidence))
++print('Evidence:', out)
++
++HEAD = r''' .syntax unified
++ .text
++ .arm
++ .global _start
++ .type _start,%function
++_start:
++ bl user
++ b _start
++ .size _start,.-_start
++
++ .global callee
++ .type callee,%function
++callee:
++ add r0, r0, #5
++ bx lr
++ .size callee,.-callee
++
++ .global halt
++ .type halt,%function
++halt:
++ wfi
++ b halt
++ .size halt,.-halt
++
++ .global __ARMv7ABSLongThunk_halt
++ .type __ARMv7ABSLongThunk_halt,%function
++__ARMv7ABSLongThunk_halt:
++ movw r12, #:lower16:halt
++ movt r12, #:upper16:halt
++ bx r12
++ .size __ARMv7ABSLongThunk_halt,.-__ARMv7ABSLongThunk_halt
++'''
++
++FIXTURES = {
++    'positive': (r'''
++ .global user
++ .type user,%function
++user:
++ push {r4, lr}
++ mov lr, pc
++ b callee
++ add r0, r0, #1
++ cmp r0, #0
++ beq 1f
++ pop {r4, pc}
++1:
++ mov lr, pc
++ b __ARMv7ABSLongThunk_halt
++ .size user,.-user
++''', None),
++    'branch-into-pair': (r'''
++ .global user
++ .type user,%function
++user:
++ push {r4, lr}
++ cmp r0, #0
++ beq 1f
++ mov lr, pc
++1:
++ b callee
++ pop {r4, pc}
++ .size user,.-user
++''', 'branch into AArch32 mov-lr/b call in user'),
++}
++
++LD = 'ENTRY(_start)\nSECTIONS {\n  . = 0x8000;\n  .text : { *(.text*) }\n}\n'
++
++
++def run(cmd, check=True):
++    p = subprocess.run([str(x) for x in cmd], cwd=out, capture_output=True, text=True)
++    if check and p.returncode:
++        sys.exit(f'FAIL: {cmd[0]} exited {p.returncode}\n{p.stdout}{p.stderr}')
++    return p.returncode, p.stdout + p.stderr
++
++
++bad = 0
++for name, (body, error) in FIXTURES.items():
++    (out / f'{name}.s').write_text(HEAD + body)
++    (out / 'in.ld').write_text(LD)
++    run([tc / 'llvm-mc', '-arm-add-build-attributes', '-filetype=obj',
++         '-triple=armv7-unknown-linux-gnueabi', f'{name}.s', '-o', f'{name}.o'])
++    run([tc / 'ld.lld', '--emit-relocs', '-T', 'in.ld', f'{name}.o', '-o', f'{name}.exe'])
++    rc, log = run([tc / 'llvm-bolt', f'{name}.exe', '-o', f'{name}.bolt', '-lite=0',
++                   '--funcs=user,callee,halt,__ARMv7ABSLongThunk_halt'], check=False)
++    (out / f'{name}.log').write_text(log)
++    if error:
++        ok = rc != 0 and error in log and not (out / f'{name}.bolt').exists()
++        print(f"{'PASS' if ok else 'FAIL'}: {name}: rejected={rc != 0}")
++        bad += not ok
++        continue
++    if rc:
++        print(f'FAIL: {name}: llvm-bolt failed\n{log[-1200:]}')
++        bad += 1
++        continue
++    _, dis = run([tc / 'llvm-objdump', '-d', '--no-show-raw-insn', f'{name}.bolt'])
++    m = re.search(r'<user>:\n(.*?)(?:\n\n|\Z)', dis, re.S)
++    insts = [l.split(':', 1)[1].split('@')[0].strip() for l in m.group(1).splitlines()
++             if ':' in l] if m else []
++    _, nm = run([tc / 'llvm-nm', f'{name}.bolt'])
++    moved = any(re.search(r'^0*4[0-9a-f]{5} T user$', l) for l in nm.splitlines())
++    calls = [i for i in insts if re.match(r'bl\s', i)]
++    ok = moved and not any('pc' in i and i.startswith('mov') for i in insts) and \
++        any('<callee>' in c for c in calls) and len(calls) == 2
++    print(f"{'PASS' if ok else 'FAIL'}: {name}: {'; '.join(insts)}")
++    bad += not ok
++sys.exit(1 if bad else 0)
+--- /dev/null
++++ b/bolt/test/ARM/arm-mov-lr-pc-call.test
+@@ -0,0 +1,5 @@
++## A32 mov lr, pc; b X is admitted as a call (nop; bl X); a branch into the
++## pair is rejected; a movw/movt/bx r12 thunk to a noreturn function is noreturn.
++
++RUN: rm -rf %t.dir
++RUN: %python %p/Inputs/check-arm-mov-lr-pc-call.py %t.dir
