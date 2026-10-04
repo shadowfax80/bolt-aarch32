@@ -39,7 +39,7 @@ and update it before stopping. `AGENTS.md` and `CLAUDE.md` point here.
 
 | Holder | Since | Purpose |
 |---|---|---|
-| — (free) | 2026-10-04 | Released by Codex on user-requested pause/exit; no backend edits started |
+| Codex | 2026-10-04 | Resumed R11 skip-and-report admission; overlay 0054 |
 
 ## Claims (consolidated TODO)
 
@@ -58,7 +58,7 @@ Take items in the order below; groups reflect dependencies, not ownership.
 
 | Order | ID | Item | Priority | Owner | Status | Part of | Notes |
 |---|---|---|---|---|---|---|---|
-| 1 | R11 | Skip-and-report admission mode | P1 | Codex | Paused | — | User requested pause/exit for mobile control; resume at admission error handling; fatal remains default for certification |
+| 1 | R11 | Skip-and-report admission mode | P1 | Codex | In progress | — | Resumed after mobile handoff; fatal remains default for certification |
 | 2 | R17 | Synthesized edge-case test image (`bolt_edge`), stage 1 (~40 cases) | P1 | — | Open | 7, 8, 11, 12 | Generator emits sources + admission manifest + independent checksums; QEMU + Pi; stage 2 randomized generator later |
 
 **B. P0 certification (finish)**
@@ -141,6 +141,14 @@ plus genuine fallthrough such as `bzero`: about 98% of functions.
 4. Update the *Claims* table and LK_COVERAGE.md together.
 
 ## Handoff log
+
+### 2026-10-04 — Codex resumes R11 and reacquires the live-tree lock
+
+- User requested resume. R11 is In progress under Codex; the shared ATFE lock
+  is reacquired before backend changes. Continue the saved admission-handler
+  inspection, preserving fatal default/global guards and all existing evidence.
+- No other item is claimed. Baseline remains overlays 0001–0053 and recorded
+  coverage 399/417 functions (95.7%), 97.9% function code bytes. R17 follows R11.
 
 ### 2026-10-04 — Codex paused R11 at the user's request; lock released
 
