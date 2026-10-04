@@ -84,7 +84,7 @@ Take items in the order below; groups reflect dependencies, not ownership.
 
 | Order | ID | Item | Priority | Owner | Status | Part of | Notes |
 |---|---|---|---|---|---|---|---|
-| 2 | R17 | Synthesized edge-case test image (`bolt_edge`), stage 1 (68 cases) | P1 | Claude | Stage 1 done and certified (scoped); stage 2 open | 7, 8, 11, 12 | [Plan](R17_BOLT_EDGE_PLAN.md); [evidence](results/bolt_edge_stage1_20261004.json); [certified receipt](results/bolt_edge_certified_20261004.json) |
+| 2 | R17 | Synthesized edge-case test image (`bolt_edge`), stage 1 (98 cases incl. whole-module `-marm`/`-mthumb`) | P1 | Claude | Stage 1 done and certified (scoped); stage 2 open | 7, 8, 11, 12 | [Plan](R17_BOLT_EDGE_PLAN.md); evidence: `docs/results/bolt_edge_*_20261004.json` |
 
 **B. P0 certification (finish)**
 
@@ -93,7 +93,7 @@ Take items in the order below; groups reflect dependencies, not ownership.
 | 3 | 6a | Every gate proves execution: close G1 (fixed-path intermediates), G2 (seal profile chain in QEMU certificate), G3 (contracts for QEMU LK builds) | P0 | — | Partial | — | Pi sealed chain certified; G3 needs user review; 0054 ON/OFF builds and scoped Pi runs verified, remaining gate routes still open |
 | 4 | 6c | Legacy/manual hook admission | P0 | — | Partial | — | R9 done; includes R13 |
 | 5 | 6d | Durable receipts on every certification route | P0 | — | Partial | — | Pi gate + coverage report receipts exist |
-| 6 | 6b | Oracle contracts for further configurations (Thumb workloads, `bolt_edge` stage-2 images) | P0 | — | Partial | — | Active `pi4` contracts: full LK (`424606a8…`) and bolt_edge stage 1 (`0895d7bc…`); each new contract needs user review |
+| 6 | 6b | Oracle contracts for further configurations (Thumb workloads, `bolt_edge` stage-2 images) | P0 | — | Partial | — | Active `pi4` contracts: full LK (`424606a8…`), bolt_edge stage 1 (`0895d7bc…`) and 1b (`439dfd7c…`); each new contract needs user review |
 
 **C. Correctness defects (small)**
 
@@ -169,6 +169,17 @@ plus genuine fallthrough such as `bzero`: about 98% of functions.
 4. Update the *Claims* table and LK_COVERAGE.md together.
 
 ## Handoff log
+
+### 2026-10-04 — Claude: bolt_edge stage-1b contract approved; certified
+
+- User approved the `pi4` contract for `fixtures/lk-rpi4-bolt-edge-439dfd7c.elf`
+  (bfd94e1), bound to frozen `docs/bolt_edge/stage1b/` manifest + generator.
+- Certified `full_image_verify.py` run (10 repetitions): 18/18 bench and
+  98/98 edge cases on baseline and candidate; execution observed in both
+  sampled workload redirects. Receipt:
+  `docs/results/bolt_edge_stage1b_certified_20261004.json`. Same scope note as
+  stage 1 (restored `.rodata`; rewritten edge execution shown by the
+  uncertified 33-redirect run, 98 × 2, 0 mismatches).
 
 ### 2026-10-04 — Claude: R17 stage 1b (whole-module -marm / -mthumb)
 
