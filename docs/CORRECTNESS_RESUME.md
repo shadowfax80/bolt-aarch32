@@ -6,14 +6,21 @@ Read [HANDOFF.md](HANDOFF.md) first. Its *Claims* tables contain the current
 status, ownership and resume order for both agents; its *Live-tree lock* controls
 edits and rebuilds of shared WSL ATFE. Either agent may claim any unowned item,
 regardless of origin, by committing and pushing the claim before implementation.
-The next listed item is **R11**, then R17 and the remaining ordered groups.
+R11 is **done through overlay 0054**; the next listed item is **R17**, followed
+by the remaining ordered groups. The live-tree lock is free at this milestone.
+Both assertion-mode builds, admission tests, coverage and scoped Pi runs passed;
+see [R11 contract/evidence](ARM_ADMISSION_REPORT.md). Coverage is unchanged at
+399/417 functions and 97.9% of code bytes. Candidate no-FPU scanning needs
+ISA-aware metadata; that caveat is recorded under item 14.
 [CORRECTNESS_PRIORITY_TODO.md](CORRECTNESS_PRIORITY_TODO.md) retains certification
-closure criteria; the checkpoints below predate Claude's overlays 0046–0053,
+closure criteria; the checkpoints below predate overlays 0046–0054,
 approved Pi oracle and sealed-chain milestone. Use the latest handoff for status.
-This sync did not start a work item. A subsequent requested access check started
-WSL successfully and confirmed the Pi's LK shell responds on COM5 at 3 Mbaud.
+WSL executes commands and the Pi's LK shell responds on COM5 at 3 Mbaud.
+The Pi is restored to the approved baseline shell, sampling stopped and
+watchdog off. The serial port is closed; WSL remains running. Windows Codex
+and Claude checkouts and the WSL repo are synced to the published milestone.
 
-## Current: stopped at verified oracle/Pi milestone and fresh review
+## Historical 0045 oracle/Pi milestone and review
 
 2026-10-04: **work is stopped at the requested next milestone**. The latest
 instruction to review, publish a new tabular TODO and stop supersedes the earlier

@@ -4,3 +4,6 @@
 # endings. A CRLF checkout once turned these into corrupt patches and put CRLF
 # into the LLVM sources they created.
 *.patch -text
+# R11 evidence hashes bind the original bytes across Windows/WSL checkouts.
+docs/results/r11_*.json -text
+docs/results/lk_coverage_20261004_r11*.json -text

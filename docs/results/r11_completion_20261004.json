@@ -1,0 +1,128 @@
+{
+  "schema": 1,
+  "item": "R11",
+  "status": "done",
+  "patch": "overlay/llvm/patches/atfe/0054-bolt-arm-admission-report.patch",
+  "patch_sha256": "00a8585f9f49c0135d89c5c2c1d0c3332cbeaddfdbedb26cd68447ef918ab3ef",
+  "repository_revision_during_verification": "0b2b3204da9b4fcb556a2c00e10725bf98cdb907",
+  "scope": "diagnostic admission collection; fatal default unchanged; Pi execution only for two selected redirects",
+  "coverage_before": {
+    "functions_rewritten": 399,
+    "functions": 417,
+    "code_bytes_rewritten": 124166,
+    "code_bytes": 126834,
+    "rejection_scan_rounds": 12
+  },
+  "coverage_after": {
+    "functions_rewritten": 399,
+    "functions": 417,
+    "code_bytes_rewritten": 124166,
+    "code_bytes": 126834,
+    "rejection_scan_rounds": 1
+  },
+  "tests": {
+    "assertions_on": {
+      "arm_jitlink_passed": 61,
+      "core_passed": 58,
+      "core_skipped": 31,
+      "admission_checks": 41
+    },
+    "assertions_off": {
+      "arm_jitlink_passed": 60,
+      "arm_jitlink_unsupported": 1,
+      "core_passed": 58,
+      "core_skipped": 31,
+      "admission_checks": 41
+    },
+    "host_python_windows": {
+      "tests": 145,
+      "skipped": 4,
+      "success": true
+    }
+  },
+  "replay": {
+    "overlays": 54,
+    "success": true,
+    "source_identity_sha256": "484c5825e2f75d120d71078f8c2a2728a73c77fa16ae103bbacd8fb321b3d383",
+    "clean_build_proven": false
+  },
+  "no_fpu": {
+    "approved_input_scan": "pass: zero FP/NEON",
+    "candidate_automatic_scan": "not certified: ISA mapping false positives",
+    "rewritten_false_positive_arm_words": [
+      "0x012fff1e",
+      "0xe12fff1e",
+      "0xe12fff1c"
+    ],
+    "remaining_work_item": "14",
+    "investigation_log_sha256": "7bf9a40e8ba66ab68386aa482a599732575c7eb5f5add278e103edabe2a979a0"
+  },
+  "artifact_sha256": {
+    "docs/results/lk_coverage_20261004_r11.json": "e49e16d54a97a2a73d91df6e3cdac2bf465ade7f09586072479d072045917a4f",
+    "docs/results/lk_coverage_20261004_r11_off.json": "c3d765889d0962225546d932f73c26fa55c620e77a9718d6a0159927335f73b0",
+    "docs/results/r11_admission_checks_off_20261004.json": "8d64767a437eeed684dbf0a153039a5472c62fabe003aaa01969cb0227f3fa95",
+    "docs/results/r11_admission_checks_on_20261004.json": "8d64767a437eeed684dbf0a153039a5472c62fabe003aaa01969cb0227f3fa95",
+    "docs/results/r11_admission_off_20261004.json": "600f3d415c2ad06a913eddf5bd1387f09daf80ff14be589e9030ae57391a16d1",
+    "docs/results/r11_admission_on_20261004.json": "600f3d415c2ad06a913eddf5bd1387f09daf80ff14be589e9030ae57391a16d1",
+    "docs/results/r11_overlay_replay_20261004.json": "2ff76602d7a7a9ffd379c4e48191c2f06a06fac8cce986ba4072e105f4cdca7d",
+    "docs/results/r11_pi_off_build_manifest_20261004.json": "13eb187d5a9163417846c79954cd29bdfd450c864e28390bac0ae406eb58ce28",
+    "docs/results/r11_pi_off_certified_20261004.json": "5151d07f8036b6756424d5de840e7fc7e39eeb059546d51f1934036292beb1c1",
+    "docs/results/r11_pi_on_build_manifest_20261004.json": "d1c97cfb6cc629f2638da46f5eedbd0769b92d5525ed4f61c2855927fbae177e",
+    "docs/results/r11_pi_on_certified_20261004.json": "781c33f50e2f2e61e2d880e0a8bec2989e255aed051622075198540593a29217"
+  },
+  "next_item": "R17",
+  "pi": {
+    "on": {
+      "execution_verified": true,
+      "results": 18,
+      "repetitions": 10,
+      "watchdog_seconds": 180,
+      "kept_samples": 33849,
+      "redirected_coverage": [
+        {
+          "name": "bolt_bench_interwork",
+          "pc_samples": 27,
+          "execution_observed": true,
+          "required": true
+        },
+        {
+          "name": "bolt_bench_memcpy",
+          "pc_samples": 15,
+          "execution_observed": true,
+          "required": true
+        }
+      ],
+      "candidate_sha256": "69f1e55d38ab63cfcf2e90f6a809170355d734a964fa17ed75d13bd524abe300"
+    },
+    "off": {
+      "execution_verified": true,
+      "results": 18,
+      "repetitions": 10,
+      "watchdog_seconds": 180,
+      "kept_samples": 33848,
+      "redirected_coverage": [
+        {
+          "name": "bolt_bench_interwork",
+          "pc_samples": 10,
+          "execution_observed": true,
+          "required": true
+        },
+        {
+          "name": "bolt_bench_memcpy",
+          "pc_samples": 11,
+          "execution_observed": true,
+          "required": true
+        }
+      ],
+      "candidate_sha256": "69f1e55d38ab63cfcf2e90f6a809170355d734a964fa17ed75d13bd524abe300"
+    }
+  },
+  "pickup": {
+    "wsl": "Ubuntu running; repos synced to publication commit; dirty live source preserved through 0054",
+    "pi": "approved baseline LK shell, COM5 at 3000000 baud; sampling stopped; watchdog off; serial closed",
+    "baseline_binary_sha256": "ee9982ba422fa5e40854f0c21c298b20c4be02eb349413eefe7fdcf53bedd612",
+    "pickup_log_sha256": "0bc28cb504102a60362e442d532b2ab4f909a3b8fda7d8ac84750c9403b0a134",
+    "serial_control_log_sha256": "534362a5e6683ce464fa21e079c607a78687e9b23bb459be55ea2feb30fc06e3",
+    "claude_project_memory_updated": true
+  }
+}

@@ -1,0 +1,2956 @@
+{
+  "admitted": 403,
+  "complete": true,
+  "execution_verified": false,
+  "functions": [
+    {
+      "address": 2147516416,
+      "isa": "A32",
+      "name": "_start",
+      "size": 36,
+      "status": "admitted"
+    },
+    {
+      "address": 2147516452,
+      "isa": "A32",
+      "name": "arm_reset",
+      "reason": "unsupported AArch32 position-dependent PC read in arm_reset(*2) at 0x80008050",
+      "size": 488,
+      "stage": "disassembly",
+      "status": "rejected"
+    },
+    {
+      "address": 2147516940,
+      "isa": "A32",
+      "name": "arm_secondary_setup",
+      "reason": "unsupported AArch32 PC-writing control transfer in arm_secondary_setup at 0x800082bc",
+      "size": 228,
+      "stage": "disassembly",
+      "status": "rejected"
+    },
+    {
+      "address": 2147517168,
+      "isa": "T32",
+      "name": "platform_init_mmu_mappings",
+      "size": 2,
+      "status": "admitted"
+    },
+    {
+      "address": 2147517170,
+      "isa": "T32",
+      "name": "bcm2711_gic_init/1",
+      "size": 12,
+      "status": "admitted"
+    },
+    {
+      "address": 2147517182,
+      "isa": "T32",
+      "name": "platform_early_init",
+      "size": 418,
+      "status": "admitted"
+    },
+    {
+      "address": 2147517600,
+      "isa": "T32",
+      "name": "platform_init",
+      "size": 4,
+      "status": "admitted"
+    },
+    {
+      "address": 2147517604,
+      "isa": "T32",
+      "name": "platform_dputc",
+      "size": 28,
+      "status": "admitted"
+    },
+    {
+      "address": 2147517632,
+      "isa": "T32",
+      "name": "platform_dgetc",
+      "size": 24,
+      "status": "admitted"
+    },
+    {
+      "address": 2147517656,
+      "isa": "T32",
+      "name": "platform_halt",
+      "size": 20,
+      "status": "admitted"
+    },
+    {
+      "address": 2147517676,
+      "isa": "T32",
+      "name": "bcm28xx_watchdog_reset/1",
+      "size": 48,
+      "status": "admitted"
+    },
+    {
+      "address": 2147517724,
+      "isa": "T32",
+      "name": "bcm28xx_poweroff/1",
+      "size": 76,
+      "status": "admitted"
+    },
+    {
+      "address": 2147517800,
+      "isa": "T32",
+      "name": "uart_init",
+      "size": 72,
+      "status": "admitted"
+    },
+    {
+      "address": 2147517872,
+      "isa": "T32",
+      "name": "uart_irq/1",
+      "size": 74,
+      "status": "admitted"
+    },
+    {
+      "address": 2147517946,
+      "isa": "T32",
+      "name": "uart_init_early",
+      "size": 16,
+      "status": "admitted"
+    },
+    {
+      "address": 2147517962,
+      "isa": "T32",
+      "name": "uart_putc",
+      "size": 22,
+      "status": "admitted"
+    },
+    {
+      "address": 2147517984,
+      "isa": "T32",
+      "name": "uart_getc",
+      "size": 48,
+      "status": "admitted"
+    },
+    {
+      "address": 2147518032,
+      "isa": "T32",
+      "name": "uart_flush_tx",
+      "size": 26,
+      "status": "admitted"
+    },
+    {
+      "address": 2147518058,
+      "isa": "T32",
+      "name": "dcc_worker_entry/1",
+      "size": 70,
+      "status": "admitted"
+    },
+    {
+      "address": 2147518128,
+      "isa": "T32",
+      "name": "cmd_dcc/1",
+      "size": 506,
+      "status": "admitted"
+    },
+    {
+      "address": 2147518634,
+      "isa": "T32",
+      "name": "dcc_rx_callback/1",
+      "size": 62,
+      "status": "admitted"
+    },
+    {
+      "address": 2147518696,
+      "isa": "T32",
+      "name": "arm_syscall_handler",
+      "size": 38,
+      "status": "admitted"
+    },
+    {
+      "address": 2147518734,
+      "isa": "T32",
+      "name": "arm_undefined_handler",
+      "size": 56,
+      "status": "admitted"
+    },
+    {
+      "address": 2147518792,
+      "isa": "T32",
+      "name": "arm_data_abort_handler",
+      "size": 438,
+      "status": "admitted"
+    },
+    {
+      "address": 2147519232,
+      "isa": "T32",
+      "name": "arm_prefetch_abort_handler",
+      "size": 234,
+      "status": "admitted"
+    },
+    {
+      "address": 2147519466,
+      "isa": "T32",
+      "name": "dump_fault_frame/1",
+      "size": 158,
+      "status": "admitted"
+    },
+    {
+      "address": 2147519624,
+      "isa": "T32",
+      "name": "dump_mode_regs/1",
+      "size": 344,
+      "status": "admitted"
+    },
+    {
+      "address": 2147519968,
+      "isa": "T32",
+      "name": "dump_iframe/1",
+      "size": 82,
+      "status": "admitted"
+    },
+    {
+      "address": 2147520050,
+      "isa": "T32",
+      "name": "arm_mmu_early_init",
+      "size": 2,
+      "status": "admitted"
+    },
+    {
+      "address": 2147520052,
+      "isa": "T32",
+      "name": "arm_mmu_init",
+      "size": 184,
+      "status": "admitted"
+    },
+    {
+      "address": 2147520236,
+      "isa": "T32",
+      "name": "arch_mmu_context_switch",
+      "size": 42,
+      "status": "admitted"
+    },
+    {
+      "address": 2147520280,
+      "isa": "T32",
+      "name": "arch_mmu_query",
+      "size": 396,
+      "status": "admitted"
+    },
+    {
+      "address": 2147520676,
+      "isa": "T32",
+      "name": "arch_mmu_map",
+      "size": 874,
+      "status": "admitted"
+    },
+    {
+      "address": 2147521552,
+      "isa": "T32",
+      "name": "arch_mmu_unmap",
+      "size": 654,
+      "status": "admitted"
+    },
+    {
+      "address": 2147522206,
+      "isa": "T32",
+      "name": "arch_mmu_init_aspace",
+      "size": 164,
+      "status": "admitted"
+    },
+    {
+      "address": 2147522370,
+      "isa": "T32",
+      "name": "arch_mmu_destroy_aspace",
+      "size": 42,
+      "status": "admitted"
+    },
+    {
+      "address": 2147522412,
+      "isa": "T32",
+      "name": "arch_mmu_supports_user_aspaces",
+      "size": 4,
+      "status": "admitted"
+    },
+    {
+      "address": 2147522416,
+      "isa": "T32",
+      "name": "arch_thread_initialize",
+      "size": 44,
+      "status": "admitted"
+    },
+    {
+      "address": 2147522460,
+      "isa": "T32",
+      "name": "initial_thread_func/1",
+      "size": 20,
+      "status": "admitted"
+    },
+    {
+      "address": 2147522480,
+      "isa": "T32",
+      "name": "arch_context_switch",
+      "size": 8,
+      "status": "admitted"
+    },
+    {
+      "address": 2147522488,
+      "isa": "T32",
+      "name": "arch_dump_thread",
+      "size": 42,
+      "status": "admitted"
+    },
+    {
+      "address": 2147522530,
+      "isa": "T32",
+      "name": "spin_unlock/1",
+      "size": 12,
+      "status": "admitted"
+    },
+    {
+      "address": 2147522542,
+      "isa": "T32",
+      "name": "arch_mp_send_ipi",
+      "size": 26,
+      "status": "admitted"
+    },
+    {
+      "address": 2147522568,
+      "isa": "T32",
+      "name": "arm_ipi_generic_handler",
+      "size": 4,
+      "status": "admitted"
+    },
+    {
+      "address": 2147522572,
+      "isa": "T32",
+      "name": "arm_ipi_reschedule_handler",
+      "size": 4,
+      "status": "admitted"
+    },
+    {
+      "address": 2147522576,
+      "isa": "T32",
+      "name": "arch_mp_init_percpu",
+      "size": 38,
+      "status": "admitted"
+    },
+    {
+      "address": 2147522616,
+      "isa": "A32",
+      "name": "arm_context_switch",
+      "size": 24,
+      "status": "admitted"
+    },
+    {
+      "address": 2147522640,
+      "isa": "A32",
+      "name": "arm_save_mode_regs",
+      "size": 92,
+      "status": "admitted"
+    },
+    {
+      "address": 2147522732,
+      "isa": "A32",
+      "name": "arm_chain_load",
+      "size": 40,
+      "status": "admitted"
+    },
+    {
+      "address": 2147522772,
+      "isa": "A32",
+      "name": "arch_disable_cache",
+      "size": 104,
+      "status": "admitted"
+    },
+    {
+      "address": 2147522876,
+      "isa": "A32",
+      "name": "arch_enable_cache",
+      "size": 400,
+      "status": "admitted"
+    },
+    {
+      "address": 2147523276,
+      "isa": "A32",
+      "name": "arch_clean_cache_range",
+      "size": 36,
+      "status": "admitted"
+    },
+    {
+      "address": 2147523312,
+      "isa": "A32",
+      "name": "arch_clean_invalidate_cache_range",
+      "size": 36,
+      "status": "admitted"
+    },
+    {
+      "address": 2147523348,
+      "isa": "A32",
+      "name": "arch_invalidate_cache_range",
+      "size": 36,
+      "status": "admitted"
+    },
+    {
+      "address": 2147523384,
+      "isa": "A32",
+      "name": "arch_sync_cache_range",
+      "size": 20,
+      "status": "admitted"
+    },
+    {
+      "address": 2147523404,
+      "isa": "A32",
+      "name": "arch_spin_trylock",
+      "size": 28,
+      "status": "admitted"
+    },
+    {
+      "address": 2147523432,
+      "isa": "A32",
+      "name": "arch_spin_lock",
+      "size": 36,
+      "status": "admitted"
+    },
+    {
+      "address": 2147523468,
+      "isa": "A32",
+      "name": "arch_spin_unlock",
+      "size": 24,
+      "status": "admitted"
+    },
+    {
+      "address": 2147523492,
+      "isa": "A32",
+      "name": "arch_idle",
+      "size": 8,
+      "status": "admitted"
+    },
+    {
+      "address": 2147523500,
+      "isa": "A32",
+      "name": "arm_invalidate_tlb",
+      "size": 12,
+      "status": "admitted"
+    },
+    {
+      "address": 2147523512,
+      "isa": "A32",
+      "name": "arm_undefined",
+      "reason": "unsupported AArch32 PC-writing control transfer in arm_undefined at 0x80009bf4",
+      "size": 64,
+      "stage": "disassembly",
+      "status": "rejected"
+    },
+    {
+      "address": 2147523576,
+      "isa": "A32",
+      "name": "arm_syscall",
+      "reason": "unsupported AArch32 PC-writing control transfer in arm_syscall at 0x80009c34",
+      "size": 64,
+      "stage": "disassembly",
+      "status": "rejected"
+    },
+    {
+      "address": 2147523640,
+      "isa": "A32",
+      "name": "arm_prefetch_abort",
+      "reason": "unsupported AArch32 PC-writing control transfer in arm_prefetch_abort at 0x80009c78",
+      "size": 68,
+      "stage": "disassembly",
+      "status": "rejected"
+    },
+    {
+      "address": 2147523708,
+      "isa": "A32",
+      "name": "arm_data_abort",
+      "reason": "unsupported AArch32 PC-writing control transfer in arm_data_abort at 0x80009cbc",
+      "size": 68,
+      "stage": "disassembly",
+      "status": "rejected"
+    },
+    {
+      "address": 2147523776,
+      "isa": "A32",
+      "name": "arm_reserved",
+      "size": 4,
+      "status": "admitted"
+    },
+    {
+      "address": 2147523780,
+      "isa": "A32",
+      "name": "arm_irq",
+      "reason": "unsupported AArch32 PC-writing control transfer in arm_irq at 0x80009d2c",
+      "size": 108,
+      "stage": "disassembly",
+      "status": "rejected"
+    },
+    {
+      "address": 2147523888,
+      "isa": "A32",
+      "name": "arm_fiq",
+      "reason": "unsupported AArch32 PC-writing control transfer in arm_fiq at 0x80009d70",
+      "size": 68,
+      "stage": "disassembly",
+      "status": "rejected"
+    },
+    {
+      "address": 2147523956,
+      "isa": "A32",
+      "name": "arch_early_init",
+      "size": 116,
+      "status": "admitted"
+    },
+    {
+      "address": 2147524072,
+      "isa": "A32",
+      "name": "arm_basic_setup/1",
+      "size": 88,
+      "status": "admitted"
+    },
+    {
+      "address": 2147524160,
+      "isa": "A32",
+      "name": "arch_init",
+      "size": 132,
+      "status": "admitted"
+    },
+    {
+      "address": 2147524292,
+      "isa": "A32",
+      "name": "arm_secondary_entry",
+      "reason": "unsupported AArch32 position-dependent PC read in arm_secondary_entry at 0x80009f30",
+      "size": 116,
+      "stage": "disassembly",
+      "status": "rejected"
+    },
+    {
+      "address": 2147524408,
+      "isa": "A32",
+      "name": "arm_vtop",
+      "size": 84,
+      "status": "admitted"
+    },
+    {
+      "address": 2147524492,
+      "isa": "T32",
+      "name": "panic",
+      "size": 40,
+      "status": "admitted"
+    },
+    {
+      "address": 2147524532,
+      "isa": "T32",
+      "name": "assert_fail",
+      "size": 26,
+      "status": "admitted"
+    },
+    {
+      "address": 2147524558,
+      "isa": "T32",
+      "name": "hexdump",
+      "size": 272,
+      "status": "admitted"
+    },
+    {
+      "address": 2147524830,
+      "isa": "T32",
+      "name": "lk_init_level",
+      "size": 232,
+      "status": "admitted"
+    },
+    {
+      "address": 2147525062,
+      "isa": "T32",
+      "name": "lk_main",
+      "size": 230,
+      "status": "admitted"
+    },
+    {
+      "address": 2147525292,
+      "isa": "T32",
+      "name": "lk_primary_cpu_init_level/1",
+      "size": 10,
+      "status": "admitted"
+    },
+    {
+      "address": 2147525302,
+      "isa": "T32",
+      "name": "call_constructors/1",
+      "size": 42,
+      "status": "admitted"
+    },
+    {
+      "address": 2147525344,
+      "isa": "T32",
+      "name": "bootstrap2/1",
+      "size": 140,
+      "status": "admitted"
+    },
+    {
+      "address": 2147525484,
+      "isa": "T32",
+      "name": "lk_secondary_cpu_entry_early",
+      "size": 22,
+      "status": "admitted"
+    },
+    {
+      "address": 2147525506,
+      "isa": "T32",
+      "name": "lk_secondary_cpu_entry",
+      "size": 80,
+      "status": "admitted"
+    },
+    {
+      "address": 2147525586,
+      "isa": "T32",
+      "name": "lk_init_secondary_cpus",
+      "size": 140,
+      "status": "admitted"
+    },
+    {
+      "address": 2147525726,
+      "isa": "T32",
+      "name": "secondary_cpu_bootstrap_thread/1",
+      "size": 20,
+      "status": "admitted"
+    },
+    {
+      "address": 2147525746,
+      "isa": "T32",
+      "name": "apps_init",
+      "size": 148,
+      "status": "admitted"
+    },
+    {
+      "address": 2147525894,
+      "isa": "T32",
+      "name": "app_start_by_name",
+      "size": 168,
+      "status": "admitted"
+    },
+    {
+      "address": 2147526062,
+      "isa": "T32",
+      "name": "app_thread_entry/1",
+      "size": 12,
+      "status": "admitted"
+    },
+    {
+      "address": 2147526074,
+      "isa": "T32",
+      "name": "cmd_app/1",
+      "size": 186,
+      "status": "admitted"
+    },
+    {
+      "address": 2147526260,
+      "isa": "T32",
+      "name": "cmd_start/1",
+      "size": 32,
+      "status": "admitted"
+    },
+    {
+      "address": 2147526292,
+      "isa": "T32",
+      "name": "bolt_bench_hot_loop",
+      "size": 54,
+      "status": "admitted"
+    },
+    {
+      "address": 2147526346,
+      "isa": "T32",
+      "name": "arch_cycle_count/1",
+      "size": 6,
+      "status": "admitted"
+    },
+    {
+      "address": 2147526352,
+      "isa": "T32",
+      "name": "bench_banner/1",
+      "size": 18,
+      "status": "admitted"
+    },
+    {
+      "address": 2147526370,
+      "isa": "T32",
+      "name": "bolt_bench_hot_cold",
+      "size": 48,
+      "status": "admitted"
+    },
+    {
+      "address": 2147526418,
+      "isa": "T32",
+      "name": "bolt_bench_branch_chain",
+      "size": 168,
+      "status": "admitted"
+    },
+    {
+      "address": 2147526586,
+      "isa": "T32",
+      "name": "bolt_bench_far_target",
+      "size": 12,
+      "status": "admitted"
+    },
+    {
+      "address": 2147526598,
+      "isa": "T32",
+      "name": "bolt_bench_far_call",
+      "size": 40,
+      "status": "admitted"
+    },
+    {
+      "address": 2147526638,
+      "isa": "T32",
+      "name": "bolt_bench_it_cond",
+      "size": 90,
+      "status": "admitted"
+    },
+    {
+      "address": 2147526728,
+      "isa": "A32",
+      "name": "bolt_bench_arm_callee/1",
+      "size": 8,
+      "status": "admitted"
+    },
+    {
+      "address": 2147526736,
+      "isa": "T32",
+      "name": "bolt_bench_thumb_callee/1",
+      "size": 6,
+      "status": "admitted"
+    },
+    {
+      "address": 2147526744,
+      "isa": "A32",
+      "name": "bolt_bench_interwork",
+      "size": 128,
+      "status": "admitted"
+    },
+    {
+      "address": 2147526872,
+      "isa": "T32",
+      "name": "bolt_bench_switch",
+      "size": 76,
+      "status": "admitted"
+    },
+    {
+      "address": 2147526948,
+      "isa": "T32",
+      "name": "bolt_bench_switch_pick/1",
+      "size": 60,
+      "status": "admitted"
+    },
+    {
+      "address": 2147527008,
+      "isa": "T32",
+      "name": "bolt_bench_spill_ret",
+      "size": 100,
+      "status": "admitted"
+    },
+    {
+      "address": 2147527108,
+      "isa": "T32",
+      "name": "bolt_bench_spill_helper/1",
+      "size": 8,
+      "status": "admitted"
+    },
+    {
+      "address": 2147527116,
+      "isa": "T32",
+      "name": "bolt_bench_litpool",
+      "size": 104,
+      "status": "admitted"
+    },
+    {
+      "address": 2147527220,
+      "isa": "T32",
+      "name": "bolt_bench_memcpy",
+      "size": 216,
+      "status": "admitted"
+    },
+    {
+      "address": 2147527436,
+      "isa": "T32",
+      "name": "bolt_bench_ind_thumb_target/1",
+      "size": 4,
+      "status": "admitted"
+    },
+    {
+      "address": 2147527440,
+      "isa": "A32",
+      "name": "bolt_bench_ind_arm_target/1",
+      "size": 12,
+      "status": "admitted"
+    },
+    {
+      "address": 2147527452,
+      "isa": "T32",
+      "name": "bolt_bench_indirect_call",
+      "size": 122,
+      "status": "admitted"
+    },
+    {
+      "address": 2147527576,
+      "isa": "A32",
+      "name": "bolt_bench_tail_arm_callee/1",
+      "size": 16,
+      "status": "admitted"
+    },
+    {
+      "address": 2147527592,
+      "isa": "T32",
+      "name": "bolt_bench_interwork_tail",
+      "size": 72,
+      "status": "admitted"
+    },
+    {
+      "address": 2147527664,
+      "isa": "T32",
+      "name": "bolt_bench_tail_thumb_caller/1",
+      "size": 4,
+      "status": "admitted"
+    },
+    {
+      "address": 2147527668,
+      "isa": "T32",
+      "name": "bolt_bench_regpressure",
+      "size": 72,
+      "status": "admitted"
+    },
+    {
+      "address": 2147527740,
+      "isa": "T32",
+      "name": "bolt_bench_regpressure_calc/1",
+      "size": 94,
+      "status": "admitted"
+    },
+    {
+      "address": 2147527834,
+      "isa": "T32",
+      "name": "bolt_bench_hotcold_split",
+      "size": 106,
+      "status": "admitted"
+    },
+    {
+      "address": 2147527940,
+      "isa": "T32",
+      "name": "bolt_bench_cold_path/1",
+      "size": 296,
+      "status": "admitted"
+    },
+    {
+      "address": 2147528236,
+      "isa": "T32",
+      "name": "bolt_bench_icf_a",
+      "size": 22,
+      "status": "admitted"
+    },
+    {
+      "address": 2147528258,
+      "isa": "T32",
+      "name": "bolt_bench_icf_b",
+      "size": 22,
+      "status": "admitted"
+    },
+    {
+      "address": 2147528280,
+      "isa": "T32",
+      "name": "bolt_bench_icf",
+      "size": 82,
+      "status": "admitted"
+    },
+    {
+      "address": 2147528362,
+      "isa": "T32",
+      "name": "bolt_bench_shrinkwrap",
+      "size": 112,
+      "status": "admitted"
+    },
+    {
+      "address": 2147528474,
+      "isa": "T32",
+      "name": "bolt_bench_composite",
+      "size": 478,
+      "status": "admitted"
+    },
+    {
+      "address": 2147528952,
+      "isa": "T32",
+      "name": "bolt_pmu_report/1",
+      "size": 256,
+      "status": "admitted"
+    },
+    {
+      "address": 2147529208,
+      "isa": "T32",
+      "name": "bolt_bench_stair_kernel",
+      "size": 16114,
+      "status": "admitted"
+    },
+    {
+      "address": 2147545322,
+      "isa": "T32",
+      "name": "bolt_bench_stair",
+      "size": 590,
+      "status": "admitted"
+    },
+    {
+      "address": 2147545912,
+      "isa": "T32",
+      "name": "bolt_bench_pgo_lab",
+      "size": 258,
+      "status": "admitted"
+    },
+    {
+      "address": 2147546170,
+      "isa": "T32",
+      "name": "pl_run/1",
+      "size": 458,
+      "status": "admitted"
+    },
+    {
+      "address": 2147546628,
+      "isa": "T32",
+      "name": "pl_a/1",
+      "size": 126,
+      "status": "admitted"
+    },
+    {
+      "address": 2147546756,
+      "isa": "T32",
+      "name": "pl_b/1",
+      "size": 462,
+      "status": "admitted"
+    },
+    {
+      "address": 2147547218,
+      "isa": "T32",
+      "name": "pl_c/1",
+      "size": 240,
+      "status": "admitted"
+    },
+    {
+      "address": 2147547458,
+      "isa": "T32",
+      "name": "pl_d/1",
+      "size": 128,
+      "status": "admitted"
+    },
+    {
+      "address": 2147549184,
+      "isa": "T32",
+      "name": "bolt_bench_mf0",
+      "size": 7074,
+      "status": "admitted"
+    },
+    {
+      "address": 2147565568,
+      "isa": "T32",
+      "name": "bolt_bench_mf1",
+      "size": 7196,
+      "status": "admitted"
+    },
+    {
+      "address": 2147581952,
+      "isa": "T32",
+      "name": "bolt_bench_mf2",
+      "size": 7134,
+      "status": "admitted"
+    },
+    {
+      "address": 2147598336,
+      "isa": "T32",
+      "name": "bolt_bench_mf3",
+      "size": 7074,
+      "status": "admitted"
+    },
+    {
+      "address": 2147614720,
+      "isa": "T32",
+      "name": "bolt_bench_mf4",
+      "size": 7134,
+      "status": "admitted"
+    },
+    {
+      "address": 2147631104,
+      "isa": "A32",
+      "name": "bolt_bench_mf5",
+      "size": 11028,
+      "status": "admitted"
+    },
+    {
+      "address": 2147642132,
+      "isa": "T32",
+      "name": "bolt_bench_multi",
+      "size": 518,
+      "status": "admitted"
+    },
+    {
+      "address": 2147642650,
+      "isa": "T32",
+      "name": "bolt_sample_on_irq",
+      "size": 126,
+      "status": "admitted"
+    },
+    {
+      "address": 2147642776,
+      "isa": "T32",
+      "name": "bolt_bench_app_entry/1",
+      "size": 54,
+      "status": "admitted"
+    },
+    {
+      "address": 2147642830,
+      "isa": "T32",
+      "name": "bolt_pmu_init_this_cpu/1",
+      "size": 148,
+      "status": "admitted"
+    },
+    {
+      "address": 2147642978,
+      "isa": "T32",
+      "name": "pl_mix/1",
+      "size": 298,
+      "status": "admitted"
+    },
+    {
+      "address": 2147643276,
+      "isa": "T32",
+      "name": "pl_rare/1",
+      "size": 90,
+      "status": "admitted"
+    },
+    {
+      "address": 2147643366,
+      "isa": "T32",
+      "name": "bolt_bench_cmd/1",
+      "size": 622,
+      "status": "admitted"
+    },
+    {
+      "address": 2147643988,
+      "isa": "T32",
+      "name": "bolt_dump_cmd/1",
+      "size": 230,
+      "status": "admitted"
+    },
+    {
+      "address": 2147644218,
+      "isa": "T32",
+      "name": "wdog_cmd/1",
+      "size": 250,
+      "status": "admitted"
+    },
+    {
+      "address": 2147644468,
+      "isa": "T32",
+      "name": "sample_cmd/1",
+      "size": 596,
+      "status": "admitted"
+    },
+    {
+      "address": 2147645064,
+      "isa": "T32",
+      "name": "run_one/1",
+      "size": 964,
+      "status": "admitted"
+    },
+    {
+      "address": 2147646028,
+      "isa": "T32",
+      "name": "pp_kernel/1",
+      "size": 92,
+      "status": "admitted"
+    },
+    {
+      "address": 2147646120,
+      "isa": "T32",
+      "name": "pp_leaf/1",
+      "size": 8,
+      "status": "admitted"
+    },
+    {
+      "address": 2147646128,
+      "isa": "T32",
+      "name": "wdog_tick/1",
+      "size": 70,
+      "status": "admitted"
+    },
+    {
+      "address": 2147646198,
+      "isa": "T32",
+      "name": "sample_arm_this_cpu/1",
+      "size": 48,
+      "status": "admitted"
+    },
+    {
+      "address": 2147646246,
+      "isa": "T32",
+      "name": "sample_disarm_this_cpu/1",
+      "size": 20,
+      "status": "admitted"
+    },
+    {
+      "address": 2147646266,
+      "isa": "T32",
+      "name": "composite_process",
+      "size": 20,
+      "status": "admitted"
+    },
+    {
+      "address": 2147646286,
+      "isa": "T32",
+      "name": "composite_report_cold",
+      "size": 14,
+      "status": "admitted"
+    },
+    {
+      "address": 2147646300,
+      "isa": "T32",
+      "name": "bolt_bench_stair_init",
+      "size": 54,
+      "status": "admitted"
+    },
+    {
+      "address": 2147646354,
+      "isa": "T32",
+      "name": "bolt_bench_stair_step",
+      "size": 268,
+      "status": "admitted"
+    },
+    {
+      "address": 2147646622,
+      "isa": "T32",
+      "name": "shell_entry/1",
+      "size": 154,
+      "status": "admitted"
+    },
+    {
+      "address": 2147646776,
+      "isa": "T32",
+      "name": "get_int_handler",
+      "size": 40,
+      "status": "admitted"
+    },
+    {
+      "address": 2147646816,
+      "isa": "T32",
+      "name": "register_int_handler",
+      "size": 188,
+      "status": "admitted"
+    },
+    {
+      "address": 2147647004,
+      "isa": "T32",
+      "name": "gic_set_enable/1",
+      "size": 180,
+      "status": "admitted"
+    },
+    {
+      "address": 2147647184,
+      "isa": "T32",
+      "name": "arm_gic_init_percpu/1",
+      "size": 22,
+      "status": "admitted"
+    },
+    {
+      "address": 2147647206,
+      "isa": "T32",
+      "name": "arm_gic_suspend_cpu/1",
+      "size": 26,
+      "status": "admitted"
+    },
+    {
+      "address": 2147647232,
+      "isa": "T32",
+      "name": "arm_gic_resume_cpu/1",
+      "size": 254,
+      "status": "admitted"
+    },
+    {
+      "address": 2147647486,
+      "isa": "T32",
+      "name": "gic_configure_interrupt",
+      "size": 90,
+      "status": "admitted"
+    },
+    {
+      "address": 2147647576,
+      "isa": "T32",
+      "name": "arm_gic_init_map",
+      "size": 416,
+      "status": "admitted"
+    },
+    {
+      "address": 2147647992,
+      "isa": "T32",
+      "name": "arm_gic_sgi",
+      "size": 32,
+      "status": "admitted"
+    },
+    {
+      "address": 2147648024,
+      "isa": "T32",
+      "name": "unmask_interrupt",
+      "size": 64,
+      "status": "admitted"
+    },
+    {
+      "address": 2147648088,
+      "isa": "T32",
+      "name": "platform_irq",
+      "size": 22,
+      "status": "admitted"
+    },
+    {
+      "address": 2147648110,
+      "isa": "T32",
+      "name": "platform_fiq",
+      "size": 22,
+      "status": "admitted"
+    },
+    {
+      "address": 2147648132,
+      "isa": "T32",
+      "name": "arm_gicv2_init_percpu",
+      "size": 24,
+      "status": "admitted"
+    },
+    {
+      "address": 2147648156,
+      "isa": "T32",
+      "name": "arm_gicv2_init",
+      "size": 302,
+      "status": "admitted"
+    },
+    {
+      "address": 2147648458,
+      "isa": "T32",
+      "name": "arm_gicv2_sgi",
+      "size": 34,
+      "status": "admitted"
+    },
+    {
+      "address": 2147648492,
+      "isa": "T32",
+      "name": "arm_gicv2_platform_irq",
+      "size": 102,
+      "status": "admitted"
+    },
+    {
+      "address": 2147648594,
+      "isa": "T32",
+      "name": "arm_gicv2_platform_fiq",
+      "size": 22,
+      "status": "admitted"
+    },
+    {
+      "address": 2147648616,
+      "isa": "T32",
+      "name": "arm_gicv3_wait_for_write_complete",
+      "size": 18,
+      "status": "admitted"
+    },
+    {
+      "address": 2147648634,
+      "isa": "T32",
+      "name": "arm_gicv3_init",
+      "size": 320,
+      "status": "admitted"
+    },
+    {
+      "address": 2147648954,
+      "isa": "T32",
+      "name": "arm_gicv3_init_percpu",
+      "size": 396,
+      "status": "admitted"
+    },
+    {
+      "address": 2147649350,
+      "isa": "T32",
+      "name": "arm_gicv3_configure_irq_locked",
+      "size": 288,
+      "status": "admitted"
+    },
+    {
+      "address": 2147649638,
+      "isa": "T32",
+      "name": "arm_gicv3_suspend_cpu",
+      "size": 224,
+      "status": "admitted"
+    },
+    {
+      "address": 2147649862,
+      "isa": "T32",
+      "name": "arm_gicv3_resume_cpu_locked",
+      "size": 246,
+      "status": "admitted"
+    },
+    {
+      "address": 2147650108,
+      "isa": "T32",
+      "name": "arm_gicv3_sgi",
+      "size": 138,
+      "status": "admitted"
+    },
+    {
+      "address": 2147650246,
+      "isa": "T32",
+      "name": "arm_gicv3_platform_irq",
+      "size": 84,
+      "status": "admitted"
+    },
+    {
+      "address": 2147650330,
+      "isa": "T32",
+      "name": "arm_gicv3_platform_fiq",
+      "size": 24,
+      "status": "admitted"
+    },
+    {
+      "address": 2147650354,
+      "isa": "T32",
+      "name": "platform_set_oneshot_timer",
+      "size": 132,
+      "status": "admitted"
+    },
+    {
+      "address": 2147650486,
+      "isa": "T32",
+      "name": "platform_stop_timer",
+      "size": 12,
+      "status": "admitted"
+    },
+    {
+      "address": 2147650498,
+      "isa": "T32",
+      "name": "current_time_hires",
+      "size": 88,
+      "status": "admitted"
+    },
+    {
+      "address": 2147650586,
+      "isa": "T32",
+      "name": "current_time",
+      "size": 54,
+      "status": "admitted"
+    },
+    {
+      "address": 2147650640,
+      "isa": "T32",
+      "name": "arm_generic_timer_init",
+      "size": 3112,
+      "status": "admitted"
+    },
+    {
+      "address": 2147653752,
+      "isa": "T32",
+      "name": "arm_generic_timer_init_postvm/1",
+      "size": 56,
+      "status": "admitted"
+    },
+    {
+      "address": 2147653808,
+      "isa": "T32",
+      "name": "arm_generic_timer_init_secondary_cpu/1",
+      "size": 36,
+      "status": "admitted"
+    },
+    {
+      "address": 2147653844,
+      "isa": "T32",
+      "name": "arm_generic_timer_resume_cpu/1",
+      "size": 22,
+      "status": "admitted"
+    },
+    {
+      "address": 2147653866,
+      "isa": "T32",
+      "name": "platform_tick/1",
+      "size": 88,
+      "status": "admitted"
+    },
+    {
+      "address": 2147653954,
+      "isa": "T32",
+      "name": "cmd_threads/1",
+      "size": 22,
+      "status": "admitted"
+    },
+    {
+      "address": 2147653976,
+      "isa": "T32",
+      "name": "cmd_threads_panic/1",
+      "size": 22,
+      "status": "admitted"
+    },
+    {
+      "address": 2147653998,
+      "isa": "T32",
+      "name": "cmd_threadstats/1",
+      "size": 256,
+      "status": "admitted"
+    },
+    {
+      "address": 2147654254,
+      "isa": "T32",
+      "name": "cmd_threadload/1",
+      "size": 72,
+      "status": "admitted"
+    },
+    {
+      "address": 2147654326,
+      "isa": "T32",
+      "name": "threadload/1",
+      "size": 340,
+      "status": "admitted"
+    },
+    {
+      "address": 2147654666,
+      "isa": "T32",
+      "name": "event_init",
+      "size": 42,
+      "status": "admitted"
+    },
+    {
+      "address": 2147654708,
+      "isa": "T32",
+      "name": "event_wait_timeout",
+      "size": 120,
+      "status": "admitted"
+    },
+    {
+      "address": 2147654828,
+      "isa": "T32",
+      "name": "event_signal",
+      "size": 150,
+      "status": "admitted"
+    },
+    {
+      "address": 2147654978,
+      "isa": "T32",
+      "name": "event_unsignal",
+      "size": 46,
+      "status": "admitted"
+    },
+    {
+      "address": 2147655024,
+      "isa": "T32",
+      "name": "kernel_init_early",
+      "size": 4,
+      "status": "admitted"
+    },
+    {
+      "address": 2147655028,
+      "isa": "T32",
+      "name": "kernel_init",
+      "size": 70,
+      "status": "admitted"
+    },
+    {
+      "address": 2147655098,
+      "isa": "T32",
+      "name": "mutex_threading_ready_init_func/1",
+      "size": 14,
+      "status": "admitted"
+    },
+    {
+      "address": 2147655112,
+      "isa": "T32",
+      "name": "mutex_init",
+      "size": 38,
+      "status": "admitted"
+    },
+    {
+      "address": 2147655150,
+      "isa": "T32",
+      "name": "mutex_acquire_timeout",
+      "size": 220,
+      "status": "admitted"
+    },
+    {
+      "address": 2147655370,
+      "isa": "T32",
+      "name": "mutex_release",
+      "size": 174,
+      "status": "admitted"
+    },
+    {
+      "address": 2147655544,
+      "isa": "T32",
+      "name": "thread_create_etc",
+      "size": 300,
+      "status": "admitted"
+    },
+    {
+      "address": 2147655844,
+      "isa": "T32",
+      "name": "thread_create",
+      "size": 34,
+      "status": "admitted"
+    },
+    {
+      "address": 2147655878,
+      "isa": "T32",
+      "name": "thread_resume",
+      "size": 218,
+      "status": "admitted"
+    },
+    {
+      "address": 2147656096,
+      "isa": "T32",
+      "name": "insert_in_run_queue_head/1",
+      "size": 226,
+      "status": "admitted"
+    },
+    {
+      "address": 2147656322,
+      "isa": "T32",
+      "name": "thread_yield",
+      "size": 174,
+      "status": "admitted"
+    },
+    {
+      "address": 2147656496,
+      "isa": "T32",
+      "name": "thread_detach_and_resume",
+      "size": 24,
+      "status": "admitted"
+    },
+    {
+      "address": 2147656520,
+      "isa": "T32",
+      "name": "thread_detach",
+      "size": 152,
+      "status": "admitted"
+    },
+    {
+      "address": 2147656672,
+      "isa": "T32",
+      "name": "thread_join",
+      "size": 378,
+      "status": "admitted"
+    },
+    {
+      "address": 2147657050,
+      "isa": "T32",
+      "name": "wait_queue_block",
+      "size": 244,
+      "status": "admitted"
+    },
+    {
+      "address": 2147657294,
+      "isa": "T32",
+      "name": "wait_queue_wake_all",
+      "size": 340,
+      "status": "admitted"
+    },
+    {
+      "address": 2147657634,
+      "isa": "T32",
+      "name": "thread_exit",
+      "size": 220,
+      "status": "admitted"
+    },
+    {
+      "address": 2147657854,
+      "isa": "T32",
+      "name": "thread_resched/1",
+      "size": 682,
+      "status": "admitted"
+    },
+    {
+      "address": 2147658536,
+      "isa": "T32",
+      "name": "insert_in_run_queue_tail/1",
+      "size": 228,
+      "status": "admitted"
+    },
+    {
+      "address": 2147658764,
+      "isa": "T32",
+      "name": "thread_preempt",
+      "size": 190,
+      "status": "admitted"
+    },
+    {
+      "address": 2147658954,
+      "isa": "T32",
+      "name": "thread_timer_tick",
+      "size": 32,
+      "status": "admitted"
+    },
+    {
+      "address": 2147658986,
+      "isa": "T32",
+      "name": "thread_sleep",
+      "size": 228,
+      "status": "admitted"
+    },
+    {
+      "address": 2147659214,
+      "isa": "T32",
+      "name": "thread_sleep_handler/1",
+      "size": 152,
+      "status": "admitted"
+    },
+    {
+      "address": 2147659366,
+      "isa": "T32",
+      "name": "thread_init_early",
+      "size": 422,
+      "status": "admitted"
+    },
+    {
+      "address": 2147659788,
+      "isa": "T32",
+      "name": "thread_init",
+      "size": 44,
+      "status": "admitted"
+    },
+    {
+      "address": 2147659832,
+      "isa": "T32",
+      "name": "thread_set_name",
+      "size": 14,
+      "status": "admitted"
+    },
+    {
+      "address": 2147659846,
+      "isa": "T32",
+      "name": "thread_become_idle",
+      "size": 130,
+      "status": "admitted"
+    },
+    {
+      "address": 2147659976,
+      "isa": "T32",
+      "name": "idle_thread_routine/1",
+      "size": 6,
+      "status": "admitted"
+    },
+    {
+      "address": 2147659982,
+      "isa": "T32",
+      "name": "thread_secondary_cpu_init_early",
+      "size": 106,
+      "status": "admitted"
+    },
+    {
+      "address": 2147660088,
+      "isa": "T32",
+      "name": "thread_create_secondary_cpu_idle_thread",
+      "size": 188,
+      "status": "admitted"
+    },
+    {
+      "address": 2147660276,
+      "isa": "T32",
+      "name": "thread_secondary_cpu_entry",
+      "size": 90,
+      "status": "admitted"
+    },
+    {
+      "address": 2147660366,
+      "isa": "T32",
+      "name": "arch_thread_get_backtrace_regs",
+      "size": 4,
+      "status": "admitted"
+    },
+    {
+      "address": 2147660370,
+      "isa": "T32",
+      "name": "dump_thread",
+      "size": 188,
+      "status": "admitted"
+    },
+    {
+      "address": 2147660558,
+      "isa": "T32",
+      "name": "dump_all_threads_unlocked",
+      "size": 76,
+      "status": "admitted"
+    },
+    {
+      "address": 2147660634,
+      "isa": "T32",
+      "name": "dump_all_threads",
+      "size": 118,
+      "status": "admitted"
+    },
+    {
+      "address": 2147660752,
+      "isa": "T32",
+      "name": "dump_threads_stats",
+      "size": 256,
+      "status": "admitted"
+    },
+    {
+      "address": 2147661008,
+      "isa": "T32",
+      "name": "wait_queue_timeout_handler/1",
+      "size": 80,
+      "status": "admitted"
+    },
+    {
+      "address": 2147661088,
+      "isa": "T32",
+      "name": "wait_queue_wake_one",
+      "size": 286,
+      "status": "admitted"
+    },
+    {
+      "address": 2147661374,
+      "isa": "T32",
+      "name": "thread_unblock_from_wait_queue",
+      "size": 288,
+      "status": "admitted"
+    },
+    {
+      "address": 2147661662,
+      "isa": "T32",
+      "name": "timer_initialize",
+      "size": 26,
+      "status": "admitted"
+    },
+    {
+      "address": 2147661688,
+      "isa": "T32",
+      "name": "timer_set_oneshot",
+      "size": 26,
+      "status": "admitted"
+    },
+    {
+      "address": 2147661714,
+      "isa": "T32",
+      "name": "timer_set/1",
+      "size": 268,
+      "status": "admitted"
+    },
+    {
+      "address": 2147661982,
+      "isa": "T32",
+      "name": "timer_set_periodic",
+      "size": 26,
+      "status": "admitted"
+    },
+    {
+      "address": 2147662008,
+      "isa": "T32",
+      "name": "timer_cancel",
+      "size": 200,
+      "status": "admitted"
+    },
+    {
+      "address": 2147662208,
+      "isa": "T32",
+      "name": "timer_tick/1",
+      "size": 394,
+      "status": "admitted"
+    },
+    {
+      "address": 2147662602,
+      "isa": "T32",
+      "name": "timer_init",
+      "size": 50,
+      "status": "admitted"
+    },
+    {
+      "address": 2147662652,
+      "isa": "T32",
+      "name": "insert_timer_in_queue/1",
+      "size": 100,
+      "status": "admitted"
+    },
+    {
+      "address": 2147662752,
+      "isa": "T32",
+      "name": "mp_init",
+      "size": 38,
+      "status": "admitted"
+    },
+    {
+      "address": 2147662790,
+      "isa": "T32",
+      "name": "mp_reschedule",
+      "size": 92,
+      "status": "admitted"
+    },
+    {
+      "address": 2147662882,
+      "isa": "T32",
+      "name": "mp_set_curr_cpu_active",
+      "size": 68,
+      "status": "admitted"
+    },
+    {
+      "address": 2147662950,
+      "isa": "T32",
+      "name": "mp_sync_exec",
+      "size": 346,
+      "status": "admitted"
+    },
+    {
+      "address": 2147663296,
+      "isa": "T32",
+      "name": "mp_mbx_generic_irq",
+      "size": 154,
+      "status": "admitted"
+    },
+    {
+      "address": 2147663450,
+      "isa": "T32",
+      "name": "mp_mbx_reschedule_irq",
+      "size": 56,
+      "status": "admitted"
+    },
+    {
+      "address": 2147663506,
+      "isa": "T32",
+      "name": "port_init",
+      "size": 14,
+      "status": "admitted"
+    },
+    {
+      "address": 2147663520,
+      "isa": "T32",
+      "name": "cbuf_initialize",
+      "size": 26,
+      "status": "admitted"
+    },
+    {
+      "address": 2147663546,
+      "isa": "T32",
+      "name": "cbuf_initialize_etc",
+      "size": 138,
+      "status": "admitted"
+    },
+    {
+      "address": 2147663684,
+      "isa": "T32",
+      "name": "cbuf_write_char",
+      "size": 156,
+      "status": "admitted"
+    },
+    {
+      "address": 2147663840,
+      "isa": "T32",
+      "name": "cbuf_read_char",
+      "size": 182,
+      "status": "admitted"
+    },
+    {
+      "address": 2147664022,
+      "isa": "T32",
+      "name": "fdt_ro_probe_",
+      "size": 124,
+      "status": "admitted"
+    },
+    {
+      "address": 2147664146,
+      "isa": "T32",
+      "name": "fdt_check_header",
+      "size": 240,
+      "status": "admitted"
+    },
+    {
+      "address": 2147664386,
+      "isa": "T32",
+      "name": "fdt_offset_ptr",
+      "size": 96,
+      "status": "admitted"
+    },
+    {
+      "address": 2147664484,
+      "isa": "T32",
+      "name": "fdt_next_tag",
+      "size": 192,
+      "status": "admitted"
+    },
+    {
+      "address": 2147664676,
+      "isa": "T32",
+      "name": "fdt_check_node_offset_",
+      "size": 38,
+      "status": "admitted"
+    },
+    {
+      "address": 2147664714,
+      "isa": "T32",
+      "name": "fdt_check_prop_offset_",
+      "size": 38,
+      "status": "admitted"
+    },
+    {
+      "address": 2147664752,
+      "isa": "T32",
+      "name": "fdt_next_node",
+      "size": 134,
+      "status": "admitted"
+    },
+    {
+      "address": 2147664886,
+      "isa": "T32",
+      "name": "fdt_address_cells",
+      "size": 56,
+      "status": "admitted"
+    },
+    {
+      "address": 2147664942,
+      "isa": "T32",
+      "name": "fdt_size_cells",
+      "size": 62,
+      "status": "admitted"
+    },
+    {
+      "address": 2147665004,
+      "isa": "T32",
+      "name": "fdt_get_string",
+      "size": 162,
+      "status": "admitted"
+    },
+    {
+      "address": 2147665166,
+      "isa": "T32",
+      "name": "fdt_get_name",
+      "size": 130,
+      "status": "admitted"
+    },
+    {
+      "address": 2147665296,
+      "isa": "T32",
+      "name": "fdt_get_property_namelen_/1",
+      "size": 268,
+      "status": "admitted"
+    },
+    {
+      "address": 2147665564,
+      "isa": "T32",
+      "name": "fdt_getprop",
+      "size": 82,
+      "status": "admitted"
+    },
+    {
+      "address": 2147665646,
+      "isa": "T32",
+      "name": "platform_halt_default",
+      "size": 94,
+      "status": "admitted"
+    },
+    {
+      "address": 2147665740,
+      "isa": "T32",
+      "name": "cmd_reboot/1",
+      "size": 8,
+      "status": "admitted"
+    },
+    {
+      "address": 2147665748,
+      "isa": "T32",
+      "name": "cmd_poweroff/1",
+      "size": 8,
+      "status": "admitted"
+    },
+    {
+      "address": 2147665756,
+      "isa": "T32",
+      "name": "target_early_init",
+      "size": 2,
+      "status": "admitted"
+    },
+    {
+      "address": 2147665758,
+      "isa": "T32",
+      "name": "target_init",
+      "size": 2,
+      "status": "admitted"
+    },
+    {
+      "address": 2147665760,
+      "isa": "T32",
+      "name": "boot_alloc_mem",
+      "size": 28,
+      "status": "admitted"
+    },
+    {
+      "address": 2147665788,
+      "isa": "T32",
+      "name": "vm_page_to_paddr",
+      "size": 78,
+      "status": "admitted"
+    },
+    {
+      "address": 2147665866,
+      "isa": "T32",
+      "name": "paddr_to_vm_page",
+      "size": 56,
+      "status": "admitted"
+    },
+    {
+      "address": 2147665922,
+      "isa": "T32",
+      "name": "pmm_add_arena",
+      "size": 218,
+      "status": "admitted"
+    },
+    {
+      "address": 2147666140,
+      "isa": "T32",
+      "name": "pmm_alloc_pages",
+      "size": 138,
+      "status": "admitted"
+    },
+    {
+      "address": 2147666278,
+      "isa": "T32",
+      "name": "pmm_alloc_page",
+      "size": 160,
+      "status": "admitted"
+    },
+    {
+      "address": 2147666438,
+      "isa": "T32",
+      "name": "pmm_alloc_range",
+      "size": 248,
+      "status": "admitted"
+    },
+    {
+      "address": 2147666686,
+      "isa": "T32",
+      "name": "pmm_free",
+      "size": 176,
+      "status": "admitted"
+    },
+    {
+      "address": 2147666862,
+      "isa": "T32",
+      "name": "pmm_free_page",
+      "size": 24,
+      "status": "admitted"
+    },
+    {
+      "address": 2147666886,
+      "isa": "T32",
+      "name": "pmm_alloc_kpages",
+      "size": 128,
+      "status": "admitted"
+    },
+    {
+      "address": 2147667014,
+      "isa": "T32",
+      "name": "pmm_alloc_contiguous",
+      "size": 414,
+      "status": "admitted"
+    },
+    {
+      "address": 2147667428,
+      "isa": "T32",
+      "name": "pmm_free_kpages",
+      "size": 108,
+      "status": "admitted"
+    },
+    {
+      "address": 2147667536,
+      "isa": "T32",
+      "name": "cmd_pmm/1",
+      "size": 1298,
+      "status": "admitted"
+    },
+    {
+      "address": 2147668834,
+      "isa": "T32",
+      "name": "paddr_to_kvaddr",
+      "size": 60,
+      "status": "admitted"
+    },
+    {
+      "address": 2147668894,
+      "isa": "T32",
+      "name": "vaddr_to_paddr",
+      "size": 72,
+      "status": "admitted"
+    },
+    {
+      "address": 2147668966,
+      "isa": "T32",
+      "name": "vm_init_preheap/1",
+      "size": 258,
+      "status": "admitted"
+    },
+    {
+      "address": 2147669224,
+      "isa": "T32",
+      "name": "vm_init_postheap/1",
+      "size": 66,
+      "status": "admitted"
+    },
+    {
+      "address": 2147669290,
+      "isa": "T32",
+      "name": "cmd_vm/1",
+      "size": 524,
+      "status": "admitted"
+    },
+    {
+      "address": 2147669814,
+      "isa": "T32",
+      "name": "vmm_init_preheap",
+      "size": 84,
+      "status": "admitted"
+    },
+    {
+      "address": 2147669898,
+      "isa": "T32",
+      "name": "vmm_init",
+      "size": 2,
+      "status": "admitted"
+    },
+    {
+      "address": 2147669900,
+      "isa": "T32",
+      "name": "arch_mmu_pick_spot",
+      "size": 12,
+      "status": "admitted"
+    },
+    {
+      "address": 2147669912,
+      "isa": "T32",
+      "name": "vmm_reserve_space",
+      "size": 230,
+      "status": "admitted"
+    },
+    {
+      "address": 2147670142,
+      "isa": "T32",
+      "name": "alloc_region/1",
+      "size": 518,
+      "status": "admitted"
+    },
+    {
+      "address": 2147670660,
+      "isa": "T32",
+      "name": "vmm_alloc_physical",
+      "size": 316,
+      "status": "admitted"
+    },
+    {
+      "address": 2147670976,
+      "isa": "T32",
+      "name": "vmm_remove_region_locked/1",
+      "size": 186,
+      "status": "admitted"
+    },
+    {
+      "address": 2147671162,
+      "isa": "T32",
+      "name": "vmm_alloc_contiguous",
+      "size": 390,
+      "status": "admitted"
+    },
+    {
+      "address": 2147671552,
+      "isa": "T32",
+      "name": "vmm_alloc",
+      "size": 548,
+      "status": "admitted"
+    },
+    {
+      "address": 2147672100,
+      "isa": "T32",
+      "name": "vmm_free_region",
+      "size": 122,
+      "status": "admitted"
+    },
+    {
+      "address": 2147672222,
+      "isa": "T32",
+      "name": "vmm_create_aspace",
+      "size": 206,
+      "status": "admitted"
+    },
+    {
+      "address": 2147672428,
+      "isa": "T32",
+      "name": "vmm_free_aspace",
+      "size": 292,
+      "status": "admitted"
+    },
+    {
+      "address": 2147672720,
+      "isa": "T32",
+      "name": "vmm_context_switch",
+      "size": 54,
+      "status": "admitted"
+    },
+    {
+      "address": 2147672774,
+      "isa": "T32",
+      "name": "cmd_vmm/1",
+      "size": 902,
+      "status": "admitted"
+    },
+    {
+      "address": 2147673676,
+      "isa": "T32",
+      "name": "cmdline_cmd_show/1",
+      "size": 102,
+      "status": "admitted"
+    },
+    {
+      "address": 2147673778,
+      "isa": "T32",
+      "name": "cmdline_cmd_present/1",
+      "size": 112,
+      "status": "admitted"
+    },
+    {
+      "address": 2147673892,
+      "isa": "T32",
+      "name": "cmdline_cmd_value/1",
+      "size": 182,
+      "status": "admitted"
+    },
+    {
+      "address": 2147674076,
+      "isa": "T32",
+      "name": "cmdline_cmd_string/1",
+      "size": 268,
+      "status": "admitted"
+    },
+    {
+      "address": 2147674344,
+      "isa": "T32",
+      "name": "cmdline_cmd_bool/1",
+      "size": 186,
+      "status": "admitted"
+    },
+    {
+      "address": 2147674532,
+      "isa": "T32",
+      "name": "cmdline_cmd_u32/1",
+      "size": 162,
+      "status": "admitted"
+    },
+    {
+      "address": 2147674696,
+      "isa": "T32",
+      "name": "cmdline_cmd_u64/1",
+      "size": 166,
+      "status": "admitted"
+    },
+    {
+      "address": 2147674864,
+      "isa": "T32",
+      "name": "cmdline_cmd_int/1",
+      "size": 160,
+      "status": "admitted"
+    },
+    {
+      "address": 2147675024,
+      "isa": "T32",
+      "name": "cmdline_print_escaped/1",
+      "size": 202,
+      "status": "admitted"
+    },
+    {
+      "address": 2147675226,
+      "isa": "T32",
+      "name": "cmdline_get_value",
+      "size": 90,
+      "status": "admitted"
+    },
+    {
+      "address": 2147675316,
+      "isa": "T32",
+      "name": "find_variable/1",
+      "size": 446,
+      "status": "admitted"
+    },
+    {
+      "address": 2147675762,
+      "isa": "T32",
+      "name": "cmdline_is_present",
+      "size": 44,
+      "status": "admitted"
+    },
+    {
+      "address": 2147675808,
+      "isa": "T32",
+      "name": "cmdline_get_string",
+      "size": 276,
+      "status": "admitted"
+    },
+    {
+      "address": 2147676084,
+      "isa": "T32",
+      "name": "cmdline_get_bool",
+      "size": 196,
+      "status": "admitted"
+    },
+    {
+      "address": 2147676280,
+      "isa": "T32",
+      "name": "cmdline_get_uint32",
+      "size": 102,
+      "status": "admitted"
+    },
+    {
+      "address": 2147676382,
+      "isa": "T32",
+      "name": "parse_unsigned_int/1",
+      "size": 260,
+      "status": "admitted"
+    },
+    {
+      "address": 2147676642,
+      "isa": "T32",
+      "name": "cmdline_get_uint64",
+      "size": 92,
+      "status": "admitted"
+    },
+    {
+      "address": 2147676734,
+      "isa": "T32",
+      "name": "cmdline_get_int",
+      "size": 152,
+      "status": "admitted"
+    },
+    {
+      "address": 2147676886,
+      "isa": "T32",
+      "name": "cmdline_get_raw_string",
+      "size": 12,
+      "status": "admitted"
+    },
+    {
+      "address": 2147676898,
+      "isa": "T32",
+      "name": "cmdline_get_raw_size",
+      "size": 12,
+      "status": "admitted"
+    },
+    {
+      "address": 2147676910,
+      "isa": "T32",
+      "name": "console_set_current",
+      "size": 20,
+      "status": "admitted"
+    },
+    {
+      "address": 2147676930,
+      "isa": "T32",
+      "name": "console_create",
+      "size": 56,
+      "status": "admitted"
+    },
+    {
+      "address": 2147676986,
+      "isa": "T32",
+      "name": "console_start",
+      "size": 96,
+      "status": "admitted"
+    },
+    {
+      "address": 2147677082,
+      "isa": "T32",
+      "name": "command_loop/1",
+      "size": 1096,
+      "status": "admitted"
+    },
+    {
+      "address": 2147678180,
+      "isa": "T32",
+      "name": "read_debug_line/1",
+      "size": 520,
+      "status": "admitted"
+    },
+    {
+      "address": 2147678700,
+      "isa": "T32",
+      "name": "console_run_script",
+      "size": 142,
+      "status": "admitted"
+    },
+    {
+      "address": 2147678842,
+      "isa": "T32",
+      "name": "console_run_script_locked",
+      "size": 144,
+      "status": "admitted"
+    },
+    {
+      "address": 2147678986,
+      "isa": "T32",
+      "name": "convert_args/1",
+      "size": 180,
+      "status": "admitted"
+    },
+    {
+      "address": 2147679166,
+      "isa": "T32",
+      "name": "cmd_help/1",
+      "size": 206,
+      "status": "admitted"
+    },
+    {
+      "address": 2147679372,
+      "isa": "T32",
+      "name": "cmd_help_panic/1",
+      "size": 140,
+      "status": "admitted"
+    },
+    {
+      "address": 2147679512,
+      "isa": "T32",
+      "name": "cmd_echo/1",
+      "size": 48,
+      "status": "admitted"
+    },
+    {
+      "address": 2147679560,
+      "isa": "T32",
+      "name": "cmd_test/1",
+      "size": 78,
+      "status": "admitted"
+    },
+    {
+      "address": 2147679638,
+      "isa": "T32",
+      "name": "cmd_history/1",
+      "size": 104,
+      "status": "admitted"
+    },
+    {
+      "address": 2147679742,
+      "isa": "T32",
+      "name": "cmd_repeat/1",
+      "size": 232,
+      "status": "admitted"
+    },
+    {
+      "address": 2147679974,
+      "isa": "T32",
+      "name": "compare_cmds/1",
+      "size": 8,
+      "status": "admitted"
+    },
+    {
+      "address": 2147679982,
+      "isa": "T32",
+      "name": "background_command_exec/1",
+      "size": 64,
+      "status": "admitted"
+    },
+    {
+      "address": 2147680046,
+      "isa": "T32",
+      "name": "fetch_next_line/1",
+      "size": 74,
+      "status": "admitted"
+    },
+    {
+      "address": 2147680120,
+      "isa": "T32",
+      "name": "fp_32_64_snprintf",
+      "size": 476,
+      "status": "admitted"
+    },
+    {
+      "address": 2147680596,
+      "isa": "T32",
+      "name": "heap_init",
+      "size": 32,
+      "status": "admitted"
+    },
+    {
+      "address": 2147680628,
+      "isa": "T32",
+      "name": "heap_free_delayed_list/1",
+      "size": 126,
+      "status": "admitted"
+    },
+    {
+      "address": 2147680754,
+      "isa": "T32",
+      "name": "malloc",
+      "size": 72,
+      "status": "admitted"
+    },
+    {
+      "address": 2147680826,
+      "isa": "T32",
+      "name": "calloc",
+      "size": 102,
+      "status": "admitted"
+    },
+    {
+      "address": 2147680928,
+      "isa": "T32",
+      "name": "realloc",
+      "size": 82,
+      "status": "admitted"
+    },
+    {
+      "address": 2147681010,
+      "isa": "T32",
+      "name": "free",
+      "size": 44,
+      "status": "admitted"
+    },
+    {
+      "address": 2147681054,
+      "isa": "T32",
+      "name": "heap_delayed_free",
+      "size": 96,
+      "status": "admitted"
+    },
+    {
+      "address": 2147681150,
+      "isa": "T32",
+      "name": "cmd_heap/1",
+      "size": 568,
+      "status": "admitted"
+    },
+    {
+      "address": 2147681718,
+      "isa": "T32",
+      "name": "page_alloc",
+      "size": 6,
+      "status": "admitted"
+    },
+    {
+      "address": 2147681724,
+      "isa": "T32",
+      "name": "page_free",
+      "size": 32,
+      "status": "admitted"
+    },
+    {
+      "address": 2147681756,
+      "isa": "T32",
+      "name": "page_first_alloc",
+      "size": 14,
+      "status": "admitted"
+    },
+    {
+      "address": 2147681770,
+      "isa": "T32",
+      "name": "cmd_page_alloc/1",
+      "size": 94,
+      "status": "admitted"
+    },
+    {
+      "address": 2147681864,
+      "isa": "A32",
+      "name": "bcopy",
+      "reason": "unmodeled AArch32 function fallthrough in bcopy",
+      "size": 12,
+      "stage": "cfg",
+      "status": "rejected"
+    },
+    {
+      "address": 2147681876,
+      "isa": "A32",
+      "name": "memcpy",
+      "size": 256,
+      "status": "admitted"
+    },
+    {
+      "address": 2147682132,
+      "isa": "A32",
+      "name": "bzero",
+      "reason": "unmodeled AArch32 function fallthrough in bzero",
+      "size": 8,
+      "stage": "cfg",
+      "status": "rejected"
+    },
+    {
+      "address": 2147682140,
+      "isa": "A32",
+      "name": "memset",
+      "size": 148,
+      "status": "admitted"
+    },
+    {
+      "address": 2147682288,
+      "isa": "T32",
+      "name": "atol",
+      "size": 186,
+      "status": "admitted"
+    },
+    {
+      "address": 2147682474,
+      "isa": "T32",
+      "name": "atoul",
+      "size": 130,
+      "status": "admitted"
+    },
+    {
+      "address": 2147682604,
+      "isa": "T32",
+      "name": "atoull",
+      "size": 158,
+      "status": "admitted"
+    },
+    {
+      "address": 2147682762,
+      "isa": "T32",
+      "name": "strtoul",
+      "size": 248,
+      "status": "admitted"
+    },
+    {
+      "address": 2147683010,
+      "isa": "T32",
+      "name": "isspace",
+      "size": 44,
+      "status": "admitted"
+    },
+    {
+      "address": 2147683054,
+      "isa": "T32",
+      "name": "isdigit",
+      "size": 14,
+      "status": "admitted"
+    },
+    {
+      "address": 2147683068,
+      "isa": "T32",
+      "name": "isalnum",
+      "size": 34,
+      "status": "admitted"
+    },
+    {
+      "address": 2147683102,
+      "isa": "T32",
+      "name": "isxdigit",
+      "size": 34,
+      "status": "admitted"
+    },
+    {
+      "address": 2147683136,
+      "isa": "T32",
+      "name": "isprint",
+      "size": 14,
+      "status": "admitted"
+    },
+    {
+      "address": 2147683150,
+      "isa": "T32",
+      "name": "tolower",
+      "size": 14,
+      "status": "admitted"
+    },
+    {
+      "address": 2147683164,
+      "isa": "T32",
+      "name": "__geterrno",
+      "size": 8,
+      "status": "admitted"
+    },
+    {
+      "address": 2147683172,
+      "isa": "T32",
+      "name": "snprintf",
+      "size": 26,
+      "status": "admitted"
+    },
+    {
+      "address": 2147683200,
+      "isa": "T32",
+      "name": "vsnprintf",
+      "reason": "unsupported AArch32 position-dependent PC read in vsnprintf at 0x80030c04",
+      "size": 1882,
+      "stage": "disassembly",
+      "status": "rejected"
+    },
+    {
+      "address": 2147685084,
+      "isa": "T32",
+      "name": "vfprintf",
+      "size": 1772,
+      "status": "admitted"
+    },
+    {
+      "address": 2147686856,
+      "isa": "T32",
+      "name": "printf",
+      "size": 42,
+      "status": "admitted"
+    },
+    {
+      "address": 2147686898,
+      "isa": "T32",
+      "name": "vprintf",
+      "size": 18,
+      "status": "admitted"
+    },
+    {
+      "address": 2147686916,
+      "isa": "T32",
+      "name": "_printf_longlong_to_string",
+      "size": 214,
+      "status": "admitted"
+    },
+    {
+      "address": 2147687130,
+      "isa": "T32",
+      "name": "_printf_longlong_to_hexstring",
+      "size": 70,
+      "status": "admitted"
+    },
+    {
+      "address": 2147687200,
+      "isa": "T32",
+      "name": "qsort",
+      "size": 1412,
+      "status": "admitted"
+    },
+    {
+      "address": 2147688612,
+      "isa": "T32",
+      "name": "putchar",
+      "size": 46,
+      "status": "admitted"
+    },
+    {
+      "address": 2147688658,
+      "isa": "T32",
+      "name": "fputs",
+      "size": 36,
+      "status": "admitted"
+    },
+    {
+      "address": 2147688694,
+      "isa": "T32",
+      "name": "getchar",
+      "size": 42,
+      "status": "admitted"
+    },
+    {
+      "address": 2147688736,
+      "isa": "T32",
+      "name": "_fprintf_output_func",
+      "size": 20,
+      "status": "admitted"
+    },
+    {
+      "address": 2147688756,
+      "isa": "T32",
+      "name": "__udivmoddi4",
+      "size": 172,
+      "status": "admitted"
+    },
+    {
+      "address": 2147688928,
+      "isa": "T32",
+      "name": "__aeabi_uldivmod",
+      "size": 20,
+      "status": "admitted"
+    },
+    {
+      "address": 2147688948,
+      "isa": "T32",
+      "name": "memchr",
+      "size": 22,
+      "status": "admitted"
+    },
+    {
+      "address": 2147688970,
+      "isa": "T32",
+      "name": "memcmp",
+      "size": 42,
+      "status": "admitted"
+    },
+    {
+      "address": 2147689012,
+      "isa": "T32",
+      "name": "strcmp",
+      "size": 20,
+      "status": "admitted"
+    },
+    {
+      "address": 2147689032,
+      "isa": "T32",
+      "name": "strdup",
+      "size": 32,
+      "status": "admitted"
+    },
+    {
+      "address": 2147689064,
+      "isa": "T32",
+      "name": "strlcpy",
+      "size": 54,
+      "status": "admitted"
+    },
+    {
+      "address": 2147689118,
+      "isa": "T32",
+      "name": "strlen",
+      "size": 14,
+      "status": "admitted"
+    },
+    {
+      "address": 2147689132,
+      "isa": "T32",
+      "name": "strncmp",
+      "size": 44,
+      "status": "admitted"
+    },
+    {
+      "address": 2147689176,
+      "isa": "T32",
+      "name": "strncasecmp",
+      "size": 84,
+      "status": "admitted"
+    },
+    {
+      "address": 2147689260,
+      "isa": "T32",
+      "name": "strnlen",
+      "size": 26,
+      "status": "admitted"
+    },
+    {
+      "address": 2147689286,
+      "isa": "T32",
+      "name": "strrchr",
+      "size": 30,
+      "status": "admitted"
+    },
+    {
+      "address": 2147689316,
+      "isa": "T32",
+      "name": "miniheap_dump",
+      "size": 104,
+      "status": "admitted"
+    },
+    {
+      "address": 2147689420,
+      "isa": "T32",
+      "name": "miniheap_alloc",
+      "size": 654,
+      "status": "admitted"
+    },
+    {
+      "address": 2147690074,
+      "isa": "T32",
+      "name": "heap_create_free_chunk/1",
+      "size": 58,
+      "status": "admitted"
+    },
+    {
+      "address": 2147690132,
+      "isa": "T32",
+      "name": "miniheap_realloc",
+      "size": 464,
+      "status": "admitted"
+    },
+    {
+      "address": 2147690596,
+      "isa": "T32",
+      "name": "miniheap_free",
+      "size": 206,
+      "status": "admitted"
+    },
+    {
+      "address": 2147690802,
+      "isa": "T32",
+      "name": "heap_insert_free_chunk/1",
+      "size": 146,
+      "status": "admitted"
+    },
+    {
+      "address": 2147690948,
+      "isa": "T32",
+      "name": "miniheap_trim",
+      "size": 334,
+      "status": "admitted"
+    },
+    {
+      "address": 2147691282,
+      "isa": "T32",
+      "name": "miniheap_init",
+      "size": 148,
+      "status": "admitted"
+    },
+    {
+      "address": 2147691430,
+      "isa": "T32",
+      "name": "__debug_stdio_write/1",
+      "size": 114,
+      "status": "admitted"
+    },
+    {
+      "address": 2147691544,
+      "isa": "T32",
+      "name": "__debug_stdio_read/1",
+      "size": 32,
+      "status": "admitted"
+    },
+    {
+      "address": 2147691576,
+      "isa": "T32",
+      "name": "io_write",
+      "size": 56,
+      "status": "not-analyzed"
+    },
+    {
+      "address": 2147691632,
+      "isa": "T32",
+      "name": "io_read",
+      "size": 56,
+      "status": "not-analyzed"
+    },
+    {
+      "address": 2147691688,
+      "isa": "T32",
+      "name": "__Thumbv7ABSLongThunk_arm_context_switch/1",
+      "size": 10,
+      "status": "admitted"
+    },
+    {
+      "address": 2147691698,
+      "isa": "T32",
+      "name": "__Thumbv7ABSLongThunk_arch_spin_unlock/1",
+      "size": 10,
+      "status": "admitted"
+    },
+    {
+      "address": 2147691708,
+      "isa": "A32",
+      "name": "__ARMv7ABSLongThunk_thread_preempt/1",
+      "size": 12,
+      "status": "admitted"
+    },
+    {
+      "address": 2147691720,
+      "isa": "A32",
+      "name": "__ARMv7ABSLongThunk_arm_mmu_init/1",
+      "size": 12,
+      "status": "admitted"
+    },
+    {
+      "address": 2147691732,
+      "isa": "A32",
+      "name": "__ARMv7ABSLongThunk_lk_secondary_cpu_entry/1",
+      "size": 12,
+      "status": "admitted"
+    },
+    {
+      "address": 2147691744,
+      "isa": "T32",
+      "name": "__Thumbv7ABSLongThunk_bolt_bench_tail_arm_callee/1",
+      "size": 10,
+      "status": "admitted"
+    },
+    {
+      "address": 2147691754,
+      "isa": "T32",
+      "name": "__Thumbv7ABSLongThunk_bolt_bench_interwork/1",
+      "size": 10,
+      "status": "admitted"
+    }
+  ],
+  "input_sha256": "424606a869c34b5be5f3c97f66a9cec8ea16844ac788c14c77839edcfef2459b",
+  "kind": "aarch32-admission-diagnostic",
+  "not_analyzed": 2,
+  "rejected": 12,
+  "schema": 1,
+  "scope": "local disassembly/CFG admission only; not emission, passes, reference correctness, instrumentation or execution proof"
+}

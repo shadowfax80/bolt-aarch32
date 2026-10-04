@@ -39,7 +39,7 @@ and update it before stopping. `AGENTS.md` and `CLAUDE.md` point here.
 
 | Holder | Since | Purpose |
 |---|---|---|
-| Codex | 2026-10-04 | Resumed R11 skip-and-report admission; overlay 0054 |
+| — | 2026-10-04 | Free after verified R11 milestone; source/builds through 0054 |
 
 ## Claims (consolidated TODO)
 
@@ -58,14 +58,13 @@ Take items in the order below; groups reflect dependencies, not ownership.
 
 | Order | ID | Item | Priority | Owner | Status | Part of | Notes |
 |---|---|---|---|---|---|---|---|
-| 1 | R11 | Skip-and-report admission mode | P1 | Codex | In progress | — | Resumed after mobile handoff; fatal remains default for certification |
 | 2 | R17 | Synthesized edge-case test image (`bolt_edge`), stage 1 (~40 cases) | P1 | — | Open | 7, 8, 11, 12 | Generator emits sources + admission manifest + independent checksums; QEMU + Pi; stage 2 randomized generator later |
 
 **B. P0 certification (finish)**
 
 | Order | ID | Item | Priority | Owner | Status | Part of | Notes |
 |---|---|---|---|---|---|---|---|
-| 3 | 6a | Every gate proves execution: close G1 (fixed-path intermediates), G2 (seal profile chain in QEMU certificate), G3 (contracts for QEMU LK builds) | P0 | — | Partial | — | Pi sealed chain certified; G3 needs user review; "both assertion modes" needs a second toolchain build |
+| 3 | 6a | Every gate proves execution: close G1 (fixed-path intermediates), G2 (seal profile chain in QEMU certificate), G3 (contracts for QEMU LK builds) | P0 | — | Partial | — | Pi sealed chain certified; G3 needs user review; 0054 ON/OFF builds and scoped Pi runs verified, remaining gate routes still open |
 | 4 | 6c | Legacy/manual hook admission | P0 | — | Partial | — | R9 done; includes R13 |
 | 5 | 6d | Durable receipts on every certification route | P0 | — | Partial | — | Pi gate + coverage report receipts exist |
 | 6 | 6b | Oracle contracts for further configurations (Thumb workloads, `bolt_edge` images) | P0 | — | Partial | — | Full-LK `pi4` contract active; each new contract needs user review |
@@ -90,7 +89,7 @@ Take items in the order below; groups reflect dependencies, not ownership.
 | 15 | 13 | Actual pass combinations | P1 | — | Partial | R7 done; R8 pending |
 | 16 | 9 | Interrupt/reentrancy/reset boundaries | P1 | — | Partial | |
 | 17 | 10 | Sampling/PMU ownership | P1 | — | Open | |
-| 18 | 14 | Clean build/content provenance | P1 | — | Partial | Overlay replay only |
+| 18 | 14 | Clean build/content provenance | P1 | — | Partial | Overlay replay only; ISA-aware no-FPU output scanning/metadata needed (0054 audit) |
 
 **Needs the user:** new oracle contracts (6a G3, 6b, each `bolt_edge` image).
 
@@ -109,6 +108,7 @@ Take items in the order below; groups reflect dependencies, not ownership.
 | R4 | Conditional tail calls crash | P1 | Claude | 8 | 0051; Pi: 676 IRQs via rewritten `platform_irq` |
 | R5 | Noreturn calls at function end | P1 | Claude | 8 | 0052; LK 276 → 354 functions |
 | R6 | Predicated returns and calls in IT blocks | P1 | Claude | 8 | 0053; LK 354 → 399 functions |
+| R11 | Skip-and-report admission mode | P1 | Codex | — | 0054; [diagnostic contract/evidence](ARM_ADMISSION_REPORT.md); one scan, same 399/417 coverage; both assertion modes + scoped Pi |
 
 ## Coverage goal
 
@@ -141,6 +141,44 @@ plus genuine fallthrough such as `bzero`: about 98% of functions.
 4. Update the *Claims* table and LK_COVERAGE.md together.
 
 ## Handoff log
+
+### 2026-10-04 — Codex: R11 verified and published; lock released
+
+- R11 done, overlay 0054: explicit report-only local admission collection;
+  no emitted ELF/certificate, conservative fatal default and global guards
+  preserved. Early symbolizer cleanup prevents stale function-bound state.
+  Coverage now uses a validated input-bound report, then normal fatal BOLT
+  with explicit skips; old scanner remains an explicit compatibility option.
+- ON/OFF Release builds from the same source pass the new 41-check lit
+  regression. ARM + AArch32 JITLink: ON 61 passed; OFF 60 passed, one
+  timeout-feature test unsupported. CoreTests: 58 passed/31 target skips each.
+  Windows host suite: 145 tests, four Linux process-test skips. Full 54-overlay
+  replay has no mismatched/uncovered source files, identity `484c5825…`.
+- Coverage before/after: **399/417 functions (95.7%)**, **124166/126834 code
+  bytes (97.9%)**, unchanged in both modes. Rejection discovery: 12 rounds
+  → one; 12 primary-body rejects, 403 diagnostic admits, two not analyzed.
+  No newly admitted body. R15 instrumentation guard still rejects trylock.
+- Pi watchdog runs: each candidate emits 400 bodies, redirects the two
+  selected interwork/memcpy workloads, and passes 18/18 independent results
+  over 10 repetitions. ON/OFF PC samples in those bodies: 27/15 and 10/11.
+  Other emitted functions are not execution coverage. Receipts, manifests,
+  diagnostic reports and scope are in [ARM_ADMISSION_REPORT.md](ARM_ADMISSION_REPORT.md).
+- New audit caveat: the input passes the no-FPU check, but candidate ELF ISA
+  mapping metadata causes false FP matches. The four matches in rewritten
+  code were decoded as A32 BX instructions; restored Thumb code is also
+  misdecoded. No candidate no-FPU certificate is claimed. ISA-aware scanning
+  and metadata, including generated veneers, are recorded under item 14.
+- Stop at the verified milestone. The lock is released; R17 is next and
+  unclaimed. Prepare its generated cases, admission manifest and independent
+  oracle for user review before new-image certification. P0 items and original
+  #12 remain open. Windows/WSL trees and evidence/preimages are preserved;
+  WSL remains running. The Pi is restored to the approved baseline LK shell
+  (COM5, 3 Mbaud), sampling stopped, watchdog off, serial port closed.
+  Baseline binary SHA-256 `ee9982ba422fa5e40854f0c21c298b20c4be02eb349413eefe7fdcf53bedd612`;
+  pickup log: `out/r11-pi-pickup.log`. Repository resume/TODO records and the
+  local Claude project-state/memory index are refreshed. Windows Codex/Claude
+  checkouts and WSL are synced to the published milestone. No one-time helper reruns,
+  resets, overlay reapplication or implicit ownership by origin.
 
 ### 2026-10-04 — Codex resumes R11 and reacquires the live-tree lock
 

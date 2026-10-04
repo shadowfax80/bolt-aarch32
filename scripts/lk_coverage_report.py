@@ -7,9 +7,11 @@ status (rewritten, folded, rejected with reason, not processed), and every
 byte of each executable section is attributed (sized function, size-0
 assembly extent, data in code, unattributed).
 
-Until a skip-and-report admission mode exists (HANDOFF R11), rejections are
-collected by rerunning llvm-bolt and adding each function named in a fatal
-error to -skip-funcs. Run in WSL against the ATFE toolchain:
+Collect local admission rejections in one report-only BOLT scan, then run
+normal fatal admission with those explicit skips to measure actual emission.
+The diagnostic report is not a correctness or execution certificate. Use
+--legacy-scan explicitly only for toolchains predating overlay 0054.
+Run in WSL against the ATFE toolchain:
 
   python3 scripts/lk_coverage_report.py --elf lk.elf \
       --toolchain /home/user/bolt-aarch32/build-atfe/bin \
@@ -150,7 +152,7 @@ def classify(message):
     return 'other'
 
 
-def scan_rejections(tc, elf, out, max_rounds):
+def scan_rejections_legacy(tc, elf, out, max_rounds):
     """Rerun llvm-bolt, skipping every function named in a fatal error."""
     skip, reasons = [], {}
     for rnd in range(1, max_rounds + 1):
@@ -183,6 +185,62 @@ def scan_rejections(tc, elf, out, max_rounds):
     sys.exit(f'error: rejection scan did not converge in {max_rounds} rounds')
 
 
+def read_admission_report(path, input_sha256):
+    report = json.loads(Path(path).read_text(encoding='utf-8'))
+    if (not isinstance(report, dict)
+            or type(report.get('schema')) is not int or report['schema'] != 1
+            or report.get('kind') != 'aarch32-admission-diagnostic'
+            or report.get('complete') is not True
+            or report.get('execution_verified') is not False
+            or report.get('input_sha256') != input_sha256):
+        raise ValueError('incomplete, wrong-input or non-diagnostic admission report')
+    rows = report.get('functions')
+    if not isinstance(rows, list):
+        raise ValueError('missing admission functions')
+    seen = set()
+    names = set()
+    counts = collections.Counter()
+    reasons = {}
+    for row in rows:
+        if not isinstance(row, dict):
+            raise ValueError('malformed admission function')
+        name, address, status = row.get('name'), row.get('address'), row.get('status')
+        if (not isinstance(name, str) or not name or ',' in name
+                or '\n' in name or '\r' in name or name in names
+                or type(address) is not int or not 0 <= address <= 0xffffffff
+                or address in seen or row.get('isa') not in ('A32', 'T32')
+                or status not in ('admitted', 'rejected', 'not-analyzed')):
+            raise ValueError('ambiguous or malformed admission function')
+        seen.add(address)
+        names.add(name)
+        counts[status] += 1
+        if status == 'rejected':
+            reason = row.get('reason')
+            if (row.get('stage') not in ('disassembly', 'cfg')
+                    or not isinstance(reason, str) or not reason):
+                raise ValueError('rejection has no stage/reason')
+            reasons[name] = reason
+    if any(type(report.get(key)) is not int or report[key] != counts[status]
+           for key, status in [('admitted', 'admitted'), ('rejected', 'rejected'),
+                               ('not_analyzed', 'not-analyzed')]):
+        raise ValueError('admission totals do not match functions')
+    return list(reasons), reasons
+
+
+def scan_rejections(tc, elf, out):
+    report = out / 'admission.json'
+    before = sha256(elf)
+    rc, _ = run([tc / 'llvm-bolt', elf, '-o', '/dev/null', *BOLT_OPTS,
+                 '--arm-admission-report=' + str(report)],
+                log=out / 'admission.log')
+    if rc or not report.is_file():
+        raise ValueError('diagnostic admission scan failed; see admission.log')
+    if sha256(elf) != before:
+        raise ValueError('input changed during admission scan')
+    skip, reasons = read_admission_report(report, before)
+    return skip, reasons, 1
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawTextHelpFormatter)
@@ -193,6 +251,8 @@ def main():
     ap.add_argument('--doc', type=Path, help='Markdown report to write')
     ap.add_argument('--json', type=Path, help='JSON report to write')
     ap.add_argument('--max-rounds', type=int, default=200)
+    ap.add_argument('--legacy-scan', action='store_true',
+                    help='explicit compatibility mode for pre-0054 toolchains')
     ap.add_argument('--skip-instrumentation', action='store_true')
     a = ap.parse_args()
     if a.out.exists() and any(a.out.iterdir()):
@@ -212,7 +272,8 @@ def main():
         secs, funcs, mapping,
         lambda sec, addr: contents[sec['name']][addr - sec['addr']])
 
-    skip, reasons, rounds = scan_rejections(tc, elf, a.out, a.max_rounds)
+    skip, reasons, rounds = (scan_rejections_legacy(tc, elf, a.out, a.max_rounds)
+                            if a.legacy_scan else scan_rejections(tc, elf, a.out))
     final = [tc / 'llvm-bolt', elf, '-o', a.out / 'final.elf', *BOLT_OPTS,
              '--emit-function-map=' + str(a.out / 'final.funcmap'), '-v=1']
     if skip:
@@ -304,6 +365,8 @@ def main():
         schema=1, input=str(elf), input_sha256=sha256(elf),
         toolchain=str(tc), llvm_bolt_sha256=sha256(tc / 'llvm-bolt'),
         bolt_options=BOLT_OPTS, scan_rounds=rounds,
+        admission_scan='legacy-multi-round' if a.legacy_scan else 'report-only',
+        admission_report_sha256=None if a.legacy_scan else sha256(a.out / 'admission.json'),
         executable_sections=secs, bytes_by_class=bytes_by_class,
         functions=len(rows), status_counts=dict(status_counts),
         code_bytes_by_status=dict(code_status),

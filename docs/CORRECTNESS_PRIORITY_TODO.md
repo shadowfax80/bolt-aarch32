@@ -1,24 +1,23 @@
 # Shared correctness TODO — Claude / Codex
 
-Published 2026-10-04 from [HANDOFF.md](HANDOFF.md#claims-consolidated-todo)
-at repository revision `7646c29`, through ATFE overlay 0053. This publication
-uses the handoff's exact IDs, group order, priorities, owners and statuses.
+Published 2026-10-04 from [HANDOFF.md](HANDOFF.md#claims-consolidated-todo),
+through ATFE overlay 0054. Ownership and current status are authoritative there.
+Either agent may claim any unowned item, irrespective of origin. Commit and
+push the claim before implementation; take the separate live-tree lock before
+editing/rebuilding shared ATFE. Detailed certification closure criteria remain
+below as historical reference.
 
-**Ownership and current status are authoritative in HANDOFF.md.** Either agent
-may claim any unowned item, irrespective of origin. Commit and push the claim
-before implementation; take the separate live-tree lock before editing/rebuilding
-shared ATFE. Update HANDOFF.md first if status changes, then refresh this view
-when publishing the list. Detailed certification closure criteria remain below.
+Current: **17 remaining items** (6 Open, 11 Partial); **12 completed review
+items**. The live-tree lock is free after the verified R11 milestone. Resume
+order is **A → B → C → D**, starting at **R17**. The P1 unblockers precede P0
+by the handoff's explicit dependency order. Closing a review sub-item does not
+close its parent certification item. Original workstream #12 remains open.
 
-Current: **18 remaining items** (6 Open, 11 Partial, 1 In progress);
-**11 completed review items**; Codex holds the live-tree lock for R11. Resume order is **A → B → C → D**,
-starting at **R11**, then R17. The P1 unblockers precede P0 by the handoff's
-explicit dependency order. Closing a review sub-item does not close its parent
-certification item. Original workstream #12 remains included and open.
-
-Recorded coverage: **399/417 functions (95.7%)**, **97.9% of function code bytes**.
-The approved full-LK Pi oracle and sealed Pi chain are recorded in the latest
-handoff; remaining G1/G2/G3 and both-assertion-mode requirements are still open.
+Coverage: **399/417 functions (95.7%)**, **97.9% of function code bytes**.
+R11 finds the same local rejections in one scan instead of 12. Both assertion
+modes and scoped Pi runs passed through 0054; remaining G1/G2/G3, oracle,
+entry-route and receipt requirements remain open. See [R11 evidence and
+no-FPU output-scanner caveat](ARM_ADMISSION_REPORT.md).
 
 ## Remaining work, in resume order
 
@@ -28,14 +27,13 @@ Take items in the order below; groups reflect dependencies, not ownership.
 
 | Order | ID | Item | Priority | Owner | Status | Part of | Notes |
 |---|---|---|---|---|---|---|---|
-| 1 | R11 | Skip-and-report admission mode | P1 | Codex | In progress | — | Resumed after mobile handoff; fatal remains default for certification |
 | 2 | R17 | Synthesized edge-case test image (`bolt_edge`), stage 1 (~40 cases) | P1 | — | Open | 7, 8, 11, 12 | Generator emits sources + admission manifest + independent checksums; QEMU + Pi; stage 2 randomized generator later |
 
 **B. P0 certification (finish)**
 
 | Order | ID | Item | Priority | Owner | Status | Part of | Notes |
 |---|---|---|---|---|---|---|---|
-| 3 | 6a | Every gate proves execution: close G1 (fixed-path intermediates), G2 (seal profile chain in QEMU certificate), G3 (contracts for QEMU LK builds) | P0 | — | Partial | — | Pi sealed chain certified; G3 needs user review; "both assertion modes" needs a second toolchain build |
+| 3 | 6a | Every gate proves execution: close G1 (fixed-path intermediates), G2 (seal profile chain in QEMU certificate), G3 (contracts for QEMU LK builds) | P0 | — | Partial | — | Pi sealed chain certified; G3 needs user review; 0054 ON/OFF builds and scoped Pi runs verified, remaining gate routes still open |
 | 4 | 6c | Legacy/manual hook admission | P0 | — | Partial | — | R9 done; includes R13 |
 | 5 | 6d | Durable receipts on every certification route | P0 | — | Partial | — | Pi gate + coverage report receipts exist |
 | 6 | 6b | Oracle contracts for further configurations (Thumb workloads, `bolt_edge` images) | P0 | — | Partial | — | Full-LK `pi4` contract active; each new contract needs user review |
@@ -60,7 +58,7 @@ Take items in the order below; groups reflect dependencies, not ownership.
 | 15 | 13 | Actual pass combinations | P1 | — | Partial | R7 done; R8 pending |
 | 16 | 9 | Interrupt/reentrancy/reset boundaries | P1 | — | Partial | |
 | 17 | 10 | Sampling/PMU ownership | P1 | — | Open | |
-| 18 | 14 | Clean build/content provenance | P1 | — | Partial | Overlay replay only |
+| 18 | 14 | Clean build/content provenance | P1 | — | Partial | Overlay replay only; ISA-aware no-FPU output scanning/metadata needed (0054 audit) |
 
 **Needs the user:** new oracle contracts (6a G3, 6b, each `bolt_edge` image).
 
@@ -79,6 +77,7 @@ Take items in the order below; groups reflect dependencies, not ownership.
 | R4 | Conditional tail calls crash | P1 | Claude | 8 | 0051; Pi: 676 IRQs via rewritten `platform_irq` |
 | R5 | Noreturn calls at function end | P1 | Claude | 8 | 0052; LK 276 → 354 functions |
 | R6 | Predicated returns and calls in IT blocks | P1 | Claude | 8 | 0053; LK 354 → 399 functions |
+| R11 | Skip-and-report admission mode | P1 | Codex | — | 0054; [diagnostic contract/evidence](ARM_ADMISSION_REPORT.md); one scan, same 399/417 coverage; both assertion modes + scoped Pi |
 
 ## Historical 0045 certification closure criteria and evidence
 

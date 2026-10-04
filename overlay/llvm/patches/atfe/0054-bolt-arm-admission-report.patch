@@ -1,0 +1,325 @@
+diff --git a/bolt/include/bolt/Rewrite/RewriteInstance.h b/bolt/include/bolt/Rewrite/RewriteInstance.h
+index 2d49b92..f8946a9 100644
+--- a/bolt/include/bolt/Rewrite/RewriteInstance.h
++++ b/bolt/include/bolt/Rewrite/RewriteInstance.h
+@@ -85,6 +85,15 @@ public:
+   }
+ 
+ private:
++  struct ARMAdmissionRejection {
++    std::string Stage;
++    std::string Reason;
++  };
++  std::map<uint64_t, ARMAdmissionRejection> ARMAdmissionRejections;
++  bool recordARMAdmissionError(BinaryFunction &BF, const BOLTError &E,
++                               StringRef Stage);
++  Error writeARMAdmissionReport();
++
+   /// Populate array of binary functions and other objects of interest
+   /// from meta data in the file.
+   void discoverFileObjects();
+diff --git a/bolt/lib/Core/BinaryFunction.cpp b/bolt/lib/Core/BinaryFunction.cpp
+index 011d394..ed4d4e3 100644
+--- a/bolt/lib/Core/BinaryFunction.cpp
++++ b/bolt/lib/Core/BinaryFunction.cpp
+@@ -21,6 +21,7 @@
+ #include "bolt/Utils/NameShortener.h"
+ #include "bolt/Utils/Utils.h"
+ #include "llvm/ADT/STLExtras.h"
++#include "llvm/ADT/ScopeExit.h"
+ #include "llvm/ADT/SmallSet.h"
+ #include "llvm/ADT/StringExtras.h"
+ #include "llvm/ADT/StringRef.h"
+@@ -1477,6 +1478,11 @@ Error BinaryFunction::disassemble() {
+   MCPlusBuilder *MIB = BC.getMIBFor(BC.isARM() && isARMThumb());
+ 
+   getDisassembler().setSymbolizer(MIB->createTargetSymbolizer(*this));
++  // Local admission can be collected in report-only mode. Always detach a
++  // function-bound symbolizer, including on an early rejection.
++  auto ResetSymbolizer = scope_exit([&] {
++    getDisassembler().setSymbolizer(nullptr);
++  });
+ 
+   // Insert a label at the beginning of the function. This will be our first
+   // basic block.
+diff --git a/bolt/lib/Rewrite/RewriteInstance.cpp b/bolt/lib/Rewrite/RewriteInstance.cpp
+index 7fa1ffc..759eb4b 100644
+--- a/bolt/lib/Rewrite/RewriteInstance.cpp
++++ b/bolt/lib/Rewrite/RewriteInstance.cpp
+@@ -60,6 +60,7 @@
+ #include "llvm/Support/Error.h"
+ #include "llvm/Support/FileSystem.h"
+ #include "llvm/Support/ManagedStatic.h"
++#include "llvm/Support/JSON.h"
+ #include "llvm/Support/Timer.h"
+ #include "llvm/Support/SHA256.h"
+ #include "llvm/Support/ToolOutputFile.h"
+@@ -279,6 +280,12 @@ SkipFunctionNamesFile("skip-funcs-file",
+   cl::Hidden,
+   cl::cat(BoltCategory));
+ 
++static cl::opt<std::string> ARMAdmissionReport(
++    "arm-admission-report",
++    cl::desc("collect local AArch32 admission rejections as diagnostic JSON; "
++             "requires -o /dev/null; emits no rewritten ELF or certificate"),
++    cl::cat(BoltCategory));
++
+ static cl::opt<bool> TrapOldCode(
+     "trap-old-code",
+     cl::desc("insert traps in old function bodies (relocation mode)"),
+@@ -1156,6 +1163,21 @@ Error RewriteInstance::run() {
+              << "\n";
+   BC->outs() << "BOLT-INFO: BOLT version: " << BoltRevision << "\n";
+ 
++  if (!opts::ARMAdmissionReport.empty()) {
++    if (!BC->isARM() || opts::Instrument || opts::AggregateOnly ||
++        opts::DiffOnly || opts::BinaryAnalysisMode || ProfileReader ||
++        opts::OutputFilename != "/dev/null")
++      return createFatalBOLTError(
++          "AArch32 admission report is diagnostic-only: requires ARM input, "
++          "-o /dev/null, no instrumentation/profile/aggregation/analysis");
++    bool SameFile = false;
++    if (!sys::fs::equivalent(opts::ARMAdmissionReport, getInputFilename(),
++                             SameFile) && SameFile)
++      return createFatalBOLTError("AArch32 admission report cannot replace input");
++    BC->outs() << "BOLT-INFO: diagnostic AArch32 admission report; "
++                  "no optimization, emitted image or execution certificate\n";
++  }
++
+   selectFunctionsToPrint();
+ 
+   if (Error E = discoverStorage())
+@@ -1192,6 +1214,11 @@ Error RewriteInstance::run() {
+ 
+   buildFunctionsCFG();
+ 
++  // A diagnostic scan does not optimize, emit or certify any admitted body.
++  // Run normal fatal admission with explicit skips to produce a candidate.
++  if (!opts::ARMAdmissionReport.empty())
++    return writeARMAdmissionReport();
++
+   processProfileData();
+ 
+   // Save input binary metadata if BAT section needs to be emitted
+@@ -4426,6 +4453,96 @@ void RewriteInstance::processProfileData() {
+   }
+ }
+ 
++bool RewriteInstance::recordARMAdmissionError(BinaryFunction &BF,
++                                                const BOLTError &E,
++                                                StringRef Stage) {
++  if (opts::ARMAdmissionReport.empty() || !BC->isARM())
++    return false;
++  // Only explicit local target-admission boundaries are recoverable. Generic
++  // CFG consistency errors, unknown failures and global guards stay fatal.
++  const StringRef Message = E.getMessage();
++  const StringRef Prefixes[] = {
++      "unsupported AArch32 PC-writing control transfer in ",
++      "unsupported AArch32 position-dependent PC read in ",
++      "data inside Thumb IT group in ", "nested Thumb IT group in ",
++      "invalid Thumb IT group in ", "truncated Thumb IT group in ",
++      "branch into Thumb IT body in ",
++      "unsupported control transfer in Thumb IT group in ",
++      "unmodeled AArch32 function fallthrough in "};
++  if (!llvm::any_of(Prefixes, [&](StringRef P) { return Message.starts_with(P); }))
++    return false;
++  ARMAdmissionRejections.emplace(
++      BF.getAddress(), ARMAdmissionRejection{Stage.str(), Message.str()});
++  BC->errs() << "BOLT-WARNING: diagnostic admission rejection: " << Message
++             << "\n";
++  BF.setIgnored();
++  BF.clearDisasmState();
++  return true;
++}
++
++Error RewriteInstance::writeARMAdmissionReport() {
++  json::Array Functions;
++  unsigned Rejected = 0, Admitted = 0, NotAnalyzed = 0;
++  for (const auto &Entry : BC->getBinaryFunctions()) {
++    const BinaryFunction &BF = Entry.second;
++    if (BF.isPseudo())
++      continue;
++    json::Object Row{{"name", BF.getOneName().str()},
++                     {"address", static_cast<int64_t>(BF.getAddress())},
++                     {"size", static_cast<int64_t>(BF.getSize())},
++                     {"isa", BF.isARMThumb() ? "T32" : "A32"}};
++    auto It = ARMAdmissionRejections.find(BF.getAddress());
++    if (It != ARMAdmissionRejections.end()) {
++      Row["status"] = "rejected";
++      Row["stage"] = It->second.Stage;
++      Row["reason"] = It->second.Reason;
++      ++Rejected;
++    } else if (BF.hasCFG() && BF.isSimple() && !BF.isIgnored()) {
++      Row["status"] = "admitted";
++      ++Admitted;
++    } else {
++      Row["status"] = "not-analyzed";
++      ++NotAnalyzed;
++    }
++    Functions.push_back(std::move(Row));
++  }
++  StringRef Input = InputFile->getData();
++  const auto Hash = SHA256::hash(ArrayRef<uint8_t>(
++      reinterpret_cast<const uint8_t *>(Input.data()), Input.size()));
++  json::Object Report{
++      {"schema", 1}, {"kind", "aarch32-admission-diagnostic"},
++      {"complete", true}, {"execution_verified", false},
++      {"scope", "local disassembly/CFG admission only; not emission, passes, "
++                "reference correctness, instrumentation or execution proof"},
++      {"input_sha256", toHex(Hash, true)},
++      {"admitted", Admitted}, {"rejected", Rejected},
++      {"not_analyzed", NotAnalyzed}, {"functions", std::move(Functions)}};
++  // Preserve an existing report on any failed scan or write, and publish only
++  // a complete result through a sibling temporary file.
++  SmallString<256> Temp;
++  int FD;
++  if (std::error_code EC = sys::fs::createUniqueFile(
++          opts::ARMAdmissionReport + ".tmp-%%%%%%", FD, Temp))
++    return createStringError(EC, "cannot create AArch32 admission report");
++  raw_fd_ostream OS(FD, true);
++  OS << formatv("{0:2}", json::Value(std::move(Report))) << '\n';
++  OS.close();
++  if (OS.has_error()) {
++    std::error_code EC = OS.error();
++    OS.clear_error();
++    sys::fs::remove(Temp);
++    return createStringError(EC, "cannot write AArch32 admission report");
++  }
++  if (std::error_code EC = sys::fs::rename(Temp, opts::ARMAdmissionReport)) {
++    sys::fs::remove(Temp);
++    return createStringError(EC, "cannot publish AArch32 admission report");
++  }
++  BC->outs() << "BOLT-INFO: diagnostic admission report: " << Admitted
++             << " admitted, " << Rejected << " rejected, " << NotAnalyzed
++             << " not analyzed; no output ELF\n";
++  return Error::success();
++}
++
+ void RewriteInstance::disassembleFunctions() {
+   NamedRegionTimer T("disassembleFunctions", "disassemble functions",
+                      TimerGroupName, TimerGroupDesc, opts::TimeRewrite);
+@@ -4461,6 +4578,8 @@ void RewriteInstance::disassembleFunctions() {
+     bool DisasmFailed{false};
+     handleAllErrors(Function.disassemble(), [&](const BOLTError &E) {
+       DisasmFailed = true;
++      if (recordARMAdmissionError(Function, E, "disassembly"))
++        return;
+       if (E.isFatal()) {
+         E.log(BC->errs());
+         exit(1);
+@@ -4573,6 +4692,10 @@ void RewriteInstance::buildFunctionsCFG() {
+       [&](BinaryFunction &BF, MCPlusBuilder::AllocatorIdTy AllocId) {
+         bool HadErrors{false};
+         handleAllErrors(BF.buildCFG(AllocId), [&](const BOLTError &E) {
++          if (recordARMAdmissionError(BF, E, "cfg")) {
++            HadErrors = true;
++            return;
++          }
+           if (!E.getMessage().empty())
+             E.log(BC->errs());
+           if (E.isFatal()) {
+@@ -4601,7 +4724,8 @@ void RewriteInstance::buildFunctionsCFG() {
+   ParallelUtilities::runOnEachFunctionWithUniqueAllocId(
+       *BC, ParallelUtilities::SchedulingPolicy::SP_INST_LINEAR, WorkFun,
+       SkipPredicate, "disassembleFunctions-buildCFG",
+-      /*ForceSequential*/ opts::SequentialDisassembly || opts::PrintAll);
++      /*ForceSequential*/ opts::SequentialDisassembly || opts::PrintAll ||
++          !opts::ARMAdmissionReport.empty());
+ 
+   if (HadFatalARMError.load(std::memory_order_relaxed))
+     exit(1);
+diff --git a/bolt/test/ARM/Inputs/check-arm-admission-report.py b/bolt/test/ARM/Inputs/check-arm-admission-report.py
+new file mode 100644
+index 0000000..94f6f6b
+--- /dev/null
++++ b/bolt/test/ARM/Inputs/check-arm-admission-report.py
+@@ -0,0 +1,81 @@
++from pathlib import Path
++import hashlib,json,subprocess,sys,tempfile
++parent=Path(sys.argv[1]);parent.mkdir(parents=True,exist_ok=True)
++out=Path(tempfile.mkdtemp(prefix='admission-',dir=parent));checks=[]
++def run(label,cmd):
++    p=subprocess.run(list(map(str,cmd)),capture_output=True,text=True,timeout=30)
++    (out/(label+'.log')).write_text(p.stdout+p.stderr)
++    return p
++def require(ok,label):
++    checks.append(dict(check=label,passed=bool(ok)))
++    if not ok:raise RuntimeError(label+' failed; see '+str(out))
++asm='''.syntax unified
++.arch armv7-a
++.text
++.arm
++.global _start,entry_alias
++.type _start,%function
++.type entry_alias,%function
++_start:
++entry_alias:
++push {r4,lr}
++bl good_arm
++bl good_thumb
++pop {r4,pc}
++.size _start,.-_start
++.size entry_alias,.-entry_alias
++'''
++bodies=[('arm','good_arm','mov r0,#7\nbx lr'),
++        ('arm','bad_read_arm','mov r0,pc\nbx lr'),
++        ('arm','bad_write_arm','mov pc,r0'),
++        ('arm','bad_fall_arm','mov r0,#1'),
++        ('thumb','good_thumb','movs r0,#7\nbx lr'),
++        ('thumb','bad_read_thumb','mov r0,pc\nbx lr'),
++        ('thumb','bad_write_thumb','mov pc,r0'),
++        ('thumb','bad_fall_thumb','movw r0,#1'),
++        ('thumb','bad_truncated_it','.hword 0xbf04\n.hword 0x2001'),
++        ('thumb','bad_entry_it','b.n .Linside\nit eq\n.Linside: moveq r0,#1\nbx lr'),
++        ('arm','last_good','bx lr')]
++for isa,name,body in bodies:
++    asm+=f'.balign 4\n.{isa}\n.global {name}\n.type {name},%function\n'+('.thumb_func\n' if isa=='thumb' else '')+f'{name}:\n{body}\n.size {name},.-{name}\n'
++(out/'input.s').write_text(asm)
++(out/'layout.ld').write_text('ENTRY(_start)\nSECTIONS { . = 0x8000; .text : { *(.text*) } }\n')
++for label,cmd in [('mc',['llvm-mc','-triple=armv7-none-eabi','-arm-add-build-attributes','-filetype=obj',out/'input.s','-o',out/'input.o']),('link',['ld.lld','--emit-relocs','-T',out/'layout.ld',out/'input.o','-o',out/'input.elf'])]:
++    require(run(label,cmd).returncode==0,label)
++elf=out/'input.elf';original=elf.read_bytes();digest=hashlib.sha256(original).hexdigest()
++bad={name for _,name,_ in bodies if name.startswith('bad_')};admissions=[]
++for label,opts in [('normal',[]),('reverse',['--reorder-blocks=reverse']),('old-text',['--use-old-text'])]:
++    report=out/(label+'.json');mapping=out/(label+'.map');mapping.write_bytes(b'old map')
++    p=run(label,['llvm-bolt',elf,'-o','/dev/null','--no-huge-pages','-lite=0','--arm-admission-report='+str(report),'--emit-function-map='+str(mapping),*opts])
++    require(p.returncode==0 and report.exists(),label+'-report')
++    r=json.loads(report.read_text());rows=r['functions']
++    require(r['kind']=='aarch32-admission-diagnostic' and r['complete'] is True and r['execution_verified'] is False and r['input_sha256']==digest,label+'-identity')
++    require({row['name'] for row in rows if row['status']=='rejected'}==bad,label+'-all-rejections')
++    require(r['rejected']==len(bad) and r['admitted']==4 and r['not_analyzed']==0,label+'-totals')
++    require(len({row['address'] for row in rows})==len(rows) and all('(*' not in row['name'] for row in rows),label+'-alias-identity')
++    require(mapping.read_bytes()==b'old map' and elf.read_bytes()==original,label+'-no-outputs')
++    require(not list(out.glob(label+'.json.tmp-*')),label+'-atomic-publish');admissions.append(rows)
++require(admissions[0]==admissions[1]==admissions[2],'deterministic-options')
++for name in sorted(bad):
++    candidate=out/(name+'.elf');mapping=out/(name+'.map');candidate.write_bytes(b'old elf');mapping.write_bytes(b'old map')
++    p=run(name,['llvm-bolt',elf,'-o',candidate,'--funcs='+name,'--emit-function-map='+str(mapping)])
++    require(p.returncode==1 and candidate.read_bytes()==b'old elf' and mapping.read_bytes()==b'old map',name+'-fatal-default')
++candidate=out/'explicit.elf';mapping=out/'explicit.map'
++p=run('explicit',['llvm-bolt',elf,'-o',candidate,'--no-huge-pages','-lite=0','--skip-funcs='+','.join(sorted(bad)),'--emit-function-map='+str(mapping)])
++require(p.returncode==0 and candidate.exists() and mapping.exists(),'explicit-strict-output')
++require(not any(row.split()[0] in bad for row in mapping.read_text().splitlines()),'excluded-not-emitted')
++for label,extra in [('output',['-o',out/'refused.elf']),('instrument',['--instrument']),('aggregate',['--aggregate-only'])]:
++    report=out/(label+'-existing.json');report.write_bytes(b'old report')
++    p=run(label,['llvm-bolt',elf,'-o','/dev/null','--arm-admission-report='+str(report),*extra])
++    require(p.returncode!=0 and report.read_bytes()==b'old report' and not (out/'refused.elf').exists(),label+'-boundary')
++for label,offset,data in [('pie',16,(3).to_bytes(2,'little')),('abi',36,bytes(4))]:
++    mutated=bytearray(original);mutated[offset:offset+len(data)]=data;image=out/(label+'.elf');image.write_bytes(mutated)
++    report=out/(label+'.json');report.write_bytes(b'old report')
++    p=run(label,['llvm-bolt',image,'-o','/dev/null','--arm-admission-report='+str(report)])
++    require(p.returncode!=0 and report.read_bytes()==b'old report',label+'-global-fatal')
++p=run('replace-input',['llvm-bolt',elf,'-o','/dev/null','--arm-admission-report='+str(elf)])
++require(p.returncode!=0 and elf.read_bytes()==original,'cannot-replace-input')
++p=run('bad-directory',['llvm-bolt',elf,'-o','/dev/null','--arm-admission-report='+str(out/'missing/report.json')])
++require(p.returncode!=0 and not (out/'missing').exists(),'failed-publication')
++(out/'results.json').write_text(json.dumps(checks,indent=2)+'\n')
++print('Admission report:',len(checks),'checks;',len(bad),'local rejections per scan;',out)
+diff --git a/bolt/test/ARM/arm-admission-report.test b/bolt/test/ARM/arm-admission-report.test
+new file mode 100644
+index 0000000..b50f98a
+--- /dev/null
++++ b/bolt/test/ARM/arm-admission-report.test
+@@ -0,0 +1,2 @@
++## Report local exclusions without output or weaker fatal admission.
++RUN: %python %p/Inputs/check-arm-admission-report.py %t.dir

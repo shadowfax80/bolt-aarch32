@@ -1,0 +1,5045 @@
+{
+  "schema": 1,
+  "input_sha256": "424606a869c34b5be5f3c97f66a9cec8ea16844ac788c14c77839edcfef2459b",
+  "elf_sha256": "4a51a928c23f3e7cda5a3ef878a684b4ec149c77ad01bbc08ffef055683696a2",
+  "map_sha256": "5ea974d5665d182a92571fcca949bc6050e3ed25b2f349543848321981abf986",
+  "emitted": [
+    {
+      "name": "_start",
+      "input": 2147516416,
+      "output": 2148360192,
+      "output_size": 4
+    },
+    {
+      "name": "platform_init_mmu_mappings",
+      "input": 2147517168,
+      "output": 2148360196,
+      "output_size": 2
+    },
+    {
+      "name": "bcm2711_gic_init/1",
+      "input": 2147517170,
+      "output": 2148360200,
+      "output_size": 12
+    },
+    {
+      "name": "platform_early_init",
+      "input": 2147517182,
+      "output": 2148360212,
+      "output_size": 424
+    },
+    {
+      "name": "platform_init",
+      "input": 2147517600,
+      "output": 2148360640,
+      "output_size": 4
+    },
+    {
+      "name": "platform_dputc",
+      "input": 2147517604,
+      "output": 2148360644,
+      "output_size": 28
+    },
+    {
+      "name": "platform_dgetc",
+      "input": 2147517632,
+      "output": 2148360672,
+      "output_size": 24
+    },
+    {
+      "name": "platform_halt",
+      "input": 2147517656,
+      "output": 2148360704,
+      "output_size": 20
+    },
+    {
+      "name": "bcm28xx_watchdog_reset/1",
+      "input": 2147517676,
+      "output": 2148360724,
+      "output_size": 50
+    },
+    {
+      "name": "bcm28xx_poweroff/1",
+      "input": 2147517724,
+      "output": 2148360776,
+      "output_size": 78
+    },
+    {
+      "name": "uart_init",
+      "input": 2147517800,
+      "output": 2148360856,
+      "output_size": 72
+    },
+    {
+      "name": "uart_irq/1",
+      "input": 2147517872,
+      "output": 2148360960,
+      "output_size": 74
+    },
+    {
+      "name": "uart_init_early",
+      "input": 2147517946,
+      "output": 2148361036,
+      "output_size": 16
+    },
+    {
+      "name": "uart_putc",
+      "input": 2147517962,
+      "output": 2148361052,
+      "output_size": 22
+    },
+    {
+      "name": "uart_getc",
+      "input": 2147517984,
+      "output": 2148361088,
+      "output_size": 48
+    },
+    {
+      "name": "uart_flush_tx",
+      "input": 2147518032,
+      "output": 2148361152,
+      "output_size": 28
+    },
+    {
+      "name": "dcc_worker_entry/1",
+      "input": 2147518058,
+      "output": 2148361180,
+      "output_size": 76
+    },
+    {
+      "name": "cmd_dcc/1",
+      "input": 2147518128,
+      "output": 2148361280,
+      "output_size": 532
+    },
+    {
+      "name": "dcc_rx_callback/1",
+      "input": 2147518634,
+      "output": 2148361812,
+      "output_size": 62
+    },
+    {
+      "name": "arm_syscall_handler",
+      "input": 2147518696,
+      "output": 2148361876,
+      "output_size": 38
+    },
+    {
+      "name": "arm_undefined_handler",
+      "input": 2147518734,
+      "output": 2148361920,
+      "output_size": 56
+    },
+    {
+      "name": "arm_data_abort_handler",
+      "input": 2147518792,
+      "output": 2148361984,
+      "output_size": 502
+    },
+    {
+      "name": "arm_prefetch_abort_handler",
+      "input": 2147519232,
+      "output": 2148362496,
+      "output_size": 294
+    },
+    {
+      "name": "dump_fault_frame/1",
+      "input": 2147519466,
+      "output": 2148362816,
+      "output_size": 158
+    },
+    {
+      "name": "dump_mode_regs/1",
+      "input": 2147519624,
+      "output": 2148363008,
+      "output_size": 384
+    },
+    {
+      "name": "dump_iframe/1",
+      "input": 2147519968,
+      "output": 2148363392,
+      "output_size": 82
+    },
+    {
+      "name": "arm_mmu_init",
+      "input": 2147520052,
+      "output": 2148363476,
+      "output_size": 196
+    },
+    {
+      "name": "arch_mmu_context_switch",
+      "input": 2147520236,
+      "output": 2148363672,
+      "output_size": 48
+    },
+    {
+      "name": "arch_mmu_query",
+      "input": 2147520280,
+      "output": 2148363720,
+      "output_size": 428
+    },
+    {
+      "name": "arch_mmu_map",
+      "input": 2147520676,
+      "output": 2148364160,
+      "output_size": 920
+    },
+    {
+      "name": "arch_mmu_unmap",
+      "input": 2147521552,
+      "output": 2148365080,
+      "output_size": 676
+    },
+    {
+      "name": "arch_mmu_init_aspace",
+      "input": 2147522206,
+      "output": 2148365760,
+      "output_size": 168
+    },
+    {
+      "name": "arch_mmu_destroy_aspace",
+      "input": 2147522370,
+      "output": 2148365952,
+      "output_size": 42
+    },
+    {
+      "name": "arch_mmu_supports_user_aspaces",
+      "input": 2147522412,
+      "output": 2148365996,
+      "output_size": 4
+    },
+    {
+      "name": "arch_thread_initialize",
+      "input": 2147522416,
+      "output": 2148366016,
+      "output_size": 44
+    },
+    {
+      "name": "initial_thread_func/1",
+      "input": 2147522460,
+      "output": 2148366080,
+      "output_size": 20
+    },
+    {
+      "name": "arch_context_switch",
+      "input": 2147522480,
+      "output": 2148366100,
+      "output_size": 14
+    },
+    {
+      "name": "arch_dump_thread",
+      "input": 2147522488,
+      "output": 2148366144,
+      "output_size": 42
+    },
+    {
+      "name": "spin_unlock/1",
+      "input": 2147522530,
+      "output": 2148366188,
+      "output_size": 18
+    },
+    {
+      "name": "arch_mp_send_ipi",
+      "input": 2147522542,
+      "output": 2148366208,
+      "output_size": 26
+    },
+    {
+      "name": "arm_ipi_generic_handler",
+      "input": 2147522568,
+      "output": 2148366236,
+      "output_size": 4
+    },
+    {
+      "name": "arm_ipi_reschedule_handler",
+      "input": 2147522572,
+      "output": 2148366240,
+      "output_size": 4
+    },
+    {
+      "name": "arch_mp_init_percpu",
+      "input": 2147522576,
+      "output": 2148366272,
+      "output_size": 38
+    },
+    {
+      "name": "arm_context_switch",
+      "input": 2147522616,
+      "output": 2148366336,
+      "output_size": 24
+    },
+    {
+      "name": "arm_save_mode_regs",
+      "input": 2147522640,
+      "output": 2148366360,
+      "output_size": 92
+    },
+    {
+      "name": "arm_chain_load",
+      "input": 2147522732,
+      "output": 2148366464,
+      "output_size": 40
+    },
+    {
+      "name": "arch_disable_cache",
+      "input": 2147522772,
+      "output": 2148366528,
+      "output_size": 104
+    },
+    {
+      "name": "arch_enable_cache",
+      "input": 2147522876,
+      "output": 2148366656,
+      "output_size": 400
+    },
+    {
+      "name": "arch_clean_cache_range",
+      "input": 2147523276,
+      "output": 2148367056,
+      "output_size": 36
+    },
+    {
+      "name": "arch_clean_invalidate_cache_range",
+      "input": 2147523312,
+      "output": 2148367104,
+      "output_size": 36
+    },
+    {
+      "name": "arch_invalidate_cache_range",
+      "input": 2147523348,
+      "output": 2148367168,
+      "output_size": 36
+    },
+    {
+      "name": "arch_sync_cache_range",
+      "input": 2147523384,
+      "output": 2148367204,
+      "output_size": 20
+    },
+    {
+      "name": "arch_spin_trylock",
+      "input": 2147523404,
+      "output": 2148367232,
+      "output_size": 28
+    },
+    {
+      "name": "arch_spin_lock",
+      "input": 2147523432,
+      "output": 2148367260,
+      "output_size": 36
+    },
+    {
+      "name": "arch_spin_unlock",
+      "input": 2147523468,
+      "output": 2148367296,
+      "output_size": 24
+    },
+    {
+      "name": "arch_idle",
+      "input": 2147523492,
+      "output": 2148367320,
+      "output_size": 8
+    },
+    {
+      "name": "arm_invalidate_tlb",
+      "input": 2147523500,
+      "output": 2148367328,
+      "output_size": 12
+    },
+    {
+      "name": "arm_reserved",
+      "input": 2147523776,
+      "output": 2148367340,
+      "output_size": 4
+    },
+    {
+      "name": "arch_early_init",
+      "input": 2147523956,
+      "output": 2148367360,
+      "output_size": 116
+    },
+    {
+      "name": "arm_basic_setup/1",
+      "input": 2147524072,
+      "output": 2148367488,
+      "output_size": 88
+    },
+    {
+      "name": "arch_init",
+      "input": 2147524160,
+      "output": 2148367576,
+      "output_size": 140
+    },
+    {
+      "name": "arm_vtop",
+      "input": 2147524408,
+      "output": 2148367744,
+      "output_size": 84
+    },
+    {
+      "name": "panic",
+      "input": 2147524492,
+      "output": 2148367828,
+      "output_size": 40
+    },
+    {
+      "name": "assert_fail",
+      "input": 2147524532,
+      "output": 2148367872,
+      "output_size": 26
+    },
+    {
+      "name": "hexdump",
+      "input": 2147524558,
+      "output": 2148367900,
+      "output_size": 280
+    },
+    {
+      "name": "lk_init_level",
+      "input": 2147524830,
+      "output": 2148368192,
+      "output_size": 248
+    },
+    {
+      "name": "lk_main",
+      "input": 2147525062,
+      "output": 2148368448,
+      "output_size": 230
+    },
+    {
+      "name": "lk_primary_cpu_init_level/1",
+      "input": 2147525292,
+      "output": 2148368680,
+      "output_size": 10
+    },
+    {
+      "name": "call_constructors/1",
+      "input": 2147525302,
+      "output": 2148368704,
+      "output_size": 42
+    },
+    {
+      "name": "bootstrap2/1",
+      "input": 2147525344,
+      "output": 2148368768,
+      "output_size": 140
+    },
+    {
+      "name": "lk_secondary_cpu_entry_early",
+      "input": 2147525484,
+      "output": 2148368908,
+      "output_size": 22
+    },
+    {
+      "name": "lk_secondary_cpu_entry",
+      "input": 2147525506,
+      "output": 2148368960,
+      "output_size": 80
+    },
+    {
+      "name": "lk_init_secondary_cpus",
+      "input": 2147525586,
+      "output": 2148369040,
+      "output_size": 148
+    },
+    {
+      "name": "secondary_cpu_bootstrap_thread/1",
+      "input": 2147525726,
+      "output": 2148369188,
+      "output_size": 20
+    },
+    {
+      "name": "apps_init",
+      "input": 2147525746,
+      "output": 2148369216,
+      "output_size": 152
+    },
+    {
+      "name": "app_start_by_name",
+      "input": 2147525894,
+      "output": 2148369368,
+      "output_size": 176
+    },
+    {
+      "name": "app_thread_entry/1",
+      "input": 2147526062,
+      "output": 2148369544,
+      "output_size": 12
+    },
+    {
+      "name": "cmd_app/1",
+      "input": 2147526074,
+      "output": 2148369556,
+      "output_size": 196
+    },
+    {
+      "name": "cmd_start/1",
+      "input": 2147526260,
+      "output": 2148369752,
+      "output_size": 32
+    },
+    {
+      "name": "bolt_bench_hot_loop",
+      "input": 2147526292,
+      "output": 2148369792,
+      "output_size": 54
+    },
+    {
+      "name": "arch_cycle_count/1",
+      "input": 2147526346,
+      "output": 2148369848,
+      "output_size": 6
+    },
+    {
+      "name": "bench_banner/1",
+      "input": 2147526352,
+      "output": 2148369856,
+      "output_size": 18
+    },
+    {
+      "name": "bolt_bench_hot_cold",
+      "input": 2147526370,
+      "output": 2148369876,
+      "output_size": 48
+    },
+    {
+      "name": "bolt_bench_branch_chain",
+      "input": 2147526418,
+      "output": 2148369924,
+      "output_size": 168
+    },
+    {
+      "name": "bolt_bench_far_target",
+      "input": 2147526586,
+      "output": 2148370092,
+      "output_size": 12
+    },
+    {
+      "name": "bolt_bench_far_call",
+      "input": 2147526598,
+      "output": 2148370112,
+      "output_size": 40
+    },
+    {
+      "name": "bolt_bench_it_cond",
+      "input": 2147526638,
+      "output": 2148370176,
+      "output_size": 90
+    },
+    {
+      "name": "bolt_bench_arm_callee/1",
+      "input": 2147526728,
+      "output": 2148370268,
+      "output_size": 8
+    },
+    {
+      "name": "bolt_bench_thumb_callee/1",
+      "input": 2147526736,
+      "output": 2148370276,
+      "output_size": 6
+    },
+    {
+      "name": "bolt_bench_interwork",
+      "input": 2147526744,
+      "output": 2148370304,
+      "output_size": 128
+    },
+    {
+      "name": "bolt_bench_switch",
+      "input": 2147526872,
+      "output": 2148370432,
+      "output_size": 76
+    },
+    {
+      "name": "bolt_bench_switch_pick/1",
+      "input": 2147526948,
+      "output": 2148370508,
+      "output_size": 76
+    },
+    {
+      "name": "bolt_bench_spill_ret",
+      "input": 2147527008,
+      "output": 2148370584,
+      "output_size": 100
+    },
+    {
+      "name": "bolt_bench_spill_helper/1",
+      "input": 2147527108,
+      "output": 2148370688,
+      "output_size": 8
+    },
+    {
+      "name": "bolt_bench_litpool",
+      "input": 2147527116,
+      "output": 2148370696,
+      "output_size": 100
+    },
+    {
+      "name": "bolt_bench_memcpy",
+      "input": 2147527220,
+      "output": 2148370816,
+      "output_size": 220
+    },
+    {
+      "name": "bolt_bench_ind_thumb_target/1",
+      "input": 2147527436,
+      "output": 2148371036,
+      "output_size": 4
+    },
+    {
+      "name": "bolt_bench_ind_arm_target/1",
+      "input": 2147527440,
+      "output": 2148371040,
+      "output_size": 12
+    },
+    {
+      "name": "bolt_bench_indirect_call",
+      "input": 2147527452,
+      "output": 2148371072,
+      "output_size": 122
+    },
+    {
+      "name": "bolt_bench_tail_arm_callee/1",
+      "input": 2147527576,
+      "output": 2148371200,
+      "output_size": 16
+    },
+    {
+      "name": "bolt_bench_interwork_tail",
+      "input": 2147527592,
+      "output": 2148371216,
+      "output_size": 72
+    },
+    {
+      "name": "bolt_bench_tail_thumb_caller/1",
+      "input": 2147527664,
+      "output": 2148371288,
+      "output_size": 10
+    },
+    {
+      "name": "bolt_bench_regpressure",
+      "input": 2147527668,
+      "output": 2148371328,
+      "output_size": 72
+    },
+    {
+      "name": "bolt_bench_regpressure_calc/1",
+      "input": 2147527740,
+      "output": 2148371400,
+      "output_size": 94
+    },
+    {
+      "name": "bolt_bench_hotcold_split",
+      "input": 2147527834,
+      "output": 2148371520,
+      "output_size": 110
+    },
+    {
+      "name": "bolt_bench_cold_path/1",
+      "input": 2147527940,
+      "output": 2148371648,
+      "output_size": 296
+    },
+    {
+      "name": "bolt_bench_icf_a",
+      "input": 2147528236,
+      "output": 2148371944,
+      "output_size": 22
+    },
+    {
+      "name": "bolt_bench_icf",
+      "input": 2147528280,
+      "output": 2148371968,
+      "output_size": 82
+    },
+    {
+      "name": "bolt_bench_shrinkwrap",
+      "input": 2147528362,
+      "output": 2148372052,
+      "output_size": 116
+    },
+    {
+      "name": "bolt_bench_composite",
+      "input": 2147528474,
+      "output": 2148372168,
+      "output_size": 484
+    },
+    {
+      "name": "bolt_pmu_report/1",
+      "input": 2147528952,
+      "output": 2148372672,
+      "output_size": 258
+    },
+    {
+      "name": "bolt_bench_stair_kernel",
+      "input": 2147529208,
+      "output": 2148372932,
+      "output_size": 16114
+    },
+    {
+      "name": "bolt_bench_stair",
+      "input": 2147545322,
+      "output": 2148389056,
+      "output_size": 600
+    },
+    {
+      "name": "bolt_bench_pgo_lab",
+      "input": 2147545912,
+      "output": 2148389656,
+      "output_size": 258
+    },
+    {
+      "name": "pl_run/1",
+      "input": 2147546170,
+      "output": 2148389916,
+      "output_size": 466
+    },
+    {
+      "name": "pl_a/1",
+      "input": 2147546628,
+      "output": 2148390400,
+      "output_size": 130
+    },
+    {
+      "name": "pl_b/1",
+      "input": 2147546756,
+      "output": 2148390532,
+      "output_size": 532
+    },
+    {
+      "name": "pl_c/1",
+      "input": 2147547218,
+      "output": 2148391064,
+      "output_size": 244
+    },
+    {
+      "name": "pl_d/1",
+      "input": 2147547458,
+      "output": 2148391308,
+      "output_size": 132
+    },
+    {
+      "name": "bolt_bench_mf0",
+      "input": 2147549184,
+      "output": 2148391440,
+      "output_size": 7074
+    },
+    {
+      "name": "bolt_bench_mf1",
+      "input": 2147565568,
+      "output": 2148398528,
+      "output_size": 7196
+    },
+    {
+      "name": "bolt_bench_mf2",
+      "input": 2147581952,
+      "output": 2148405724,
+      "output_size": 7134
+    },
+    {
+      "name": "bolt_bench_mf3",
+      "input": 2147598336,
+      "output": 2148412864,
+      "output_size": 7074
+    },
+    {
+      "name": "bolt_bench_mf4",
+      "input": 2147614720,
+      "output": 2148419968,
+      "output_size": 7134
+    },
+    {
+      "name": "bolt_bench_mf5",
+      "input": 2147631104,
+      "output": 2148427136,
+      "output_size": 11028
+    },
+    {
+      "name": "bolt_bench_multi",
+      "input": 2147642132,
+      "output": 2148438164,
+      "output_size": 528
+    },
+    {
+      "name": "bolt_sample_on_irq",
+      "input": 2147642650,
+      "output": 2148438720,
+      "output_size": 130
+    },
+    {
+      "name": "bolt_bench_app_entry/1",
+      "input": 2147642776,
+      "output": 2148438852,
+      "output_size": 58
+    },
+    {
+      "name": "bolt_pmu_init_this_cpu/1",
+      "input": 2147642830,
+      "output": 2148438912,
+      "output_size": 148
+    },
+    {
+      "name": "pl_mix/1",
+      "input": 2147642978,
+      "output": 2148439060,
+      "output_size": 298
+    },
+    {
+      "name": "pl_rare/1",
+      "input": 2147643276,
+      "output": 2148439360,
+      "output_size": 90
+    },
+    {
+      "name": "bolt_bench_cmd/1",
+      "input": 2147643366,
+      "output": 2148439452,
+      "output_size": 644
+    },
+    {
+      "name": "bolt_dump_cmd/1",
+      "input": 2147643988,
+      "output": 2148440128,
+      "output_size": 230
+    },
+    {
+      "name": "wdog_cmd/1",
+      "input": 2147644218,
+      "output": 2148440384,
+      "output_size": 260
+    },
+    {
+      "name": "sample_cmd/1",
+      "input": 2147644468,
+      "output": 2148440644,
+      "output_size": 610
+    },
+    {
+      "name": "run_one/1",
+      "input": 2147645064,
+      "output": 2148441280,
+      "output_size": 970
+    },
+    {
+      "name": "pp_kernel/1",
+      "input": 2147646028,
+      "output": 2148442252,
+      "output_size": 96
+    },
+    {
+      "name": "pp_leaf/1",
+      "input": 2147646120,
+      "output": 2148442348,
+      "output_size": 8
+    },
+    {
+      "name": "wdog_tick/1",
+      "input": 2147646128,
+      "output": 2148442368,
+      "output_size": 70
+    },
+    {
+      "name": "sample_arm_this_cpu/1",
+      "input": 2147646198,
+      "output": 2148442440,
+      "output_size": 48
+    },
+    {
+      "name": "sample_disarm_this_cpu/1",
+      "input": 2147646246,
+      "output": 2148442496,
+      "output_size": 20
+    },
+    {
+      "name": "composite_process",
+      "input": 2147646266,
+      "output": 2148442516,
+      "output_size": 20
+    },
+    {
+      "name": "composite_report_cold",
+      "input": 2147646286,
+      "output": 2148442536,
+      "output_size": 14
+    },
+    {
+      "name": "bolt_bench_stair_init",
+      "input": 2147646300,
+      "output": 2148442560,
+      "output_size": 54
+    },
+    {
+      "name": "bolt_bench_stair_step",
+      "input": 2147646354,
+      "output": 2148442624,
+      "output_size": 270
+    },
+    {
+      "name": "shell_entry/1",
+      "input": 2147646622,
+      "output": 2148442896,
+      "output_size": 170
+    },
+    {
+      "name": "get_int_handler",
+      "input": 2147646776,
+      "output": 2148443072,
+      "output_size": 40
+    },
+    {
+      "name": "register_int_handler",
+      "input": 2147646816,
+      "output": 2148443136,
+      "output_size": 194
+    },
+    {
+      "name": "gic_set_enable/1",
+      "input": 2147647004,
+      "output": 2148443332,
+      "output_size": 192
+    },
+    {
+      "name": "arm_gic_init_percpu/1",
+      "input": 2147647184,
+      "output": 2148443524,
+      "output_size": 26
+    },
+    {
+      "name": "arm_gic_suspend_cpu/1",
+      "input": 2147647206,
+      "output": 2148443552,
+      "output_size": 26
+    },
+    {
+      "name": "arm_gic_resume_cpu/1",
+      "input": 2147647232,
+      "output": 2148443584,
+      "output_size": 266
+    },
+    {
+      "name": "gic_configure_interrupt",
+      "input": 2147647486,
+      "output": 2148443852,
+      "output_size": 90
+    },
+    {
+      "name": "arm_gic_init_map",
+      "input": 2147647576,
+      "output": 2148443968,
+      "output_size": 438
+    },
+    {
+      "name": "arm_gic_sgi",
+      "input": 2147647992,
+      "output": 2148444416,
+      "output_size": 36
+    },
+    {
+      "name": "unmask_interrupt",
+      "input": 2147648024,
+      "output": 2148444480,
+      "output_size": 68
+    },
+    {
+      "name": "platform_irq",
+      "input": 2147648088,
+      "output": 2148444548,
+      "output_size": 26
+    },
+    {
+      "name": "platform_fiq",
+      "input": 2147648110,
+      "output": 2148444576,
+      "output_size": 26
+    },
+    {
+      "name": "arm_gicv2_init_percpu",
+      "input": 2147648132,
+      "output": 2148444608,
+      "output_size": 24
+    },
+    {
+      "name": "arm_gicv2_init",
+      "input": 2147648156,
+      "output": 2148444632,
+      "output_size": 306
+    },
+    {
+      "name": "arm_gicv2_sgi",
+      "input": 2147648458,
+      "output": 2148444940,
+      "output_size": 34
+    },
+    {
+      "name": "arm_gicv2_platform_irq",
+      "input": 2147648492,
+      "output": 2148444992,
+      "output_size": 108
+    },
+    {
+      "name": "arm_gicv2_platform_fiq",
+      "input": 2147648594,
+      "output": 2148445120,
+      "output_size": 22
+    },
+    {
+      "name": "arm_gicv3_wait_for_write_complete",
+      "input": 2147648616,
+      "output": 2148445144,
+      "output_size": 18
+    },
+    {
+      "name": "arm_gicv3_init",
+      "input": 2147648634,
+      "output": 2148445184,
+      "output_size": 320
+    },
+    {
+      "name": "arm_gicv3_init_percpu",
+      "input": 2147648954,
+      "output": 2148445504,
+      "output_size": 404
+    },
+    {
+      "name": "arm_gicv3_configure_irq_locked",
+      "input": 2147649350,
+      "output": 2148445908,
+      "output_size": 288
+    },
+    {
+      "name": "arm_gicv3_suspend_cpu",
+      "input": 2147649638,
+      "output": 2148446208,
+      "output_size": 228
+    },
+    {
+      "name": "arm_gicv3_resume_cpu_locked",
+      "input": 2147649862,
+      "output": 2148446464,
+      "output_size": 246
+    },
+    {
+      "name": "arm_gicv3_sgi",
+      "input": 2147650108,
+      "output": 2148446720,
+      "output_size": 142
+    },
+    {
+      "name": "arm_gicv3_platform_irq",
+      "input": 2147650246,
+      "output": 2148446864,
+      "output_size": 90
+    },
+    {
+      "name": "arm_gicv3_platform_fiq",
+      "input": 2147650330,
+      "output": 2148446976,
+      "output_size": 24
+    },
+    {
+      "name": "platform_set_oneshot_timer",
+      "input": 2147650354,
+      "output": 2148447000,
+      "output_size": 138
+    },
+    {
+      "name": "platform_stop_timer",
+      "input": 2147650486,
+      "output": 2148447140,
+      "output_size": 12
+    },
+    {
+      "name": "current_time_hires",
+      "input": 2147650498,
+      "output": 2148447168,
+      "output_size": 88
+    },
+    {
+      "name": "current_time",
+      "input": 2147650586,
+      "output": 2148447256,
+      "output_size": 54
+    },
+    {
+      "name": "arm_generic_timer_init",
+      "input": 2147650640,
+      "output": 2148447312,
+      "output_size": 3122
+    },
+    {
+      "name": "arm_generic_timer_init_postvm/1",
+      "input": 2147653752,
+      "output": 2148450436,
+      "output_size": 56
+    },
+    {
+      "name": "arm_generic_timer_init_secondary_cpu/1",
+      "input": 2147653808,
+      "output": 2148450496,
+      "output_size": 36
+    },
+    {
+      "name": "arm_generic_timer_resume_cpu/1",
+      "input": 2147653844,
+      "output": 2148450532,
+      "output_size": 22
+    },
+    {
+      "name": "platform_tick/1",
+      "input": 2147653866,
+      "output": 2148450560,
+      "output_size": 88
+    },
+    {
+      "name": "cmd_threads/1",
+      "input": 2147653954,
+      "output": 2148450648,
+      "output_size": 22
+    },
+    {
+      "name": "cmd_threads_panic/1",
+      "input": 2147653976,
+      "output": 2148450688,
+      "output_size": 22
+    },
+    {
+      "name": "cmd_threadstats/1",
+      "input": 2147653998,
+      "output": 2148450712,
+      "output_size": 260
+    },
+    {
+      "name": "cmd_threadload/1",
+      "input": 2147654254,
+      "output": 2148450972,
+      "output_size": 78
+    },
+    {
+      "name": "threadload/1",
+      "input": 2147654326,
+      "output": 2148451072,
+      "output_size": 344
+    },
+    {
+      "name": "event_init",
+      "input": 2147654666,
+      "output": 2148451416,
+      "output_size": 42
+    },
+    {
+      "name": "event_wait_timeout",
+      "input": 2147654708,
+      "output": 2148451460,
+      "output_size": 126
+    },
+    {
+      "name": "event_signal",
+      "input": 2147654828,
+      "output": 2148451588,
+      "output_size": 158
+    },
+    {
+      "name": "event_unsignal",
+      "input": 2147654978,
+      "output": 2148451776,
+      "output_size": 46
+    },
+    {
+      "name": "kernel_init_early",
+      "input": 2147655024,
+      "output": 2148451824,
+      "output_size": 4
+    },
+    {
+      "name": "kernel_init",
+      "input": 2147655028,
+      "output": 2148451840,
+      "output_size": 70
+    },
+    {
+      "name": "mutex_threading_ready_init_func/1",
+      "input": 2147655098,
+      "output": 2148451912,
+      "output_size": 14
+    },
+    {
+      "name": "mutex_init",
+      "input": 2147655112,
+      "output": 2148451928,
+      "output_size": 38
+    },
+    {
+      "name": "mutex_acquire_timeout",
+      "input": 2147655150,
+      "output": 2148451968,
+      "output_size": 230
+    },
+    {
+      "name": "mutex_release",
+      "input": 2147655370,
+      "output": 2148452224,
+      "output_size": 176
+    },
+    {
+      "name": "thread_create_etc",
+      "input": 2147655544,
+      "output": 2148452416,
+      "output_size": 314
+    },
+    {
+      "name": "thread_create",
+      "input": 2147655844,
+      "output": 2148452736,
+      "output_size": 34
+    },
+    {
+      "name": "thread_resume",
+      "input": 2147655878,
+      "output": 2148452800,
+      "output_size": 228
+    },
+    {
+      "name": "insert_in_run_queue_head/1",
+      "input": 2147656096,
+      "output": 2148453056,
+      "output_size": 226
+    },
+    {
+      "name": "thread_yield",
+      "input": 2147656322,
+      "output": 2148453312,
+      "output_size": 174
+    },
+    {
+      "name": "thread_detach_and_resume",
+      "input": 2147656496,
+      "output": 2148453504,
+      "output_size": 24
+    },
+    {
+      "name": "thread_detach",
+      "input": 2147656520,
+      "output": 2148453528,
+      "output_size": 152
+    },
+    {
+      "name": "thread_join",
+      "input": 2147656672,
+      "output": 2148453696,
+      "output_size": 382
+    },
+    {
+      "name": "wait_queue_block",
+      "input": 2147657050,
+      "output": 2148454080,
+      "output_size": 250
+    },
+    {
+      "name": "wait_queue_wake_all",
+      "input": 2147657294,
+      "output": 2148454336,
+      "output_size": 350
+    },
+    {
+      "name": "thread_exit",
+      "input": 2147657634,
+      "output": 2148454720,
+      "output_size": 226
+    },
+    {
+      "name": "thread_resched/1",
+      "input": 2147657854,
+      "output": 2148454976,
+      "output_size": 696
+    },
+    {
+      "name": "insert_in_run_queue_tail/1",
+      "input": 2147658536,
+      "output": 2148455680,
+      "output_size": 228
+    },
+    {
+      "name": "thread_preempt",
+      "input": 2147658764,
+      "output": 2148455936,
+      "output_size": 192
+    },
+    {
+      "name": "thread_timer_tick",
+      "input": 2147658954,
+      "output": 2148456128,
+      "output_size": 32
+    },
+    {
+      "name": "thread_sleep",
+      "input": 2147658986,
+      "output": 2148456192,
+      "output_size": 228
+    },
+    {
+      "name": "thread_sleep_handler/1",
+      "input": 2147659214,
+      "output": 2148456448,
+      "output_size": 152
+    },
+    {
+      "name": "thread_init_early",
+      "input": 2147659366,
+      "output": 2148456600,
+      "output_size": 422
+    },
+    {
+      "name": "thread_init",
+      "input": 2147659788,
+      "output": 2148457024,
+      "output_size": 44
+    },
+    {
+      "name": "thread_set_name",
+      "input": 2147659832,
+      "output": 2148457068,
+      "output_size": 14
+    },
+    {
+      "name": "thread_become_idle",
+      "input": 2147659846,
+      "output": 2148457088,
+      "output_size": 130
+    },
+    {
+      "name": "idle_thread_routine/1",
+      "input": 2147659976,
+      "output": 2148457220,
+      "output_size": 8
+    },
+    {
+      "name": "thread_secondary_cpu_init_early",
+      "input": 2147659982,
+      "output": 2148457228,
+      "output_size": 106
+    },
+    {
+      "name": "thread_create_secondary_cpu_idle_thread",
+      "input": 2147660088,
+      "output": 2148457344,
+      "output_size": 188
+    },
+    {
+      "name": "thread_secondary_cpu_entry",
+      "input": 2147660276,
+      "output": 2148457536,
+      "output_size": 94
+    },
+    {
+      "name": "arch_thread_get_backtrace_regs",
+      "input": 2147660366,
+      "output": 2148457632,
+      "output_size": 4
+    },
+    {
+      "name": "dump_thread",
+      "input": 2147660370,
+      "output": 2148457664,
+      "output_size": 194
+    },
+    {
+      "name": "dump_all_threads_unlocked",
+      "input": 2147660558,
+      "output": 2148457860,
+      "output_size": 76
+    },
+    {
+      "name": "dump_all_threads",
+      "input": 2147660634,
+      "output": 2148457936,
+      "output_size": 120
+    },
+    {
+      "name": "dump_threads_stats",
+      "input": 2147660752,
+      "output": 2148458056,
+      "output_size": 260
+    },
+    {
+      "name": "wait_queue_timeout_handler/1",
+      "input": 2147661008,
+      "output": 2148458316,
+      "output_size": 80
+    },
+    {
+      "name": "wait_queue_wake_one",
+      "input": 2147661088,
+      "output": 2148458396,
+      "output_size": 296
+    },
+    {
+      "name": "thread_unblock_from_wait_queue",
+      "input": 2147661374,
+      "output": 2148458692,
+      "output_size": 290
+    },
+    {
+      "name": "timer_initialize",
+      "input": 2147661662,
+      "output": 2148459008,
+      "output_size": 26
+    },
+    {
+      "name": "timer_set_oneshot",
+      "input": 2147661688,
+      "output": 2148459036,
+      "output_size": 26
+    },
+    {
+      "name": "timer_set/1",
+      "input": 2147661714,
+      "output": 2148459072,
+      "output_size": 274
+    },
+    {
+      "name": "timer_set_periodic",
+      "input": 2147661982,
+      "output": 2148459348,
+      "output_size": 26
+    },
+    {
+      "name": "timer_cancel",
+      "input": 2147662008,
+      "output": 2148459392,
+      "output_size": 202
+    },
+    {
+      "name": "timer_tick/1",
+      "input": 2147662208,
+      "output": 2148459596,
+      "output_size": 414
+    },
+    {
+      "name": "timer_init",
+      "input": 2147662602,
+      "output": 2148460032,
+      "output_size": 50
+    },
+    {
+      "name": "insert_timer_in_queue/1",
+      "input": 2147662652,
+      "output": 2148460096,
+      "output_size": 100
+    },
+    {
+      "name": "mp_init",
+      "input": 2147662752,
+      "output": 2148460224,
+      "output_size": 38
+    },
+    {
+      "name": "mp_reschedule",
+      "input": 2147662790,
+      "output": 2148460288,
+      "output_size": 102
+    },
+    {
+      "name": "mp_set_curr_cpu_active",
+      "input": 2147662882,
+      "output": 2148460416,
+      "output_size": 74
+    },
+    {
+      "name": "mp_sync_exec",
+      "input": 2147662950,
+      "output": 2148460492,
+      "output_size": 354
+    },
+    {
+      "name": "mp_mbx_generic_irq",
+      "input": 2147663296,
+      "output": 2148460864,
+      "output_size": 154
+    },
+    {
+      "name": "mp_mbx_reschedule_irq",
+      "input": 2147663450,
+      "output": 2148461020,
+      "output_size": 56
+    },
+    {
+      "name": "port_init",
+      "input": 2147663506,
+      "output": 2148461076,
+      "output_size": 14
+    },
+    {
+      "name": "cbuf_initialize",
+      "input": 2147663520,
+      "output": 2148461092,
+      "output_size": 26
+    },
+    {
+      "name": "cbuf_initialize_etc",
+      "input": 2147663546,
+      "output": 2148461120,
+      "output_size": 150
+    },
+    {
+      "name": "cbuf_write_char",
+      "input": 2147663684,
+      "output": 2148461272,
+      "output_size": 158
+    },
+    {
+      "name": "cbuf_read_char",
+      "input": 2147663840,
+      "output": 2148461440,
+      "output_size": 192
+    },
+    {
+      "name": "fdt_ro_probe_",
+      "input": 2147664022,
+      "output": 2148461632,
+      "output_size": 126
+    },
+    {
+      "name": "fdt_check_header",
+      "input": 2147664146,
+      "output": 2148461760,
+      "output_size": 256
+    },
+    {
+      "name": "fdt_offset_ptr",
+      "input": 2147664386,
+      "output": 2148462016,
+      "output_size": 100
+    },
+    {
+      "name": "fdt_next_tag",
+      "input": 2147664484,
+      "output": 2148462144,
+      "output_size": 226
+    },
+    {
+      "name": "fdt_check_node_offset_",
+      "input": 2147664676,
+      "output": 2148462400,
+      "output_size": 38
+    },
+    {
+      "name": "fdt_check_prop_offset_",
+      "input": 2147664714,
+      "output": 2148462464,
+      "output_size": 38
+    },
+    {
+      "name": "fdt_next_node",
+      "input": 2147664752,
+      "output": 2148462528,
+      "output_size": 144
+    },
+    {
+      "name": "fdt_address_cells",
+      "input": 2147664886,
+      "output": 2148462672,
+      "output_size": 64
+    },
+    {
+      "name": "fdt_size_cells",
+      "input": 2147664942,
+      "output": 2148462736,
+      "output_size": 66
+    },
+    {
+      "name": "fdt_get_string",
+      "input": 2147665004,
+      "output": 2148462804,
+      "output_size": 172
+    },
+    {
+      "name": "fdt_get_name",
+      "input": 2147665166,
+      "output": 2148462976,
+      "output_size": 136
+    },
+    {
+      "name": "fdt_get_property_namelen_/1",
+      "input": 2147665296,
+      "output": 2148463112,
+      "output_size": 286
+    },
+    {
+      "name": "fdt_getprop",
+      "input": 2147665564,
+      "output": 2148463424,
+      "output_size": 86
+    },
+    {
+      "name": "platform_halt_default",
+      "input": 2147665646,
+      "output": 2148463512,
+      "output_size": 106
+    },
+    {
+      "name": "cmd_reboot/1",
+      "input": 2147665740,
+      "output": 2148463620,
+      "output_size": 8
+    },
+    {
+      "name": "cmd_poweroff/1",
+      "input": 2147665748,
+      "output": 2148463628,
+      "output_size": 8
+    },
+    {
+      "name": "boot_alloc_mem",
+      "input": 2147665760,
+      "output": 2148463636,
+      "output_size": 28
+    },
+    {
+      "name": "vm_page_to_paddr",
+      "input": 2147665788,
+      "output": 2148463680,
+      "output_size": 80
+    },
+    {
+      "name": "paddr_to_vm_page",
+      "input": 2147665866,
+      "output": 2148463760,
+      "output_size": 58
+    },
+    {
+      "name": "pmm_add_arena",
+      "input": 2147665922,
+      "output": 2148463820,
+      "output_size": 220
+    },
+    {
+      "name": "pmm_alloc_pages",
+      "input": 2147666140,
+      "output": 2148464064,
+      "output_size": 148
+    },
+    {
+      "name": "pmm_alloc_page",
+      "input": 2147666278,
+      "output": 2148464212,
+      "output_size": 174
+    },
+    {
+      "name": "pmm_alloc_range",
+      "input": 2147666438,
+      "output": 2148464388,
+      "output_size": 254
+    },
+    {
+      "name": "pmm_free",
+      "input": 2147666686,
+      "output": 2148464644,
+      "output_size": 182
+    },
+    {
+      "name": "pmm_free_page",
+      "input": 2147666862,
+      "output": 2148464832,
+      "output_size": 24
+    },
+    {
+      "name": "pmm_alloc_kpages",
+      "input": 2147666886,
+      "output": 2148464856,
+      "output_size": 140
+    },
+    {
+      "name": "pmm_alloc_contiguous",
+      "input": 2147667014,
+      "output": 2148465024,
+      "output_size": 432
+    },
+    {
+      "name": "pmm_free_kpages",
+      "input": 2147667428,
+      "output": 2148465472,
+      "output_size": 118
+    },
+    {
+      "name": "cmd_pmm/1",
+      "input": 2147667536,
+      "output": 2148465600,
+      "output_size": 1342
+    },
+    {
+      "name": "paddr_to_kvaddr",
+      "input": 2147668834,
+      "output": 2148466944,
+      "output_size": 70
+    },
+    {
+      "name": "vaddr_to_paddr",
+      "input": 2147668894,
+      "output": 2148467016,
+      "output_size": 78
+    },
+    {
+      "name": "vm_init_preheap/1",
+      "input": 2147668966,
+      "output": 2148467096,
+      "output_size": 266
+    },
+    {
+      "name": "vm_init_postheap/1",
+      "input": 2147669224,
+      "output": 2148467392,
+      "output_size": 78
+    },
+    {
+      "name": "cmd_vm/1",
+      "input": 2147669290,
+      "output": 2148467472,
+      "output_size": 570
+    },
+    {
+      "name": "vmm_init_preheap",
+      "input": 2147669814,
+      "output": 2148468044,
+      "output_size": 84
+    },
+    {
+      "name": "arch_mmu_pick_spot",
+      "input": 2147669900,
+      "output": 2148468128,
+      "output_size": 12
+    },
+    {
+      "name": "vmm_reserve_space",
+      "input": 2147669912,
+      "output": 2148468160,
+      "output_size": 234
+    },
+    {
+      "name": "alloc_region/1",
+      "input": 2147670142,
+      "output": 2148468416,
+      "output_size": 540
+    },
+    {
+      "name": "vmm_alloc_physical",
+      "input": 2147670660,
+      "output": 2148468956,
+      "output_size": 334
+    },
+    {
+      "name": "vmm_remove_region_locked/1",
+      "input": 2147670976,
+      "output": 2148469312,
+      "output_size": 190
+    },
+    {
+      "name": "vmm_alloc_contiguous",
+      "input": 2147671162,
+      "output": 2148469504,
+      "output_size": 400
+    },
+    {
+      "name": "vmm_alloc",
+      "input": 2147671552,
+      "output": 2148469904,
+      "output_size": 550
+    },
+    {
+      "name": "vmm_free_region",
+      "input": 2147672100,
+      "output": 2148470464,
+      "output_size": 130
+    },
+    {
+      "name": "vmm_create_aspace",
+      "input": 2147672222,
+      "output": 2148470596,
+      "output_size": 212
+    },
+    {
+      "name": "vmm_free_aspace",
+      "input": 2147672428,
+      "output": 2148470808,
+      "output_size": 294
+    },
+    {
+      "name": "vmm_context_switch",
+      "input": 2147672720,
+      "output": 2148471104,
+      "output_size": 58
+    },
+    {
+      "name": "cmd_vmm/1",
+      "input": 2147672774,
+      "output": 2148471168,
+      "output_size": 924
+    },
+    {
+      "name": "cmdline_cmd_show/1",
+      "input": 2147673676,
+      "output": 2148472092,
+      "output_size": 106
+    },
+    {
+      "name": "cmdline_cmd_present/1",
+      "input": 2147673778,
+      "output": 2148472200,
+      "output_size": 116
+    },
+    {
+      "name": "cmdline_cmd_value/1",
+      "input": 2147673892,
+      "output": 2148472320,
+      "output_size": 218
+    },
+    {
+      "name": "cmdline_cmd_string/1",
+      "input": 2147674076,
+      "output": 2148472540,
+      "output_size": 318
+    },
+    {
+      "name": "cmdline_cmd_bool/1",
+      "input": 2147674344,
+      "output": 2148472860,
+      "output_size": 222
+    },
+    {
+      "name": "cmdline_cmd_u32/1",
+      "input": 2147674532,
+      "output": 2148473088,
+      "output_size": 202
+    },
+    {
+      "name": "cmdline_cmd_u64/1",
+      "input": 2147674696,
+      "output": 2148473292,
+      "output_size": 206
+    },
+    {
+      "name": "cmdline_cmd_int/1",
+      "input": 2147674864,
+      "output": 2148473500,
+      "output_size": 198
+    },
+    {
+      "name": "cmdline_print_escaped/1",
+      "input": 2147675024,
+      "output": 2148473728,
+      "output_size": 300
+    },
+    {
+      "name": "cmdline_get_value",
+      "input": 2147675226,
+      "output": 2148474048,
+      "output_size": 92
+    },
+    {
+      "name": "find_variable/1",
+      "input": 2147675316,
+      "output": 2148474140,
+      "output_size": 486
+    },
+    {
+      "name": "cmdline_is_present",
+      "input": 2147675762,
+      "output": 2148474628,
+      "output_size": 52
+    },
+    {
+      "name": "cmdline_get_string",
+      "input": 2147675808,
+      "output": 2148474688,
+      "output_size": 364
+    },
+    {
+      "name": "cmdline_get_bool",
+      "input": 2147676084,
+      "output": 2148475072,
+      "output_size": 230
+    },
+    {
+      "name": "cmdline_get_uint32",
+      "input": 2147676280,
+      "output": 2148475328,
+      "output_size": 114
+    },
+    {
+      "name": "parse_unsigned_int/1",
+      "input": 2147676382,
+      "output": 2148475456,
+      "output_size": 276
+    },
+    {
+      "name": "cmdline_get_uint64",
+      "input": 2147676642,
+      "output": 2148475732,
+      "output_size": 100
+    },
+    {
+      "name": "cmdline_get_int",
+      "input": 2147676734,
+      "output": 2148475840,
+      "output_size": 166
+    },
+    {
+      "name": "cmdline_get_raw_string",
+      "input": 2147676886,
+      "output": 2148476008,
+      "output_size": 12
+    },
+    {
+      "name": "cmdline_get_raw_size",
+      "input": 2147676898,
+      "output": 2148476032,
+      "output_size": 12
+    },
+    {
+      "name": "console_set_current",
+      "input": 2147676910,
+      "output": 2148476044,
+      "output_size": 20
+    },
+    {
+      "name": "console_create",
+      "input": 2147676930,
+      "output": 2148476096,
+      "output_size": 60
+    },
+    {
+      "name": "console_start",
+      "input": 2147676986,
+      "output": 2148476160,
+      "output_size": 96
+    },
+    {
+      "name": "command_loop/1",
+      "input": 2147677082,
+      "output": 2148476288,
+      "output_size": 1170
+    },
+    {
+      "name": "read_debug_line/1",
+      "input": 2147678180,
+      "output": 2148477460,
+      "output_size": 600
+    },
+    {
+      "name": "console_run_script",
+      "input": 2147678700,
+      "output": 2148478080,
+      "output_size": 154
+    },
+    {
+      "name": "console_run_script_locked",
+      "input": 2147678842,
+      "output": 2148478236,
+      "output_size": 156
+    },
+    {
+      "name": "convert_args/1",
+      "input": 2147678986,
+      "output": 2148478400,
+      "output_size": 194
+    },
+    {
+      "name": "cmd_help/1",
+      "input": 2147679166,
+      "output": 2148478596,
+      "output_size": 216
+    },
+    {
+      "name": "cmd_help_panic/1",
+      "input": 2147679372,
+      "output": 2148478812,
+      "output_size": 146
+    },
+    {
+      "name": "cmd_echo/1",
+      "input": 2147679512,
+      "output": 2148478976,
+      "output_size": 52
+    },
+    {
+      "name": "cmd_test/1",
+      "input": 2147679560,
+      "output": 2148479040,
+      "output_size": 78
+    },
+    {
+      "name": "cmd_history/1",
+      "input": 2147679638,
+      "output": 2148479120,
+      "output_size": 112
+    },
+    {
+      "name": "cmd_repeat/1",
+      "input": 2147679742,
+      "output": 2148479232,
+      "output_size": 244
+    },
+    {
+      "name": "compare_cmds/1",
+      "input": 2147679974,
+      "output": 2148479476,
+      "output_size": 8
+    },
+    {
+      "name": "background_command_exec/1",
+      "input": 2147679982,
+      "output": 2148479488,
+      "output_size": 64
+    },
+    {
+      "name": "fetch_next_line/1",
+      "input": 2147680046,
+      "output": 2148479552,
+      "output_size": 80
+    },
+    {
+      "name": "fp_32_64_snprintf",
+      "input": 2147680120,
+      "output": 2148479632,
+      "output_size": 488
+    },
+    {
+      "name": "heap_init",
+      "input": 2147680596,
+      "output": 2148480128,
+      "output_size": 32
+    },
+    {
+      "name": "heap_free_delayed_list/1",
+      "input": 2147680628,
+      "output": 2148480192,
+      "output_size": 126
+    },
+    {
+      "name": "malloc",
+      "input": 2147680754,
+      "output": 2148480320,
+      "output_size": 74
+    },
+    {
+      "name": "calloc",
+      "input": 2147680826,
+      "output": 2148480396,
+      "output_size": 104
+    },
+    {
+      "name": "realloc",
+      "input": 2147680928,
+      "output": 2148480512,
+      "output_size": 84
+    },
+    {
+      "name": "free",
+      "input": 2147681010,
+      "output": 2148480596,
+      "output_size": 44
+    },
+    {
+      "name": "heap_delayed_free",
+      "input": 2147681054,
+      "output": 2148480640,
+      "output_size": 96
+    },
+    {
+      "name": "cmd_heap/1",
+      "input": 2147681150,
+      "output": 2148480768,
+      "output_size": 588
+    },
+    {
+      "name": "page_alloc",
+      "input": 2147681718,
+      "output": 2148481356,
+      "output_size": 6
+    },
+    {
+      "name": "page_free",
+      "input": 2147681724,
+      "output": 2148481364,
+      "output_size": 36
+    },
+    {
+      "name": "page_first_alloc",
+      "input": 2147681756,
+      "output": 2148481408,
+      "output_size": 14
+    },
+    {
+      "name": "cmd_page_alloc/1",
+      "input": 2147681770,
+      "output": 2148481424,
+      "output_size": 100
+    },
+    {
+      "name": "memcpy",
+      "input": 2147681876,
+      "output": 2148481536,
+      "output_size": 256
+    },
+    {
+      "name": "memset",
+      "input": 2147682140,
+      "output": 2148481792,
+      "output_size": 148
+    },
+    {
+      "name": "atol",
+      "input": 2147682288,
+      "output": 2148481940,
+      "output_size": 208
+    },
+    {
+      "name": "atoul",
+      "input": 2147682474,
+      "output": 2148482176,
+      "output_size": 138
+    },
+    {
+      "name": "atoull",
+      "input": 2147682604,
+      "output": 2148482316,
+      "output_size": 176
+    },
+    {
+      "name": "strtoul",
+      "input": 2147682762,
+      "output": 2148482496,
+      "output_size": 266
+    },
+    {
+      "name": "isspace",
+      "input": 2147683010,
+      "output": 2148482764,
+      "output_size": 44
+    },
+    {
+      "name": "isdigit",
+      "input": 2147683054,
+      "output": 2148482816,
+      "output_size": 14
+    },
+    {
+      "name": "isalnum",
+      "input": 2147683068,
+      "output": 2148482832,
+      "output_size": 34
+    },
+    {
+      "name": "isxdigit",
+      "input": 2147683102,
+      "output": 2148482880,
+      "output_size": 34
+    },
+    {
+      "name": "isprint",
+      "input": 2147683136,
+      "output": 2148482916,
+      "output_size": 14
+    },
+    {
+      "name": "tolower",
+      "input": 2147683150,
+      "output": 2148482944,
+      "output_size": 14
+    },
+    {
+      "name": "__geterrno",
+      "input": 2147683164,
+      "output": 2148482960,
+      "output_size": 8
+    },
+    {
+      "name": "snprintf",
+      "input": 2147683172,
+      "output": 2148482968,
+      "output_size": 26
+    },
+    {
+      "name": "vfprintf",
+      "input": 2147685084,
+      "output": 2148483008,
+      "output_size": 2118
+    },
+    {
+      "name": "printf",
+      "input": 2147686856,
+      "output": 2148485128,
+      "output_size": 42
+    },
+    {
+      "name": "vprintf",
+      "input": 2147686898,
+      "output": 2148485184,
+      "output_size": 18
+    },
+    {
+      "name": "_printf_longlong_to_string",
+      "input": 2147686916,
+      "output": 2148485204,
+      "output_size": 214
+    },
+    {
+      "name": "_printf_longlong_to_hexstring",
+      "input": 2147687130,
+      "output": 2148485440,
+      "output_size": 70
+    },
+    {
+      "name": "qsort",
+      "input": 2147687200,
+      "output": 2148485512,
+      "output_size": 1478
+    },
+    {
+      "name": "putchar",
+      "input": 2147688612,
+      "output": 2148486992,
+      "output_size": 46
+    },
+    {
+      "name": "fputs",
+      "input": 2147688658,
+      "output": 2148487040,
+      "output_size": 40
+    },
+    {
+      "name": "getchar",
+      "input": 2147688694,
+      "output": 2148487104,
+      "output_size": 42
+    },
+    {
+      "name": "_fprintf_output_func",
+      "input": 2147688736,
+      "output": 2148487168,
+      "output_size": 20
+    },
+    {
+      "name": "__udivmoddi4",
+      "input": 2147688756,
+      "output": 2148487188,
+      "output_size": 182
+    },
+    {
+      "name": "__aeabi_uldivmod",
+      "input": 2147688928,
+      "output": 2148487372,
+      "output_size": 20
+    },
+    {
+      "name": "memchr",
+      "input": 2147688948,
+      "output": 2148487392,
+      "output_size": 26
+    },
+    {
+      "name": "memcmp",
+      "input": 2147688970,
+      "output": 2148487424,
+      "output_size": 42
+    },
+    {
+      "name": "strcmp",
+      "input": 2147689012,
+      "output": 2148487488,
+      "output_size": 24
+    },
+    {
+      "name": "strdup",
+      "input": 2147689032,
+      "output": 2148487512,
+      "output_size": 36
+    },
+    {
+      "name": "strlcpy",
+      "input": 2147689064,
+      "output": 2148487552,
+      "output_size": 62
+    },
+    {
+      "name": "strlen",
+      "input": 2147689118,
+      "output": 2148487616,
+      "output_size": 14
+    },
+    {
+      "name": "strncmp",
+      "input": 2147689132,
+      "output": 2148487632,
+      "output_size": 48
+    },
+    {
+      "name": "strncasecmp",
+      "input": 2147689176,
+      "output": 2148487680,
+      "output_size": 94
+    },
+    {
+      "name": "strnlen",
+      "input": 2147689260,
+      "output": 2148487776,
+      "output_size": 34
+    },
+    {
+      "name": "strrchr",
+      "input": 2147689286,
+      "output": 2148487812,
+      "output_size": 34
+    },
+    {
+      "name": "miniheap_dump",
+      "input": 2147689316,
+      "output": 2148487872,
+      "output_size": 108
+    },
+    {
+      "name": "miniheap_alloc",
+      "input": 2147689420,
+      "output": 2148488000,
+      "output_size": 668
+    },
+    {
+      "name": "heap_create_free_chunk/1",
+      "input": 2147690074,
+      "output": 2148488668,
+      "output_size": 58
+    },
+    {
+      "name": "miniheap_realloc",
+      "input": 2147690132,
+      "output": 2148488728,
+      "output_size": 492
+    },
+    {
+      "name": "miniheap_free",
+      "input": 2147690596,
+      "output": 2148489220,
+      "output_size": 214
+    },
+    {
+      "name": "heap_insert_free_chunk/1",
+      "input": 2147690802,
+      "output": 2148489436,
+      "output_size": 164
+    },
+    {
+      "name": "miniheap_trim",
+      "input": 2147690948,
+      "output": 2148489600,
+      "output_size": 354
+    },
+    {
+      "name": "miniheap_init",
+      "input": 2147691282,
+      "output": 2148489984,
+      "output_size": 158
+    },
+    {
+      "name": "__debug_stdio_write/1",
+      "input": 2147691430,
+      "output": 2148490176,
+      "output_size": 122
+    },
+    {
+      "name": "__debug_stdio_read/1",
+      "input": 2147691544,
+      "output": 2148490304,
+      "output_size": 32
+    },
+    {
+      "name": "io_write",
+      "input": 2147691576,
+      "output": 2148490368,
+      "output_size": 56
+    },
+    {
+      "name": "io_read",
+      "input": 2147691632,
+      "output": 2148490432,
+      "output_size": 56
+    },
+    {
+      "name": "__Thumbv7ABSLongThunk_arm_context_switch/1",
+      "input": 2147691688,
+      "output": 2148490496,
+      "output_size": 10
+    },
+    {
+      "name": "__Thumbv7ABSLongThunk_arch_spin_unlock/1",
+      "input": 2147691698,
+      "output": 2148490508,
+      "output_size": 10
+    },
+    {
+      "name": "__ARMv7ABSLongThunk_thread_preempt/1",
+      "input": 2147691708,
+      "output": 2148490520,
+      "output_size": 12
+    },
+    {
+      "name": "__ARMv7ABSLongThunk_arm_mmu_init/1",
+      "input": 2147691720,
+      "output": 2148490532,
+      "output_size": 12
+    },
+    {
+      "name": "__ARMv7ABSLongThunk_lk_secondary_cpu_entry/1",
+      "input": 2147691732,
+      "output": 2148490544,
+      "output_size": 12
+    },
+    {
+      "name": "__Thumbv7ABSLongThunk_bolt_bench_tail_arm_callee/1",
+      "input": 2147691744,
+      "output": 2148490560,
+      "output_size": 10
+    },
+    {
+      "name": "__Thumbv7ABSLongThunk_bolt_bench_interwork/1",
+      "input": 2147691754,
+      "output": 2148490572,
+      "output_size": 10
+    }
+  ],
+  "redirected": [
+    {
+      "name": "bolt_bench_interwork",
+      "input": 2147526744,
+      "output": 2148370304,
+      "output_size": 128,
+      "thumb": false,
+      "branch_hex": "c83703ea"
+    },
+    {
+      "name": "bolt_bench_memcpy",
+      "input": 2147527220,
+      "output": 2148370816,
+      "output_size": 220,
+      "thumb": true,
+      "branch_hex": "cdf0a4bf"
+    }
+  ],
+  "execution_verified": false,
+  "binary_sha256": "69f1e55d38ab63cfcf2e90f6a809170355d734a964fa17ed75d13bd524abe300",
+  "baseline_binary_sha256": "ee9982ba422fa5e40854f0c21c298b20c4be02eb349413eefe7fdcf53bedd612",
+  "sample_buffer": {
+    "address": 2147754224,
+    "size": 524288
+  },
+  "restored_sections": [
+    ".bolt.org.text",
+    ".data",
+    ".rodata",
+    "lk_init",
+    "commands",
+    "apps",
+    ".ctors"
+  ],
+  "bolt_options": [
+    "--no-huge-pages",
+    "-lite=0",
+    "-reorder-blocks=ext-tsp",
+    "-reorder-functions=hfsort+",
+    "-icf=all",
+    "--skip-funcs=arm_reset,arm_secondary_setup,arm_undefined,arm_syscall,arm_prefetch_abort,arm_data_abort,arm_irq,arm_fiq,arm_secondary_entry,bcopy,bzero,vsnprintf"
+  ],
+  "tool_sha256": {
+    "llvm-bolt": "115fc3a61d5b8871cae7aae010377d42ee3c4d8b3d6ad97b2d7f880541571c74",
+    "llvm-objcopy": "f80e39c3121994c8b5baf3b9c2e586d4ffcd8da332e6c2c51b9f86fb482207de",
+    "llvm-readelf": "34ffb11d9ed81366c93817f462483e1d76b341c90d35f85895d5b768b0b974ac",
+    "llvm-nm": "73c4b2a3e9d39cbaa531208f78d0e29f20d74fe00dfc64da8848d1f9562ea791"
+  },
+  "patch_sha256": {
+    "0001-emit-bolt-instr-tables-on-elf.patch": "49269895b37e21ee39d410a2717417b08bddb42974b5e99fba87636e227de16f",
+    "0002-tolerate-secondary-entrypoint-outside-code-section.patch": "2460f45fbe39ad520a591d37edf5925e74d7acc2e107e399ad87607e4dfab41d",
+    "0003-bolt-arm-elf32-and-target.patch": "cb2ed805a49b73c6122d4c6c0481c9703009689fa8873c4c3a06632af354d2f5",
+    "0004-bolt-arm-mcplusbuilder.patch": "d2025105313fefb9c7e304a6dda4df227e483cd4be93ab55902451949932bbb0",
+    "0005-bolt-arm-relocations.patch": "27b15ca9aaf28792ba9b98aaaf2edacc3f46a1e4730deee882e40a4698fe2800",
+    "0006-bolt-arm-rewrite-dispatch.patch": "825de9a51c22543e9c7d9a0cee01a526b4c5fb7e0d1b6b6be9171cea1287dba3",
+    "0007-bolt-arm-lit-tests.patch": "ae0e05384a0d24f6475f425f5cfb90fca98ca94c53d8d0487a151045b70c3d5a",
+    "0008-jitlink-arm-generic-archkind.patch": "7a30ef8fec31cda68bb63e128edecd75eb3bc0aad4141d0a2267e9e5abe3d8ff",
+    "0009-bolt-arm-longjmp-veneers.patch": "2950d0d2dddf856a83d84f45029f8c769b9832cdf10f99f486d50e7f12e7e379",
+    "0010-bolt-arm-instrumentation.patch": "1acf956dab22a687c2d53e1f0e6c49a439309957986644e8325234acb1b067a4",
+    "0011-bolt-arm-reverse-cbz.patch": "ddad8f56439d393eeb5ede2a158e3967540480be99f15425b6a64473caf7db15",
+    "0012-jitlink-arm-thumb-stub-alignment.patch": "15494da3e1e735474b84b39664b3acbadd9cdcc49b34f0a324372852fe6f267d",
+    "0013-bolt-emit-function-map.patch": "99d3c782f692bff0cfb4580d94c549e20ce664aa68eef6762cb5a2ca9282f397",
+    "0014-bolt-arm-literal-loads.patch": "8861406e0bfbd6bb6747adec762b22a85c5dfe87726c5dd4623a0d21acad1da8",
+    "0015-bolt-arm-unwind-rejection.patch": "ade687b385030923f6870345bfb287df44ff8e551749e6366b564383eee8ce54",
+    "0016-bolt-arm-data-fixup-width.patch": "2751b9ac14c11453f4f0cfe90477c157aba202280bac6b18103a6affda4dc568",
+    "0017-jitlink-arm-blx-stub-link.patch": "e50459022d2bf599c619c57ebca46035989cae1c1c5a912e617ca19a0c6b358a",
+    "0018-bolt-arm-pop-terminators.patch": "01722cd389cd657c60045bea3b7ded528e57343444aa58cc75602aee378cf6de",
+    "0019-deterministic-arm-stubs-and-alignment.patch": "179e2642d141217d73ab34a2170a59cdc868de47fb54f7d73afa4de77af530ec",
+    "0020-preserve-flags-in-cbz-long-branches.patch": "9b0923d9d680d3e8453fb755166809db921262ca32fdca577d26dc456b19c315",
+    "0021-preserve-thumb-entry-and-symbol-state.patch": "faaac1ec8a3b0a46fd1808a311b800500b60003175dcbe8d7c9950669f116ae2",
+    "0022-bolt-arm-thumb-jump19-split-functions.patch": "8d51bf51f92eaadb5b23e701c77179a65b17b68ca4705d3c898f96cc252958cd",
+    "0023-bolt-arm-generic-passes.patch": "cc93b6883bab0531ff041d43473128b16b4bb6ca70654c29496a3f0b48801806",
+    "0024-bolt-arm-inline-switch-tables.patch": "b1856915369978bf779613bab9ba40753cc39e52edf2258c55ef0cdf3d61d3a1",
+    "0025-bolt-arm-attributes-kept-code.patch": "72aaaa063316350a7a368b0bff5323febfc8ee161b5ccaba1974d246e36d60f5",
+    "0026-bolt-arm-full-width-counters.patch": "52743dc6e4a099df4b6a107537ae18807e3f9ca1ff068c1b715eebe6519c468e",
+    "0027-bolt-arm-terminal-it-branches.patch": "e9fb10d80d9ab3720bfb43b8a73f3dccfbbe4ff235efe52b14d61330150eaa30",
+    "0028-bolt-arm-instrumentation-contract.patch": "b203cacc72fcae4d3b83df4fc2d4c9c704a44f7b599ad0efc921b24bf5143703",
+    "0029-bolt-arm-pseudo-count-invariants.patch": "941bf3095f1d2080606c1b1c17a584e774d1c52e48b8aef08116ddd71eb85ba2",
+    "0030-bolt-arm-function-fallthrough.patch": "7b99d65e9c9abd569b7e55cb0af4461ea34355fb830575db9ad02a290bad43a9",
+    "0031-bolt-arm-self-move-flags.patch": "5388caa9e8d318682d001a9a52f88e010f2012fd99ee130bff10fc696d605ee0",
+    "0032-bolt-arm-inline-safety.patch": "4be51041d90091485bbd1110371d01de2ccaa9e8320f2eef7c879d938247bb70",
+    "0033-bolt-arm-pc-write-admission.patch": "717127d4b5298022246d70fd7647d7dc4d5600301cb73b485e303526e2b1dd96",
+    "0034-bolt-arm-inline-pass-tests.patch": "e9001fa210bb1656060cce70d661d5286e71c035e1b712f92756e6594ab1116c",
+    "0035-bolt-arm-exception-return-admission.patch": "a5fb2a2af1d8c1a79a88dbf67c70a6f11cec5d3a149af2ee448b629189e98609",
+    "0036-bolt-arm-conditional-return-instrumentation.patch": "0855669ab274d51c2d47e7910adbbb32fca38d3ae634a514252480fb2ba13de9",
+    "0037-bolt-arm-exclusive-instrumentation.patch": "2ead60639d5a3572b47901dbf67d6f0bb6e0e075768798b2115d05c8770ee602",
+    "0038-bolt-arm-cross-function-exclusive-reservations.patch": "21fe8aa4cceb0392131bef1a7e54ac27221b6eda369e1767665f5d2a6c72eba6",
+    "0039-bolt-arm-interior-exclusive-reservations.patch": "9960b704ba3cc5a96313c9fdd38bf5ab7416cd0943e3fbd7227728cbc5e713a2",
+    "0040-bolt-arm-instrumentation-startup.patch": "972fc766e581961659a2ad38d81af086f231fbfedac02c3969b2647a4ff9ef34",
+    "0041-bolt-arm-isa-abi-contract.patch": "c07a6d1d304b3b49051a1a1e6d08ed7eb9e6105507133e8c599e8a6833d3fa2e",
+    "0042-bolt-arm-fixed-load-contract.patch": "3b1308b69c9d775dd1f12deaa7a090ed07bdbed9645399e7c1d0cf43e19c416b",
+    "0043-bolt-arm-profile-source-identity.patch": "9eb4b60aad28cd052cff602bfaa59f51287eef8f53ac2eeee53b107aa770da17",
+    "0044-bolt-arm-thumb-far-stub-isa.patch": "7e401a3682e13e423c4f62246ba13cc868f441d9bfad64cc09da6a9f456f8a3b",
+    "0045-bolt-arm-pc-read-admission.patch": "a4a7c764b473977024e30f921b58c013e0a9f0fc965d3ed0f03c866d020c2dbe",
+    "0046-bolt-arm-external-branch-repatch.patch": "6ccc1a49c8a5b16af4d7aa8891ed14c87d3d673b7413b25068577f7558f3e223",
+    "0047-bolt-riscv64-relocation-dispatch.patch": "c3fce9dcc183f9c82b6c294fd9db8391e151c7a9dad80de400b89937405df713",
+    "0048-bolt-arm-patch-entries-isa.patch": "9acb8b922b50495a7fcb854820139837f200116024f68fd11dae5330535a3c4e",
+    "0049-bolt-arm-far-tail-call-stub.patch": "712826a14905ed55aedce1e52ab0d16724d38f9ecc4facd2040aa11106fa8cb7",
+    "0050-bolt-arm-isa-traps-and-nops.patch": "db2fcee830f74874cb13262232bf16463f28bac155d955e37c2d1387c7104f97",
+    "0051-bolt-arm-conditional-tail-calls.patch": "542f9963c424cc502d86425be5a54eec86d126e5cac416fbf0ccdc8690de0878",
+    "0052-bolt-arm-noreturn-calls.patch": "390245901cc275e6ca77ceda6f8f26ab6ccee4a5c7a5371dcbdff84a964a4ef7",
+    "0053-bolt-arm-predicated-returns-calls.patch": "97e0cb7e401fa2a812935fc1a2954b68e07129b6dd0a5165849fd25ab75c3460",
+    "0054-bolt-arm-admission-report.patch": "00a8585f9f49c0135d89c5c2c1d0c3332cbeaddfdbedb26cd68447ef918ab3ef"
+  },
+  "repository_revision": "0b2b3204da9b4fcb556a2c00e10725bf98cdb907",
+  "script_sha256": {
+    "scripts/pi4/full_image_build.py": "7d103abf40776f6d82cf95a1fd3496494e815a4031df149e38d3e7d66687625e",
+    "scripts/redirect-bolt-entries.py": "42dd1c4ddd2078f7a34ef15ed59b93eda2d07a34bd886fa5df8b6c6124e693ee",
+    "scripts/fix-kernel-elf-sections.py": "ac234f4fd1fafe97ffbea75df4532cd3abd959ed6bbd14f7964eaed865187934",
+    "scripts/fix-kernel-elf-entry.py": "3c3a3d3643aa80cd9701c0a9ba701f0777a2e357485f4ec7900dc3e44bd15833",
+    "scripts/fix-kernel-elf-paddr.py": "76409f97c93f9c0a41301104d5da92461181ecdd37d637c24f1729503363fc96",
+    "scripts/profile_identity.py": "7e6fedf6de313a6029525f381e3d1c571656e922bd32bb14daa097c71ab79689"
+  },
+  "input_functions": [
+    {
+      "name": "bcm2711_gic_init",
+      "address": 2147517170,
+      "size": 12,
+      "thumb": true
+    },
+    {
+      "name": "bcm28xx_watchdog_reset",
+      "address": 2147517676,
+      "size": 48,
+      "thumb": true
+    },
+    {
+      "name": "bcm28xx_poweroff",
+      "address": 2147517724,
+      "size": 76,
+      "thumb": true
+    },
+    {
+      "name": "uart_irq",
+      "address": 2147517872,
+      "size": 74,
+      "thumb": true
+    },
+    {
+      "name": "dcc_worker_entry",
+      "address": 2147518058,
+      "size": 70,
+      "thumb": true
+    },
+    {
+      "name": "cmd_dcc",
+      "address": 2147518128,
+      "size": 506,
+      "thumb": true
+    },
+    {
+      "name": "dcc_rx_callback",
+      "address": 2147518634,
+      "size": 62,
+      "thumb": true
+    },
+    {
+      "name": "dump_fault_frame",
+      "address": 2147519466,
+      "size": 158,
+      "thumb": true
+    },
+    {
+      "name": "dump_iframe",
+      "address": 2147519968,
+      "size": 82,
+      "thumb": true
+    },
+    {
+      "name": "dump_mode_regs",
+      "address": 2147519624,
+      "size": 344,
+      "thumb": true
+    },
+    {
+      "name": "initial_thread_func",
+      "address": 2147522460,
+      "size": 20,
+      "thumb": true
+    },
+    {
+      "name": "spin_unlock",
+      "address": 2147522530,
+      "size": 12,
+      "thumb": true
+    },
+    {
+      "name": "arm_basic_setup",
+      "address": 2147524072,
+      "size": 88,
+      "thumb": false
+    },
+    {
+      "name": "lk_primary_cpu_init_level",
+      "address": 2147525292,
+      "size": 10,
+      "thumb": true
+    },
+    {
+      "name": "call_constructors",
+      "address": 2147525302,
+      "size": 42,
+      "thumb": true
+    },
+    {
+      "name": "bootstrap2",
+      "address": 2147525344,
+      "size": 140,
+      "thumb": true
+    },
+    {
+      "name": "secondary_cpu_bootstrap_thread",
+      "address": 2147525726,
+      "size": 20,
+      "thumb": true
+    },
+    {
+      "name": "app_thread_entry",
+      "address": 2147526062,
+      "size": 12,
+      "thumb": true
+    },
+    {
+      "name": "cmd_app",
+      "address": 2147526074,
+      "size": 186,
+      "thumb": true
+    },
+    {
+      "name": "cmd_start",
+      "address": 2147526260,
+      "size": 32,
+      "thumb": true
+    },
+    {
+      "name": "arch_cycle_count",
+      "address": 2147526346,
+      "size": 6,
+      "thumb": true
+    },
+    {
+      "name": "bench_banner",
+      "address": 2147526352,
+      "size": 18,
+      "thumb": true
+    },
+    {
+      "name": "bolt_bench_arm_callee",
+      "address": 2147526728,
+      "size": 8,
+      "thumb": false
+    },
+    {
+      "name": "bolt_bench_thumb_callee",
+      "address": 2147526736,
+      "size": 6,
+      "thumb": true
+    },
+    {
+      "name": "bolt_bench_switch_pick",
+      "address": 2147526948,
+      "size": 60,
+      "thumb": true
+    },
+    {
+      "name": "bolt_bench_spill_helper",
+      "address": 2147527108,
+      "size": 8,
+      "thumb": true
+    },
+    {
+      "name": "bolt_bench_ind_thumb_target",
+      "address": 2147527436,
+      "size": 4,
+      "thumb": true
+    },
+    {
+      "name": "bolt_bench_ind_arm_target",
+      "address": 2147527440,
+      "size": 12,
+      "thumb": false
+    },
+    {
+      "name": "bolt_bench_tail_arm_callee",
+      "address": 2147527576,
+      "size": 16,
+      "thumb": false
+    },
+    {
+      "name": "bolt_bench_tail_thumb_caller",
+      "address": 2147527664,
+      "size": 4,
+      "thumb": true
+    },
+    {
+      "name": "bolt_bench_regpressure_calc",
+      "address": 2147527740,
+      "size": 94,
+      "thumb": true
+    },
+    {
+      "name": "bolt_bench_cold_path",
+      "address": 2147527940,
+      "size": 296,
+      "thumb": true
+    },
+    {
+      "name": "bolt_pmu_init_this_cpu",
+      "address": 2147642830,
+      "size": 148,
+      "thumb": true
+    },
+    {
+      "name": "bolt_pmu_report",
+      "address": 2147528952,
+      "size": 256,
+      "thumb": true
+    },
+    {
+      "name": "pl_a",
+      "address": 2147546628,
+      "size": 126,
+      "thumb": true
+    },
+    {
+      "name": "pl_run",
+      "address": 2147546170,
+      "size": 458,
+      "thumb": true
+    },
+    {
+      "name": "pl_b",
+      "address": 2147546756,
+      "size": 462,
+      "thumb": true
+    },
+    {
+      "name": "pl_c",
+      "address": 2147547218,
+      "size": 240,
+      "thumb": true
+    },
+    {
+      "name": "pl_d",
+      "address": 2147547458,
+      "size": 128,
+      "thumb": true
+    },
+    {
+      "name": "pl_mix",
+      "address": 2147642978,
+      "size": 298,
+      "thumb": true
+    },
+    {
+      "name": "pl_rare",
+      "address": 2147643276,
+      "size": 90,
+      "thumb": true
+    },
+    {
+      "name": "bolt_bench_app_entry",
+      "address": 2147642776,
+      "size": 54,
+      "thumb": true
+    },
+    {
+      "name": "run_one",
+      "address": 2147645064,
+      "size": 964,
+      "thumb": true
+    },
+    {
+      "name": "bolt_bench_cmd",
+      "address": 2147643366,
+      "size": 622,
+      "thumb": true
+    },
+    {
+      "name": "pp_kernel",
+      "address": 2147646028,
+      "size": 92,
+      "thumb": true
+    },
+    {
+      "name": "bolt_dump_cmd",
+      "address": 2147643988,
+      "size": 230,
+      "thumb": true
+    },
+    {
+      "name": "wdog_cmd",
+      "address": 2147644218,
+      "size": 250,
+      "thumb": true
+    },
+    {
+      "name": "wdog_tick",
+      "address": 2147646128,
+      "size": 70,
+      "thumb": true
+    },
+    {
+      "name": "sample_cmd",
+      "address": 2147644468,
+      "size": 596,
+      "thumb": true
+    },
+    {
+      "name": "sample_disarm_this_cpu",
+      "address": 2147646246,
+      "size": 20,
+      "thumb": true
+    },
+    {
+      "name": "sample_arm_this_cpu",
+      "address": 2147646198,
+      "size": 48,
+      "thumb": true
+    },
+    {
+      "name": "pp_leaf",
+      "address": 2147646120,
+      "size": 8,
+      "thumb": true
+    },
+    {
+      "name": "shell_entry",
+      "address": 2147646622,
+      "size": 154,
+      "thumb": true
+    },
+    {
+      "name": "gic_set_enable",
+      "address": 2147647004,
+      "size": 180,
+      "thumb": true
+    },
+    {
+      "name": "arm_gic_init_percpu",
+      "address": 2147647184,
+      "size": 22,
+      "thumb": true
+    },
+    {
+      "name": "arm_gic_suspend_cpu",
+      "address": 2147647206,
+      "size": 26,
+      "thumb": true
+    },
+    {
+      "name": "arm_gic_resume_cpu",
+      "address": 2147647232,
+      "size": 254,
+      "thumb": true
+    },
+    {
+      "name": "arm_generic_timer_init_postvm",
+      "address": 2147653752,
+      "size": 56,
+      "thumb": true
+    },
+    {
+      "name": "platform_tick",
+      "address": 2147653866,
+      "size": 88,
+      "thumb": true
+    },
+    {
+      "name": "arm_generic_timer_init_secondary_cpu",
+      "address": 2147653808,
+      "size": 36,
+      "thumb": true
+    },
+    {
+      "name": "arm_generic_timer_resume_cpu",
+      "address": 2147653844,
+      "size": 22,
+      "thumb": true
+    },
+    {
+      "name": "cmd_threads",
+      "address": 2147653954,
+      "size": 22,
+      "thumb": true
+    },
+    {
+      "name": "cmd_threads_panic",
+      "address": 2147653976,
+      "size": 22,
+      "thumb": true
+    },
+    {
+      "name": "cmd_threadstats",
+      "address": 2147653998,
+      "size": 256,
+      "thumb": true
+    },
+    {
+      "name": "cmd_threadload",
+      "address": 2147654254,
+      "size": 72,
+      "thumb": true
+    },
+    {
+      "name": "threadload",
+      "address": 2147654326,
+      "size": 340,
+      "thumb": true
+    },
+    {
+      "name": "mutex_threading_ready_init_func",
+      "address": 2147655098,
+      "size": 14,
+      "thumb": true
+    },
+    {
+      "name": "insert_in_run_queue_head",
+      "address": 2147656096,
+      "size": 226,
+      "thumb": true
+    },
+    {
+      "name": "insert_in_run_queue_tail",
+      "address": 2147658536,
+      "size": 228,
+      "thumb": true
+    },
+    {
+      "name": "thread_resched",
+      "address": 2147657854,
+      "size": 682,
+      "thumb": true
+    },
+    {
+      "name": "wait_queue_timeout_handler",
+      "address": 2147661008,
+      "size": 80,
+      "thumb": true
+    },
+    {
+      "name": "thread_sleep_handler",
+      "address": 2147659214,
+      "size": 152,
+      "thumb": true
+    },
+    {
+      "name": "idle_thread_routine",
+      "address": 2147659976,
+      "size": 6,
+      "thumb": true
+    },
+    {
+      "name": "timer_set",
+      "address": 2147661714,
+      "size": 268,
+      "thumb": true
+    },
+    {
+      "name": "timer_tick",
+      "address": 2147662208,
+      "size": 394,
+      "thumb": true
+    },
+    {
+      "name": "insert_timer_in_queue",
+      "address": 2147662652,
+      "size": 100,
+      "thumb": true
+    },
+    {
+      "name": "fdt_get_property_namelen_",
+      "address": 2147665296,
+      "size": 268,
+      "thumb": true
+    },
+    {
+      "name": "cmd_reboot",
+      "address": 2147665740,
+      "size": 8,
+      "thumb": true
+    },
+    {
+      "name": "cmd_poweroff",
+      "address": 2147665748,
+      "size": 8,
+      "thumb": true
+    },
+    {
+      "name": "cmd_pmm",
+      "address": 2147667536,
+      "size": 1298,
+      "thumb": true
+    },
+    {
+      "name": "vm_init_preheap",
+      "address": 2147668966,
+      "size": 258,
+      "thumb": true
+    },
+    {
+      "name": "vm_init_postheap",
+      "address": 2147669224,
+      "size": 66,
+      "thumb": true
+    },
+    {
+      "name": "cmd_vm",
+      "address": 2147669290,
+      "size": 524,
+      "thumb": true
+    },
+    {
+      "name": "alloc_region",
+      "address": 2147670142,
+      "size": 518,
+      "thumb": true
+    },
+    {
+      "name": "vmm_remove_region_locked",
+      "address": 2147670976,
+      "size": 186,
+      "thumb": true
+    },
+    {
+      "name": "cmd_vmm",
+      "address": 2147672774,
+      "size": 902,
+      "thumb": true
+    },
+    {
+      "name": "cmdline_cmd_show",
+      "address": 2147673676,
+      "size": 102,
+      "thumb": true
+    },
+    {
+      "name": "cmdline_print_escaped",
+      "address": 2147675024,
+      "size": 202,
+      "thumb": true
+    },
+    {
+      "name": "cmdline_cmd_present",
+      "address": 2147673778,
+      "size": 112,
+      "thumb": true
+    },
+    {
+      "name": "cmdline_cmd_value",
+      "address": 2147673892,
+      "size": 182,
+      "thumb": true
+    },
+    {
+      "name": "cmdline_cmd_string",
+      "address": 2147674076,
+      "size": 268,
+      "thumb": true
+    },
+    {
+      "name": "cmdline_cmd_bool",
+      "address": 2147674344,
+      "size": 186,
+      "thumb": true
+    },
+    {
+      "name": "cmdline_cmd_u32",
+      "address": 2147674532,
+      "size": 162,
+      "thumb": true
+    },
+    {
+      "name": "cmdline_cmd_u64",
+      "address": 2147674696,
+      "size": 166,
+      "thumb": true
+    },
+    {
+      "name": "cmdline_cmd_int",
+      "address": 2147674864,
+      "size": 160,
+      "thumb": true
+    },
+    {
+      "name": "find_variable",
+      "address": 2147675316,
+      "size": 446,
+      "thumb": true
+    },
+    {
+      "name": "parse_unsigned_int",
+      "address": 2147676382,
+      "size": 260,
+      "thumb": true
+    },
+    {
+      "name": "read_debug_line",
+      "address": 2147678180,
+      "size": 520,
+      "thumb": true
+    },
+    {
+      "name": "command_loop",
+      "address": 2147677082,
+      "size": 1096,
+      "thumb": true
+    },
+    {
+      "name": "convert_args",
+      "address": 2147678986,
+      "size": 180,
+      "thumb": true
+    },
+    {
+      "name": "background_command_exec",
+      "address": 2147679982,
+      "size": 64,
+      "thumb": true
+    },
+    {
+      "name": "fetch_next_line",
+      "address": 2147680046,
+      "size": 74,
+      "thumb": true
+    },
+    {
+      "name": "cmd_help",
+      "address": 2147679166,
+      "size": 206,
+      "thumb": true
+    },
+    {
+      "name": "compare_cmds",
+      "address": 2147679974,
+      "size": 8,
+      "thumb": true
+    },
+    {
+      "name": "cmd_help_panic",
+      "address": 2147679372,
+      "size": 140,
+      "thumb": true
+    },
+    {
+      "name": "cmd_echo",
+      "address": 2147679512,
+      "size": 48,
+      "thumb": true
+    },
+    {
+      "name": "cmd_test",
+      "address": 2147679560,
+      "size": 78,
+      "thumb": true
+    },
+    {
+      "name": "cmd_history",
+      "address": 2147679638,
+      "size": 104,
+      "thumb": true
+    },
+    {
+      "name": "cmd_repeat",
+      "address": 2147679742,
+      "size": 232,
+      "thumb": true
+    },
+    {
+      "name": "heap_free_delayed_list",
+      "address": 2147680628,
+      "size": 126,
+      "thumb": true
+    },
+    {
+      "name": "cmd_heap",
+      "address": 2147681150,
+      "size": 568,
+      "thumb": true
+    },
+    {
+      "name": "cmd_page_alloc",
+      "address": 2147681770,
+      "size": 94,
+      "thumb": true
+    },
+    {
+      "name": "heap_insert_free_chunk",
+      "address": 2147690802,
+      "size": 146,
+      "thumb": true
+    },
+    {
+      "name": "heap_create_free_chunk",
+      "address": 2147690074,
+      "size": 58,
+      "thumb": true
+    },
+    {
+      "name": "__debug_stdio_write",
+      "address": 2147691430,
+      "size": 114,
+      "thumb": true
+    },
+    {
+      "name": "__debug_stdio_read",
+      "address": 2147691544,
+      "size": 32,
+      "thumb": true
+    },
+    {
+      "name": "__Thumbv7ABSLongThunk_arm_context_switch",
+      "address": 2147691688,
+      "size": 10,
+      "thumb": true
+    },
+    {
+      "name": "__Thumbv7ABSLongThunk_arch_spin_unlock",
+      "address": 2147691698,
+      "size": 10,
+      "thumb": true
+    },
+    {
+      "name": "__ARMv7ABSLongThunk_thread_preempt",
+      "address": 2147691708,
+      "size": 12,
+      "thumb": false
+    },
+    {
+      "name": "__ARMv7ABSLongThunk_arm_mmu_init",
+      "address": 2147691720,
+      "size": 12,
+      "thumb": false
+    },
+    {
+      "name": "__ARMv7ABSLongThunk_lk_secondary_cpu_entry",
+      "address": 2147691732,
+      "size": 12,
+      "thumb": false
+    },
+    {
+      "name": "__Thumbv7ABSLongThunk_bolt_bench_tail_arm_callee",
+      "address": 2147691744,
+      "size": 10,
+      "thumb": true
+    },
+    {
+      "name": "__Thumbv7ABSLongThunk_bolt_bench_interwork",
+      "address": 2147691754,
+      "size": 10,
+      "thumb": true
+    },
+    {
+      "name": "platform_init_mmu_mappings",
+      "address": 2147517168,
+      "size": 2,
+      "thumb": true
+    },
+    {
+      "name": "arm_gic_init_map",
+      "address": 2147647576,
+      "size": 416,
+      "thumb": true
+    },
+    {
+      "name": "platform_early_init",
+      "address": 2147517182,
+      "size": 418,
+      "thumb": true
+    },
+    {
+      "name": "uart_init_early",
+      "address": 2147517946,
+      "size": 16,
+      "thumb": true
+    },
+    {
+      "name": "arm_generic_timer_init",
+      "address": 2147650640,
+      "size": 3112,
+      "thumb": true
+    },
+    {
+      "name": "fdt_check_header",
+      "address": 2147664146,
+      "size": 240,
+      "thumb": true
+    },
+    {
+      "name": "fdt_address_cells",
+      "address": 2147664886,
+      "size": 56,
+      "thumb": true
+    },
+    {
+      "name": "fdt_size_cells",
+      "address": 2147664942,
+      "size": 62,
+      "thumb": true
+    },
+    {
+      "name": "fdt_next_node",
+      "address": 2147664752,
+      "size": 134,
+      "thumb": true
+    },
+    {
+      "name": "fdt_get_name",
+      "address": 2147665166,
+      "size": 130,
+      "thumb": true
+    },
+    {
+      "name": "strncmp",
+      "address": 2147689132,
+      "size": 44,
+      "thumb": true
+    },
+    {
+      "name": "fdt_getprop",
+      "address": 2147665564,
+      "size": 82,
+      "thumb": true
+    },
+    {
+      "name": "printf",
+      "address": 2147686856,
+      "size": 42,
+      "thumb": true
+    },
+    {
+      "name": "boot_alloc_mem",
+      "address": 2147665760,
+      "size": 28,
+      "thumb": true
+    },
+    {
+      "name": "pmm_add_arena",
+      "address": 2147665922,
+      "size": 218,
+      "thumb": true
+    },
+    {
+      "name": "platform_init",
+      "address": 2147517600,
+      "size": 4,
+      "thumb": true
+    },
+    {
+      "name": "uart_init",
+      "address": 2147517800,
+      "size": 72,
+      "thumb": true
+    },
+    {
+      "name": "platform_dputc",
+      "address": 2147517604,
+      "size": 28,
+      "thumb": true
+    },
+    {
+      "name": "uart_putc",
+      "address": 2147517962,
+      "size": 22,
+      "thumb": true
+    },
+    {
+      "name": "platform_dgetc",
+      "address": 2147517632,
+      "size": 24,
+      "thumb": true
+    },
+    {
+      "name": "uart_getc",
+      "address": 2147517984,
+      "size": 48,
+      "thumb": true
+    },
+    {
+      "name": "platform_halt",
+      "address": 2147517656,
+      "size": 20,
+      "thumb": true
+    },
+    {
+      "name": "platform_halt_default",
+      "address": 2147665646,
+      "size": 94,
+      "thumb": true
+    },
+    {
+      "name": "uart_flush_tx",
+      "address": 2147518032,
+      "size": 26,
+      "thumb": true
+    },
+    {
+      "name": "arch_idle",
+      "address": 2147523492,
+      "size": 0,
+      "thumb": false
+    },
+    {
+      "name": "arch_clean_cache_range",
+      "address": 2147523276,
+      "size": 0,
+      "thumb": false
+    },
+    {
+      "name": "current_time",
+      "address": 2147650586,
+      "size": 54,
+      "thumb": true
+    },
+    {
+      "name": "arch_invalidate_cache_range",
+      "address": 2147523348,
+      "size": 0,
+      "thumb": false
+    },
+    {
+      "name": "paddr_to_kvaddr",
+      "address": 2147668834,
+      "size": 60,
+      "thumb": true
+    },
+    {
+      "name": "cbuf_initialize",
+      "address": 2147663520,
+      "size": 26,
+      "thumb": true
+    },
+    {
+      "name": "register_int_handler",
+      "address": 2147646816,
+      "size": 188,
+      "thumb": true
+    },
+    {
+      "name": "unmask_interrupt",
+      "address": 2147648024,
+      "size": 64,
+      "thumb": true
+    },
+    {
+      "name": "cbuf_write_char",
+      "address": 2147663684,
+      "size": 156,
+      "thumb": true
+    },
+    {
+      "name": "cbuf_read_char",
+      "address": 2147663840,
+      "size": 182,
+      "thumb": true
+    },
+    {
+      "name": "malloc",
+      "address": 2147680754,
+      "size": 72,
+      "thumb": true
+    },
+    {
+      "name": "mutex_init",
+      "address": 2147655112,
+      "size": 38,
+      "thumb": true
+    },
+    {
+      "name": "thread_create",
+      "address": 2147655844,
+      "size": 34,
+      "thumb": true
+    },
+    {
+      "name": "thread_resume",
+      "address": 2147655878,
+      "size": 218,
+      "thumb": true
+    },
+    {
+      "name": "thread_sleep",
+      "address": 2147658986,
+      "size": 228,
+      "thumb": true
+    },
+    {
+      "name": "strcmp",
+      "address": 2147689012,
+      "size": 20,
+      "thumb": true
+    },
+    {
+      "name": "strlen",
+      "address": 2147689118,
+      "size": 14,
+      "thumb": true
+    },
+    {
+      "name": "hexdump",
+      "address": 2147524558,
+      "size": 272,
+      "thumb": true
+    },
+    {
+      "name": "arm_syscall_handler",
+      "address": 2147518696,
+      "size": 38,
+      "thumb": true
+    },
+    {
+      "name": "arm_undefined_handler",
+      "address": 2147518734,
+      "size": 56,
+      "thumb": true
+    },
+    {
+      "name": "arm_data_abort_handler",
+      "address": 2147518792,
+      "size": 438,
+      "thumb": true
+    },
+    {
+      "name": "arm_prefetch_abort_handler",
+      "address": 2147519232,
+      "size": 234,
+      "thumb": true
+    },
+    {
+      "name": "arm_save_mode_regs",
+      "address": 2147522640,
+      "size": 0,
+      "thumb": false
+    },
+    {
+      "name": "arm_mmu_early_init",
+      "address": 2147520050,
+      "size": 2,
+      "thumb": true
+    },
+    {
+      "name": "arm_mmu_init",
+      "address": 2147520052,
+      "size": 184,
+      "thumb": true
+    },
+    {
+      "name": "assert_fail",
+      "address": 2147524532,
+      "size": 26,
+      "thumb": true
+    },
+    {
+      "name": "arch_mmu_context_switch",
+      "address": 2147520236,
+      "size": 42,
+      "thumb": true
+    },
+    {
+      "name": "arch_mmu_query",
+      "address": 2147520280,
+      "size": 396,
+      "thumb": true
+    },
+    {
+      "name": "panic",
+      "address": 2147524492,
+      "size": 40,
+      "thumb": true
+    },
+    {
+      "name": "arch_mmu_map",
+      "address": 2147520676,
+      "size": 874,
+      "thumb": true
+    },
+    {
+      "name": "pmm_alloc_kpages",
+      "address": 2147666886,
+      "size": 128,
+      "thumb": true
+    },
+    {
+      "name": "memset",
+      "address": 2147682140,
+      "size": 0,
+      "thumb": false
+    },
+    {
+      "name": "arm_vtop",
+      "address": 2147524408,
+      "size": 84,
+      "thumb": false
+    },
+    {
+      "name": "arch_mmu_unmap",
+      "address": 2147521552,
+      "size": 654,
+      "thumb": true
+    },
+    {
+      "name": "paddr_to_vm_page",
+      "address": 2147665866,
+      "size": 56,
+      "thumb": true
+    },
+    {
+      "name": "pmm_free_page",
+      "address": 2147666862,
+      "size": 24,
+      "thumb": true
+    },
+    {
+      "name": "arch_mmu_init_aspace",
+      "address": 2147522206,
+      "size": 164,
+      "thumb": true
+    },
+    {
+      "name": "vaddr_to_paddr",
+      "address": 2147668894,
+      "size": 72,
+      "thumb": true
+    },
+    {
+      "name": "arch_mmu_destroy_aspace",
+      "address": 2147522370,
+      "size": 42,
+      "thumb": true
+    },
+    {
+      "name": "arch_mmu_supports_user_aspaces",
+      "address": 2147522412,
+      "size": 4,
+      "thumb": true
+    },
+    {
+      "name": "arch_thread_initialize",
+      "address": 2147522416,
+      "size": 44,
+      "thumb": true
+    },
+    {
+      "name": "thread_exit",
+      "address": 2147657634,
+      "size": 220,
+      "thumb": true
+    },
+    {
+      "name": "arch_context_switch",
+      "address": 2147522480,
+      "size": 8,
+      "thumb": true
+    },
+    {
+      "name": "arm_context_switch",
+      "address": 2147522616,
+      "size": 0,
+      "thumb": false
+    },
+    {
+      "name": "arch_dump_thread",
+      "address": 2147522488,
+      "size": 42,
+      "thumb": true
+    },
+    {
+      "name": "arch_spin_unlock",
+      "address": 2147523468,
+      "size": 0,
+      "thumb": false
+    },
+    {
+      "name": "arch_mp_send_ipi",
+      "address": 2147522542,
+      "size": 26,
+      "thumb": true
+    },
+    {
+      "name": "arm_gic_sgi",
+      "address": 2147647992,
+      "size": 32,
+      "thumb": true
+    },
+    {
+      "name": "arm_ipi_generic_handler",
+      "address": 2147522568,
+      "size": 4,
+      "thumb": true
+    },
+    {
+      "name": "mp_mbx_generic_irq",
+      "address": 2147663296,
+      "size": 154,
+      "thumb": true
+    },
+    {
+      "name": "arm_ipi_reschedule_handler",
+      "address": 2147522572,
+      "size": 4,
+      "thumb": true
+    },
+    {
+      "name": "mp_mbx_reschedule_irq",
+      "address": 2147663450,
+      "size": 56,
+      "thumb": true
+    },
+    {
+      "name": "arch_mp_init_percpu",
+      "address": 2147522576,
+      "size": 38,
+      "thumb": true
+    },
+    {
+      "name": "arm_undefined",
+      "address": 2147523512,
+      "size": 0,
+      "thumb": false
+    },
+    {
+      "name": "arm_syscall",
+      "address": 2147523576,
+      "size": 0,
+      "thumb": false
+    },
+    {
+      "name": "arm_prefetch_abort",
+      "address": 2147523640,
+      "size": 0,
+      "thumb": false
+    },
+    {
+      "name": "arm_data_abort",
+      "address": 2147523708,
+      "size": 0,
+      "thumb": false
+    },
+    {
+      "name": "arm_reserved",
+      "address": 2147523776,
+      "size": 0,
+      "thumb": false
+    },
+    {
+      "name": "arm_irq",
+      "address": 2147523780,
+      "size": 0,
+      "thumb": false
+    },
+    {
+      "name": "arm_fiq",
+      "address": 2147523888,
+      "size": 0,
+      "thumb": false
+    },
+    {
+      "name": "arm_secondary_setup",
+      "address": 2147516940,
+      "size": 0,
+      "thumb": false
+    },
+    {
+      "name": "lk_main",
+      "address": 2147525062,
+      "size": 230,
+      "thumb": true
+    },
+    {
+      "name": "arm_secondary_entry",
+      "address": 2147524292,
+      "size": 116,
+      "thumb": false
+    },
+    {
+      "name": "arm_chain_load",
+      "address": 2147522732,
+      "size": 0,
+      "thumb": false
+    },
+    {
+      "name": "arch_disable_cache",
+      "address": 2147522772,
+      "size": 0,
+      "thumb": false
+    },
+    {
+      "name": "arch_enable_cache",
+      "address": 2147522876,
+      "size": 0,
+      "thumb": false
+    },
+    {
+      "name": "arch_clean_invalidate_cache_range",
+      "address": 2147523312,
+      "size": 0,
+      "thumb": false
+    },
+    {
+      "name": "arch_sync_cache_range",
+      "address": 2147523384,
+      "size": 0,
+      "thumb": false
+    },
+    {
+      "name": "arch_spin_trylock",
+      "address": 2147523404,
+      "size": 0,
+      "thumb": false
+    },
+    {
+      "name": "arch_spin_lock",
+      "address": 2147523432,
+      "size": 0,
+      "thumb": false
+    },
+    {
+      "name": "arm_invalidate_tlb",
+      "address": 2147523500,
+      "size": 0,
+      "thumb": false
+    },
+    {
+      "name": "platform_irq",
+      "address": 2147648088,
+      "size": 22,
+      "thumb": true
+    },
+    {
+      "name": "thread_preempt",
+      "address": 2147658764,
+      "size": 190,
+      "thumb": true
+    },
+    {
+      "name": "platform_fiq",
+      "address": 2147648110,
+      "size": 22,
+      "thumb": true
+    },
+    {
+      "name": "arch_early_init",
+      "address": 2147523956,
+      "size": 116,
+      "thumb": false
+    },
+    {
+      "name": "arch_init",
+      "address": 2147524160,
+      "size": 132,
+      "thumb": false
+    },
+    {
+      "name": "lk_init_secondary_cpus",
+      "address": 2147525586,
+      "size": 140,
+      "thumb": true
+    },
+    {
+      "name": "lk_secondary_cpu_entry_early",
+      "address": 2147525484,
+      "size": 22,
+      "thumb": true
+    },
+    {
+      "name": "lk_secondary_cpu_entry",
+      "address": 2147525506,
+      "size": 80,
+      "thumb": true
+    },
+    {
+      "name": "vprintf",
+      "address": 2147686898,
+      "size": 18,
+      "thumb": true
+    },
+    {
+      "name": "isprint",
+      "address": 2147683136,
+      "size": 14,
+      "thumb": true
+    },
+    {
+      "name": "lk_init_level",
+      "address": 2147524830,
+      "size": 232,
+      "thumb": true
+    },
+    {
+      "name": "kernel_init_early",
+      "address": 2147655024,
+      "size": 4,
+      "thumb": true
+    },
+    {
+      "name": "target_early_init",
+      "address": 2147665756,
+      "size": 2,
+      "thumb": true
+    },
+    {
+      "name": "heap_init",
+      "address": 2147680596,
+      "size": 32,
+      "thumb": true
+    },
+    {
+      "name": "kernel_init",
+      "address": 2147655028,
+      "size": 70,
+      "thumb": true
+    },
+    {
+      "name": "thread_detach",
+      "address": 2147656520,
+      "size": 152,
+      "thumb": true
+    },
+    {
+      "name": "thread_become_idle",
+      "address": 2147659846,
+      "size": 130,
+      "thumb": true
+    },
+    {
+      "name": "target_init",
+      "address": 2147665758,
+      "size": 2,
+      "thumb": true
+    },
+    {
+      "name": "apps_init",
+      "address": 2147525746,
+      "size": 148,
+      "thumb": true
+    },
+    {
+      "name": "thread_secondary_cpu_init_early",
+      "address": 2147659982,
+      "size": 106,
+      "thumb": true
+    },
+    {
+      "name": "thread_secondary_cpu_entry",
+      "address": 2147660276,
+      "size": 90,
+      "thumb": true
+    },
+    {
+      "name": "thread_create_secondary_cpu_idle_thread",
+      "address": 2147660088,
+      "size": 188,
+      "thumb": true
+    },
+    {
+      "name": "app_start_by_name",
+      "address": 2147525894,
+      "size": 168,
+      "thumb": true
+    },
+    {
+      "name": "thread_join",
+      "address": 2147656672,
+      "size": 378,
+      "thumb": true
+    },
+    {
+      "name": "bolt_bench_hot_loop",
+      "address": 2147526292,
+      "size": 54,
+      "thumb": true
+    },
+    {
+      "name": "bolt_bench_hot_cold",
+      "address": 2147526370,
+      "size": 48,
+      "thumb": true
+    },
+    {
+      "name": "bolt_bench_branch_chain",
+      "address": 2147526418,
+      "size": 168,
+      "thumb": true
+    },
+    {
+      "name": "bolt_bench_far_target",
+      "address": 2147526586,
+      "size": 12,
+      "thumb": true
+    },
+    {
+      "name": "bolt_bench_far_call",
+      "address": 2147526598,
+      "size": 40,
+      "thumb": true
+    },
+    {
+      "name": "bolt_bench_it_cond",
+      "address": 2147526638,
+      "size": 90,
+      "thumb": true
+    },
+    {
+      "name": "bolt_bench_interwork",
+      "address": 2147526744,
+      "size": 128,
+      "thumb": false
+    },
+    {
+      "name": "bolt_bench_switch",
+      "address": 2147526872,
+      "size": 76,
+      "thumb": true
+    },
+    {
+      "name": "bolt_bench_spill_ret",
+      "address": 2147527008,
+      "size": 100,
+      "thumb": true
+    },
+    {
+      "name": "bolt_bench_litpool",
+      "address": 2147527116,
+      "size": 104,
+      "thumb": true
+    },
+    {
+      "name": "bolt_bench_memcpy",
+      "address": 2147527220,
+      "size": 216,
+      "thumb": true
+    },
+    {
+      "name": "memcpy",
+      "address": 2147681876,
+      "size": 0,
+      "thumb": false
+    },
+    {
+      "name": "bolt_bench_indirect_call",
+      "address": 2147527452,
+      "size": 122,
+      "thumb": true
+    },
+    {
+      "name": "bolt_bench_interwork_tail",
+      "address": 2147527592,
+      "size": 72,
+      "thumb": true
+    },
+    {
+      "name": "bolt_bench_regpressure",
+      "address": 2147527668,
+      "size": 72,
+      "thumb": true
+    },
+    {
+      "name": "bolt_bench_hotcold_split",
+      "address": 2147527834,
+      "size": 106,
+      "thumb": true
+    },
+    {
+      "name": "bolt_bench_icf_a",
+      "address": 2147528236,
+      "size": 22,
+      "thumb": true
+    },
+    {
+      "name": "bolt_bench_icf_b",
+      "address": 2147528258,
+      "size": 22,
+      "thumb": true
+    },
+    {
+      "name": "bolt_bench_icf",
+      "address": 2147528280,
+      "size": 82,
+      "thumb": true
+    },
+    {
+      "name": "bolt_bench_shrinkwrap",
+      "address": 2147528362,
+      "size": 112,
+      "thumb": true
+    },
+    {
+      "name": "bolt_bench_composite",
+      "address": 2147528474,
+      "size": 478,
+      "thumb": true
+    },
+    {
+      "name": "mp_sync_exec",
+      "address": 2147662950,
+      "size": 346,
+      "thumb": true
+    },
+    {
+      "name": "composite_process",
+      "address": 2147646266,
+      "size": 20,
+      "thumb": true
+    },
+    {
+      "name": "composite_report_cold",
+      "address": 2147646286,
+      "size": 14,
+      "thumb": true
+    },
+    {
+      "name": "bolt_bench_stair_kernel",
+      "address": 2147529208,
+      "size": 16114,
+      "thumb": true
+    },
+    {
+      "name": "bolt_bench_stair_step",
+      "address": 2147646354,
+      "size": 268,
+      "thumb": true
+    },
+    {
+      "name": "bolt_bench_stair",
+      "address": 2147545322,
+      "size": 590,
+      "thumb": true
+    },
+    {
+      "name": "bolt_bench_stair_init",
+      "address": 2147646300,
+      "size": 54,
+      "thumb": true
+    },
+    {
+      "name": "bolt_bench_pgo_lab",
+      "address": 2147545912,
+      "size": 258,
+      "thumb": true
+    },
+    {
+      "name": "bolt_bench_mf0",
+      "address": 2147549184,
+      "size": 7074,
+      "thumb": true
+    },
+    {
+      "name": "bolt_bench_mf1",
+      "address": 2147565568,
+      "size": 7196,
+      "thumb": true
+    },
+    {
+      "name": "bolt_bench_mf2",
+      "address": 2147581952,
+      "size": 7134,
+      "thumb": true
+    },
+    {
+      "name": "bolt_bench_mf3",
+      "address": 2147598336,
+      "size": 7074,
+      "thumb": true
+    },
+    {
+      "name": "bolt_bench_mf4",
+      "address": 2147614720,
+      "size": 7134,
+      "thumb": true
+    },
+    {
+      "name": "bolt_bench_mf5",
+      "address": 2147631104,
+      "size": 11028,
+      "thumb": false
+    },
+    {
+      "name": "bolt_bench_multi",
+      "address": 2147642132,
+      "size": 518,
+      "thumb": true
+    },
+    {
+      "name": "bolt_sample_on_irq",
+      "address": 2147642650,
+      "size": 126,
+      "thumb": true
+    },
+    {
+      "name": "cmdline_get_string",
+      "address": 2147675808,
+      "size": 276,
+      "thumb": true
+    },
+    {
+      "name": "strtoul",
+      "address": 2147682762,
+      "size": 248,
+      "thumb": true
+    },
+    {
+      "name": "timer_initialize",
+      "address": 2147661662,
+      "size": 26,
+      "thumb": true
+    },
+    {
+      "name": "timer_cancel",
+      "address": 2147662008,
+      "size": 200,
+      "thumb": true
+    },
+    {
+      "name": "timer_set_periodic",
+      "address": 2147661982,
+      "size": 26,
+      "thumb": true
+    },
+    {
+      "name": "gic_configure_interrupt",
+      "address": 2147647486,
+      "size": 90,
+      "thumb": true
+    },
+    {
+      "name": "console_create",
+      "address": 2147676930,
+      "size": 56,
+      "thumb": true
+    },
+    {
+      "name": "console_set_current",
+      "address": 2147676910,
+      "size": 20,
+      "thumb": true
+    },
+    {
+      "name": "console_run_script",
+      "address": 2147678700,
+      "size": 142,
+      "thumb": true
+    },
+    {
+      "name": "free",
+      "address": 2147681010,
+      "size": 44,
+      "thumb": true
+    },
+    {
+      "name": "console_start",
+      "address": 2147676986,
+      "size": 96,
+      "thumb": true
+    },
+    {
+      "name": "get_int_handler",
+      "address": 2147646776,
+      "size": 40,
+      "thumb": true
+    },
+    {
+      "name": "arm_gicv3_configure_irq_locked",
+      "address": 2147649350,
+      "size": 288,
+      "thumb": true
+    },
+    {
+      "name": "arm_gicv3_wait_for_write_complete",
+      "address": 2147648616,
+      "size": 18,
+      "thumb": true
+    },
+    {
+      "name": "arm_gicv2_init_percpu",
+      "address": 2147648132,
+      "size": 24,
+      "thumb": true
+    },
+    {
+      "name": "arm_gicv3_init_percpu",
+      "address": 2147648954,
+      "size": 396,
+      "thumb": true
+    },
+    {
+      "name": "arm_gicv3_suspend_cpu",
+      "address": 2147649638,
+      "size": 224,
+      "thumb": true
+    },
+    {
+      "name": "arm_gicv3_init",
+      "address": 2147648634,
+      "size": 320,
+      "thumb": true
+    },
+    {
+      "name": "arm_gicv2_init",
+      "address": 2147648156,
+      "size": 302,
+      "thumb": true
+    },
+    {
+      "name": "arm_gicv3_resume_cpu_locked",
+      "address": 2147649862,
+      "size": 246,
+      "thumb": true
+    },
+    {
+      "name": "vmm_alloc_physical",
+      "address": 2147670660,
+      "size": 316,
+      "thumb": true
+    },
+    {
+      "name": "arm_gicv3_sgi",
+      "address": 2147650108,
+      "size": 138,
+      "thumb": true
+    },
+    {
+      "name": "arm_gicv2_sgi",
+      "address": 2147648458,
+      "size": 34,
+      "thumb": true
+    },
+    {
+      "name": "arm_gicv2_platform_irq",
+      "address": 2147648492,
+      "size": 102,
+      "thumb": true
+    },
+    {
+      "name": "arm_gicv3_platform_irq",
+      "address": 2147650246,
+      "size": 84,
+      "thumb": true
+    },
+    {
+      "name": "arm_gicv2_platform_fiq",
+      "address": 2147648594,
+      "size": 22,
+      "thumb": true
+    },
+    {
+      "name": "arm_gicv3_platform_fiq",
+      "address": 2147650330,
+      "size": 24,
+      "thumb": true
+    },
+    {
+      "name": "platform_set_oneshot_timer",
+      "address": 2147650354,
+      "size": 132,
+      "thumb": true
+    },
+    {
+      "name": "platform_stop_timer",
+      "address": 2147650486,
+      "size": 12,
+      "thumb": true
+    },
+    {
+      "name": "current_time_hires",
+      "address": 2147650498,
+      "size": 88,
+      "thumb": true
+    },
+    {
+      "name": "__aeabi_uldivmod",
+      "address": 2147688928,
+      "size": 20,
+      "thumb": true
+    },
+    {
+      "name": "fp_32_64_snprintf",
+      "address": 2147680120,
+      "size": 476,
+      "thumb": true
+    },
+    {
+      "name": "dump_all_threads",
+      "address": 2147660634,
+      "size": 118,
+      "thumb": true
+    },
+    {
+      "name": "dump_all_threads_unlocked",
+      "address": 2147660558,
+      "size": 76,
+      "thumb": true
+    },
+    {
+      "name": "dump_threads_stats",
+      "address": 2147660752,
+      "size": 256,
+      "thumb": true
+    },
+    {
+      "name": "event_init",
+      "address": 2147654666,
+      "size": 42,
+      "thumb": true
+    },
+    {
+      "name": "event_wait_timeout",
+      "address": 2147654708,
+      "size": 120,
+      "thumb": true
+    },
+    {
+      "name": "wait_queue_block",
+      "address": 2147657050,
+      "size": 244,
+      "thumb": true
+    },
+    {
+      "name": "event_signal",
+      "address": 2147654828,
+      "size": 150,
+      "thumb": true
+    },
+    {
+      "name": "wait_queue_wake_all",
+      "address": 2147657294,
+      "size": 340,
+      "thumb": true
+    },
+    {
+      "name": "wait_queue_wake_one",
+      "address": 2147661088,
+      "size": 286,
+      "thumb": true
+    },
+    {
+      "name": "event_unsignal",
+      "address": 2147654978,
+      "size": 46,
+      "thumb": true
+    },
+    {
+      "name": "thread_init_early",
+      "address": 2147659366,
+      "size": 422,
+      "thumb": true
+    },
+    {
+      "name": "mp_init",
+      "address": 2147662752,
+      "size": 38,
+      "thumb": true
+    },
+    {
+      "name": "thread_init",
+      "address": 2147659788,
+      "size": 44,
+      "thumb": true
+    },
+    {
+      "name": "timer_init",
+      "address": 2147662602,
+      "size": 50,
+      "thumb": true
+    },
+    {
+      "name": "port_init",
+      "address": 2147663506,
+      "size": 14,
+      "thumb": true
+    },
+    {
+      "name": "mutex_acquire_timeout",
+      "address": 2147655150,
+      "size": 220,
+      "thumb": true
+    },
+    {
+      "name": "mutex_release",
+      "address": 2147655370,
+      "size": 174,
+      "thumb": true
+    },
+    {
+      "name": "thread_create_etc",
+      "address": 2147655544,
+      "size": 300,
+      "thumb": true
+    },
+    {
+      "name": "strlcpy",
+      "address": 2147689064,
+      "size": 54,
+      "thumb": true
+    },
+    {
+      "name": "mp_reschedule",
+      "address": 2147662790,
+      "size": 92,
+      "thumb": true
+    },
+    {
+      "name": "thread_yield",
+      "address": 2147656322,
+      "size": 174,
+      "thumb": true
+    },
+    {
+      "name": "thread_detach_and_resume",
+      "address": 2147656496,
+      "size": 24,
+      "thumb": true
+    },
+    {
+      "name": "timer_set_oneshot",
+      "address": 2147661688,
+      "size": 26,
+      "thumb": true
+    },
+    {
+      "name": "heap_delayed_free",
+      "address": 2147681054,
+      "size": 96,
+      "thumb": true
+    },
+    {
+      "name": "thread_timer_tick",
+      "address": 2147658954,
+      "size": 32,
+      "thumb": true
+    },
+    {
+      "name": "vmm_context_switch",
+      "address": 2147672720,
+      "size": 54,
+      "thumb": true
+    },
+    {
+      "name": "thread_set_name",
+      "address": 2147659832,
+      "size": 14,
+      "thumb": true
+    },
+    {
+      "name": "snprintf",
+      "address": 2147683172,
+      "size": 26,
+      "thumb": true
+    },
+    {
+      "name": "mp_set_curr_cpu_active",
+      "address": 2147662882,
+      "size": 68,
+      "thumb": true
+    },
+    {
+      "name": "arch_thread_get_backtrace_regs",
+      "address": 2147660366,
+      "size": 4,
+      "thumb": true
+    },
+    {
+      "name": "dump_thread",
+      "address": 2147660370,
+      "size": 188,
+      "thumb": true
+    },
+    {
+      "name": "thread_unblock_from_wait_queue",
+      "address": 2147661374,
+      "size": 288,
+      "thumb": true
+    },
+    {
+      "name": "strnlen",
+      "address": 2147689260,
+      "size": 26,
+      "thumb": true
+    },
+    {
+      "name": "calloc",
+      "address": 2147680826,
+      "size": 102,
+      "thumb": true
+    },
+    {
+      "name": "cbuf_initialize_etc",
+      "address": 2147663546,
+      "size": 138,
+      "thumb": true
+    },
+    {
+      "name": "fdt_ro_probe_",
+      "address": 2147664022,
+      "size": 124,
+      "thumb": true
+    },
+    {
+      "name": "fdt_offset_ptr",
+      "address": 2147664386,
+      "size": 96,
+      "thumb": true
+    },
+    {
+      "name": "fdt_next_tag",
+      "address": 2147664484,
+      "size": 192,
+      "thumb": true
+    },
+    {
+      "name": "fdt_check_node_offset_",
+      "address": 2147664676,
+      "size": 38,
+      "thumb": true
+    },
+    {
+      "name": "fdt_check_prop_offset_",
+      "address": 2147664714,
+      "size": 38,
+      "thumb": true
+    },
+    {
+      "name": "memcmp",
+      "address": 2147688970,
+      "size": 42,
+      "thumb": true
+    },
+    {
+      "name": "memmove",
+      "address": 2147681876,
+      "size": 0,
+      "thumb": false
+    },
+    {
+      "name": "memchr",
+      "address": 2147688948,
+      "size": 22,
+      "thumb": true
+    },
+    {
+      "name": "fdt_get_string",
+      "address": 2147665004,
+      "size": 162,
+      "thumb": true
+    },
+    {
+      "name": "strrchr",
+      "address": 2147689286,
+      "size": 30,
+      "thumb": true
+    },
+    {
+      "name": "vm_page_to_paddr",
+      "address": 2147665788,
+      "size": 78,
+      "thumb": true
+    },
+    {
+      "name": "pmm_alloc_pages",
+      "address": 2147666140,
+      "size": 138,
+      "thumb": true
+    },
+    {
+      "name": "pmm_alloc_page",
+      "address": 2147666278,
+      "size": 160,
+      "thumb": true
+    },
+    {
+      "name": "pmm_alloc_range",
+      "address": 2147666438,
+      "size": 248,
+      "thumb": true
+    },
+    {
+      "name": "pmm_free",
+      "address": 2147666686,
+      "size": 176,
+      "thumb": true
+    },
+    {
+      "name": "pmm_alloc_contiguous",
+      "address": 2147667014,
+      "size": 414,
+      "thumb": true
+    },
+    {
+      "name": "pmm_free_kpages",
+      "address": 2147667428,
+      "size": 108,
+      "thumb": true
+    },
+    {
+      "name": "vmm_init_preheap",
+      "address": 2147669814,
+      "size": 84,
+      "thumb": true
+    },
+    {
+      "name": "vmm_init",
+      "address": 2147669898,
+      "size": 2,
+      "thumb": true
+    },
+    {
+      "name": "vmm_reserve_space",
+      "address": 2147669912,
+      "size": 230,
+      "thumb": true
+    },
+    {
+      "name": "arch_mmu_pick_spot",
+      "address": 2147669900,
+      "size": 12,
+      "thumb": true
+    },
+    {
+      "name": "vmm_alloc_contiguous",
+      "address": 2147671162,
+      "size": 390,
+      "thumb": true
+    },
+    {
+      "name": "vmm_alloc",
+      "address": 2147671552,
+      "size": 548,
+      "thumb": true
+    },
+    {
+      "name": "vmm_free_region",
+      "address": 2147672100,
+      "size": 122,
+      "thumb": true
+    },
+    {
+      "name": "vmm_create_aspace",
+      "address": 2147672222,
+      "size": 206,
+      "thumb": true
+    },
+    {
+      "name": "vmm_free_aspace",
+      "address": 2147672428,
+      "size": 292,
+      "thumb": true
+    },
+    {
+      "name": "cmdline_get_raw_string",
+      "address": 2147676886,
+      "size": 12,
+      "thumb": true
+    },
+    {
+      "name": "cmdline_get_raw_size",
+      "address": 2147676898,
+      "size": 12,
+      "thumb": true
+    },
+    {
+      "name": "putchar",
+      "address": 2147688612,
+      "size": 46,
+      "thumb": true
+    },
+    {
+      "name": "cmdline_is_present",
+      "address": 2147675762,
+      "size": 44,
+      "thumb": true
+    },
+    {
+      "name": "cmdline_get_value",
+      "address": 2147675226,
+      "size": 90,
+      "thumb": true
+    },
+    {
+      "name": "cmdline_get_bool",
+      "address": 2147676084,
+      "size": 196,
+      "thumb": true
+    },
+    {
+      "name": "cmdline_get_uint32",
+      "address": 2147676280,
+      "size": 102,
+      "thumb": true
+    },
+    {
+      "name": "cmdline_get_uint64",
+      "address": 2147676642,
+      "size": 92,
+      "thumb": true
+    },
+    {
+      "name": "cmdline_get_int",
+      "address": 2147676734,
+      "size": 152,
+      "thumb": true
+    },
+    {
+      "name": "isspace",
+      "address": 2147683010,
+      "size": 44,
+      "thumb": true
+    },
+    {
+      "name": "isalnum",
+      "address": 2147683068,
+      "size": 34,
+      "thumb": true
+    },
+    {
+      "name": "strncasecmp",
+      "address": 2147689176,
+      "size": 84,
+      "thumb": true
+    },
+    {
+      "name": "isdigit",
+      "address": 2147683054,
+      "size": 14,
+      "thumb": true
+    },
+    {
+      "name": "isxdigit",
+      "address": 2147683102,
+      "size": 34,
+      "thumb": true
+    },
+    {
+      "name": "tolower",
+      "address": 2147683150,
+      "size": 14,
+      "thumb": true
+    },
+    {
+      "name": "fputs",
+      "address": 2147688658,
+      "size": 36,
+      "thumb": true
+    },
+    {
+      "name": "strdup",
+      "address": 2147689032,
+      "size": 32,
+      "thumb": true
+    },
+    {
+      "name": "getchar",
+      "address": 2147688694,
+      "size": 42,
+      "thumb": true
+    },
+    {
+      "name": "console_run_script_locked",
+      "address": 2147678842,
+      "size": 144,
+      "thumb": true
+    },
+    {
+      "name": "atoul",
+      "address": 2147682474,
+      "size": 130,
+      "thumb": true
+    },
+    {
+      "name": "atol",
+      "address": 2147682288,
+      "size": 186,
+      "thumb": true
+    },
+    {
+      "name": "atoull",
+      "address": 2147682604,
+      "size": 158,
+      "thumb": true
+    },
+    {
+      "name": "qsort",
+      "address": 2147687200,
+      "size": 1412,
+      "thumb": true
+    },
+    {
+      "name": "page_first_alloc",
+      "address": 2147681756,
+      "size": 14,
+      "thumb": true
+    },
+    {
+      "name": "miniheap_init",
+      "address": 2147691282,
+      "size": 148,
+      "thumb": true
+    },
+    {
+      "name": "miniheap_trim",
+      "address": 2147690948,
+      "size": 334,
+      "thumb": true
+    },
+    {
+      "name": "miniheap_free",
+      "address": 2147690596,
+      "size": 206,
+      "thumb": true
+    },
+    {
+      "name": "miniheap_alloc",
+      "address": 2147689420,
+      "size": 654,
+      "thumb": true
+    },
+    {
+      "name": "realloc",
+      "address": 2147680928,
+      "size": 82,
+      "thumb": true
+    },
+    {
+      "name": "miniheap_realloc",
+      "address": 2147690132,
+      "size": 464,
+      "thumb": true
+    },
+    {
+      "name": "miniheap_dump",
+      "address": 2147689316,
+      "size": 104,
+      "thumb": true
+    },
+    {
+      "name": "page_alloc",
+      "address": 2147681718,
+      "size": 6,
+      "thumb": true
+    },
+    {
+      "name": "page_free",
+      "address": 2147681724,
+      "size": 32,
+      "thumb": true
+    },
+    {
+      "name": "__geterrno",
+      "address": 2147683164,
+      "size": 8,
+      "thumb": true
+    },
+    {
+      "name": "vsnprintf",
+      "address": 2147683200,
+      "size": 1882,
+      "thumb": true
+    },
+    {
+      "name": "_printf_longlong_to_hexstring",
+      "address": 2147687130,
+      "size": 70,
+      "thumb": true
+    },
+    {
+      "name": "_printf_longlong_to_string",
+      "address": 2147686916,
+      "size": 214,
+      "thumb": true
+    },
+    {
+      "name": "vfprintf",
+      "address": 2147685084,
+      "size": 1772,
+      "thumb": true
+    },
+    {
+      "name": "_fprintf_output_func",
+      "address": 2147688736,
+      "size": 20,
+      "thumb": true
+    },
+    {
+      "name": "io_read",
+      "address": 2147691632,
+      "size": 56,
+      "thumb": true
+    },
+    {
+      "name": "io_write",
+      "address": 2147691576,
+      "size": 56,
+      "thumb": true
+    },
+    {
+      "name": "__udivmoddi4",
+      "address": 2147688756,
+      "size": 172,
+      "thumb": true
+    },
+    {
+      "name": "strnicmp",
+      "address": 2147689176,
+      "size": 84,
+      "thumb": true
+    },
+    {
+      "name": "bcopy",
+      "address": 2147681864,
+      "size": 0,
+      "thumb": false
+    },
+    {
+      "name": "bzero",
+      "address": 2147682132,
+      "size": 0,
+      "thumb": false
+    }
+  ],
+  "not_emitted": [
+    "arm_data_abort",
+    "arm_fiq",
+    "arm_irq",
+    "arm_mmu_early_init",
+    "arm_prefetch_abort",
+    "arm_secondary_entry",
+    "arm_secondary_setup",
+    "arm_syscall",
+    "arm_undefined",
+    "bcopy",
+    "bolt_bench_icf_b",
+    "bzero",
+    "memmove",
+    "strnicmp",
+    "target_early_init",
+    "target_init",
+    "vmm_init",
+    "vsnprintf"
+  ]
+}

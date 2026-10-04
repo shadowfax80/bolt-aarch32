@@ -1,0 +1,166 @@
+[
+  {
+    "check": "mc",
+    "passed": true
+  },
+  {
+    "check": "link",
+    "passed": true
+  },
+  {
+    "check": "normal-report",
+    "passed": true
+  },
+  {
+    "check": "normal-identity",
+    "passed": true
+  },
+  {
+    "check": "normal-all-rejections",
+    "passed": true
+  },
+  {
+    "check": "normal-totals",
+    "passed": true
+  },
+  {
+    "check": "normal-alias-identity",
+    "passed": true
+  },
+  {
+    "check": "normal-no-outputs",
+    "passed": true
+  },
+  {
+    "check": "normal-atomic-publish",
+    "passed": true
+  },
+  {
+    "check": "reverse-report",
+    "passed": true
+  },
+  {
+    "check": "reverse-identity",
+    "passed": true
+  },
+  {
+    "check": "reverse-all-rejections",
+    "passed": true
+  },
+  {
+    "check": "reverse-totals",
+    "passed": true
+  },
+  {
+    "check": "reverse-alias-identity",
+    "passed": true
+  },
+  {
+    "check": "reverse-no-outputs",
+    "passed": true
+  },
+  {
+    "check": "reverse-atomic-publish",
+    "passed": true
+  },
+  {
+    "check": "old-text-report",
+    "passed": true
+  },
+  {
+    "check": "old-text-identity",
+    "passed": true
+  },
+  {
+    "check": "old-text-all-rejections",
+    "passed": true
+  },
+  {
+    "check": "old-text-totals",
+    "passed": true
+  },
+  {
+    "check": "old-text-alias-identity",
+    "passed": true
+  },
+  {
+    "check": "old-text-no-outputs",
+    "passed": true
+  },
+  {
+    "check": "old-text-atomic-publish",
+    "passed": true
+  },
+  {
+    "check": "deterministic-options",
+    "passed": true
+  },
+  {
+    "check": "bad_entry_it-fatal-default",
+    "passed": true
+  },
+  {
+    "check": "bad_fall_arm-fatal-default",
+    "passed": true
+  },
+  {
+    "check": "bad_fall_thumb-fatal-default",
+    "passed": true
+  },
+  {
+    "check": "bad_read_arm-fatal-default",
+    "passed": true
+  },
+  {
+    "check": "bad_read_thumb-fatal-default",
+    "passed": true
+  },
+  {
+    "check": "bad_truncated_it-fatal-default",
+    "passed": true
+  },
+  {
+    "check": "bad_write_arm-fatal-default",
+    "passed": true
+  },
+  {
+    "check": "bad_write_thumb-fatal-default",
+    "passed": true
+  },
+  {
+    "check": "explicit-strict-output",
+    "passed": true
+  },
+  {
+    "check": "excluded-not-emitted",
+    "passed": true
+  },
+  {
+    "check": "output-boundary",
+    "passed": true
+  },
+  {
+    "check": "instrument-boundary",
+    "passed": true
+  },
+  {
+    "check": "aggregate-boundary",
+    "passed": true
+  },
+  {
+    "check": "pie-global-fatal",
+    "passed": true
+  },
+  {
+    "check": "abi-global-fatal",
+    "passed": true
+  },
+  {
+    "check": "cannot-replace-input",
+    "passed": true
+  },
+  {
+    "check": "failed-publication",
+    "passed": true
+  }
+]
