@@ -80,20 +80,14 @@ item does not close that item. *Owner* is empty until someone claims it.
 
 Take items in the order below; groups reflect dependencies, not ownership.
 
-**A. Unblockers (first)**
-
-| Order | ID | Item | Priority | Owner | Status | Part of | Notes |
-|---|---|---|---|---|---|---|---|
-| 2 | R17 | Synthesized edge-case test image (`bolt_edge`): 146 cases (stage 1/1b 98 + 48 random from stage 2) | P1 | Claude | Stages 1/1b/2 done and certified (scoped) | 7, 8, 11, 12 | [Plan](R17_BOLT_EDGE_PLAN.md); evidence: `docs/results/bolt_edge_*_20261004.json` |
-
-**B. P0 certification (finish)**
+**B. P0 certification (first)**
 
 | Order | ID | Item | Priority | Owner | Status | Part of | Notes |
 |---|---|---|---|---|---|---|---|
 | 3 | 6a | Every gate proves execution: close G1 (fixed-path intermediates), G2 (seal profile chain in QEMU certificate), G3 (contracts for QEMU LK builds) | P0 | — | Partial | — | Pi sealed chain certified; G3 needs user review; 0054 ON/OFF builds and scoped Pi runs verified, remaining gate routes still open |
 | 4 | 6c | Legacy/manual hook admission | P0 | — | Partial | — | R9 done; includes R13 |
 | 5 | 6d | Durable receipts on every certification route | P0 | — | Partial | — | Pi gate + coverage report receipts exist |
-| 6 | 6b | Oracle contracts for further configurations (Thumb workloads, `bolt_edge` stage-2 images) | P0 | — | Partial | — | Active `pi4` contracts: full LK (`424606a8…`), bolt_edge stage 1 (`0895d7bc…`) and 1b (`439dfd7c…`); each new contract needs user review |
+| 6 | 6b | Oracle contracts for further configurations (Thumb workloads, future `bolt_edge` seeds) | P0 | — | Partial | — | Active `pi4` contracts: full LK (`424606a8…`), bolt_edge stage 1 (`0895d7bc…`), 1b (`439dfd7c…`) and 2 (`ce8dd005…`); each new contract needs user review |
 
 **C. Correctness defects (small)**
 
@@ -139,6 +133,7 @@ Take items in the order below; groups reflect dependencies, not ownership.
 | R19 | `mov lr, pc; b X` call idiom (clang ARM-mode) | P1 | Claude | 8 | 0055; `arm-mov-lr-pc-call.test`; edge image: all `c_noret` ARM functions admitted; LK 399 → 400 |
 | R20 | ICF aborted on A32 MOVW/MOVT `:lower16:/:upper16:` operands (found while testing R19) | P1 | Claude | 13 | 0056; `arm-icf-movw-movt.test`; ICF now folds such functions (edge image 7 → 26 folded) |
 | R18 | A32 inline `ldr pc` jump tables (clang ARM-mode switch / function-pointer tables) | P1 | Claude | 12 | 0057; `arm-ldr-pc-table.test`; edge image: all 6 such functions admitted and run correctly on the Pi |
+| R17 | Synthesized edge-case image `bolt_edge`: 146 cases (hand-written A32/T32, C at O0/O2/Os in attribute and whole-module `-marm`/`-mthumb`, 48 seeded random functions) | P1 | Claude | 7, 8, 11, 12 | [Plan](R17_BOLT_EDGE_PLAN.md); contracts `0895d7bc`, `439dfd7c`, `ce8dd005` certified; `docs/results/bolt_edge_*_20261004.json`; optional tuning: more conditional tail calls |
 | R11 | Skip-and-report admission mode | P1 | Codex | — | 0054; [diagnostic contract/evidence](ARM_ADMISSION_REPORT.md); one scan, same 399/417 coverage; both assertion modes + scoped Pi |
 
 ## Coverage goal
@@ -194,7 +189,7 @@ plus genuine fallthrough such as `bzero`: about 98% of functions.
   Same scope note as stage 1.
 - **Left (tuning only):** only 4 conditional tail calls (44/48 functions
   get a frame), could bias toward frameless functions or more seeds.
-- Lock free. Next in resume order: R21, then group B (6a G1–G3, 6c/R13, 6d, 6b).
+- Lock free. R17 moved to Done. Next in resume order: group B (6a G1–G3, 6c/R13, 6d, 6b), then group C (R8, R15, R12, R13, R21).
 
 ### 2026-10-04 — Claude: R18 done (overlay 0057); lock released
 
