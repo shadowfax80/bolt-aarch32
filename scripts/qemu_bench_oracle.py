@@ -36,6 +36,17 @@ CONTRACTS = {
         'rules_sha256': 'c34149eda9808d114cdc8da415a0863ed5de2d2effa3de3c133ed385d3b5a38e',
         'configuration': 'LK rpi4-bolt-test with RPI4_ARM_CPU=cortex-a55 (LK patch 0011: ARMv8-A AArch32, -mcpu=cortex-a55 -mfpu=none); bolt_bench -marm, WITH_BOLT_PGO off; STAIR_M=10, STAIR_X=0, input variant=0; 0 FP/NEON instructions; v8.0 subset only (runs on the A72)',
     },
+    # Approved by the user 2026-10-04: T2, A55-built full LK with the
+    # `bolt_bench smp` harness (fixtures/lk-rpi4-bolt-test-a55-smp-e1139981.elf).
+    'e11399812fca296875435dd2cc9effe5f6405ee11c5b94d2106fc8ae4f830b02': {
+        'name': 'full-lk-rpi4-bolt-test-a55-smp-20261004',
+        'platform': 'pi4',
+        'smp': True,
+        'bench_source_sha256': 'da96536689ad8e7883e82269458b902efba265f5f6986cd7499a858077f68c5b',
+        'composite_source_sha256': '8d830b9ca2a3884270f81cc3b00811f16d6744d5ac838d754664e2ec0ea12adb',
+        'rules_sha256': 'c34149eda9808d114cdc8da415a0863ed5de2d2effa3de3c133ed385d3b5a38e',
+        'configuration': 'LK rpi4-bolt-test with RPI4_ARM_CPU=cortex-a55 (LK 0011), WITH_SMP 4 cores; bolt_bench with per-core sink, `bolt_bench smp` and `bolt_sample watch`; -marm, WITH_BOLT_PGO off; STAIR_M=10, STAIR_X=0, input variant=0; 0 FP/NEON instructions',
+    },
     # Approved by the user 2026-10-04: R17 stage-1 bolt_edge image
     # (fixtures/lk-rpi4-bolt-edge-0895d7bc.elf). bolt_bench sources equal the
     # full-LK contract's; the 68 bolt_edge sinks come from the generator's
