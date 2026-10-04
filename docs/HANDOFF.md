@@ -37,7 +37,7 @@ and update it before stopping. `AGENTS.md` and `CLAUDE.md` point here.
 
 | Holder | Since | Purpose |
 |---|---|---|
-| Claude | 2026-10-04 | R5 (reassigned from Codex by the user) |
+| Claude | 2026-10-04 | R5 done; R6 next (both reassigned by the user) |
 
 ## Claims (consolidated TODO)
 
@@ -58,8 +58,8 @@ is listed under it; closing the R item does not close the queue item.
 | R10 | Global ARM builder in Thumb functions; NOP as trap fill | P2 | Claude | Done | — | 0050; `arm-trap-fill.test` |
 | R4 | Conditional tail calls crash (`LLVM ERROR`) | P1 | Claude | Done | 8 | 0051; Pi: 676 IRQs via rewritten `platform_irq` |
 | R16 | Full-image coverage report | P1 | Claude | Done | 6d | `scripts/lk_coverage_report.py`, [LK_COVERAGE.md](LK_COVERAGE.md) |
-| R5 | Noreturn calls at function end (~80 LK functions) | P1 | Claude | In progress | 8 | Reassigned by the user |
-| R6 | Predicated returns in IT blocks (46 LK functions) | P1 | Claude | Next (after R5) | 8 | Reassigned by the user |
+| R5 | Noreturn calls at function end (~80 LK functions) | P1 | Claude | Done | 8 | 0052; `arm-noreturn-calls.test`; LK 276 → 354 functions |
+| R6 | Predicated returns in IT blocks (46 LK functions) | P1 | Claude | In progress | 8 | Reassigned by the user |
 | R8 | r12 clobber in local-branch LongJmp stubs | P1 | Codex | Open | 13 | |
 | R11 | Skip-and-report admission mode | P2 | Codex | Open | — | |
 | R12 | ADR to inline TBB/TBH table (`vsnprintf`) | P2 | Codex | Open | 12 | |
@@ -87,7 +87,7 @@ Raise BOLT coverage of the full LK test binary, measured only by
 |---|---|---|---|
 | Baseline 2026-10-04 | — | — | 273/417 (65.5%); 79.1% of code bytes |
 | 1 | R4 conditional tail calls (crash) — **done, 0051** | 3 | 276/417 (66.2%); 79.2% of code bytes |
-| 2 | R5 noreturn calls at function end | ~79 (not `bzero`) | ~85% |
+| 2 | R5 noreturn calls at function end — **done, 0052** | 78 | 354/417 (84.9%); 92.6% of code bytes |
 | 3 | R6 predicated returns in IT blocks | ~46 | ~96% |
 | 4 | R12 ADR to inline switch table | 1 | ~96% |
 | 5 | R15 try-lock reservation guard | instrumentation of the image | — |
@@ -109,6 +109,29 @@ plus genuine fallthrough such as `bzero`: about 98% of functions.
 4. Update the *Claims* table and LK_COVERAGE.md together.
 
 ## Handoff log
+
+### 2026-10-04 — Claude: R5 done (overlay 0052); lock kept for R6
+
+- **Change:** `BinaryFunction::isProvenNoReturnARM()` proves from input bytes
+  that a function never returns: no return, indirect branch or computed PC
+  write; branches out of it and its final call go to proven functions; it
+  cannot run off its end. Unproven cases (recursion, size 0, interior
+  entries) count as "may return". The fallthrough rejection is lifted only
+  for a final unconditional direct call to a proven function's primary entry.
+- **Tests:** `arm-noreturn-calls.test`: A32/T32 chains admitted in both
+  layouts; may-return, indirect, conditional final call, tail branch to
+  returning code and recursion still reject. ARM lit 44/44; BOLT lit 854/855
+  (same unrelated AArch64 test); CoreTests 58; JITLink AArch32 15/15;
+  overlays 0001–0052 replay exactly.
+- **Coverage:** 276 → 354/417 functions; 79.2% → 92.6% of code bytes.
+  Remaining fallthrough rejections: `bcopy`, `bzero` (real fallthrough).
+- **Pi:** `out/full-check-claude-r5`, 355 emitted, 35 entries redirected to
+  rewritten copies (33 R5-recovered functions on boot, timer, MMU, PMM/VMM
+  and heap paths, plus platform_irq and two workloads). Booted to the shell;
+  3 repetitions, 18/18 equal baseline and the reference formulas; no faults.
+  PC samples (2027) only hit the workloads: the boot-path functions are
+  shown executed by the redirect plus successful boot, not by sampling.
+  `initial_thread_func` could not be redirected (PC-relative first BL).
 
 ### 2026-10-04 — Consolidated TODO; R6 reassigned to Claude
 

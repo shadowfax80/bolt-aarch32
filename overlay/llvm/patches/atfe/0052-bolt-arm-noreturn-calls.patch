@@ -1,0 +1,406 @@
+--- a/bolt/include/bolt/Core/BinaryContext.h
++++ b/bolt/include/bolt/Core/BinaryContext.h
+@@ -789,6 +789,12 @@
+   /// Thumb-mode counterpart to MIB, keyed to ThumbSTI. See getMIBFor().
+   std::unique_ptr<MCPlusBuilder> ThumbMIB;
+ 
++  /// AArch32 noreturn proofs, see BinaryFunction::isProvenNoReturnARM().
++  /// Absent: not analyzed; std::nullopt: analysis in progress.
++  std::unordered_map<const BinaryFunction *, std::optional<bool>>
++      ARMNoReturnCache;
++  std::recursive_mutex ARMNoReturnMutex;
++
+   std::unique_ptr<MCAsmBackend> MAB;
+ 
+   /// Allows BOLT to print to log whenever it is necessary (with or without
+--- a/bolt/include/bolt/Core/BinaryFunction.h
++++ b/bolt/include/bolt/Core/BinaryFunction.h
+@@ -1465,6 +1465,13 @@
+   bool isARMThumb() const { return IsARMThumb; }
+   void setARMThumb(bool V = true) { IsARMThumb = V; }
+ 
++  /// AArch32: true only when the input bytes prove that control never leaves
++  /// this function through its primary entry: no return, indirect branch or
++  /// computed PC write; every branch out of it and its final call target a
++  /// proven-noreturn function; and it cannot run off its end. Conservative:
++  /// anything unproven (including recursion) is "may return".
++  bool isProvenNoReturnARM() const;
++
+   MCDisassembler &getDisassembler() const;
+ 
+   /// Return true if the function should not be disassembled, emitted, or
+--- a/bolt/lib/Core/BinaryFunction.cpp
++++ b/bolt/lib/Core/BinaryFunction.cpp
+@@ -1380,6 +1380,87 @@
+          BC.getBinaryFunctionAtAddress(*Target & ~1ULL);
+ }
+ 
++// AArch32 instruction that may not execute: a condition other than AL in its
++// predicate operand (IT-block bodies carry the IT condition), or a
++// compare-and-branch, which has no predicate operand.
++static bool isPredicatedARM(const BinaryContext &BC, const MCPlusBuilder &MIB,
++                            const MCInst &Inst) {
++  const int PredIdx = BC.MII->get(Inst.getOpcode()).findFirstPredOperandIdx();
++  if (PredIdx >= 0 && static_cast<unsigned>(PredIdx) < Inst.getNumOperands() &&
++      Inst.getOperand(PredIdx).isImm())
++    return Inst.getOperand(PredIdx).getImm() != 14; // ARMCC::AL
++  return MIB.isConditionalBranch(Inst);
++}
++
++bool BinaryFunction::isProvenNoReturnARM() const {
++  if (!BC.isARM() || !getSize() || isPseudo())
++    return false;
++  std::lock_guard<std::recursive_mutex> Lock(BC.ARMNoReturnMutex);
++  auto It = BC.ARMNoReturnCache.find(this);
++  if (It != BC.ARMNoReturnCache.end())
++    return It->second.value_or(false); // Recursion is not a proof.
++  BC.ARMNoReturnCache[this] = std::nullopt;
++
++  const bool Result = [&] {
++    ErrorOr<ArrayRef<uint8_t>> Data = getData();
++    if (!Data)
++      return false;
++    const bool Thumb = isARMThumb();
++    MCPlusBuilder *MIB = BC.getMIBFor(Thumb);
++    // Plain decode: the symbolic disassembler may hold another function's
++    // symbolizer while this runs from that function's disassembly.
++    MCDisassembler *DisAsm =
++        Thumb && BC.ThumbDisAsm ? BC.ThumbDisAsm.get() : BC.DisAsm.get();
++    // Only the primary entry of a proven function may be relied on.
++    auto targetNoReturn = [&](uint64_t Target) {
++      const BinaryFunction *F = BC.getBinaryFunctionAtAddress(Target);
++      return F && F->getAddress() == Target && F->isProvenNoReturnARM();
++    };
++    bool EndsInExit = false; // The last instruction cannot run off the end.
++    MCInst Inst;
++    uint64_t Size = 0;
++    for (uint64_t Offset = 0; Offset < getSize(); Offset += Size) {
++      if (const size_t DataSize = getSizeOfDataInCodeAt(Offset)) {
++        Size = DataSize;
++        continue;
++      }
++      const uint64_t Addr = getAddress() + Offset;
++      if (!DisAsm->getInstruction(Inst, Size, Data->slice(Offset), Addr,
++                                  nulls()) ||
++          !Size)
++        return false;
++      EndsInExit = false;
++      if (MIB->isReturn(Inst) || MIB->isIndirectBranch(Inst) ||
++          MIB->isUnsupportedPCWrite(Inst))
++        return false;
++      const bool Predicated = isPredicatedARM(BC, *MIB, Inst);
++      uint64_t Target = 0;
++      if (MIB->isCall(Inst)) {
++        // An indirect call returns here; a direct one may end the function.
++        if (MIB->isIndirectCall(Inst))
++          continue;
++        if (!MIB->evaluateBranch(Inst, Addr, Size, Target))
++          return false;
++        EndsInExit = !Predicated && targetNoReturn(Target & ~1ULL);
++        continue;
++      }
++      if (MIB->isBranch(Inst)) {
++        if (!MIB->evaluateBranch(Inst, Addr, Size, Target))
++          return false;
++        Target &= ~1ULL;
++        // A branch out of the function is a tail call.
++        if ((Target < getAddress() || Target >= getAddress() + getSize()) &&
++            !targetNoReturn(Target))
++          return false;
++        EndsInExit = !Predicated;
++      }
++    }
++    return EndsInExit;
++  }();
++  BC.ARMNoReturnCache[this] = Result;
++  return Result;
++}
++
+ Error BinaryFunction::disassemble() {
+   NamedRegionTimer T("disassemble", "Disassemble function", "buildfuncs",
+                      "Build Binary Functions", opts::TimeBuild);
+@@ -2702,8 +2783,22 @@
+   // A symbol boundary does not imply a return. Until inter-function
+   // fallthrough is modeled, do not erase a conditional branch, insert a
+   // return, or relocate a terminal call away from its continuation.
++  // A final unconditional direct call to the primary entry of a proven
++  // noreturn function (panic, assert_fail, ...) does not continue: the block
++  // keeps no successor and nothing is inserted after the call.
++  auto endsInNoReturnCall = [&](BinaryBasicBlock &BB) {
++    const MCInst *Last = BB.getLastNonPseudoInstr();
++    if (!Last || !MIB->isCall(*Last) || MIB->isIndirectCall(*Last) ||
++        MIB->isTailCall(*Last) || isPredicatedARM(BC, *MIB, *Last))
++      return false;
++    const MCSymbol *Sym = MIB->getTargetSymbol(*Last);
++    const BinaryFunction *Callee = Sym ? BC.getFunctionForSymbol(Sym) : nullptr;
++    return Callee && Callee->getSymbol() == Sym &&
++           Callee->isProvenNoReturnARM();
++  };
+   if (BC.isARM() && IsPrevFT && !isRecognizedARMAbsoluteVeneer(*this) &&
+-      (PrevBB->pred_size() != 0 || isEntryPoint(*PrevBB)))
++      (PrevBB->pred_size() != 0 || isEntryPoint(*PrevBB)) &&
++      !endsInNoReturnCall(*PrevBB))
+     return createFatalBOLTError("unmodeled AArch32 function fallthrough in " +
+                                getPrintName());
+ 
+--- /dev/null
++++ b/bolt/test/ARM/Inputs/check-arm-noreturn-calls.py
+@@ -0,0 +1,249 @@
++from pathlib import Path
++import re
++import shutil
++import subprocess
++import sys
++import tempfile
++
++# A function whose last instruction is a call is admitted only when the call
++# is an unconditional direct call to the primary entry of a function proven
++# not to return (no return, indirect branch or computed PC write; tail
++# branches and the final call reach proven functions; cannot run off its
++# end). Every unproven case must keep the fallthrough rejection.
++tc = Path(shutil.which('llvm-bolt')).resolve().parent
++evidence = Path(sys.argv[1])
++evidence.mkdir(parents=True, exist_ok=True)
++out = Path(tempfile.mkdtemp(prefix='run-', dir=evidence))
++print('Evidence:', out)
++
++HEAD = r''' .syntax unified
++ .text
++ .arm
++ .global _start
++ .type _start,%function
++_start:
++ bl user_arm
++ blx user_thumb
++ b _start
++ .size _start,.-_start
++'''
++
++# A32 and T32 noreturn chains: halt loops; fatal calls a returning helper,
++# then ends in a call to halt.
++CHAINS = r'''
++ .arm
++ .global halt_arm
++ .type halt_arm,%function
++halt_arm:
++ wfi
++ b halt_arm
++ .size halt_arm,.-halt_arm
++
++ .global helper_arm
++ .type helper_arm,%function
++helper_arm:
++ add r0, r0, #1
++ bx lr
++ .size helper_arm,.-helper_arm
++
++ .global fatal_arm
++ .type fatal_arm,%function
++fatal_arm:
++ push {r4, lr}
++ bl helper_arm
++ bl halt_arm
++ .size fatal_arm,.-fatal_arm
++
++ .thumb
++ .global halt_thumb
++ .type halt_thumb,%function
++ .thumb_func
++halt_thumb:
++ wfi
++ b halt_thumb
++ .size halt_thumb,.-halt_thumb
++
++ .global fatal_thumb
++ .type fatal_thumb,%function
++ .thumb_func
++fatal_thumb:
++ push {r4, lr}
++ blx helper_arm
++ bl halt_thumb
++ .size fatal_thumb,.-fatal_thumb
++'''
++
++POSITIVE = r'''
++ .arm
++ .global user_arm
++ .type user_arm,%function
++user_arm:
++ cmp r0, #0
++ beq 1f
++ bx lr
++1:
++ bl fatal_arm
++ .size user_arm,.-user_arm
++
++ .thumb
++ .global user_thumb
++ .type user_thumb,%function
++ .thumb_func
++user_thumb:
++ cmp r0, #0
++ beq 1f
++ bx lr
++1:
++ bl fatal_thumb
++ .size user_thumb,.-user_thumb
++
++ .global after_thumb
++ .type after_thumb,%function
++ .thumb_func
++after_thumb:
++ adds r0, #7
++ bx lr
++ .size after_thumb,.-after_thumb
++'''
++
++
++def negative(callee_src, last_call):
++    # user_arm ends in `last_call`; user_thumb is a plain returning function.
++    return CHAINS + callee_src + r'''
++ .arm
++ .global user_arm
++ .type user_arm,%function
++user_arm:
++ cmp r0, #0
++ beq 1f
++ bx lr
++1:
++ ''' + last_call + r'''
++ .size user_arm,.-user_arm
++
++ .global after_arm
++ .type after_arm,%function
++after_arm:
++ add r0, r0, #7
++ bx lr
++ .size after_arm,.-after_arm
++
++ .thumb
++ .global user_thumb
++ .type user_thumb,%function
++ .thumb_func
++user_thumb:
++ bx lr
++ .size user_thumb,.-user_thumb
++'''
++
++
++FIXTURES = {
++    'positive': (CHAINS + POSITIVE, None),
++    # The callee can return on one path.
++    'may-return': (negative(r'''
++ .arm
++ .global maybe
++ .type maybe,%function
++maybe:
++ cmp r0, #0
++ bxne lr
++ b halt_arm
++ .size maybe,.-maybe
++''', 'bl maybe'), 'unmodeled AArch32 function fallthrough in user_arm'),
++    # An indirect branch is not provable.
++    'indirect': (negative(r'''
++ .arm
++ .global jump
++ .type jump,%function
++jump:
++ bx r1
++ .size jump,.-jump
++''', 'bl jump'), 'unmodeled AArch32 function fallthrough in user_arm'),
++    # A conditional final call can fall through.
++    'conditional-call': (negative('', 'bleq fatal_arm'),
++                         'unmodeled AArch32 function fallthrough in user_arm'),
++    # The callee tail-branches to a returning function.
++    'tail-to-returning': (negative(r'''
++ .arm
++ .global tailer
++ .type tailer,%function
++tailer:
++ add r0, r0, #1
++ b helper_arm
++ .size tailer,.-tailer
++''', 'bl tailer'), 'unmodeled AArch32 function fallthrough in user_arm'),
++    # Mutual recursion without a base case is not taken as a proof.
++    'recursion': (negative(r'''
++ .arm
++ .global ping
++ .type ping,%function
++ping:
++ push {r4, lr}
++ bl pong
++ .size ping,.-ping
++ .global pong
++ .type pong,%function
++pong:
++ push {r4, lr}
++ bl ping
++ .size pong,.-pong
++''', 'bl ping'), 'unmodeled AArch32 function fallthrough in'),
++}
++
++LD = 'ENTRY(_start)\nSECTIONS {\n  . = 0x8000;\n  .text : { *(.text*) }\n}\n'
++
++
++def run(cmd, check=True):
++    p = subprocess.run([str(x) for x in cmd], cwd=out, capture_output=True,
++                       text=True)
++    if check and p.returncode:
++        sys.exit(f'FAIL: {cmd[0]} exited {p.returncode}\n{p.stdout}{p.stderr}')
++    return p.returncode, p.stdout + p.stderr
++
++
++bad = 0
++for name, (body, expect_error) in FIXTURES.items():
++    (out / f'{name}.s').write_text(HEAD + body)
++    (out / 'in.ld').write_text(LD)
++    run([tc / 'llvm-mc', '-arm-add-build-attributes', '-filetype=obj',
++         '-triple=armv7-unknown-linux-gnueabi', f'{name}.s', '-o', f'{name}.o'])
++    run([tc / 'ld.lld', '--emit-relocs', '-T', 'in.ld', f'{name}.o', '-o',
++         f'{name}.exe'])
++    for mode, extra in (('default', []), ('reverse', ['--reorder-blocks=reverse'])):
++        rc, log = run([tc / 'llvm-bolt', f'{name}.exe', '-o', f'{name}.{mode}.exe',
++                       '-lite=0', *extra], check=False)
++        (out / f'{name}.{mode}.log').write_text(log)
++        if expect_error:
++            ok = rc != 0 and expect_error in log and \
++                 not (out / f'{name}.{mode}.exe').exists()
++            print(f"{'PASS' if ok else 'FAIL'}: {name}/{mode}: rejected={rc != 0}")
++            bad += not ok
++            continue
++        if rc:
++            print(f'FAIL: {name}/{mode}: llvm-bolt failed\n{log[-1500:]}')
++            bad += 1
++            continue
++        _, dis = run([tc / 'llvm-objdump', '-d', '--no-show-raw-insn',
++                      f'{name}.{mode}.exe'])
++        _, fmap = run([tc / 'llvm-nm', f'{name}.{mode}.exe'])
++        syms = {l.split()[2]: int(l.split()[0], 16) & ~1
++                for l in fmap.splitlines() if len(l.split()) == 3}
++        for user, callee in (('user_arm', 'fatal_arm'),
++                             ('user_thumb', 'fatal_thumb')):
++            m = re.search(r'<' + user + r'>:\n(.*?)(?:\n\n|\Z)', dis, re.S)
++            insts = [l.split(':', 1)[1].split('@')[0].strip()
++                     for l in m.group(1).splitlines() if ':' in l] if m else []
++            # Rewritten (moved); the same four instructions in either layout:
++            # cmp, b<c>, one return, one call to the proven callee. Nothing
++            # (no return or branch) is added after the call. Trailing
++            # alignment filler is ignored.
++            body = [i for i in insts if i not in ('movs\tr0, r0', 'nop')]
++            calls = [i for i in body if re.match(r'bl\s', i)]
++            ok = syms.get(user, 0) >= 0x400000 and len(body) == 4 and \
++                 sum(i.startswith('bx') for i in body) == 1 and \
++                 len(calls) == 1 and f'<{callee}>' in calls[0]
++            print(f"{'PASS' if ok else 'FAIL'}: {name}/{mode}: {user}: "
++                  f"{'; '.join(insts)}")
++            bad += not ok
++sys.exit(1 if bad else 0)
+--- /dev/null
++++ b/bolt/test/ARM/arm-noreturn-calls.test
+@@ -0,0 +1,6 @@
++## A final call to a function proven not to return (A32 and T32 chains) is
++## admitted; calls that may return, indirect branches, conditional final
++## calls, tail branches to returning code and recursion stay rejected.
++
++RUN: rm -rf %t.dir
++RUN: %python %p/Inputs/check-arm-noreturn-calls.py %t.dir
