@@ -24,7 +24,12 @@ and update it before stopping. `AGENTS.md` and `CLAUDE.md` point here.
 5. **Hand off on stop.** Append a *Handoff log* entry (newest first) and push.
    The entry says what changed, what was verified, the live-tree state, and
    what the other agent should do next.
-6. **Project rules still apply:** no FPU/NEON (`-mfpu=none`,
+6. **Regenerate coverage on handoff.** After any change to the backend or
+   the LK test image, rerun `scripts/lk_coverage_report.py` on the full LK
+   test binary and commit [LK_COVERAGE.md](LK_COVERAGE.md) plus its
+   `docs/results/lk_coverage_*.json`. Quote the before/after numbers in the
+   log entry.
+7. **Project rules still apply:** no FPU/NEON (`-mfpu=none`,
    `scripts/check-no-fpu.sh`); no oracle contract derived from Pi output
    without the user's review; keep admission guards conservative.
 
@@ -56,11 +61,24 @@ existing queue in [CORRECTNESS_PRIORITY_TODO.md](CORRECTNESS_PRIORITY_TODO.md).
 | R12 | ADR to inline TBB/TBH table (`vsnprintf`) | P2 | Codex | Open | |
 | R13 | Redirect functions starting with a 16-bit instruction | P2 | Codex | Open | |
 | R14 | RISC-V 64 relocations dispatched to the ARM helpers | P1 | Claude | Done (untested) | 0047; RISC-V target not built here |
-| R16 | Full-image coverage report (every function and code byte in the LK test binary) | P1 | Claude | In progress | `scripts/lk_coverage_report.py` (no live-tree changes) |
+| R16 | Full-image coverage report (every function and code byte in the LK test binary) | P1 | Claude | Done | `scripts/lk_coverage_report.py` → [LK_COVERAGE.md](LK_COVERAGE.md) |
 | R15 | Full-LK instrumentation rejected: `arch_spin_trylock` returns with a live reservation (0038 guard false positive) | P1 | Codex | Open | `instrument-lk-bolt.sh` on input `424606a8…` fails before any counter is placed |
 | 6a–14 | Existing correctness queue | P0/P1 | Codex | See its table | |
 
 ## Handoff log
+
+### 2026-10-04 — Claude: full-image coverage report (R16)
+
+- `scripts/lk_coverage_report.py` classifies every FUNC symbol and every
+  `.text` byte of the LK test binary (kernel, platform, libc, startup and
+  vector assembly, bolt_bench workloads). Baseline on input `424606a8…` with
+  overlays 0001–0050: **79.1% of function code bytes and 273/417 functions
+  rewritten**; 138 rejected (fallthrough 80, IT transfer 46, PC write 7, CFG
+  crash 3, PC read 2); 5 folded by ICF; 27.4% of `.text` is alignment filler.
+  Instrumentation of the image fails on R15. See [LK_COVERAGE.md](LK_COVERAGE.md).
+- It reruns llvm-bolt until no function is rejected (61 rounds, ~3 s). R11
+  would replace that loop with one run.
+- No live-tree changes; the lock stays free.
 
 ### 2026-10-04 — Claude releases the lock (overlays 0046–0050)
 
