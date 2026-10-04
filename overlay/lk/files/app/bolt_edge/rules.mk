@@ -3,7 +3,7 @@ LOCAL_DIR := $(GET_LOCAL_DIR)
 
 MODULE := $(LOCAL_DIR)
 
-MODULE_DEPS += lib/console
+MODULE_DEPS += lib/console 	$(LOCAL_DIR)/marm 	$(LOCAL_DIR)/mthumb
 
 MODULE_SRCS += \
 	$(LOCAL_DIR)/bolt_edge.c \

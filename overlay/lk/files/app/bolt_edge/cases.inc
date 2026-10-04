@@ -67,6 +67,36 @@ uint32_t c_loop_arm_o0(uint32_t);
 uint32_t c_fib_arm_o0(uint32_t);
 uint32_t c_indirect_arm_o0(uint32_t);
 uint32_t c_noret_arm_o0(uint32_t);
+uint32_t c_switch_marm_o2(uint32_t);
+uint32_t c_loop_marm_o2(uint32_t);
+uint32_t c_fib_marm_o2(uint32_t);
+uint32_t c_indirect_marm_o2(uint32_t);
+uint32_t c_noret_marm_o2(uint32_t);
+uint32_t c_switch_marm_os(uint32_t);
+uint32_t c_loop_marm_os(uint32_t);
+uint32_t c_fib_marm_os(uint32_t);
+uint32_t c_indirect_marm_os(uint32_t);
+uint32_t c_noret_marm_os(uint32_t);
+uint32_t c_switch_marm_o0(uint32_t);
+uint32_t c_loop_marm_o0(uint32_t);
+uint32_t c_fib_marm_o0(uint32_t);
+uint32_t c_indirect_marm_o0(uint32_t);
+uint32_t c_noret_marm_o0(uint32_t);
+uint32_t c_switch_mthumb_o2(uint32_t);
+uint32_t c_loop_mthumb_o2(uint32_t);
+uint32_t c_fib_mthumb_o2(uint32_t);
+uint32_t c_indirect_mthumb_o2(uint32_t);
+uint32_t c_noret_mthumb_o2(uint32_t);
+uint32_t c_switch_mthumb_os(uint32_t);
+uint32_t c_loop_mthumb_os(uint32_t);
+uint32_t c_fib_mthumb_os(uint32_t);
+uint32_t c_indirect_mthumb_os(uint32_t);
+uint32_t c_noret_mthumb_os(uint32_t);
+uint32_t c_switch_mthumb_o0(uint32_t);
+uint32_t c_loop_mthumb_o0(uint32_t);
+uint32_t c_fib_mthumb_o0(uint32_t);
+uint32_t c_indirect_mthumb_o0(uint32_t);
+uint32_t c_noret_mthumb_o0(uint32_t);
 
 static const struct bolt_edge_case cases[] = {
     {"iw_a_call_t", iw_a_call_t},
@@ -137,6 +167,36 @@ static const struct bolt_edge_case cases[] = {
     {"c_fib_arm_o0", c_fib_arm_o0},
     {"c_indirect_arm_o0", c_indirect_arm_o0},
     {"c_noret_arm_o0", c_noret_arm_o0},
+    {"c_switch_marm_o2", c_switch_marm_o2},
+    {"c_loop_marm_o2", c_loop_marm_o2},
+    {"c_fib_marm_o2", c_fib_marm_o2},
+    {"c_indirect_marm_o2", c_indirect_marm_o2},
+    {"c_noret_marm_o2", c_noret_marm_o2},
+    {"c_switch_marm_os", c_switch_marm_os},
+    {"c_loop_marm_os", c_loop_marm_os},
+    {"c_fib_marm_os", c_fib_marm_os},
+    {"c_indirect_marm_os", c_indirect_marm_os},
+    {"c_noret_marm_os", c_noret_marm_os},
+    {"c_switch_marm_o0", c_switch_marm_o0},
+    {"c_loop_marm_o0", c_loop_marm_o0},
+    {"c_fib_marm_o0", c_fib_marm_o0},
+    {"c_indirect_marm_o0", c_indirect_marm_o0},
+    {"c_noret_marm_o0", c_noret_marm_o0},
+    {"c_switch_mthumb_o2", c_switch_mthumb_o2},
+    {"c_loop_mthumb_o2", c_loop_mthumb_o2},
+    {"c_fib_mthumb_o2", c_fib_mthumb_o2},
+    {"c_indirect_mthumb_o2", c_indirect_mthumb_o2},
+    {"c_noret_mthumb_o2", c_noret_mthumb_o2},
+    {"c_switch_mthumb_os", c_switch_mthumb_os},
+    {"c_loop_mthumb_os", c_loop_mthumb_os},
+    {"c_fib_mthumb_os", c_fib_mthumb_os},
+    {"c_indirect_mthumb_os", c_indirect_mthumb_os},
+    {"c_noret_mthumb_os", c_noret_mthumb_os},
+    {"c_switch_mthumb_o0", c_switch_mthumb_o0},
+    {"c_loop_mthumb_o0", c_loop_mthumb_o0},
+    {"c_fib_mthumb_o0", c_fib_mthumb_o0},
+    {"c_indirect_mthumb_o0", c_indirect_mthumb_o0},
+    {"c_noret_mthumb_o0", c_noret_mthumb_o0},
 };
 
 static const uint32_t inputs[] = {0x00000000u, 0x00000001u, 0x00000002u, 0x00000003u, 0x00000004u, 0x00000005u, 0x00000006u, 0x00000008u, 0x00000009u, 0x0000000fu, 0x00000010u, 0x000000ffu, 0x7fffffffu, 0x80000000u, 0xfffffffeu, 0xffffffffu};

@@ -1,0 +1,54 @@
+{
+ "schema": 1,
+ "item": "R17 stage 1b: whole-module -marm / -mthumb builds",
+ "date": "2026-10-04",
+ "image": "fixtures/lk-rpi4-bolt-edge-439dfd7c.elf",
+ "image_sha256": "439dfd7c8dc660b1b4b8d4bae967750fe87485647460c791e2b7e385304e7bb9",
+ "cases": 98,
+ "case_isas": {
+  "A32": 10,
+  "T32": 36,
+  "C": 2,
+  "C-arm_o2": 5,
+  "C-thumb_o2": 5,
+  "C-thumb_os": 5,
+  "C-arm_o0": 5,
+  "C-marm_o2": 5,
+  "C-marm_os": 5,
+  "C-marm_o0": 5,
+  "C-mthumb_o2": 5,
+  "C-mthumb_os": 5,
+  "C-mthumb_o0": 5
+ },
+ "baseline_pi": "98/98 sinks equal the generator models",
+ "admission": {
+  "functions_checked": 107,
+  "matching": 95,
+  "gaps": {
+   "R18 (ARM inline ldr-pc tables)": [
+    "c_switch_arm_o2",
+    "c_indirect_arm_o2",
+    "c_switch_arm_o0",
+    "c_switch_marm_o2",
+    "c_indirect_marm_o2",
+    "c_switch_marm_os",
+    "c_indirect_marm_os",
+    "c_switch_marm_o0"
+   ],
+   "R19 (mov lr, pc; b)": [
+    "c_noret_arm_o2",
+    "c_noret_arm_o0",
+    "c_noret_marm_o2",
+    "c_noret_marm_o0"
+   ]
+  },
+  "mthumb": "all 15 whole-module -mthumb functions admitted (O2/Os/O0)"
+ },
+ "rewritten_pi": {
+  "emitted": 498,
+  "redirected": 33,
+  "redirected_from_flag_modules": 8,
+  "result": "98 cases x 2 runs: 0 mismatches; no faults"
+ },
+ "scope": "uncertified until the user approves a contract for this image"
+}

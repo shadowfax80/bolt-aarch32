@@ -17,7 +17,7 @@ import re
 import sys
 from pathlib import Path
 
-MANIFEST = Path(__file__).resolve().parents[2] / 'docs/bolt_edge/manifest.json'
+MANIFEST = Path(__file__).resolve().parents[2] / 'docs/bolt_edge/manifest.json'  # --manifest overrides
 
 
 def results(log, repeat):
@@ -76,7 +76,11 @@ def main():
     r.add_argument('--repeat', type=int, default=1)
     a = sub.add_parser('admission')
     a.add_argument('coverage')
+    ap.add_argument('--manifest', type=Path, help='default: docs/bolt_edge/manifest.json')
     args = ap.parse_args()
+    if args.manifest:
+        global MANIFEST
+        MANIFEST = args.manifest
     return results(args.log, args.repeat) if args.cmd == 'results' else admission(args.coverage)
 
 

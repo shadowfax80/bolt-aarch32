@@ -36,6 +36,8 @@ CONTRACTS = {
         'bench_source_sha256': 'a48247945d47b359c04f40883361b72c1be87a4a7983aecc299d7c121d0d96d0',
         'composite_source_sha256': '8d830b9ca2a3884270f81cc3b00811f16d6744d5ac838d754664e2ec0ea12adb',
         'rules_sha256': 'c34149eda9808d114cdc8da415a0863ed5de2d2effa3de3c133ed385d3b5a38e',
+        'edge_manifest': 'docs/bolt_edge/stage1/manifest.json',
+        'edge_generator': 'docs/bolt_edge/stage1/gen.py',
         'edge_manifest_sha256': 'dbc9835fd35ab6adde8379240dc024061ab5e8b23035b1c9b3699d64b502a565',
         'edge_generator_sha256': 'ca2d98b7a9986ee8200e89fbc751b45eb22351ae4b2984c16fe204e19bc9b3f9',
         'configuration': 'LK rpi4-bolt-edge (rpi4-bolt-test + generated app/bolt_edge, -mfpu=none); bolt_bench as in the full-LK contract; 0 FP/NEON instructions',
@@ -136,8 +138,10 @@ def check_edge_results(image_sha256,text,platform='pi4'):
     if 'edge_manifest_sha256' not in contract:
         return None
     root=Path(__file__).resolve().parents[1]
-    raw=(root/'docs/bolt_edge/manifest.json').read_bytes().replace(b'\r\n',b'\n')
-    gen=(root/'scripts/bolt_edge/gen.py').read_bytes().replace(b'\r\n',b'\n')
+    # Each contract names its frozen manifest and generator: later generator
+    # versions do not change an approved image's expectations.
+    raw=(root/contract['edge_manifest']).read_bytes().replace(b'\r\n',b'\n')
+    gen=(root/contract['edge_generator']).read_bytes().replace(b'\r\n',b'\n')
     if hashlib.sha256(raw).hexdigest()!=contract['edge_manifest_sha256'] or \
             hashlib.sha256(gen).hexdigest()!=contract['edge_generator_sha256']:
         raise ValueError('bolt_edge manifest/generator differs from the reviewed contract')

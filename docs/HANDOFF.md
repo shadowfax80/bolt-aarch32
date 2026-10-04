@@ -103,8 +103,8 @@ Take items in the order below; groups reflect dependencies, not ownership.
 | 8 | R15 | Full-LK instrumentation blocked by `arch_spin_trylock` guard (false positive) | P1 | — | Open | exclusive guards (0038/0039) | Keep must-reject tests for real cross-function pairs |
 | 9 | R12 | ADR to an inline TBB/TBH table (`vsnprintf`) | P2 | — | Open | 12 | Last coverage item |
 | 10 | R13 | Redirect functions starting with a 16-bit instruction | P2 | — | Open | 6c | If not done under 6c |
-| 10a | R18 | ARM-state inline jump tables (`add rN, pc, #k; ldr pc, [rN, rI, lsl #2]; .word …`) rejected as PC read | P1 | — | Open | 12 | Found by R17: clang `-marm` switch and function-pointer tables (`c_switch_arm_*`, `c_indirect_arm_o2`) |
-| 10b | R19 | `mov lr, pc; b <target>` call idiom rejected as PC read | P1 | — | Open | 8 | Found by R17 (`c_noret_arm_*`, clang `-marm` call to a noreturn function via a thunk); position-independent while adjacent |
+| 10a | R18 | ARM-state inline jump tables (`add rN, pc, #k; ldr pc, [rN, rI, lsl #2]; .word …`) rejected as PC read | P1 | — | Open | 12 | Found by R17 in clang ARM-mode code, both `target("arm")` and whole-module `-marm`, at O2/Os/O0 (8 functions) |
+| 10b | R19 | `mov lr, pc; b <target>` call idiom rejected as PC read | P1 | — | Open | 8 | Found by R17 (`c_noret_arm_*`, `c_noret_marm_*`: clang ARM-mode call to a noreturn function via a thunk; 4 functions); position-independent while adjacent |
 
 **D. P1 certification matrices (as capacity allows)**
 
@@ -169,6 +169,21 @@ plus genuine fallthrough such as `bzero`: about 98% of functions.
 4. Update the *Claims* table and LK_COVERAGE.md together.
 
 ## Handoff log
+
+### 2026-10-04 — Claude: R17 stage 1b (whole-module -marm / -mthumb)
+
+- `gen.py` now also emits submodules `app/bolt_edge/marm` and `mthumb`
+  compiling the C cases with whole-module `-marm` / `-mthumb` at O2, Os
+  (`minsize`) and O0 (`optnone`): 98 cases. Image
+  `fixtures/lk-rpi4-bolt-edge-439dfd7c.elf` (0 FP/NEON).
+- Pi baseline 98/98 equal to the models. Admission 95/107: whole-module
+  `-mthumb` fully admitted; ARM-mode code (attribute or `-marm`, any level)
+  hits R18 (8 functions) and R19 (4). Rewritten image (498 emitted, 33 case
+  entries redirected, 8 from the flag modules): 98 × 2 runs, 0 mismatches.
+  Evidence: `docs/results/bolt_edge_stage1b_20261004.json`.
+- The approved stage-1 contract (`0895d7bc…`) now names frozen copies in
+  `docs/bolt_edge/stage1/` (same hashes, re-verified); `check.py --manifest`
+  selects a manifest. The 98-case image needs a new contract (user review).
 
 ### 2026-10-04 — Claude: bolt_edge contract approved; certified run
 
