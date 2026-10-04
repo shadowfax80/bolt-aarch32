@@ -42,6 +42,20 @@ CONTRACTS = {
         'edge_generator_sha256': 'ca2d98b7a9986ee8200e89fbc751b45eb22351ae4b2984c16fe204e19bc9b3f9',
         'configuration': 'LK rpi4-bolt-edge (rpi4-bolt-test + generated app/bolt_edge, -mfpu=none); bolt_bench as in the full-LK contract; 0 FP/NEON instructions',
     },
+    # Approved by the user 2026-10-04: R17 stage 1b (98 cases; adds the
+    # whole-module -marm/-mthumb C builds). fixtures/lk-rpi4-bolt-edge-439dfd7c.elf.
+    '439dfd7c8dc660b1b4b8d4bae967750fe87485647460c791e2b7e385304e7bb9': {
+        'name': 'bolt-edge-stage1b-20261004',
+        'platform': 'pi4',
+        'bench_source_sha256': 'a48247945d47b359c04f40883361b72c1be87a4a7983aecc299d7c121d0d96d0',
+        'composite_source_sha256': '8d830b9ca2a3884270f81cc3b00811f16d6744d5ac838d754664e2ec0ea12adb',
+        'rules_sha256': 'c34149eda9808d114cdc8da415a0863ed5de2d2effa3de3c133ed385d3b5a38e',
+        'edge_manifest': 'docs/bolt_edge/stage1b/manifest.json',
+        'edge_generator': 'docs/bolt_edge/stage1b/gen.py',
+        'edge_manifest_sha256': 'bb4ee4798155bd832af344e09d49d104d9941db7498925cfef175cc7c60945ba',
+        'edge_generator_sha256': '7d3fd37f382655d74b8d73f8dc149a1d3c444707718d7792b1618a06e0933cba',
+        'configuration': 'LK rpi4-bolt-edge with app/bolt_edge/marm (-marm) and mthumb (-mthumb) submodules, -mfpu=none; bolt_bench as in the full-LK contract; 0 FP/NEON instructions',
+    },
 }
 
 
