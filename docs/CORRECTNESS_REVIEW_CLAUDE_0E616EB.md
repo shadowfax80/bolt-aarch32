@@ -25,6 +25,7 @@ full-image pipeline hides it by restoring the original text afterwards.
 | R12 | Admission | `adr.w r2, #4` before `tbh [pc, …]` in `vsnprintf` is rejected as a PC read. | Confirmed. | Model ADR to an inline table as a table-label reference. |
 | R13 | Scripts | `redirect-bolt-entries.py` refuses functions starting with a 16-bit instruction. | Confirmed: `bolt_bench_it_cond`, `bolt_bench_far_call`. | Relocate the displaced prefix into the stub. |
 | R14 | Relocations | ARM cases were inserted between `riscv64` and `riscv32` in nine `Relocation.cpp` dispatchers, so RISC-V 64 uses the ARM helpers. | Code; hidden because RISC-V is not built here (53 tests unsupported). | Restore upstream order (0047). |
+| R15 | Instrumentation | The 0038 cross-function exclusive guard rejects full LK because `arch_spin_trylock` (`ldrex; cmp; strexeq; dmb; bx lr`) can return with an open monitor when the lock is held. That is legal and harmless, but no workload can be instrumented in this image. | Confirmed: `FATAL BOLT-ERROR ... arch_spin_trylock at 0x80009b64: return with a live reservation`. | Accept an exit with a live reservation when no path in a caller pairs a later STREX with it, or model known try-lock primitives; keep rejecting real cross-function pairs. |
 
 ## LK rejection profile
 
