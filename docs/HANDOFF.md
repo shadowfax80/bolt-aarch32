@@ -56,10 +56,10 @@ Suggested order: highest priority first, then items that unblock others.
 
 | ID | Item | Priority | Owner | Status | Part of | Notes |
 |---|---|---|---|---|---|---|
-| 6a | Every optimization gate proves execution end to end | P0 | — | Open | — | Audit all certification wrappers; diagnostic modes must never certify |
-| 6b | Independent oracles; reviewed `pi4` contract for the full LK image | P0 | — | Blocked on user review | — | Contract values must not be derived from Pi output |
-| 6c | Legacy/manual hook admission | P0 | — | Partial | — | R9 done; R13 open |
-| 6d | Durable coverage receipts on every certification route | P0 | — | Partial | — | R16 adds LK coverage receipts |
+| 6a | Every optimization gate proves execution end to end | P0 | Claude | Claimed (after 6b) | — | Audit all certification wrappers; diagnostic modes must never certify |
+| 6b | Independent oracles; reviewed `pi4` contract for the full LK image | P0 | Claude | Draft ready; blocked on user review | — | [Draft](PI4_ORACLE_CONTRACT_DRAFT.md); values must not come from Pi output |
+| 6c | Legacy/manual hook admission | P0 | Claude | Claimed (queued) | — | R9 done; R13 open |
+| 6d | Durable coverage receipts on every certification route | P0 | Claude | Claimed (queued) | — | R16 adds LK coverage receipts |
 | R8 | r12 clobbered by local-branch LongJmp stubs | P1 | — | Open | 13 | Liveness check or rejection; next to R7's code |
 | R15 | Full-LK instrumentation blocked by the `arch_spin_trylock` guard (false positive) | P1 | — | Open | exclusive guards (0038/0039) | Changes a safety guard: add must-reject tests for real cross-function pairs |
 | 7 | Relocation/literal/veneer matrix | P1 | — | Partial | — | R1–R3, R7, R14 done |
@@ -121,6 +121,14 @@ plus genuine fallthrough such as `bzero`: about 98% of functions.
 4. Update the *Claims* table and LK_COVERAGE.md together.
 
 ## Handoff log
+
+### 2026-10-04 — Claude claims the P0 items (user request)
+
+- Order: 6b → 6a → 6d → 6c. 6b draft contract written
+  ([PI4_ORACLE_CONTRACT_DRAFT.md](PI4_ORACLE_CONTRACT_DRAFT.md)); it is not
+  active until the user approves it. The Pi input's bench sources equal the
+  repo's (LF-normalized); 0 FP/NEON instructions.
+- The live-tree lock stays free: 6b and 6a need no backend change so far.
 
 ### 2026-10-04 — List made a shared pool (user decision)
 
