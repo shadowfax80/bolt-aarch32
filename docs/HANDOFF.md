@@ -39,31 +39,44 @@ and update it before stopping. `AGENTS.md` and `CLAUDE.md` point here.
 |---|---|---|
 | Claude | 2026-10-04 | R5 (reassigned from Codex by the user) |
 
-## Claims
+## Claims (consolidated TODO)
 
-Review items come from the 2026-10-04 Claude review of `0e616eb`
-([details](CORRECTNESS_REVIEW_CLAUDE_0E616EB.md)). Items 6a–14 are Codex's
-existing queue in [CORRECTNESS_PRIORITY_TODO.md](CORRECTNESS_PRIORITY_TODO.md).
+One list for both agents. Review items (R*) come from the 2026-10-04 Claude
+review ([details](CORRECTNESS_REVIEW_CLAUDE_0E616EB.md)); queue items (6a–14)
+are Codex's certification queue ([CORRECTNESS_PRIORITY_TODO.md](CORRECTNESS_PRIORITY_TODO.md),
+which keeps their closure criteria). An R item that is a case of a queue item
+is listed under it; closing the R item does not close the queue item.
 
-| ID | Item | Priority | Owner | Status | Patch / evidence |
-|---|---|---|---|---|---|
-| R1 | Thumb `blx` re-patched as `bl` to ARM targets (61 LK sites) | P0 | Claude | Done | 0046; `arm-external-branch-repatch.test`; LK raw output 61 → 0 bad sites |
-| R2 | ARM `B`/`BL`/`BLX` re-patch drops condition and opcode | P0 | Claude | Done | 0046 (also fixes A32 PC+8 and skipped A32 callers) |
-| R3 | Thumb narrow/conditional fixup → relocation mapping | P1 | Claude | Done | 0046 (also fixes Thumb-encoded-as-ARM `b.w`/`bne.w`) |
-| R4 | Conditional tail calls crash (`LLVM ERROR`), with or without IT | P1 | Claude | Done | 0051; `arm-conditional-tail-call.test`; Pi: 676 IRQs through rewritten `platform_irq` |
-| R5 | Noreturn calls at function end (~80 LK rejections) | P1 | Claude | In progress | Reassigned 2026-10-04 by the user |
-| R6 | Predicated returns in IT blocks (~45 LK rejections; item 8) | P1 | Codex | Open | |
-| R7 | Far tail call through LongJmp stub becomes `BL` | P1 | Claude | Done | 0049; `arm-far-tail-call.test` |
-| R8 | r12 clobber in local-branch LongJmp stubs | P1 | Codex | Open | |
-| R9 | PatchEntries emits ARM patches into Thumb entries | P1 | Claude | Done | 0048; `arm-patch-entries.test` |
-| R10 | Global ARM builder used in Thumb functions; NOP as trap fill | P2 | Claude | Done | 0050; `arm-trap-fill.test` (was an encoder crash) |
-| R11 | Skip-and-report admission mode | P2 | Codex | Open | |
-| R12 | ADR to inline TBB/TBH table (`vsnprintf`) | P2 | Codex | Open | |
-| R13 | Redirect functions starting with a 16-bit instruction | P2 | Codex | Open | |
-| R14 | RISC-V 64 relocations dispatched to the ARM helpers | P1 | Claude | Done (untested) | 0047; RISC-V target not built here |
-| R16 | Full-image coverage report (every function and code byte in the LK test binary) | P1 | Claude | Done | `scripts/lk_coverage_report.py` → [LK_COVERAGE.md](LK_COVERAGE.md) |
-| R15 | Full-LK instrumentation rejected: `arch_spin_trylock` returns with a live reservation (0038 guard false positive) | P1 | Codex | Open | `instrument-lk-bolt.sh` on input `424606a8…` fails before any counter is placed |
-| 6a–14 | Existing correctness queue | P0/P1 | Codex | See its table | |
+| ID | Item | Priority | Owner | Status | Part of | Patch / evidence |
+|---|---|---|---|---|---|---|
+| R1 | Thumb `blx` re-patched as `bl` to ARM targets (61 LK sites) | P0 | Claude | Done | 7 | 0046; `arm-external-branch-repatch.test`; LK raw output 61 → 0 |
+| R2 | ARM `B`/`BL`/`BLX` re-patch drops condition; PC+8 | P0 | Claude | Done | 7 | 0046 |
+| R3 | Thumb narrow/conditional fixup → relocation mapping | P1 | Claude | Done | 7 | 0046 |
+| R14 | RISC-V 64 relocations dispatched to ARM helpers | P1 | Claude | Done (untested) | 7 | 0047; RISC-V not built here |
+| R7 | Far tail call through LongJmp stub becomes `BL` | P1 | Claude | Done | 7, 13 | 0049; `arm-far-tail-call.test` |
+| R9 | PatchEntries emits ARM patches into Thumb entries | P1 | Claude | Done | 6c, 11 | 0048; `arm-patch-entries.test` |
+| R10 | Global ARM builder in Thumb functions; NOP as trap fill | P2 | Claude | Done | — | 0050; `arm-trap-fill.test` |
+| R4 | Conditional tail calls crash (`LLVM ERROR`) | P1 | Claude | Done | 8 | 0051; Pi: 676 IRQs via rewritten `platform_irq` |
+| R16 | Full-image coverage report | P1 | Claude | Done | 6d | `scripts/lk_coverage_report.py`, [LK_COVERAGE.md](LK_COVERAGE.md) |
+| R5 | Noreturn calls at function end (~80 LK functions) | P1 | Claude | In progress | 8 | Reassigned by the user |
+| R6 | Predicated returns in IT blocks (46 LK functions) | P1 | Claude | Next (after R5) | 8 | Reassigned by the user |
+| R8 | r12 clobber in local-branch LongJmp stubs | P1 | Codex | Open | 13 | |
+| R11 | Skip-and-report admission mode | P2 | Codex | Open | — | |
+| R12 | ADR to inline TBB/TBH table (`vsnprintf`) | P2 | Codex | Open | 12 | |
+| R13 | Redirect functions starting with a 16-bit instruction | P2 | Codex | Open | 6c | |
+| R15 | Full-LK instrumentation blocked: `arch_spin_trylock` live reservation | P1 | Codex | Open | exclusive guards (0038/0039) | |
+| 6a | Every optimization gate proves execution end to end | P0 | Codex | Open — next for Codex | — | |
+| 6b | Independent output/state oracles; reviewed `pi4` contract for full LK (needs user review) | P0 | Codex | Partial | — | QEMU contract only |
+| 6c | Legacy/manual hook admission | P0 | Codex | Partial | — | R9 done, R13 open |
+| 6d | Durable coverage receipts on every route | P0 | Codex | Partial | — | R16 adds LK coverage receipts |
+| 7 | Relocation/literal/veneer matrix | P1 | Codex | Partial | — | R1–R3, R7, R14 done |
+| 8 | CFG and mutation invariants (predicated-return gap) | P1 | Codex | Partial | — | R4 done; R5, R6 with Claude |
+| 9 | Interrupt/reentrancy/reset boundaries | P1 | Codex | Partial | — | |
+| 10 | Sampling/PMU ownership | P1 | Codex | Open | — | |
+| 11 | Entries/symbols/reference routes | P1 | Codex | Partial | — | R9 done |
+| 12 | Tables and inline data | P1 | Codex | Partial | — | R12 open |
+| 13 | Actual pass combinations | P1 | Codex | Partial | — | R7 done, R8 open |
+| 14 | Clean build/content provenance | P1 | Codex | Partial | — | overlay replay only |
 
 ## Coverage goal (Codex)
 
@@ -96,6 +109,14 @@ plus genuine fallthrough such as `bzero`: about 98% of functions.
 4. Update the *Claims* table and LK_COVERAGE.md together.
 
 ## Handoff log
+
+### 2026-10-04 — Consolidated TODO; R6 reassigned to Claude
+
+- *Claims* now holds one consolidated list: R items mapped to the Codex queue
+  item they belong to. Closure criteria for 6a–14 stay in
+  CORRECTNESS_PRIORITY_TODO.md.
+- The user asked Claude to take R6 as well (after R5). Codex: start with 6a
+  and R8/R11–R13/R15 when the lock is released.
 
 ### 2026-10-04 — R5 reassigned to Claude; Claude takes the lock
 
