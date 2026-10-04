@@ -50,30 +50,49 @@ One shared list. Review items (R*) come from the 2026-10-04 Claude review
 links an R item to the certification item it contributes to; closing the R
 item does not close that item. *Owner* is empty until someone claims it.
 
-### Open (unclaimed — anyone may take)
+### Open (unclaimed — anyone may take), in resume order
 
-Suggested order: highest priority first, then items that unblock others.
+Take items in the order below; groups reflect dependencies, not ownership.
 
-| ID | Item | Priority | Owner | Status | Part of | Notes |
+**A. Unblockers (first)**
+
+| Order | ID | Item | Priority | Owner | Status | Part of | Notes |
+|---|---|---|---|---|---|---|---|
+| 1 | R11 | Skip-and-report admission mode | P1 | — | Open | — | Replaces the multi-round coverage scan; needed by R17 |
+| 2 | R17 | Synthesized edge-case test image (`bolt_edge`), stage 1 (~40 cases) | P1 | — | Open | 7, 8, 11, 12 | Generator emits sources + admission manifest + independent checksums; QEMU + Pi; stage 2 randomized generator later |
+
+**B. P0 certification (finish)**
+
+| Order | ID | Item | Priority | Owner | Status | Part of | Notes |
+|---|---|---|---|---|---|---|---|
+| 3 | 6a | Every gate proves execution: close G1 (fixed-path intermediates), G2 (seal profile chain in QEMU certificate), G3 (contracts for QEMU LK builds) | P0 | — | Partial | — | Pi sealed chain certified; G3 needs user review; "both assertion modes" needs a second toolchain build |
+| 4 | 6c | Legacy/manual hook admission | P0 | — | Partial | — | R9 done; includes R13 |
+| 5 | 6d | Durable receipts on every certification route | P0 | — | Partial | — | Pi gate + coverage report receipts exist |
+| 6 | 6b | Oracle contracts for further configurations (Thumb workloads, `bolt_edge` images) | P0 | — | Partial | — | Full-LK `pi4` contract active; each new contract needs user review |
+
+**C. Correctness defects (small)**
+
+| Order | ID | Item | Priority | Owner | Status | Part of | Notes |
+|---|---|---|---|---|---|---|---|
+| 7 | R8 | r12 clobbered by local-branch LongJmp stubs | P1 | — | Open | 13 | Liveness check or rejection |
+| 8 | R15 | Full-LK instrumentation blocked by `arch_spin_trylock` guard (false positive) | P1 | — | Open | exclusive guards (0038/0039) | Keep must-reject tests for real cross-function pairs |
+| 9 | R12 | ADR to an inline TBB/TBH table (`vsnprintf`) | P2 | — | Open | 12 | Last coverage item |
+| 10 | R13 | Redirect functions starting with a 16-bit instruction | P2 | — | Open | 6c | If not done under 6c |
+
+**D. P1 certification matrices (as capacity allows)**
+
+| Order | ID | Item | Priority | Owner | Status | Notes |
 |---|---|---|---|---|---|---|
-| 6a | Every optimization gate proves execution end to end | P0 | — | Partial: Pi sealed chain certified; audit done; G1–G3 open | — | See 2026-10-04 audit entry | — | Audit all certification wrappers; diagnostic modes must never certify |
-| 6b | Independent oracles; reviewed `pi4` contract for the full LK image | P0 | — | Partial: full-LK `pi4` contract approved and active | — | Further supported configurations (Thumb workloads) still need contracts |
-| 6c | Legacy/manual hook admission | P0 | — | Partial | — | R9 done; R13 open |
-| 6d | Durable coverage receipts on every certification route | P0 | — | Partial | — | R16 adds LK coverage receipts |
-| R8 | r12 clobbered by local-branch LongJmp stubs | P1 | — | Open | 13 | Liveness check or rejection; next to R7's code |
-| R15 | Full-LK instrumentation blocked by the `arch_spin_trylock` guard (false positive) | P1 | — | Open | exclusive guards (0038/0039) | Changes a safety guard: add must-reject tests for real cross-function pairs |
-| 7 | Relocation/literal/veneer matrix | P1 | — | Partial | — | R1–R3, R7, R14 done |
-| 8 | CFG and mutation invariants | P1 | — | Partial | — | R4–R6 done (0051–0053) |
-| 9 | Interrupt/reentrancy/reset boundaries | P1 | — | Partial | — | |
-| 10 | Sampling/PMU ownership | P1 | — | Open | — | |
-| 11 | Entries/symbols/reference routes | P1 | — | Partial | — | R9 done |
-| 12 | Tables and inline data | P1 | — | Partial | — | R12 open |
-| 13 | Actual pass combinations | P1 | — | Partial | — | R7 done; R8 open |
-| 14 | Clean build/content provenance | P1 | — | Partial | — | Overlay replay only |
-| R12 | ADR to an inline TBB/TBH table (`vsnprintf`) | P2 | — | Open | 12 | Last coverage item (+1 function) |
-| R13 | Redirect functions starting with a 16-bit instruction | P2 | — | Open | 6c | Script only; enables Pi checks of ~45 more rewritten functions |
-| R11 | Skip-and-report admission mode | P1 | — | Open | — | Replaces the multi-round coverage scan; do before R17 |
-| R17 | Synthesized edge-case test image (`bolt_edge`): generator emits sources + admission manifest + independent expected checksums; QEMU + Pi | P1 | — | Open | 7, 8, 11, 12 | Stage 1 ~40 hand-written cases from lit fixtures; stage 2 randomized CFG/IT generator; needs R11; contract per image (review generator once) |
+| 11 | 8 | CFG and mutation invariants | P1 | — | Partial | R4–R6 done |
+| 12 | 7 | Relocation/literal/veneer matrix | P1 | — | Partial | R1–R3, R7, R14 done |
+| 13 | 11 | Entries/symbols/reference routes | P1 | — | Partial | R9 done |
+| 14 | 12 | Tables and inline data | P1 | — | Partial | R12 pending |
+| 15 | 13 | Actual pass combinations | P1 | — | Partial | R7 done; R8 pending |
+| 16 | 9 | Interrupt/reentrancy/reset boundaries | P1 | — | Partial | |
+| 17 | 10 | Sampling/PMU ownership | P1 | — | Open | |
+| 18 | 14 | Clean build/content provenance | P1 | — | Partial | Overlay replay only |
+
+**Needs the user:** new oracle contracts (6a G3, 6b, each `bolt_edge` image).
 
 ### Done
 
@@ -122,6 +141,13 @@ plus genuine fallthrough such as `bzero`: about 98% of functions.
 4. Update the *Claims* table and LK_COVERAGE.md together.
 
 ## Handoff log
+
+### 2026-10-04 — Open list regrouped into resume order (user request)
+
+- Groups: A unblockers (R11, R17) → B P0 certification (6a, 6c, 6d, 6b) →
+  C small defects (R8, R15, R12, R13) → D P1 matrices (8, 7, 11, 12, 13, 9,
+  10, 14). Resume at order 1 (R11). Baseline: main c519923, coverage
+  399/417 (97.9%), full-LK `pi4` contract active, sealed Pi chain certified.
 
 ### 2026-10-04 — R17 added (user decision)
 
