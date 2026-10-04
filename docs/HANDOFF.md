@@ -65,7 +65,7 @@ Everything needed to continue is in this repo:
 
 | Holder | Since | Purpose |
 |---|---|---|
-| Claude | 2026-10-04 | R18 (ARM inline `ldr pc` jump tables) |
+| — (free) | 2026-10-04 | Released by Claude after overlay 0057 |
 
 ## Claims (consolidated TODO)
 
@@ -103,7 +103,7 @@ Take items in the order below; groups reflect dependencies, not ownership.
 | 8 | R15 | Full-LK instrumentation blocked by `arch_spin_trylock` guard (false positive) | P1 | — | Open | exclusive guards (0038/0039) | Keep must-reject tests for real cross-function pairs |
 | 9 | R12 | ADR to an inline TBB/TBH table (`vsnprintf`) | P2 | — | Open | 12 | Last coverage item |
 | 10 | R13 | Redirect functions starting with a 16-bit instruction | P2 | — | Open | 6c | If not done under 6c |
-| 10a | R18 | ARM-state inline jump tables (`add rN, pc, #k; ldr pc, [rN, rI, lsl #2]; .word …`) rejected as PC read | P1 | Claude | In progress | 12 | Found by R17 in clang ARM-mode code, both `target("arm")` and whole-module `-marm`, at O2/Os/O0 (8 functions) |
+| 10a | R21 | A32 `-O0` load-then-jump tables (`add rB, pc, #k; ldr rX, [rB, rI, lsl #2]; mov pc, rX` / `bx rX`) still rejected as PC read | P2 | — | Open | 12 | Found by R17 after R18 (`c_switch_arm_o0`, `c_switch_marm_o0`); extend 0057's table model to a register jump |
 
 
 **D. P1 certification matrices (as capacity allows)**
@@ -138,6 +138,7 @@ Take items in the order below; groups reflect dependencies, not ownership.
 | R6 | Predicated returns and calls in IT blocks | P1 | Claude | 8 | 0053; LK 354 → 399 functions |
 | R19 | `mov lr, pc; b X` call idiom (clang ARM-mode) | P1 | Claude | 8 | 0055; `arm-mov-lr-pc-call.test`; edge image: all `c_noret` ARM functions admitted; LK 399 → 400 |
 | R20 | ICF aborted on A32 MOVW/MOVT `:lower16:/:upper16:` operands (found while testing R19) | P1 | Claude | 13 | 0056; `arm-icf-movw-movt.test`; ICF now folds such functions (edge image 7 → 26 folded) |
+| R18 | A32 inline `ldr pc` jump tables (clang ARM-mode switch / function-pointer tables) | P1 | Claude | 12 | 0057; `arm-ldr-pc-table.test`; edge image: all 6 such functions admitted and run correctly on the Pi |
 | R11 | Skip-and-report admission mode | P1 | Codex | — | 0054; [diagnostic contract/evidence](ARM_ADMISSION_REPORT.md); one scan, same 399/417 coverage; both assertion modes + scoped Pi |
 
 ## Coverage goal
@@ -171,6 +172,28 @@ plus genuine fallthrough such as `bzero`: about 98% of functions.
 4. Update the *Claims* table and LK_COVERAGE.md together.
 
 ## Handoff log
+
+### 2026-10-04 — Claude: R18 done (overlay 0057); lock released
+
+- **Change:** A32 `add/sub/adr rB, pc, #k` that addresses a data island
+  right after `ldr pc, [rB, rI, lsl #2]` is an inline absolute jump table.
+  The base becomes `adr rB, <table>` (emission-time label, unique per
+  emission like TBH), the LDR is an indirect branch with the table words as
+  CFG successors (reuses 0024's inline-table model), and the emitter writes
+  `.word <case label>` entries right after the LDR. Rejected: base clobbered,
+  label/branch/call between base and LDR, invalid entries, a table branch
+  without a recognized base. Mapping marks after such tables are `$a`.
+- **Tests:** new `arm-ldr-pc-table.test` (default and reversed layout; base
+  must address the re-emitted table, words must hit moved case blocks;
+  clobbered base rejected). ARM lit 49/49; BOLT lit 859/860 (same unrelated
+  AArch64 test); CoreTests 58; JITLink AArch32 15/15; overlays 0001–0057
+  replay exactly (identity `b698cc7c…`).
+- **Edge image:** admission 105/107; rewritten image with 41 redirected case
+  entries (all six ARM table functions, attribute and `-marm`, O2/Os) passes
+  98 × 2 on the Pi, no faults. Full LK unchanged at 400/417 (LK is Thumb).
+- **Left:** `-O0` load-then-jump tables (new item R21); split functions with
+  the base and the table in different fragments are unsupported (assembler
+  error, not silent).
 
 ### 2026-10-04 — Claude: R19 + R20 done (overlays 0055–0056); lock released
 

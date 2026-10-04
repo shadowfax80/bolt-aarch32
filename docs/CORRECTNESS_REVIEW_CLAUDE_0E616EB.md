@@ -27,7 +27,7 @@ full-image pipeline hides it by restoring the original text afterwards.
 | R14 | Relocations | ARM cases were inserted between `riscv64` and `riscv32` in nine `Relocation.cpp` dispatchers, so RISC-V 64 uses the ARM helpers. | Code; hidden because RISC-V is not built here (53 tests unsupported). | Restore upstream order (0047). |
 | R15 | Instrumentation | The 0038 cross-function exclusive guard rejects full LK because `arch_spin_trylock` (`ldrex; cmp; strexeq; dmb; bx lr`) can return with an open monitor when the lock is held. That is legal and harmless, but no workload can be instrumented in this image. | Confirmed: `FATAL BOLT-ERROR ... arch_spin_trylock at 0x80009b64: return with a live reservation`. | Accept an exit with a live reservation when no path in a caller pairs a later STREX with it, or model known try-lock primitives; keep rejecting real cross-function pairs. |
 
-| R18 | Admission | ARM-state inline `ldr pc` jump tables rejected as PC reads. | Found by R17 in clang ARM-mode code (8 functions). | Model as absolute jump tables. |
+| R18 | Admission | ARM-state inline `ldr pc` jump tables rejected as PC reads. | Found by R17 in clang ARM-mode code (8 functions). | Fixed in 0057 (O2/Os `ldr pc` form); `-O0` load-then-jump form is R21. |
 | R19 | Admission | `mov lr, pc; b X` call idiom rejected as a PC read. | Found by R17 (4 functions). | Fixed in 0055. |
 | R20 | ICF | ICF aborts comparing A32 MOVW/MOVT specifier operands. | Found while testing R19. | Fixed in 0056. |
 

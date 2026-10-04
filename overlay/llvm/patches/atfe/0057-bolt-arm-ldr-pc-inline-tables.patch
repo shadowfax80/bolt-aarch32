@@ -1,0 +1,508 @@
+--- a/bolt/include/bolt/Core/MCPlusBuilder.h
++++ b/bolt/include/bolt/Core/MCPlusBuilder.h
+@@ -464,6 +464,27 @@
+     return 0;
+   }
+ 
++  /// AArch32 A32: `ldr pc, [rB, rI, lsl #2]` (unconditional), an indirect
++  /// branch through a table of absolute 32-bit addresses. Sets \p Base to rB.
++  virtual bool isAbsoluteTableBranch(const MCInst &Inst,
++                                     MCPhysReg *Base = nullptr) const {
++    return false;
++  }
++
++  /// AArch32 A32: `add rD, pc, #imm` / `sub rD, pc, #imm` / `adr rD, #imm`
++  /// (unconditional): rD = instruction address + 8 + \p Disp.
++  virtual bool getPCRelativeBase(const MCInst &Inst, MCPhysReg &Reg,
++                                 int64_t &Disp) const {
++    return false;
++  }
++
++  /// AArch32 A32: replace \p Inst with `adr Reg, Label` (inline table base).
++  virtual void createInlineTableBase(MCInst &Inst, MCPhysReg Reg,
++                                     const MCSymbol *Label,
++                                     MCContext *Ctx) const {
++    llvm_unreachable("not implemented");
++  }
++
+   /// Turn an inline table branch into its halfword form (TBB -> TBH) so the
+   /// rewritten table can reach up to 128 KiB ahead.
+   virtual void convertToHalfwordTableBranch(MCInst &Inst) const {
+--- a/bolt/include/bolt/Core/BinaryFunction.h
++++ b/bolt/include/bolt/Core/BinaryFunction.h
+@@ -618,6 +618,14 @@
+   /// branch (see BinaryEmitter).
+   std::vector<std::vector<MCSymbol *>> InlineTables;
+ 
++  /// AArch32 A32 absolute inline tables (`adr rB, T; ...; ldr pc, [rB, rI,
++  /// lsl #2]; T: .word ...`). While disassembling: table offset -> (base
++  /// register, offset of the `adr`). The `adr` carries an "InlineTableBase"
++  /// annotation with the table index; the emitter creates the table label.
++  std::map<uint64_t, std::pair<MCPhysReg, uint64_t>> PendingAbsoluteTables;
++  DenseSet<uint32_t> AbsoluteInlineTables;
++  bool InvalidAbsoluteTable = false;
++
+   /// List of relocations in this function.
+   std::map<uint64_t, Relocation> Relocations;
+ 
+@@ -1719,10 +1727,20 @@
+   }
+   bool hasInlineTables() const { return !InlineTables.empty(); }
+ 
++  /// True for an A32 absolute (`ldr pc` word) inline table branch.
++  bool isAbsoluteInlineTable(const MCInst &Inst) const {
++    auto Idx = BC.MIB->tryGetAnnotationAs<uint32_t>(Inst, "InlineTable");
++    return Idx && AbsoluteInlineTables.contains(*Idx);
++  }
++
+   /// (table start, table end) labels of the emitted inline tables, so the
+-  /// output symbol table can mark them with $d ... $t.
++  /// output symbol table can mark them with $d ... $t (or $a for A32).
+   std::vector<std::pair<MCSymbol *, MCSymbol *>> InlineTableMarks;
+ 
++  /// Emission-time labels of A32 absolute inline tables: created when the
++  /// `adr` base is emitted, consumed when the table is emitted.
++  DenseMap<uint32_t, MCSymbol *> EmittedTableLabels;
++
+   /// Split the CFG edge <From, To> by inserting an intermediate basic block.
+   /// Returns a pointer to this new intermediate basic block. BB "From" will be
+   /// updated to jump to the intermediate block, which in turn will have an
+--- a/bolt/lib/Core/BinaryFunction.cpp
++++ b/bolt/lib/Core/BinaryFunction.cpp
+@@ -1206,6 +1206,45 @@
+ 
+ bool BinaryFunction::processInlineTableBranch(MCInst &Instruction,
+                                               uint64_t Size, uint64_t Offset) {
++  MCPhysReg Base;
++  if (BC.MIB->isAbsoluteTableBranch(Instruction, &Base)) {
++    // A32 `ldr pc, [rB, rI, lsl #2]` through absolute words right after it,
++    // with rB formed by the recognized `adr` (see disassemble()).
++    const uint64_t TableOffset = Offset + Size;
++    auto It = PendingAbsoluteTables.find(TableOffset);
++    const size_t TableSize = getSizeOfDataInCodeAt(TableOffset);
++    ErrorOr<ArrayRef<uint8_t>> Data = getData();
++    if (Size != 4 || It == PendingAbsoluteTables.end() ||
++        It->second.first != Base || !TableSize || TableSize % 4 || !Data ||
++        TableOffset + TableSize > Data->size())
++      return false;
++    std::vector<uint64_t> Targets;
++    for (size_t I = 0; I < TableSize; I += 4) {
++      const uint64_t Entry =
++          support::endian::read32le(Data->data() + TableOffset + I);
++      if (Entry < getAddress())
++        return false;
++      const uint64_t Target = Entry - getAddress();
++      if (Target >= getSize() || Target % 4 || getSizeOfDataInCodeAt(Target) ||
++          (Target >= TableOffset && Target < TableOffset + TableSize))
++        return false;
++      Targets.push_back(Target);
++    }
++    std::vector<MCSymbol *> Labels;
++    std::set<uint64_t> Seen;
++    for (uint64_t Target : Targets) {
++      Labels.push_back(getOrCreateLocalLabel(getAddress() + Target));
++      if (Seen.insert(Target).second)
++        TakenBranches.emplace_back(Offset, Target);
++    }
++    const uint32_t Index = InlineTables.size();
++    BC.MIB->addAnnotation(Instruction, "InlineTable", Index);
++    BC.MIB->addAnnotation(Instructions.at(It->second.second), "InlineTableBase",
++                          Index);
++    InlineTables.emplace_back(std::move(Labels));
++    AbsoluteInlineTables.insert(Index);
++    return true;
++  }
+   const unsigned EntrySize = BC.MIB->getInlineTableEntrySize(Instruction);
+   if (!EntrySize || Size != 4)
+     return false;
+@@ -1256,6 +1295,12 @@
+   auto &MIB = BC.MIB;
+   if (BC.isARM() && processInlineTableBranch(Instruction, Size, Offset))
+     return;
++  // An A32 absolute table branch without a valid inline table is rejected
++  // after disassembly rather than treated as an unknown indirect branch.
++  if (BC.isARM() && MIB->isAbsoluteTableBranch(Instruction)) {
++    InvalidAbsoluteTable = true;
++    return;
++  }
+   uint64_t IndirectTarget = 0;
+   IndirectBranchType Result =
+       processIndirectBranch(Instruction, Size, Offset, IndirectTarget);
+@@ -1592,13 +1637,41 @@
+       }
+     }
+ 
++    // A32 inline table base: `add/sub/adr rB, pc, #k` that addresses a data
++    // island directly after `ldr pc, [rB, rI, lsl #2]`. It becomes
++    // `adr rB, <table>`; the emitter places the table right after the LDR.
++    bool IsTableBase = false;
++    MCPhysReg TableBaseReg;
++    int64_t TableDisp;
++    if (BC.isARM() && !isARMThumb() &&
++        MIB->getPCRelativeBase(Instruction, TableBaseReg, TableDisp)) {
++      const int64_t TableOff = int64_t(Offset) + 8 + TableDisp;
++      MCInst Branch;
++      uint64_t BranchSize;
++      MCPhysReg BranchBase;
++      if (TableOff >= int64_t(Offset) + 8 && uint64_t(TableOff) < getSize() &&
++          getSizeOfDataInCodeAt(TableOff) && !getSizeOfDataInCodeAt(TableOff - 4) &&
++          BC.DisAsm->getInstruction(Branch, BranchSize,
++                                    FunctionData.slice(TableOff - 4),
++                                    getAddress() + TableOff - 4, nulls()) &&
++          BranchSize == 4 && MIB->isAbsoluteTableBranch(Branch, &BranchBase) &&
++          BranchBase == TableBaseReg) {
++        // Placeholder operand; the emitter substitutes the table label.
++        MIB->createInlineTableBase(Instruction, TableBaseReg,
++                                   BC.Ctx->createNamedTempSymbol("ltab_base"),
++                                   BC.Ctx.get());
++        PendingAbsoluteTables[TableOff] = {TableBaseReg, Offset};
++        IsTableBase = true;
++      }
++    }
++
+     if (BC.isARM() && MIB->isUnsupportedPCWrite(Instruction) &&
+         !(Offset == 0 && isRecognizedARMAbsoluteVeneer(*this)))
+       return createFatalBOLTError("unsupported AArch32 PC-writing control transfer in " +
+                                  getPrintName() + " at 0x" +
+                                  Twine::utohexstr(AbsoluteInstrAddr));
+ 
+-    if (BC.isARM() && MIB->isUnsupportedPCRead(Instruction))
++    if (BC.isARM() && !IsTableBase && MIB->isUnsupportedPCRead(Instruction))
+       return createFatalBOLTError("unsupported AArch32 position-dependent PC read in " +
+                                  getPrintName() + " at 0x" +
+                                  Twine::utohexstr(AbsoluteInstrAddr));
+@@ -1861,6 +1934,32 @@
+                                   getPrintName());
+   }
+ 
++  // A32 absolute inline tables: every table branch needs its recognized base,
++  // and the base must reach the branch unchanged within one basic block (no
++  // label, control transfer or redefinition of the base register between).
++  if (InvalidAbsoluteTable)
++    return createFatalBOLTError("unsupported AArch32 inline jump table in " +
++                                getPrintName());
++  for (const auto &[TableOff, Pending] : PendingAbsoluteTables) {
++    const auto [BaseReg, BaseOffset] = Pending;
++    const uint64_t BranchOffset = TableOff - 4;
++    auto BranchIt = Instructions.find(BranchOffset);
++    if (BranchIt == Instructions.end() ||
++        !BC.MIB->hasAnnotation(BranchIt->second, "InlineTable"))
++      return createFatalBOLTError("unsupported AArch32 inline jump table in " +
++                                  getPrintName());
++    for (auto It = Instructions.upper_bound(BaseOffset); It != BranchIt; ++It)
++      if (Labels.count(It->first) || BC.MIB->isBranch(It->second) ||
++          BC.MIB->isCall(It->second) || BC.MIB->isReturn(It->second) ||
++          BC.MIB->hasDefOfPhysReg(It->second, BaseReg))
++        return createFatalBOLTError("unsupported AArch32 inline jump table "
++                                    "base in " + getPrintName());
++    if (Labels.count(BranchOffset))
++      return createFatalBOLTError("unsupported AArch32 inline jump table "
++                                  "base in " + getPrintName());
++  }
++  PendingAbsoluteTables.clear();
++
+   // Scope-boundary markers are only consulted while assigning offsets above.
+   DebugScopeBoundaryOffsets.clear();
+ 
+--- a/bolt/lib/Core/BinaryEmitter.cpp
++++ b/bolt/lib/Core/BinaryEmitter.cpp
+@@ -136,6 +136,11 @@
+                        const BinaryBasicBlock &BranchBB,
+                        const std::vector<MCSymbol *> &Table);
+ 
++  /// A32 `ldr pc, [rB, rI, lsl #2]` table: absolute words at the label the
++  /// preceding `adr rB` was pointed at during this emission.
++  void emitAbsoluteInlineTable(BinaryFunction &BF, const MCInst &Branch,
++                               const std::vector<MCSymbol *> &Table);
++
+   void emitConstantIslands(BinaryFunction &BF, bool EmitColdPart,
+                            BinaryFunction *OnBehalfOf = nullptr);
+ 
+@@ -592,9 +597,25 @@
+         BC.MIB->stripAnnotations(Clean);
+         const MCSubtargetInfo &EmitSTI =
+             (BF.isARMThumb() && BC.ThumbSTI) ? *BC.ThumbSTI : *BC.STI;
++        // A32 absolute inline table base: point the `adr` at a label created
++        // for this emission (named and unique per emission, like TBH labels).
++        if (auto Idx = BC.MIB->tryGetAnnotationAs<uint32_t>(
++                Instr, "InlineTableBase")) {
++          MCSymbol *Label = BC.Ctx->getOrCreateSymbol(
++              "__bolt_ltab_" + std::to_string(BF.getFunctionNumber()) + "_" +
++              std::to_string(BF.InlineTableMarks.size()) + "_" +
++              std::to_string(*Idx) + "_start");
++          BF.EmittedTableLabels[*Idx] = Label;
++          BC.MIB->createInlineTableBase(Clean, Clean.getOperand(0).getReg(),
++                                        Label, BC.Ctx.get());
++        }
+         Streamer.emitInstruction(Clean, EmitSTI);
+-        if (const std::vector<MCSymbol *> *Table = BF.getInlineTable(Instr))
+-          emitInlineTable(BF, FF, *BB, *Table);
++        if (const std::vector<MCSymbol *> *Table = BF.getInlineTable(Instr)) {
++          if (BF.isAbsoluteInlineTable(Instr))
++            emitAbsoluteInlineTable(BF, Instr, *Table);
++          else
++            emitInlineTable(BF, FF, *BB, *Table);
++        }
+       } else {
+         Streamer.emitInstruction(Instr, *BC.STI);
+       }
+@@ -605,6 +626,28 @@
+     emitConstantIslands(BF, FF.isSplitFragment());
+ }
+ 
++void BinaryEmitter::emitAbsoluteInlineTable(BinaryFunction &BF,
++                                            const MCInst &Branch,
++                                            const std::vector<MCSymbol *> &Table) {
++  const uint32_t Idx = *BC.MIB->tryGetAnnotationAs<uint32_t>(Branch, "InlineTable");
++  auto It = BF.EmittedTableLabels.find(Idx);
++  if (It == BF.EmittedTableLabels.end()) {
++    BC.errs() << "BOLT-ERROR: inline table base of " << BF
++              << " was not emitted before its branch\n";
++    exit(1);
++  }
++  MCSymbol *TableLabel = It->second;
++  BF.EmittedTableLabels.erase(It);
++  MCSymbol *TableEnd = BC.Ctx->getOrCreateSymbol(
++      TableLabel->getName().drop_back(6).str() + "_end"); // "_start"
++  BF.InlineTableMarks.emplace_back(TableLabel, TableEnd);
++  Streamer.emitLabel(TableLabel);
++  // Absolute targets (any fragment): the linker resolves each word.
++  for (MCSymbol *Target : Table)
++    Streamer.emitValue(MCSymbolRefExpr::create(Target, *BC.Ctx), 4);
++  Streamer.emitLabel(TableEnd);
++}
++
+ /// AArch32 TBH table, emitted right after the TBH (whose PC-relative base is
+ /// the first table byte): entry = (target - table) / 2, forward only. A case
+ /// block laid out before the table is reached through a B.W stub placed after
+--- a/bolt/lib/Rewrite/RewriteInstance.cpp
++++ b/bolt/lib/Rewrite/RewriteInstance.cpp
+@@ -6358,7 +6358,9 @@
+       Mark.st_name = AddToStrTab("$d");
+       Mark.st_value = S->Address;
+       Symbols.emplace_back(Mark);
+-      Mark.st_name = AddToStrTab("$t");
++      // Code resumes in the function's own state: Thumb after TBH tables,
++      // ARM after A32 `ldr pc` tables.
++      Mark.st_name = AddToStrTab(Function.isARMThumb() ? "$t" : "$a");
+       Mark.st_value = E->Address;
+       Symbols.emplace_back(Mark);
+     }
+--- a/bolt/lib/Target/ARM/ARMMCPlusBuilder.cpp
++++ b/bolt/lib/Target/ARM/ARMMCPlusBuilder.cpp
+@@ -305,7 +305,72 @@
+     return Analysis->isReturn(Inst);
+   }
+ 
++  // A32 `ldr pc, [rB, rI, lsl #2]`, unconditional: an absolute inline table.
++  bool isAbsoluteTableBranch(const MCInst &Inst,
++                             MCPhysReg *Base = nullptr) const override {
++    if (Inst.getOpcode() != ARM::LDRrs || MCPlus::getNumPrimeOperands(Inst) < 6)
++      return false;
++    const MCOperand &Rt = Inst.getOperand(0), &Rn = Inst.getOperand(1),
++                    &Rm = Inst.getOperand(2), &Am = Inst.getOperand(3),
++                    &Pred = Inst.getOperand(4);
++    if (!Rt.isReg() || Rt.getReg() != ARM::PC || !Rn.isReg() ||
++        Rn.getReg() == ARM::PC || !Rm.isReg() || Rm.getReg() == ARM::PC ||
++        !Am.isImm() || !Pred.isImm() || Pred.getImm() != ARMCC::AL)
++      return false;
++    const unsigned AM2 = Am.getImm();
++    if (ARM_AM::getAM2Op(AM2) != ARM_AM::add ||
++        ARM_AM::getAM2ShiftOpc(AM2) != ARM_AM::lsl ||
++        ARM_AM::getAM2Offset(AM2) != 2)
++      return false;
++    if (Base)
++      *Base = Rn.getReg();
++    return true;
++  }
++
++  bool getPCRelativeBase(const MCInst &Inst, MCPhysReg &Reg,
++                         int64_t &Disp) const override {
++    switch (Inst.getOpcode()) {
++    case ARM::ADR:
++      // (Rd, imm, pred, predreg); the decoder stores the signed offset.
++      if (MCPlus::getNumPrimeOperands(Inst) < 4 || !Inst.getOperand(1).isImm() ||
++          !Inst.getOperand(2).isImm() || Inst.getOperand(2).getImm() != ARMCC::AL)
++        return false;
++      Reg = Inst.getOperand(0).getReg();
++      Disp = Inst.getOperand(1).getImm();
++      return true;
++    case ARM::ADDri:
++    case ARM::SUBri:
++      // (Rd, Rn, imm, pred, predreg, cc_out): Rn = PC, no flag update.
++      if (MCPlus::getNumPrimeOperands(Inst) < 6 || !Inst.getOperand(1).isReg() ||
++          Inst.getOperand(1).getReg() != ARM::PC || !Inst.getOperand(2).isImm() ||
++          !Inst.getOperand(3).isImm() || Inst.getOperand(3).getImm() != ARMCC::AL ||
++          !Inst.getOperand(5).isReg() || Inst.getOperand(5).getReg())
++        return false;
++      Reg = Inst.getOperand(0).getReg();
++      Disp = Inst.getOpcode() == ARM::ADDri ? Inst.getOperand(2).getImm()
++                                            : -Inst.getOperand(2).getImm();
++      return Reg != ARM::PC;
++    default:
++      return false;
++    }
++  }
++
++  void createInlineTableBase(MCInst &Inst, MCPhysReg Reg, const MCSymbol *Label,
++                             MCContext *Ctx) const override {
++    Inst = MCInstBuilder(ARM::ADR)
++               .addReg(Reg)
++               .addExpr(MCSymbolRefExpr::create(Label, *Ctx))
++               .addImm(ARMCC::AL)
++               .addReg(0);
++  }
++
++  bool isBranch(const MCInst &Inst) const override {
++    return isAbsoluteTableBranch(Inst) || MCPlusBuilder::isBranch(Inst);
++  }
++
+   bool isTerminator(const MCInst &Inst) const override {
++    if (isAbsoluteTableBranch(Inst))
++      return true;
+     if (isReturn(Inst)) {
+       // Predicated returns can fall through when the condition fails. Keep
+       // them inside the block until conditional-return CFG edges are modeled.
+@@ -445,7 +510,10 @@
+     default:
+       break;
+     }
+-    if (!hasDefOfPhysReg(Inst, ARM::PC) || isCall(Inst) || isReturn(Inst))
++    // An absolute inline table branch is admitted only with a recognized
++    // table base; BinaryFunction::disassemble() rejects it otherwise.
++    if (!hasDefOfPhysReg(Inst, ARM::PC) || isCall(Inst) || isReturn(Inst) ||
++        isAbsoluteTableBranch(Inst))
+       return false;
+     switch (Inst.getOpcode()) {
+     case ARM::B:
+@@ -512,6 +580,8 @@
+     // Returns are terminators, not indirect CFG edges.
+     if (isReturn(Inst))
+       return false;
++    if (isAbsoluteTableBranch(Inst))
++      return true;
+     // BX rm is an interworking jump. BLX* are calls.
+     switch (Inst.getOpcode()) {
+     default:
+--- /dev/null
++++ b/bolt/test/ARM/Inputs/check-arm-ldr-pc-table.py
+@@ -0,0 +1,111 @@
++from pathlib import Path
++import re
++import shutil
++import struct
++import subprocess
++import sys
++import tempfile
++
++# A32 inline jump table (clang -marm -O2): `add rB, pc, #k; ...;
++# ldr pc, [rB, rI, lsl #2]; .word case0, ...`. BOLT re-emits the table right
++# after the LDR with absolute words to the moved case blocks and points the
++# base (`adr rB`) at it. A base register clobbered before the LDR is rejected.
++tc = Path(shutil.which('llvm-bolt')).resolve().parent
++evidence = Path(sys.argv[1])
++evidence.mkdir(parents=True, exist_ok=True)
++out = Path(tempfile.mkdtemp(prefix='run-', dir=evidence))
++print('Evidence:', out)
++
++
++def fixture(clobber):
++    return r''' .syntax unified
++ .text
++ .arm
++ .global _start
++ .type _start,%function
++_start:
++ bl sw
++ b _start
++ .size _start,.-_start
++
++ .global sw
++ .type sw,%function
++sw:
++ and r2, r0, #3
++ add r3, pc, #8
++ mov r1, r0
++ ''' + ('mov r3, #0' if clobber else 'mov r0, #77') + r'''
++ ldr pc, [r3, r2, lsl #2]
++ .word 1f, 2f, 3f, 4f
++1:
++ add r0, r1, #1
++ bx lr
++2:
++ add r0, r1, #2
++ bx lr
++3:
++ add r0, r1, #3
++ bx lr
++4:
++ add r0, r1, #4
++ bx lr
++ .size sw,.-sw
++'''
++
++
++LD = 'ENTRY(_start)\nSECTIONS {\n  . = 0x8000;\n  .text : { *(.text*) }\n}\n'
++
++
++def run(cmd, check=True):
++    p = subprocess.run([str(x) for x in cmd], cwd=out, capture_output=True, text=True)
++    if check and p.returncode:
++        sys.exit(f'FAIL: {cmd[0]} exited {p.returncode}\n{p.stdout}{p.stderr}')
++    return p.returncode, p.stdout + p.stderr
++
++
++bad = 0
++for name, clobber in (('table', False), ('clobbered-base', True)):
++    (out / f'{name}.s').write_text(fixture(clobber))
++    (out / 'in.ld').write_text(LD)
++    run([tc / 'llvm-mc', '-arm-add-build-attributes', '-filetype=obj',
++         '-triple=armv7-unknown-linux-gnueabi', f'{name}.s', '-o', f'{name}.o'])
++    run([tc / 'ld.lld', '--emit-relocs', '-T', 'in.ld', f'{name}.o', '-o', f'{name}.exe'])
++    for mode, extra in (('default', []), ('reverse', ['--reorder-blocks=reverse'])):
++        rc, log = run([tc / 'llvm-bolt', f'{name}.exe', '-o', f'{name}.{mode}.bolt',
++                       '-lite=0', '--funcs=sw', *extra], check=False)
++        (out / f'{name}.{mode}.log').write_text(log)
++        if clobber:
++            ok = rc != 0 and 'unsupported AArch32 inline jump table base in sw' in log
++            print(f"{'PASS' if ok else 'FAIL'}: {name}/{mode}: rejected={rc != 0}")
++            bad += not ok
++            continue
++        if rc:
++            print(f'FAIL: {name}/{mode}: llvm-bolt failed\n{log[-1000:]}')
++            bad += 1
++            continue
++        _, dis = run([tc / 'llvm-objdump', '-d', f'{name}.{mode}.bolt'])
++        m = re.search(r'^([0-9a-f]+) <sw>:\n(.*?)(?:\n\n|\Z)', dis, re.S | re.M)
++        rows = [re.match(r'\s*([0-9a-f]+):\s+((?:[0-9a-f]{2} ?)+|[0-9a-f]{8})\s+(\S+)\s*(.*)', l)
++                for l in m.group(2).splitlines()] if m else []
++        rows = [r for r in rows if r]
++        start = int(m.group(1), 16) if m else 0
++        addrs = {int(r.group(1), 16): (r.group(3), r.group(4)) for r in rows}
++        # Base: `add rB, pc, #k` (or adr) -> address of the table after the LDR.
++        base = next((a for a, (mn, ops) in addrs.items()
++                     if mn in ('add', 'adr') and 'pc' in ops), None)
++        ldr = next((a for a, (mn, ops) in addrs.items()
++                    if mn == 'ldr' and ops.startswith('pc,')), None)
++        ok = start >= 0x400000 and base is not None and ldr is not None
++        if ok:
++            k = re.search(r'#(-?(?:0x)?[0-9a-f]+)', addrs[base][1])
++            table = base + 8 + int(k.group(1), 0) if k else None
++            words = [addrs.get(table + 4 * i) for i in range(4)]
++            vals = [int(w[1], 16) if w and w[0] == '.word' else None for w in words]
++            ok = table == ldr + 4 and all(v is not None and start <= v < start + 0x100 and
++                                         addrs.get(v, ('',))[0] == 'add' for v in vals)
++            print(f"{'PASS' if ok else 'FAIL'}: {name}/{mode}: base->{table and hex(table)}, "
++                  f"ldr@{hex(ldr)}, words {[v and hex(v) for v in vals]}")
++        else:
++            print(f'FAIL: {name}/{mode}: sw not rewritten or pattern missing')
++        bad += not ok
++sys.exit(1 if bad else 0)
+--- /dev/null
++++ b/bolt/test/ARM/arm-ldr-pc-table.test
+@@ -0,0 +1,5 @@
++## A32 inline jump tables (add rB, pc; ldr pc, [rB, rI, lsl #2]; .word ...) are
++## re-emitted with absolute words and a rebased adr; a clobbered base is rejected.
++
++RUN: rm -rf %t.dir
++RUN: %python %p/Inputs/check-arm-ldr-pc-table.py %t.dir
