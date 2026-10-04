@@ -131,7 +131,7 @@ Take items in the order below; groups reflect dependencies, not ownership.
 
 | Order | ID | Item | Priority | Owner | Status | Part of | Notes |
 |---|---|---|---|---|---|---|---|
-| 2a | T1 | ARMv8-A AArch32 (Cortex-A55) admission and decode; v8-A Pi image, coverage and certified gate | P0 | Claude | Backend + LK done (0058, LK 0011); Pi-verified uncertified; contract pending user approval | 6b, 7, 11 | Image `lk-rpi4-bolt-test-a55-47c73bc0.elf`: 406/416 admitted, rewritten image 2x18 on the Pi; evidence `docs/results/t1_a55_20261004.json`. Build: `make rpi4-bolt-test RPI4_ARM_CPU=cortex-a55` |
+| 2a | T1 | ARMv8-A AArch32 (Cortex-A55) admission and decode; v8-A Pi image, coverage and certified gate | P0 | Claude | Done and certified: contract `47c73bc0` approved (d3c8253); certified gate 10 reps, 18/18, both redirects executed | 6b, 7, 11 | Image `lk-rpi4-bolt-test-a55-47c73bc0.elf`: 406/416 admitted, rewritten image 2x18 on the Pi; evidence `docs/results/t1_a55_20261004.json`. Build: `make rpi4-bolt-test RPI4_ARM_CPU=cortex-a55` |
 | 2b | T2 | SMP: run rewritten functions concurrently on all Pi cores (results + execution per core); decide SMP instrumentation contract (counters are LDREX/STREX; reset/snapshot quiescence) | P0 | — | Open | 9, 10 | Pi LK already runs `WITH_SMP` (4 cores, mailbox release); today only the boot core executes rewritten code. Change is app-level (bolt_bench/bolt_edge run cases on all cores, per-core sinks + PC evidence), not port or loader |
 | 3 | 6a | Every gate proves execution: close G1 (fixed-path intermediates), G2 (seal profile chain in QEMU certificate), G3 (contracts for QEMU LK builds) | P0 | — | Partial: G1/G2 done; QEMU route diagnostic (user), runs to instrumentation, then blocked by R15 | — | Pi sealed chain certified; G3 needs user review; 0054 ON/OFF builds and scoped Pi runs verified, remaining gate routes still open |
 | 4 | 6c | Legacy/manual hook admission | P0 | — | Partial | — | R9 done; includes R13 |
@@ -164,7 +164,7 @@ Take items in the order below; groups reflect dependencies, not ownership.
 | 17 | 10 | Sampling/PMU ownership | P1 | — | Open | |
 | 18 | 14 | Clean build/content provenance | P1 | — | Partial | Overlay replay only; ISA-aware no-FPU output scanning/metadata needed (0054 audit) |
 
-**Needs the user:** new oracle contracts (6b, T1 v8-A image `47c73bc0`).
+**Needs the user:** new oracle contracts (6b).
 
 ### Done
 
@@ -243,9 +243,12 @@ plus genuine fallthrough such as `bzero`: about 98% of functions.
 - **Finding:** 16 bolt_bench Thumb functions, incl. `bolt_bench_memcpy`
   (a certified-gate redirect), start with a 16-bit instruction in the A55
   build → R13 raised to P1.
-- **Next:** user approval of a `pi4` contract for `47c73bc0`, then the
-  certified gate (redirect e.g. `bolt_bench_interwork` + `bolt_bench_spill_ret`,
-  since memcpy needs R13); then T2 (SMP). Lock free.
+- **Certified:** user approved the `pi4` contract for `47c73bc0`
+  (d3c8253). `full_image_verify.py` (10 reps): 18/18 against the independent
+  oracle, PC evidence in both redirects (`bolt_bench_interwork`,
+  `bolt_bench_spill_ret`; memcpy needs R13). Receipt:
+  `docs/results/t1_a55_certified_20261004.json`.
+- **Next:** T2 (SMP). Lock free.
 
 ### 2026-10-04 — Claude: Secure SVC on the Pi approved (T3)
 

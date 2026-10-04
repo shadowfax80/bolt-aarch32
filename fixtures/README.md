@@ -2,7 +2,7 @@
 
 | File | sha256 | Use |
 |---|---|---|
-| `lk-rpi4-bolt-test-a55-47c73bc0.elf` | `47c73bc08b71f37aa90c4f601305954d860a38abd985d583e7100511dafa5a33` | T1: full LK test image built for the target core (`make rpi4-bolt-test RPI4_ARM_CPU=cortex-a55`, ARMv8-A AArch32, `-mfpu=none`, LK patch 0011). No contract yet (needs user review). |
+| `lk-rpi4-bolt-test-a55-47c73bc0.elf` | `47c73bc08b71f37aa90c4f601305954d860a38abd985d583e7100511dafa5a33` | T1: full LK test image built for the target core (`make rpi4-bolt-test RPI4_ARM_CPU=cortex-a55`, ARMv8-A AArch32, `-mfpu=none`, LK patch 0011). Approved `pi4` contract; certified. |
 | `lk-rpi4-bolt-edge-ce8dd005.elf` | `ce8dd005d78de4eb1a627d7b69f77d0f699738baefdf9fecc3d2d11a8050f9f6` | R17 stage 2: 146 cases, adds 48 seeded random A32/T32 functions (`scripts/bolt_edge/rand.py`, seed 17). Expected sinks: `docs/bolt_edge/stage2/manifest.json` (frozen). Approved `pi4` contract. |
 | `lk-rpi4-bolt-edge-439dfd7c.elf` | `439dfd7c8dc660b1b4b8d4bae967750fe87485647460c791e2b7e385304e7bb9` | R17 stage 1b: 98 cases, adds whole-module `-marm`/`-mthumb` C builds (O2/Os/O0). Expected sinks: `docs/bolt_edge/stage1b/manifest.json` (frozen). Approved `pi4` contract. |
 | `lk-rpi4-bolt-edge-0895d7bc.elf` | `0895d7bc1b0dcaa7b60869fd0e3182b6c8cb9a32aebb742c6e5336dd468208dd` | R17 stage-1 edge-case image: `rpi4-bolt-edge` project (bolt_bench + generated `app/bolt_edge`, `scripts/bolt_edge/gen.py`). Expected sinks: `docs/bolt_edge/stage1/manifest.json` (frozen). Approved `pi4` contract. |
