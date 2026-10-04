@@ -97,6 +97,54 @@ uint32_t c_loop_mthumb_o0(uint32_t);
 uint32_t c_fib_mthumb_o0(uint32_t);
 uint32_t c_indirect_mthumb_o0(uint32_t);
 uint32_t c_noret_mthumb_o0(uint32_t);
+uint32_t rand_t_00(uint32_t);
+uint32_t rand_t_01(uint32_t);
+uint32_t rand_t_02(uint32_t);
+uint32_t rand_t_03(uint32_t);
+uint32_t rand_t_04(uint32_t);
+uint32_t rand_t_05(uint32_t);
+uint32_t rand_t_06(uint32_t);
+uint32_t rand_t_07(uint32_t);
+uint32_t rand_t_08(uint32_t);
+uint32_t rand_t_09(uint32_t);
+uint32_t rand_t_10(uint32_t);
+uint32_t rand_t_11(uint32_t);
+uint32_t rand_t_12(uint32_t);
+uint32_t rand_t_13(uint32_t);
+uint32_t rand_t_14(uint32_t);
+uint32_t rand_t_15(uint32_t);
+uint32_t rand_t_16(uint32_t);
+uint32_t rand_t_17(uint32_t);
+uint32_t rand_t_18(uint32_t);
+uint32_t rand_t_19(uint32_t);
+uint32_t rand_t_20(uint32_t);
+uint32_t rand_t_21(uint32_t);
+uint32_t rand_t_22(uint32_t);
+uint32_t rand_t_23(uint32_t);
+uint32_t rand_a_00(uint32_t);
+uint32_t rand_a_01(uint32_t);
+uint32_t rand_a_02(uint32_t);
+uint32_t rand_a_03(uint32_t);
+uint32_t rand_a_04(uint32_t);
+uint32_t rand_a_05(uint32_t);
+uint32_t rand_a_06(uint32_t);
+uint32_t rand_a_07(uint32_t);
+uint32_t rand_a_08(uint32_t);
+uint32_t rand_a_09(uint32_t);
+uint32_t rand_a_10(uint32_t);
+uint32_t rand_a_11(uint32_t);
+uint32_t rand_a_12(uint32_t);
+uint32_t rand_a_13(uint32_t);
+uint32_t rand_a_14(uint32_t);
+uint32_t rand_a_15(uint32_t);
+uint32_t rand_a_16(uint32_t);
+uint32_t rand_a_17(uint32_t);
+uint32_t rand_a_18(uint32_t);
+uint32_t rand_a_19(uint32_t);
+uint32_t rand_a_20(uint32_t);
+uint32_t rand_a_21(uint32_t);
+uint32_t rand_a_22(uint32_t);
+uint32_t rand_a_23(uint32_t);
 
 static const struct bolt_edge_case cases[] = {
     {"iw_a_call_t", iw_a_call_t},
@@ -197,6 +245,54 @@ static const struct bolt_edge_case cases[] = {
     {"c_fib_mthumb_o0", c_fib_mthumb_o0},
     {"c_indirect_mthumb_o0", c_indirect_mthumb_o0},
     {"c_noret_mthumb_o0", c_noret_mthumb_o0},
+    {"rand_t_00", rand_t_00},
+    {"rand_t_01", rand_t_01},
+    {"rand_t_02", rand_t_02},
+    {"rand_t_03", rand_t_03},
+    {"rand_t_04", rand_t_04},
+    {"rand_t_05", rand_t_05},
+    {"rand_t_06", rand_t_06},
+    {"rand_t_07", rand_t_07},
+    {"rand_t_08", rand_t_08},
+    {"rand_t_09", rand_t_09},
+    {"rand_t_10", rand_t_10},
+    {"rand_t_11", rand_t_11},
+    {"rand_t_12", rand_t_12},
+    {"rand_t_13", rand_t_13},
+    {"rand_t_14", rand_t_14},
+    {"rand_t_15", rand_t_15},
+    {"rand_t_16", rand_t_16},
+    {"rand_t_17", rand_t_17},
+    {"rand_t_18", rand_t_18},
+    {"rand_t_19", rand_t_19},
+    {"rand_t_20", rand_t_20},
+    {"rand_t_21", rand_t_21},
+    {"rand_t_22", rand_t_22},
+    {"rand_t_23", rand_t_23},
+    {"rand_a_00", rand_a_00},
+    {"rand_a_01", rand_a_01},
+    {"rand_a_02", rand_a_02},
+    {"rand_a_03", rand_a_03},
+    {"rand_a_04", rand_a_04},
+    {"rand_a_05", rand_a_05},
+    {"rand_a_06", rand_a_06},
+    {"rand_a_07", rand_a_07},
+    {"rand_a_08", rand_a_08},
+    {"rand_a_09", rand_a_09},
+    {"rand_a_10", rand_a_10},
+    {"rand_a_11", rand_a_11},
+    {"rand_a_12", rand_a_12},
+    {"rand_a_13", rand_a_13},
+    {"rand_a_14", rand_a_14},
+    {"rand_a_15", rand_a_15},
+    {"rand_a_16", rand_a_16},
+    {"rand_a_17", rand_a_17},
+    {"rand_a_18", rand_a_18},
+    {"rand_a_19", rand_a_19},
+    {"rand_a_20", rand_a_20},
+    {"rand_a_21", rand_a_21},
+    {"rand_a_22", rand_a_22},
+    {"rand_a_23", rand_a_23},
 };
 
 static const uint32_t inputs[] = {0x00000000u, 0x00000001u, 0x00000002u, 0x00000003u, 0x00000004u, 0x00000005u, 0x00000006u, 0x00000008u, 0x00000009u, 0x0000000fu, 0x00000010u, 0x000000ffu, 0x7fffffffu, 0x80000000u, 0xfffffffeu, 0xffffffffu};

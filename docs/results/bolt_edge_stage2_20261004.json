@@ -1,0 +1,20 @@
+{
+ "schema": 1,
+ "item": "R17 stage 2: seeded random A32/T32 functions (scripts/bolt_edge/rand.py)",
+ "date": "2026-10-04",
+ "image": "fixtures/lk-rpi4-bolt-edge-ce8dd005.elf",
+ "image_sha256": "ce8dd005d78de4eb1a627d7b69f77d0f699738baefdf9fecc3d2d11a8050f9f6",
+ "cases": 146,
+ "random": {"seed": 17, "per_isa": 24, "functions": 48,
+  "terminators": {"cond": 94, "tail": 66, "ret": 53, "pred": 52, "pred_with_predicated_return": 18,
+                  "call": 38, "switch": 26, "br": 20, "ctc": 4},
+  "frame_functions": 44},
+ "baseline_pi": "146 cases x 1: 0 mismatches",
+ "admission": {"functions_checked": 155, "matching": 153,
+  "gaps": {"R21 (-O0 load-then-jump tables)": ["c_switch_arm_o0", "c_switch_marm_o0"]},
+  "random": "all 48 random functions admitted"},
+ "rewritten_pi": {"emitted": 557, "redirected": 67, "redirected_random": 26,
+  "result": "146 cases x 2 runs: 0 mismatches; no faults"},
+ "tuning_note": "conditional tail calls are rare (4): 44/48 functions have a frame, where ctc degrades to cond",
+ "scope": "uncertified until the user approves a contract for this image"
+}

@@ -749,3 +749,2175 @@ t_carry:
  adc r0, r0, #0
  bx lr
  .size t_carry,.-t_carry
+
+ .p2align 2
+ .thumb
+ .global rand_t_00
+ .type rand_t_00,%function
+ .thumb_func
+rand_t_00:
+ mov.w r1, #212
+ mov.w r2, #155
+.Lrand_t_00_0:
+ and.w r2, r1, r2
+ sub.w r1, r2, r0
+ cmp r1, #129
+ itttt ge
+ subge.w r2, r2, #100
+ eorge.w r2, r0, #107
+ eorge.w r1, r0, #35
+ andge.w r0, r2, #242
+.Lrand_t_00_1:
+ and.w r0, r2, r1
+ eor.w r2, r0, #244
+ cmp r1, #122
+ bne.w t_add5
+.Lrand_t_00_2:
+ add.w r1, r0, #184
+ and r3, r0, #3
+ tbb [pc, r3]
+1:
+ .byte (.Lrand_t_00_5-1b)/2, (.Lrand_t_00_5-1b)/2, (.Lrand_t_00_5-1b)/2, (.Lrand_t_00_3-1b)/2
+ .p2align 1
+.Lrand_t_00_3:
+ eor.w r0, r1, #178
+ and.w r1, r1, r2
+ bx lr
+.Lrand_t_00_4:
+ add.w r2, r0, #242
+ orr.w r0, r2, #38
+ orr.w r1, r2, #70
+ cmp r2, #200
+ bcs.w .Lrand_t_00_5
+.Lrand_t_00_5:
+ add.w r2, r1, #108
+ bx lr
+ .size rand_t_00,.-rand_t_00
+
+ .p2align 2
+ .thumb
+ .global rand_t_01
+ .type rand_t_01,%function
+ .thumb_func
+rand_t_01:
+ push {r4, lr}
+ mov.w r1, #214
+ mov.w r2, #47
+.Lrand_t_01_0:
+ orr.w r0, r2, #206
+ sub.w r0, r2, r2
+ pop {r4, pc}
+.Lrand_t_01_1:
+ sub.w r2, r1, #249
+ add.w r1, r0, #227
+ sub.w r1, r2, r1
+ cmp r0, #216
+ itt eq
+ subeq.w r0, r1, #188
+ popeq {r4, pc}
+.Lrand_t_01_2:
+ pop {r4, lr}
+ b.w a_add100
+.Lrand_t_01_3:
+ orr.w r0, r1, #243
+ pop {r4, lr}
+ b.w a_add7
+.Lrand_t_01_4:
+ add.w r2, r2, r1
+ add.w r1, r2, #14
+ pop {r4, pc}
+.Lrand_t_01_5:
+ add.w r1, r0, #113
+ and.w r0, r0, #29
+ eor.w r1, r1, #134
+ pop {r4, pc}
+.Lrand_t_01_6:
+ add.w r2, r2, r2
+ eor.w r0, r1, #166
+ cmp r0, #124
+ ittet ls
+ eorls.w r2, r0, r1
+ subls.w r2, r2, #65
+ addhi.w r1, r1, r1
+ andls.w r2, r0, #198
+.Lrand_t_01_7:
+ eor.w r1, r1, r2
+ cmp r1, #33
+ blt.w .Lrand_t_01_8
+.Lrand_t_01_8:
+ and.w r1, r2, #218
+ pop {r4, pc}
+ .size rand_t_01,.-rand_t_01
+
+ .p2align 2
+ .thumb
+ .global rand_t_02
+ .type rand_t_02,%function
+ .thumb_func
+rand_t_02:
+ push {r4, lr}
+ mov.w r1, #253
+ mov.w r2, #128
+.Lrand_t_02_0:
+ eor.w r1, r0, #62
+ bl t_add100
+.Lrand_t_02_1:
+ add.w r1, r1, r1
+ cmp r1, #164
+ bcs.w .Lrand_t_02_7
+.Lrand_t_02_2:
+ and.w r2, r2, #166
+ eor.w r0, r0, r0
+ blx a_add100
+.Lrand_t_02_3:
+ orr.w r2, r0, #157
+ add.w r2, r2, #6
+ pop {r4, lr}
+ b.w a_add100
+.Lrand_t_02_4:
+ orr.w r0, r1, #154
+ eor.w r2, r2, r0
+ orr.w r0, r1, #117
+ cmp r2, #101
+ bpl.w .Lrand_t_02_5
+.Lrand_t_02_5:
+ sub.w r0, r1, #44
+ orr.w r1, r1, #116
+ eor.w r1, r0, #122
+ pop {r4, lr}
+ b.w t_add5
+.Lrand_t_02_6:
+ add.w r0, r1, #246
+ sub.w r0, r0, r1
+ add.w r1, r1, r0
+ cmp r0, #44
+ itee mi
+ addmi.w r2, r2, #17
+ addpl.w r2, r0, r2
+ eorpl.w r1, r0, r2
+.Lrand_t_02_7:
+ pop {r4, lr}
+ b.w a_add100
+ .size rand_t_02,.-rand_t_02
+
+ .p2align 2
+ .thumb
+ .global rand_t_03
+ .type rand_t_03,%function
+ .thumb_func
+rand_t_03:
+ push {r4, lr}
+ mov.w r1, #168
+ mov.w r2, #252
+.Lrand_t_03_0:
+ eor.w r2, r0, r0
+ cmp r1, #58
+ blt.w .Lrand_t_03_1
+.Lrand_t_03_1:
+ pop {r4, lr}
+ b.w t_add100
+.Lrand_t_03_2:
+ add.w r2, r1, #226
+ cmp r0, #54
+ bne.w .Lrand_t_03_4
+.Lrand_t_03_3:
+ eor.w r2, r1, #153
+ b.w .Lrand_t_03_5
+.Lrand_t_03_4:
+ cmp r2, #236
+ itet ne
+ andne.w r2, r1, #47
+ andeq.w r2, r0, r0
+ eorne.w r2, r0, #36
+.Lrand_t_03_5:
+ add.w r0, r1, #214
+ pop {r4, lr}
+ b.w a_add100
+ .size rand_t_03,.-rand_t_03
+
+ .p2align 2
+ .thumb
+ .global rand_t_04
+ .type rand_t_04,%function
+ .thumb_func
+rand_t_04:
+ push {r4, lr}
+ mov.w r1, #134
+ mov.w r2, #122
+.Lrand_t_04_0:
+ eor.w r0, r2, #113
+ sub.w r2, r0, #161
+ sub.w r1, r1, #239
+ pop {r4, pc}
+.Lrand_t_04_1:
+ add.w r1, r0, #127
+ bl t_add5
+.Lrand_t_04_2:
+ and r3, r0, #3
+ tbb [pc, r3]
+1:
+ .byte (.Lrand_t_04_5-1b)/2, (.Lrand_t_04_4-1b)/2, (.Lrand_t_04_5-1b)/2, (.Lrand_t_04_7-1b)/2
+ .p2align 1
+.Lrand_t_04_3:
+ and.w r1, r1, #136
+ sub.w r1, r2, r0
+ pop {r4, pc}
+.Lrand_t_04_4:
+ bl t_add5
+.Lrand_t_04_5:
+ add.w r2, r1, r0
+ sub.w r1, r2, #243
+ pop {r4, lr}
+ b.w a_add100
+.Lrand_t_04_6:
+ pop {r4, lr}
+ b.w t_add100
+.Lrand_t_04_7:
+ and.w r1, r1, r2
+ add.w r1, r1, #200
+ pop {r4, pc}
+ .size rand_t_04,.-rand_t_04
+
+ .p2align 2
+ .thumb
+ .global rand_t_05
+ .type rand_t_05,%function
+ .thumb_func
+rand_t_05:
+ push {r4, lr}
+ mov.w r1, #109
+ mov.w r2, #53
+.Lrand_t_05_0:
+ sub.w r1, r1, r0
+ sub.w r0, r2, r2
+ pop {r4, pc}
+.Lrand_t_05_1:
+ and.w r2, r1, #171
+ add.w r0, r0, #29
+ and.w r1, r2, #145
+ cmp r0, #79
+ bmi.w .Lrand_t_05_3
+.Lrand_t_05_2:
+ eor.w r1, r0, #174
+ bl t_add100
+.Lrand_t_05_3:
+ eor.w r1, r2, #218
+ pop {r4, lr}
+ b.w t_add100
+ .size rand_t_05,.-rand_t_05
+
+ .p2align 2
+ .thumb
+ .global rand_t_06
+ .type rand_t_06,%function
+ .thumb_func
+rand_t_06:
+ push {r4, lr}
+ mov.w r1, #167
+ mov.w r2, #19
+.Lrand_t_06_0:
+ eor.w r2, r0, #43
+ eor.w r0, r1, #44
+ cmp r2, #243
+ bpl.w .Lrand_t_06_2
+.Lrand_t_06_1:
+ orr.w r0, r0, #115
+ and.w r2, r0, #98
+ orr.w r1, r2, #127
+ pop {r4, lr}
+ b.w t_add100
+.Lrand_t_06_2:
+ eor.w r0, r2, #135
+ orr.w r1, r2, #135
+ cmp r0, #82
+ it hi
+ pophi {r4, pc}
+.Lrand_t_06_3:
+ eor.w r2, r0, #186
+ orr.w r0, r1, r0
+ pop {r4, lr}
+ b.w t_add100
+ .size rand_t_06,.-rand_t_06
+
+ .p2align 2
+ .thumb
+ .global rand_t_07
+ .type rand_t_07,%function
+ .thumb_func
+rand_t_07:
+ push {r4, lr}
+ mov.w r1, #135
+ mov.w r2, #139
+.Lrand_t_07_0:
+ add.w r1, r2, #30
+ and.w r2, r0, #6
+ pop {r4, lr}
+ b.w t_add5
+.Lrand_t_07_1:
+ add.w r0, r1, #188
+ and.w r2, r0, #131
+ bl t_add5
+.Lrand_t_07_2:
+ and.w r2, r2, #143
+ and.w r0, r1, #111
+ and r3, r0, #3
+ tbb [pc, r3]
+1:
+ .byte (.Lrand_t_07_5-1b)/2, (.Lrand_t_07_3-1b)/2, (.Lrand_t_07_4-1b)/2, (.Lrand_t_07_3-1b)/2
+ .p2align 1
+.Lrand_t_07_3:
+ cmp r0, #103
+ itet cc
+ andcc.w r1, r2, r1
+ addcs.w r2, r1, #84
+ popcc {r4, pc}
+.Lrand_t_07_4:
+ cmp r0, #12
+ itt mi
+ orrmi.w r2, r2, #101
+ submi.w r0, r1, #137
+.Lrand_t_07_5:
+ and.w r1, r0, #74
+ eor.w r2, r2, r1
+ and r3, r0, #3
+ tbb [pc, r3]
+1:
+ .byte (.Lrand_t_07_6-1b)/2, (.Lrand_t_07_6-1b)/2, (.Lrand_t_07_6-1b)/2, (.Lrand_t_07_7-1b)/2
+ .p2align 1
+.Lrand_t_07_6:
+ sub.w r0, r2, #152
+ sub.w r1, r0, #173
+ cmp r0, #174
+ itee ge
+ eorge.w r2, r0, #207
+ eorlt.w r2, r2, r2
+ sublt.w r1, r2, #121
+.Lrand_t_07_7:
+ sub.w r0, r2, #126
+ add.w r2, r1, r0
+ sub.w r0, r2, #31
+ pop {r4, pc}
+ .size rand_t_07,.-rand_t_07
+
+ .p2align 2
+ .thumb
+ .global rand_t_08
+ .type rand_t_08,%function
+ .thumb_func
+rand_t_08:
+ push {r4, lr}
+ mov.w r1, #111
+ mov.w r2, #176
+.Lrand_t_08_0:
+ eor.w r1, r0, #47
+ eor.w r0, r0, #179
+ orr.w r0, r0, #243
+ pop {r4, pc}
+.Lrand_t_08_1:
+ cmp r2, #33
+ bpl.w .Lrand_t_08_2
+.Lrand_t_08_2:
+ eor.w r1, r0, #188
+ cmp r0, #222
+ bls.w .Lrand_t_08_3
+.Lrand_t_08_3:
+ cmp r2, #166
+ bcc.w .Lrand_t_08_8
+.Lrand_t_08_4:
+ pop {r4, lr}
+ b.w t_add100
+.Lrand_t_08_5:
+ pop {r4, pc}
+.Lrand_t_08_6:
+ cmp r2, #3
+ blt.w .Lrand_t_08_9
+.Lrand_t_08_7:
+ cmp r1, #105
+ bpl.w .Lrand_t_08_8
+.Lrand_t_08_8:
+ cmp r1, #65
+ bcs.w .Lrand_t_08_9
+.Lrand_t_08_9:
+ pop {r4, lr}
+ b.w t_add100
+ .size rand_t_08,.-rand_t_08
+
+ .p2align 2
+ .thumb
+ .global rand_t_09
+ .type rand_t_09,%function
+ .thumb_func
+rand_t_09:
+ mov.w r1, #166
+ mov.w r2, #102
+.Lrand_t_09_0:
+ and.w r2, r0, #97
+ sub.w r1, r1, r0
+ add.w r2, r2, #207
+ and r3, r0, #3
+ tbb [pc, r3]
+1:
+ .byte (.Lrand_t_09_3-1b)/2, (.Lrand_t_09_3-1b)/2, (.Lrand_t_09_1-1b)/2, (.Lrand_t_09_1-1b)/2
+ .p2align 1
+.Lrand_t_09_1:
+ orr.w r0, r0, #9
+ cmp r0, #81
+ it pl
+ addpl.w r2, r1, #133
+.Lrand_t_09_2:
+ and.w r0, r0, #126
+ eor.w r2, r1, #143
+ bx lr
+.Lrand_t_09_3:
+ orr.w r1, r0, #22
+ cmp r0, #147
+ bge.w t_add100
+.Lrand_t_09_4:
+ add.w r0, r2, #156
+ b.w .Lrand_t_09_5
+.Lrand_t_09_5:
+ eor.w r1, r2, #185
+ eor.w r1, r1, #1
+ bx lr
+ .size rand_t_09,.-rand_t_09
+
+ .p2align 2
+ .thumb
+ .global rand_t_10
+ .type rand_t_10,%function
+ .thumb_func
+rand_t_10:
+ push {r4, lr}
+ mov.w r1, #128
+ mov.w r2, #113
+.Lrand_t_10_0:
+ sub.w r1, r0, #64
+ eor.w r0, r2, #43
+ eor.w r1, r2, r2
+ cmp r2, #102
+ bgt.w .Lrand_t_10_4
+.Lrand_t_10_1:
+ pop {r4, lr}
+ b.w a_add7
+.Lrand_t_10_2:
+ orr.w r1, r1, #74
+ eor.w r0, r0, #26
+ add.w r1, r1, #27
+ cmp r1, #139
+ bge.w .Lrand_t_10_4
+.Lrand_t_10_3:
+ sub.w r2, r0, #221
+ sub.w r2, r1, #215
+ orr.w r0, r0, r2
+ cmp r1, #178
+ bgt.w .Lrand_t_10_4
+.Lrand_t_10_4:
+ sub.w r1, r2, #168
+ orr.w r1, r1, r2
+ pop {r4, lr}
+ b.w a_add100
+ .size rand_t_10,.-rand_t_10
+
+ .p2align 2
+ .thumb
+ .global rand_t_11
+ .type rand_t_11,%function
+ .thumb_func
+rand_t_11:
+ push {r4, lr}
+ mov.w r1, #222
+ mov.w r2, #101
+.Lrand_t_11_0:
+ eor.w r0, r1, #192
+ sub.w r2, r1, #146
+ cmp r0, #43
+ itete lt
+ eorlt.w r0, r1, #12
+ subge.w r1, r0, r2
+ eorlt.w r2, r1, r1
+ addge.w r0, r0, #59
+.Lrand_t_11_1:
+ pop {r4, lr}
+ b.w t_add5
+.Lrand_t_11_2:
+ and.w r2, r2, r1
+ add.w r2, r1, r1
+ eor.w r1, r0, #215
+ cmp r0, #146
+ bge.w .Lrand_t_11_3
+.Lrand_t_11_3:
+ orr.w r1, r0, #7
+ pop {r4, pc}
+ .size rand_t_11,.-rand_t_11
+
+ .p2align 2
+ .thumb
+ .global rand_t_12
+ .type rand_t_12,%function
+ .thumb_func
+rand_t_12:
+ push {r4, lr}
+ mov.w r1, #117
+ mov.w r2, #170
+.Lrand_t_12_0:
+ and.w r2, r0, #180
+ eor.w r1, r0, #161
+ cmp r1, #9
+ ble.w .Lrand_t_12_1
+.Lrand_t_12_1:
+ eor.w r1, r2, #139
+ orr.w r1, r1, #112
+ sub.w r1, r2, r0
+ and r3, r0, #3
+ tbb [pc, r3]
+1:
+ .byte (.Lrand_t_12_6-1b)/2, (.Lrand_t_12_5-1b)/2, (.Lrand_t_12_6-1b)/2, (.Lrand_t_12_6-1b)/2
+ .p2align 1
+.Lrand_t_12_2:
+ and.w r0, r2, #49
+ orr.w r0, r2, #27
+ pop {r4, pc}
+.Lrand_t_12_3:
+ and.w r0, r0, #225
+ add.w r1, r1, r1
+ and r3, r0, #3
+ tbb [pc, r3]
+1:
+ .byte (.Lrand_t_12_7-1b)/2, (.Lrand_t_12_7-1b)/2, (.Lrand_t_12_4-1b)/2, (.Lrand_t_12_6-1b)/2
+ .p2align 1
+.Lrand_t_12_4:
+ orr.w r0, r2, #1
+ blx a_add100
+.Lrand_t_12_5:
+ and.w r1, r0, r2
+ add.w r0, r0, r0
+ cmp r0, #55
+ beq.w .Lrand_t_12_6
+.Lrand_t_12_6:
+ eor.w r1, r0, r1
+ add.w r0, r2, r2
+ add.w r0, r0, #35
+ blx a_add100
+.Lrand_t_12_7:
+ add.w r0, r1, #8
+ and.w r2, r1, #44
+ sub.w r2, r0, #156
+ pop {r4, pc}
+ .size rand_t_12,.-rand_t_12
+
+ .p2align 2
+ .thumb
+ .global rand_t_13
+ .type rand_t_13,%function
+ .thumb_func
+rand_t_13:
+ push {r4, lr}
+ mov.w r1, #249
+ mov.w r2, #107
+.Lrand_t_13_0:
+ cmp r1, #69
+ itt cs
+ eorcs.w r2, r2, #135
+ orrcs.w r2, r1, r0
+.Lrand_t_13_1:
+ orr.w r1, r0, r2
+ pop {r4, pc}
+.Lrand_t_13_2:
+ sub.w r0, r1, r0
+ eor.w r2, r1, #124
+ eor.w r0, r1, #41
+ cmp r0, #159
+ blt.w .Lrand_t_13_3
+.Lrand_t_13_3:
+ orr.w r2, r2, #210
+ sub.w r1, r2, r2
+ orr.w r2, r1, r1
+ cmp r0, #114
+ blt.w .Lrand_t_13_4
+.Lrand_t_13_4:
+ bl t_add100
+.Lrand_t_13_5:
+ orr.w r1, r1, #86
+ cmp r1, #95
+ itte hi
+ eorhi.w r1, r2, r0
+ orrhi.w r1, r2, r0
+ popls {r4, pc}
+.Lrand_t_13_6:
+ and.w r0, r2, #66
+ orr.w r0, r1, #31
+ orr.w r1, r2, #155
+ pop {r4, pc}
+ .size rand_t_13,.-rand_t_13
+
+ .p2align 2
+ .thumb
+ .global rand_t_14
+ .type rand_t_14,%function
+ .thumb_func
+rand_t_14:
+ push {r4, lr}
+ mov.w r1, #78
+ mov.w r2, #5
+.Lrand_t_14_0:
+ orr.w r1, r2, #88
+ add.w r0, r0, #194
+ cmp r2, #59
+ bmi.w .Lrand_t_14_1
+.Lrand_t_14_1:
+ orr.w r1, r2, #46
+ cmp r0, #183
+ it ls
+ addls.w r1, r0, #134
+.Lrand_t_14_2:
+ eor.w r0, r0, #253
+ pop {r4, pc}
+.Lrand_t_14_3:
+ sub.w r2, r2, #98
+ cmp r1, #33
+ bpl.w .Lrand_t_14_9
+.Lrand_t_14_4:
+ sub.w r2, r1, r1
+ orr.w r2, r2, #253
+ cmp r1, #153
+ bls.w .Lrand_t_14_5
+.Lrand_t_14_5:
+ cmp r2, #127
+ it hi
+ pophi {r4, pc}
+.Lrand_t_14_6:
+ cmp r2, #108
+ it pl
+ poppl {r4, pc}
+.Lrand_t_14_7:
+ add.w r2, r1, #13
+ blx a_add100
+.Lrand_t_14_8:
+ cmp r0, #148
+ bcc.w .Lrand_t_14_9
+.Lrand_t_14_9:
+ and.w r0, r0, #98
+ eor.w r1, r1, #55
+ sub.w r1, r0, #217
+ pop {r4, lr}
+ b.w a_add100
+ .size rand_t_14,.-rand_t_14
+
+ .p2align 2
+ .thumb
+ .global rand_t_15
+ .type rand_t_15,%function
+ .thumb_func
+rand_t_15:
+ push {r4, lr}
+ mov.w r1, #100
+ mov.w r2, #7
+.Lrand_t_15_0:
+ eor.w r2, r1, r1
+ sub.w r2, r2, #5
+ and.w r0, r1, #35
+ b.w .Lrand_t_15_2
+.Lrand_t_15_1:
+ sub.w r1, r2, #58
+ eor.w r2, r2, #116
+ eor.w r2, r1, r1
+ pop {r4, lr}
+ b.w t_add5
+.Lrand_t_15_2:
+ add.w r0, r1, r0
+ sub.w r2, r1, #218
+ cmp r0, #222
+ blt.w .Lrand_t_15_3
+.Lrand_t_15_3:
+ orr.w r0, r0, #82
+ cmp r2, #198
+ ble.w .Lrand_t_15_4
+.Lrand_t_15_4:
+ add.w r2, r1, r1
+ sub.w r0, r2, #152
+ and.w r0, r0, #231
+ pop {r4, pc}
+ .size rand_t_15,.-rand_t_15
+
+ .p2align 2
+ .thumb
+ .global rand_t_16
+ .type rand_t_16,%function
+ .thumb_func
+rand_t_16:
+ push {r4, lr}
+ mov.w r1, #121
+ mov.w r2, #15
+.Lrand_t_16_0:
+ add.w r0, r0, #123
+ b.w .Lrand_t_16_1
+.Lrand_t_16_1:
+ sub.w r2, r0, r1
+ and.w r0, r1, #248
+ pop {r4, lr}
+ b.w a_add100
+.Lrand_t_16_2:
+ orr.w r0, r0, #158
+ orr.w r0, r2, #116
+ and.w r2, r1, #227
+ cmp r1, #1
+ bmi.w .Lrand_t_16_6
+.Lrand_t_16_3:
+ orr.w r2, r1, #221
+ add.w r1, r1, #167
+ b.w .Lrand_t_16_6
+.Lrand_t_16_4:
+ and r3, r0, #3
+ tbb [pc, r3]
+1:
+ .byte (.Lrand_t_16_6-1b)/2, (.Lrand_t_16_5-1b)/2, (.Lrand_t_16_9-1b)/2, (.Lrand_t_16_9-1b)/2
+ .p2align 1
+.Lrand_t_16_5:
+ orr.w r2, r1, #240
+ b.w .Lrand_t_16_7
+.Lrand_t_16_6:
+ eor.w r1, r2, r2
+ sub.w r2, r0, #154
+ sub.w r1, r0, #205
+ bl t_add100
+.Lrand_t_16_7:
+ and.w r0, r0, #90
+ cmp r0, #137
+ ittt ls
+ eorls.w r2, r0, #140
+ orrls.w r1, r1, r2
+ andls.w r2, r1, #47
+.Lrand_t_16_8:
+ sub.w r0, r2, #146
+ eor.w r0, r1, #103
+ cmp r2, #144
+ it eq
+ subeq.w r2, r1, #90
+.Lrand_t_16_9:
+ pop {r4, pc}
+ .size rand_t_16,.-rand_t_16
+
+ .p2align 2
+ .thumb
+ .global rand_t_17
+ .type rand_t_17,%function
+ .thumb_func
+rand_t_17:
+ push {r4, lr}
+ mov.w r1, #98
+ mov.w r2, #50
+.Lrand_t_17_0:
+ and r3, r0, #3
+ tbb [pc, r3]
+1:
+ .byte (.Lrand_t_17_4-1b)/2, (.Lrand_t_17_8-1b)/2, (.Lrand_t_17_3-1b)/2, (.Lrand_t_17_1-1b)/2
+ .p2align 1
+.Lrand_t_17_1:
+ cmp r1, #127
+ itttt cc
+ eorcc.w r1, r2, #29
+ orrcc.w r0, r0, #97
+ subcc.w r0, r0, r2
+ orrcc.w r2, r1, #194
+.Lrand_t_17_2:
+ and r3, r0, #3
+ tbb [pc, r3]
+1:
+ .byte (.Lrand_t_17_5-1b)/2, (.Lrand_t_17_4-1b)/2, (.Lrand_t_17_6-1b)/2, (.Lrand_t_17_6-1b)/2
+ .p2align 1
+.Lrand_t_17_3:
+ blx a_add7
+.Lrand_t_17_4:
+ b.w .Lrand_t_17_7
+.Lrand_t_17_5:
+ add.w r0, r1, r1
+ cmp r0, #42
+ beq.w .Lrand_t_17_6
+.Lrand_t_17_6:
+ add.w r1, r2, #31
+ eor.w r1, r1, #66
+ eor.w r0, r1, #140
+ cmp r1, #181
+ bpl.w .Lrand_t_17_7
+.Lrand_t_17_7:
+ and.w r2, r1, #5
+ cmp r2, #51
+ ble.w .Lrand_t_17_8
+.Lrand_t_17_8:
+ and.w r1, r2, #179
+ sub.w r1, r2, #36
+ eor.w r1, r2, #55
+ pop {r4, pc}
+ .size rand_t_17,.-rand_t_17
+
+ .p2align 2
+ .thumb
+ .global rand_t_18
+ .type rand_t_18,%function
+ .thumb_func
+rand_t_18:
+ push {r4, lr}
+ mov.w r1, #2
+ mov.w r2, #200
+.Lrand_t_18_0:
+ sub.w r2, r2, #239
+ add.w r1, r1, r0
+ sub.w r2, r0, #79
+ cmp r0, #79
+ it ne
+ popne {r4, pc}
+.Lrand_t_18_1:
+ cmp r1, #57
+ bls.w .Lrand_t_18_3
+.Lrand_t_18_2:
+ cmp r0, #141
+ bgt.w .Lrand_t_18_3
+.Lrand_t_18_3:
+ and.w r0, r2, r0
+ eor.w r2, r0, #249
+ pop {r4, lr}
+ b.w t_add100
+.Lrand_t_18_4:
+ and.w r1, r1, r2
+ pop {r4, lr}
+ b.w t_add5
+ .size rand_t_18,.-rand_t_18
+
+ .p2align 2
+ .thumb
+ .global rand_t_19
+ .type rand_t_19,%function
+ .thumb_func
+rand_t_19:
+ push {r4, lr}
+ mov.w r1, #175
+ mov.w r2, #150
+.Lrand_t_19_0:
+ eor.w r1, r1, #237
+ sub.w r2, r1, #161
+ sub.w r1, r2, r2
+ cmp r1, #50
+ bhi.w .Lrand_t_19_2
+.Lrand_t_19_1:
+ sub.w r1, r2, #133
+ add.w r1, r0, #226
+ cmp r1, #136
+ bcc.w .Lrand_t_19_2
+.Lrand_t_19_2:
+ eor.w r2, r0, r0
+ cmp r0, #37
+ bpl.w .Lrand_t_19_3
+.Lrand_t_19_3:
+ blx a_add7
+.Lrand_t_19_4:
+ eor.w r1, r1, r0
+ sub.w r0, r1, r2
+ cmp r2, #254
+ bge.w .Lrand_t_19_6
+.Lrand_t_19_5:
+ eor.w r1, r1, r1
+ and.w r1, r2, #240
+ cmp r0, #61
+ blt.w .Lrand_t_19_6
+.Lrand_t_19_6:
+ cmp r0, #142
+ it lt
+ sublt.w r1, r2, #83
+.Lrand_t_19_7:
+ pop {r4, pc}
+ .size rand_t_19,.-rand_t_19
+
+ .p2align 2
+ .thumb
+ .global rand_t_20
+ .type rand_t_20,%function
+ .thumb_func
+rand_t_20:
+ push {r4, lr}
+ mov.w r1, #139
+ mov.w r2, #27
+.Lrand_t_20_0:
+ eor.w r1, r2, #226
+ eor.w r1, r1, r2
+ blx a_add100
+.Lrand_t_20_1:
+ sub.w r0, r1, #154
+ eor.w r2, r1, #161
+ eor.w r2, r2, #40
+ and r3, r0, #3
+ tbb [pc, r3]
+1:
+ .byte (.Lrand_t_20_7-1b)/2, (.Lrand_t_20_6-1b)/2, (.Lrand_t_20_7-1b)/2, (.Lrand_t_20_6-1b)/2
+ .p2align 1
+.Lrand_t_20_2:
+ add.w r0, r1, #42
+ and r3, r0, #3
+ tbb [pc, r3]
+1:
+ .byte (.Lrand_t_20_4-1b)/2, (.Lrand_t_20_3-1b)/2, (.Lrand_t_20_5-1b)/2, (.Lrand_t_20_3-1b)/2
+ .p2align 1
+.Lrand_t_20_3:
+ add.w r1, r2, #57
+ cmp r0, #169
+ bcc.w .Lrand_t_20_4
+.Lrand_t_20_4:
+ orr.w r0, r2, #253
+ b.w .Lrand_t_20_5
+.Lrand_t_20_5:
+ add.w r0, r1, #55
+ orr.w r2, r2, r2
+ cmp r2, #249
+ itt eq
+ eoreq.w r0, r1, #191
+ orreq.w r0, r0, #179
+.Lrand_t_20_6:
+ sub.w r2, r1, r0
+ orr.w r0, r1, #166
+ cmp r0, #213
+ bcc.w .Lrand_t_20_7
+.Lrand_t_20_7:
+ eor.w r0, r0, #172
+ add.w r0, r1, r0
+ pop {r4, lr}
+ b.w t_add5
+ .size rand_t_20,.-rand_t_20
+
+ .p2align 2
+ .thumb
+ .global rand_t_21
+ .type rand_t_21,%function
+ .thumb_func
+rand_t_21:
+ push {r4, lr}
+ mov.w r1, #0
+ mov.w r2, #45
+.Lrand_t_21_0:
+ orr.w r2, r2, #212
+ pop {r4, lr}
+ b.w a_add7
+.Lrand_t_21_1:
+ sub.w r0, r0, #175
+ orr.w r0, r0, #34
+ orr.w r0, r1, #188
+ blx a_add7
+.Lrand_t_21_2:
+ orr.w r1, r1, r1
+ and.w r0, r2, #187
+ eor.w r0, r2, #229
+ pop {r4, lr}
+ b.w t_add100
+.Lrand_t_21_3:
+ orr.w r2, r1, #145
+ blx a_add100
+.Lrand_t_21_4:
+ and.w r1, r0, r0
+ sub.w r1, r1, #206
+ bl t_add5
+.Lrand_t_21_5:
+ sub.w r1, r2, #239
+ blx a_add7
+.Lrand_t_21_6:
+ eor.w r0, r2, r0
+ add.w r1, r0, #200
+ orr.w r0, r0, r2
+ pop {r4, lr}
+ b.w a_add7
+ .size rand_t_21,.-rand_t_21
+
+ .p2align 2
+ .thumb
+ .global rand_t_22
+ .type rand_t_22,%function
+ .thumb_func
+rand_t_22:
+ push {r4, lr}
+ mov.w r1, #131
+ mov.w r2, #218
+.Lrand_t_22_0:
+ sub.w r1, r2, #164
+ add.w r0, r2, #53
+ add.w r1, r0, #156
+ b.w .Lrand_t_22_3
+.Lrand_t_22_1:
+ orr.w r0, r2, r0
+ pop {r4, pc}
+.Lrand_t_22_2:
+ orr.w r1, r0, #7
+ and.w r0, r2, #47
+ and.w r2, r0, r2
+ pop {r4, pc}
+.Lrand_t_22_3:
+ and.w r2, r0, r2
+ eor.w r0, r1, #96
+ cmp r1, #92
+ ble.w .Lrand_t_22_5
+.Lrand_t_22_4:
+ sub.w r2, r0, r1
+ blx a_add100
+.Lrand_t_22_5:
+ sub.w r2, r2, #53
+ pop {r4, lr}
+ b.w a_add7
+.Lrand_t_22_6:
+ cmp r0, #73
+ bgt.w .Lrand_t_22_7
+.Lrand_t_22_7:
+ add.w r2, r2, #30
+ eor.w r0, r0, #93
+ pop {r4, lr}
+ b.w a_add7
+ .size rand_t_22,.-rand_t_22
+
+ .p2align 2
+ .thumb
+ .global rand_t_23
+ .type rand_t_23,%function
+ .thumb_func
+rand_t_23:
+ push {r4, lr}
+ mov.w r1, #132
+ mov.w r2, #169
+.Lrand_t_23_0:
+ eor.w r2, r0, #128
+ eor.w r2, r1, #69
+ cmp r0, #122
+ ble.w .Lrand_t_23_8
+.Lrand_t_23_1:
+ and.w r2, r0, #54
+ and.w r1, r1, #245
+ cmp r0, #84
+ bhi.w .Lrand_t_23_7
+.Lrand_t_23_2:
+ and.w r2, r1, #225
+ add.w r1, r1, #254
+ cmp r1, #230
+ beq.w .Lrand_t_23_5
+.Lrand_t_23_3:
+ add.w r0, r0, #118
+ eor.w r2, r1, #51
+ eor.w r2, r0, #240
+ cmp r2, #81
+ bcc.w .Lrand_t_23_4
+.Lrand_t_23_4:
+ add.w r2, r0, #189
+ and.w r1, r2, r2
+ and.w r0, r2, #129
+ bl t_add5
+.Lrand_t_23_5:
+ and.w r0, r2, r0
+ cmp r1, #214
+ itt pl
+ subpl.w r1, r2, #215
+ poppl {r4, pc}
+.Lrand_t_23_6:
+ cmp r0, #70
+ bge.w .Lrand_t_23_8
+.Lrand_t_23_7:
+ orr.w r0, r2, #114
+ eor.w r1, r1, r2
+ cmp r2, #9
+ bls.w .Lrand_t_23_8
+.Lrand_t_23_8:
+ orr.w r1, r1, #145
+ orr.w r0, r1, #156
+ add.w r2, r1, r2
+ cmp r0, #165
+ bhi.w .Lrand_t_23_9
+.Lrand_t_23_9:
+ eor.w r2, r0, #32
+ pop {r4, lr}
+ b.w t_add5
+ .size rand_t_23,.-rand_t_23
+
+ .p2align 2
+ .arm
+ .global rand_a_00
+ .type rand_a_00,%function
+rand_a_00:
+ push {r4, lr}
+ mov r1, #114
+ mov r2, #116
+.Lrand_a_00_0:
+ sub r0, r0, #37
+ and r0, r1, #28
+ add r1, r0, #98
+ cmp r2, #65
+ eorpl r0, r1, #133
+ orrpl r2, r1, #110
+.Lrand_a_00_1:
+ sub r0, r2, r2
+ blx t_add5
+.Lrand_a_00_2:
+ add r1, r2, #202
+ cmp r0, #230
+ andhi r1, r2, #28
+ addhi r1, r0, r2
+.Lrand_a_00_3:
+ eor r0, r2, #28
+ cmp r2, #129
+ blt .Lrand_a_00_4
+.Lrand_a_00_4:
+ and r2, r1, #236
+ and r2, r1, #53
+ and r1, r2, #6
+ pop {r4, pc}
+.Lrand_a_00_5:
+ orr r2, r2, #48
+ cmp r0, #123
+ eormi r0, r2, #161
+ orrpl r1, r2, r0
+ subpl r2, r1, r2
+.Lrand_a_00_6:
+ pop {r4, pc}
+.Lrand_a_00_7:
+ and r0, r2, #175
+ pop {r4, lr}
+ b a_add7
+ .size rand_a_00,.-rand_a_00
+
+ .p2align 2
+ .arm
+ .global rand_a_01
+ .type rand_a_01,%function
+rand_a_01:
+ mov r1, #100
+ mov r2, #102
+.Lrand_a_01_0:
+ cmp r1, #244
+ bne .Lrand_a_01_3
+.Lrand_a_01_1:
+ orr r0, r2, #23
+ eor r2, r0, #119
+ orr r1, r2, #121
+ b .Lrand_a_01_2
+.Lrand_a_01_2:
+ sub r0, r1, r1
+ eor r2, r1, r1
+ cmp r1, #145
+ addeq r0, r0, #48
+ bxeq lr
+.Lrand_a_01_3:
+ cmp r0, #112
+ bcs a_add7
+.Lrand_a_01_4:
+ sub r2, r2, #51
+ cmp r1, #20
+ orrge r0, r1, #3
+ sublt r0, r1, r1
+ eorge r0, r0, r0
+.Lrand_a_01_5:
+ add r0, r1, #80
+ orr r2, r0, #226
+ b .Lrand_a_01_6
+.Lrand_a_01_6:
+ sub r0, r0, #90
+ sub r0, r1, #125
+ bx lr
+ .size rand_a_01,.-rand_a_01
+
+ .p2align 2
+ .arm
+ .global rand_a_02
+ .type rand_a_02,%function
+rand_a_02:
+ push {r4, lr}
+ mov r1, #169
+ mov r2, #61
+.Lrand_a_02_0:
+ orr r2, r0, #155
+ orr r2, r1, #182
+ and r0, r1, #65
+ cmp r2, #56
+ bpl .Lrand_a_02_1
+.Lrand_a_02_1:
+ orr r1, r1, #201
+ bl a_add100
+.Lrand_a_02_2:
+ cmp r0, #135
+ andgt r0, r1, #15
+ pople {r4, pc}
+.Lrand_a_02_3:
+ sub r0, r1, #124
+ orr r0, r2, #105
+ sub r2, r1, #210
+ pop {r4, lr}
+ b a_add7
+.Lrand_a_02_4:
+ eor r1, r2, #125
+ sub r1, r2, #173
+ sub r1, r2, r0
+ pop {r4, lr}
+ b t_add100
+.Lrand_a_02_5:
+ cmp r0, #231
+ bcc .Lrand_a_02_6
+.Lrand_a_02_6:
+ orr r1, r0, #163
+ and r1, r2, #125
+ and r2, r1, #120
+ pop {r4, lr}
+ b t_add100
+.Lrand_a_02_7:
+ orr r0, r0, #90
+ and r1, r1, #147
+ pop {r4, lr}
+ b t_add5
+ .size rand_a_02,.-rand_a_02
+
+ .p2align 2
+ .arm
+ .global rand_a_03
+ .type rand_a_03,%function
+rand_a_03:
+ push {r4, lr}
+ mov r1, #254
+ mov r2, #57
+.Lrand_a_03_0:
+ orr r2, r0, r1
+ add r1, r0, #45
+ blx t_add5
+.Lrand_a_03_1:
+ and r0, r0, r1
+ and r2, r1, #227
+ and r2, r1, #76
+ cmp r2, #184
+ bne .Lrand_a_03_2
+.Lrand_a_03_2:
+ sub r2, r2, r2
+ pop {r4, lr}
+ b t_add100
+.Lrand_a_03_3:
+ and r1, r2, r0
+ pop {r4, pc}
+.Lrand_a_03_4:
+ sub r1, r0, #58
+ sub r0, r2, #218
+ sub r1, r1, r2
+ pop {r4, lr}
+ b a_add100
+.Lrand_a_03_5:
+ and r1, r1, #225
+ cmp r1, #218
+ bne .Lrand_a_03_6
+.Lrand_a_03_6:
+ pop {r4, pc}
+.Lrand_a_03_7:
+ add r2, r1, #167
+ add r0, r0, r1
+ eor r0, r1, #109
+ cmp r0, #102
+ andgt r1, r0, #239
+ andle r1, r2, #2
+ andgt r1, r1, r0
+.Lrand_a_03_8:
+ sub r1, r2, r1
+ add r2, r2, #239
+ orr r0, r2, #155
+ b .Lrand_a_03_9
+.Lrand_a_03_9:
+ pop {r4, lr}
+ b t_add100
+ .size rand_a_03,.-rand_a_03
+
+ .p2align 2
+ .arm
+ .global rand_a_04
+ .type rand_a_04,%function
+rand_a_04:
+ push {r4, lr}
+ mov r1, #43
+ mov r2, #164
+.Lrand_a_04_0:
+ add r0, r1, r1
+ eor r1, r0, #23
+ sub r1, r1, #167
+ cmp r2, #181
+ bge .Lrand_a_04_1
+.Lrand_a_04_1:
+ sub r1, r0, #114
+ cmp r1, #139
+ bhi .Lrand_a_04_2
+.Lrand_a_04_2:
+ eor r1, r1, #65
+ eor r1, r0, #243
+ orr r1, r2, #101
+ cmp r2, #251
+ bcc .Lrand_a_04_3
+.Lrand_a_04_3:
+ orr r1, r1, r1
+ sub r1, r0, #72
+ pop {r4, lr}
+ b t_add100
+ .size rand_a_04,.-rand_a_04
+
+ .p2align 2
+ .arm
+ .global rand_a_05
+ .type rand_a_05,%function
+rand_a_05:
+ push {r4, lr}
+ mov r1, #37
+ mov r2, #148
+.Lrand_a_05_0:
+ cmp r0, #109
+ bcs .Lrand_a_05_7
+.Lrand_a_05_1:
+ add r1, r0, #246
+ bl a_add100
+.Lrand_a_05_2:
+ sub r2, r2, #239
+ orr r2, r1, r0
+ eor r0, r0, #26
+ cmp r2, #176
+ bmi .Lrand_a_05_3
+.Lrand_a_05_3:
+ cmp r1, #86
+ beq .Lrand_a_05_5
+.Lrand_a_05_4:
+ sub r2, r2, r0
+ b .Lrand_a_05_6
+.Lrand_a_05_5:
+ eor r1, r1, #24
+ orr r0, r2, #17
+ bl a_add100
+.Lrand_a_05_6:
+ add r1, r0, #28
+ sub r2, r1, #121
+ add r1, r1, #231
+ cmp r2, #164
+ bcs .Lrand_a_05_7
+.Lrand_a_05_7:
+ add r1, r1, #144
+ orr r0, r2, #250
+ and r3, r0, #3
+ adr r12, 1f
+ ldr pc, [r12, r3, lsl #2]
+1:
+ .word .Lrand_a_05_9, .Lrand_a_05_9, .Lrand_a_05_9, .Lrand_a_05_9
+.Lrand_a_05_8:
+ eor r2, r1, #66
+ eor r1, r0, r2
+ pop {r4, pc}
+.Lrand_a_05_9:
+ pop {r4, lr}
+ b a_add7
+ .size rand_a_05,.-rand_a_05
+
+ .p2align 2
+ .arm
+ .global rand_a_06
+ .type rand_a_06,%function
+rand_a_06:
+ push {r4, lr}
+ mov r1, #43
+ mov r2, #35
+.Lrand_a_06_0:
+ orr r0, r1, #97
+ cmp r2, #233
+ blt .Lrand_a_06_4
+.Lrand_a_06_1:
+ and r3, r0, #3
+ adr r12, 1f
+ ldr pc, [r12, r3, lsl #2]
+1:
+ .word .Lrand_a_06_2, .Lrand_a_06_3, .Lrand_a_06_3, .Lrand_a_06_6
+.Lrand_a_06_2:
+ sub r0, r1, r2
+ and r2, r1, r2
+ orr r0, r1, #147
+ cmp r0, #135
+ bcc .Lrand_a_06_3
+.Lrand_a_06_3:
+ add r1, r0, #114
+ cmp r0, #78
+ eoreq r0, r1, #255
+ subeq r2, r1, #76
+ andeq r1, r0, #179
+ subne r2, r2, r0
+.Lrand_a_06_4:
+ orr r0, r0, #134
+ and r0, r1, r2
+ pop {r4, pc}
+.Lrand_a_06_5:
+ and r0, r1, #237
+ eor r0, r0, #244
+ and r0, r0, #28
+ cmp r2, #111
+ andgt r1, r2, #16
+ suble r1, r2, r2
+ andgt r0, r2, r1
+ pople {r4, pc}
+.Lrand_a_06_6:
+ pop {r4, lr}
+ b a_add100
+ .size rand_a_06,.-rand_a_06
+
+ .p2align 2
+ .arm
+ .global rand_a_07
+ .type rand_a_07,%function
+rand_a_07:
+ push {r4, lr}
+ mov r1, #221
+ mov r2, #236
+.Lrand_a_07_0:
+ orr r0, r1, r1
+ sub r2, r1, #65
+ orr r0, r2, #99
+ cmp r0, #199
+ bcc .Lrand_a_07_1
+.Lrand_a_07_1:
+ add r1, r1, #21
+ orr r0, r0, #217
+ cmp r0, #184
+ subcs r2, r0, #117
+ orrcc r2, r0, #44
+ subcc r1, r2, #54
+.Lrand_a_07_2:
+ add r0, r0, #237
+ and r3, r0, #3
+ adr r12, 1f
+ ldr pc, [r12, r3, lsl #2]
+1:
+ .word .Lrand_a_07_6, .Lrand_a_07_3, .Lrand_a_07_3, .Lrand_a_07_4
+.Lrand_a_07_3:
+ sub r2, r2, #250
+ pop {r4, pc}
+.Lrand_a_07_4:
+ add r0, r1, #125
+ add r0, r2, #62
+ and r3, r0, #3
+ adr r12, 1f
+ ldr pc, [r12, r3, lsl #2]
+1:
+ .word .Lrand_a_07_8, .Lrand_a_07_5, .Lrand_a_07_6, .Lrand_a_07_5
+.Lrand_a_07_5:
+ b .Lrand_a_07_6
+.Lrand_a_07_6:
+ add r1, r1, #170
+ cmp r0, #56
+ popmi {r4, pc}
+.Lrand_a_07_7:
+ add r2, r0, #40
+ sub r0, r0, #11
+ sub r2, r2, #182
+ pop {r4, lr}
+ b t_add100
+.Lrand_a_07_8:
+ pop {r4, pc}
+ .size rand_a_07,.-rand_a_07
+
+ .p2align 2
+ .arm
+ .global rand_a_08
+ .type rand_a_08,%function
+rand_a_08:
+ push {r4, lr}
+ mov r1, #61
+ mov r2, #233
+.Lrand_a_08_0:
+ orr r2, r0, #205
+ add r2, r2, r1
+ eor r2, r1, #107
+ and r3, r0, #3
+ adr r12, 1f
+ ldr pc, [r12, r3, lsl #2]
+1:
+ .word .Lrand_a_08_2, .Lrand_a_08_3, .Lrand_a_08_3, .Lrand_a_08_2
+.Lrand_a_08_1:
+ orr r1, r1, #195
+ add r0, r0, r1
+ and r2, r1, r2
+ cmp r2, #38
+ bne .Lrand_a_08_3
+.Lrand_a_08_2:
+ sub r0, r1, #38
+ cmp r2, #199
+ beq .Lrand_a_08_3
+.Lrand_a_08_3:
+ eor r0, r0, #128
+ pop {r4, lr}
+ b t_add100
+.Lrand_a_08_4:
+ orr r1, r1, #21
+ sub r2, r0, #205
+ sub r0, r0, #210
+ pop {r4, lr}
+ b t_add100
+ .size rand_a_08,.-rand_a_08
+
+ .p2align 2
+ .arm
+ .global rand_a_09
+ .type rand_a_09,%function
+rand_a_09:
+ push {r4, lr}
+ mov r1, #109
+ mov r2, #151
+.Lrand_a_09_0:
+ orr r2, r1, r1
+ cmp r2, #217
+ sublt r0, r1, #187
+.Lrand_a_09_1:
+ and r0, r0, r0
+ and r2, r1, r0
+ orr r2, r0, #140
+ cmp r2, #217
+ ble .Lrand_a_09_2
+.Lrand_a_09_2:
+ cmp r1, #51
+ andne r0, r2, #20
+ popeq {r4, pc}
+.Lrand_a_09_3:
+ sub r1, r1, r0
+ pop {r4, lr}
+ b a_add7
+ .size rand_a_09,.-rand_a_09
+
+ .p2align 2
+ .arm
+ .global rand_a_10
+ .type rand_a_10,%function
+rand_a_10:
+ push {r4, lr}
+ mov r1, #121
+ mov r2, #50
+.Lrand_a_10_0:
+ eor r2, r2, r2
+ add r1, r0, r2
+ pop {r4, pc}
+.Lrand_a_10_1:
+ sub r0, r2, #211
+ add r2, r0, #223
+ bl a_add100
+.Lrand_a_10_2:
+ and r2, r0, #170
+ eor r1, r0, #203
+ eor r1, r1, #241
+ bl a_add100
+.Lrand_a_10_3:
+ and r2, r0, #67
+ cmp r1, #246
+ subne r2, r2, #154
+ popeq {r4, pc}
+.Lrand_a_10_4:
+ sub r1, r2, #195
+ cmp r2, #115
+ bhi .Lrand_a_10_6
+.Lrand_a_10_5:
+ orr r2, r1, #25
+ orr r1, r1, #32
+ and r1, r0, #182
+ pop {r4, pc}
+.Lrand_a_10_6:
+ add r0, r2, #189
+ eor r1, r0, #84
+ and r0, r1, #207
+ pop {r4, lr}
+ b a_add7
+ .size rand_a_10,.-rand_a_10
+
+ .p2align 2
+ .arm
+ .global rand_a_11
+ .type rand_a_11,%function
+rand_a_11:
+ push {r4, lr}
+ mov r1, #60
+ mov r2, #122
+.Lrand_a_11_0:
+ add r2, r2, #68
+ and r1, r2, #44
+ and r0, r0, r1
+ cmp r1, #177
+ subhi r2, r2, r2
+ orrls r0, r1, r0
+ addls r2, r0, r1
+.Lrand_a_11_1:
+ eor r2, r1, r0
+ add r0, r2, #60
+ pop {r4, pc}
+.Lrand_a_11_2:
+ cmp r0, #39
+ ble .Lrand_a_11_5
+.Lrand_a_11_3:
+ and r0, r2, r0
+ sub r2, r1, #89
+ sub r2, r1, #132
+ and r3, r0, #3
+ adr r12, 1f
+ ldr pc, [r12, r3, lsl #2]
+1:
+ .word .Lrand_a_11_5, .Lrand_a_11_6, .Lrand_a_11_4, .Lrand_a_11_7
+.Lrand_a_11_4:
+ cmp r2, #87
+ addne r2, r1, #69
+ orreq r2, r1, #234
+ orrne r0, r1, #10
+ orreq r0, r0, #212
+.Lrand_a_11_5:
+ sub r2, r1, #170
+ and r1, r2, #29
+ and r3, r0, #3
+ adr r12, 1f
+ ldr pc, [r12, r3, lsl #2]
+1:
+ .word .Lrand_a_11_6, .Lrand_a_11_6, .Lrand_a_11_7, .Lrand_a_11_6
+.Lrand_a_11_6:
+ b .Lrand_a_11_7
+.Lrand_a_11_7:
+ sub r0, r2, #30
+ add r0, r2, #8
+ orr r1, r1, #14
+ pop {r4, lr}
+ b t_add100
+ .size rand_a_11,.-rand_a_11
+
+ .p2align 2
+ .arm
+ .global rand_a_12
+ .type rand_a_12,%function
+rand_a_12:
+ push {r4, lr}
+ mov r1, #8
+ mov r2, #125
+.Lrand_a_12_0:
+ add r1, r2, #11
+ pop {r4, lr}
+ b a_add7
+.Lrand_a_12_1:
+ sub r0, r0, #8
+ sub r0, r0, #188
+ cmp r2, #69
+ popcc {r4, pc}
+.Lrand_a_12_2:
+ orr r0, r0, r2
+ and r2, r2, r0
+ blx t_add100
+.Lrand_a_12_3:
+ cmp r1, #25
+ beq .Lrand_a_12_4
+.Lrand_a_12_4:
+ sub r0, r1, #130
+ add r2, r0, r2
+ pop {r4, lr}
+ b t_add5
+.Lrand_a_12_5:
+ and r0, r0, #193
+ orr r2, r1, r0
+ and r1, r1, #237
+ and r3, r0, #3
+ adr r12, 1f
+ ldr pc, [r12, r3, lsl #2]
+1:
+ .word .Lrand_a_12_8, .Lrand_a_12_7, .Lrand_a_12_6, .Lrand_a_12_7
+.Lrand_a_12_6:
+ add r1, r2, r1
+ eor r0, r1, #26
+ pop {r4, lr}
+ b t_add100
+.Lrand_a_12_7:
+ eor r0, r0, #225
+ b .Lrand_a_12_8
+.Lrand_a_12_8:
+ pop {r4, pc}
+ .size rand_a_12,.-rand_a_12
+
+ .p2align 2
+ .arm
+ .global rand_a_13
+ .type rand_a_13,%function
+rand_a_13:
+ push {r4, lr}
+ mov r1, #180
+ mov r2, #83
+.Lrand_a_13_0:
+ orr r2, r0, #38
+ orr r1, r0, #71
+ cmp r1, #28
+ bhi .Lrand_a_13_8
+.Lrand_a_13_1:
+ add r1, r0, #164
+ sub r0, r0, #156
+ b .Lrand_a_13_6
+.Lrand_a_13_2:
+ eor r0, r2, r2
+ orr r1, r2, r0
+ sub r1, r0, #55
+ and r3, r0, #3
+ adr r12, 1f
+ ldr pc, [r12, r3, lsl #2]
+1:
+ .word .Lrand_a_13_6, .Lrand_a_13_3, .Lrand_a_13_6, .Lrand_a_13_5
+.Lrand_a_13_3:
+ eor r2, r2, #77
+ add r1, r1, #109
+ orr r0, r1, #14
+ cmp r2, #203
+ bge .Lrand_a_13_7
+.Lrand_a_13_4:
+ eor r2, r2, #111
+ eor r1, r2, r1
+ sub r1, r1, r2
+ cmp r1, #93
+ bhi .Lrand_a_13_7
+.Lrand_a_13_5:
+ add r2, r1, #39
+ b .Lrand_a_13_6
+.Lrand_a_13_6:
+ pop {r4, lr}
+ b t_add100
+.Lrand_a_13_7:
+ eor r1, r2, #102
+ bl a_add7
+.Lrand_a_13_8:
+ and r1, r2, #58
+ orr r1, r0, #56
+ pop {r4, lr}
+ b a_add7
+ .size rand_a_13,.-rand_a_13
+
+ .p2align 2
+ .arm
+ .global rand_a_14
+ .type rand_a_14,%function
+rand_a_14:
+ push {r4, lr}
+ mov r1, #75
+ mov r2, #216
+.Lrand_a_14_0:
+ add r2, r0, #112
+ and r0, r2, r2
+ sub r0, r2, r0
+ blx t_add100
+.Lrand_a_14_1:
+ sub r1, r0, r2
+ and r0, r1, #245
+ cmp r2, #155
+ bcs .Lrand_a_14_6
+.Lrand_a_14_2:
+ sub r2, r0, #31
+ eor r0, r2, #202
+ sub r2, r1, #66
+ cmp r2, #242
+ bcs .Lrand_a_14_8
+.Lrand_a_14_3:
+ eor r1, r0, #71
+ orr r0, r1, #161
+ eor r1, r1, r0
+ cmp r1, #14
+ bhi .Lrand_a_14_9
+.Lrand_a_14_4:
+ and r2, r2, #246
+ pop {r4, lr}
+ b a_add100
+.Lrand_a_14_5:
+ pop {r4, pc}
+.Lrand_a_14_6:
+ eor r2, r1, #117
+ orr r1, r2, #255
+ sub r0, r0, #141
+ blx t_add5
+.Lrand_a_14_7:
+ sub r0, r0, r1
+ cmp r2, #101
+ subgt r0, r0, #128
+ pople {r4, pc}
+.Lrand_a_14_8:
+ orr r2, r0, r2
+ orr r0, r1, #176
+ cmp r2, #246
+ bpl .Lrand_a_14_9
+.Lrand_a_14_9:
+ eor r2, r2, r0
+ pop {r4, lr}
+ b a_add100
+ .size rand_a_14,.-rand_a_14
+
+ .p2align 2
+ .arm
+ .global rand_a_15
+ .type rand_a_15,%function
+rand_a_15:
+ mov r1, #242
+ mov r2, #84
+.Lrand_a_15_0:
+ eor r1, r1, #133
+ add r0, r1, #219
+ eor r2, r0, r2
+ bx lr
+.Lrand_a_15_1:
+ sub r1, r1, r0
+ orr r2, r1, #65
+ bx lr
+.Lrand_a_15_2:
+ sub r1, r1, #244
+ and r2, r0, #30
+ and r3, r0, #3
+ adr r12, 1f
+ ldr pc, [r12, r3, lsl #2]
+1:
+ .word .Lrand_a_15_6, .Lrand_a_15_7, .Lrand_a_15_6, .Lrand_a_15_4
+.Lrand_a_15_3:
+ eor r2, r2, #204
+ eor r2, r0, #10
+ eor r2, r2, #231
+ cmp r2, #80
+ eorls r1, r0, #12
+ addls r1, r1, r2
+ addhi r0, r1, #74
+ orrhi r2, r2, #68
+.Lrand_a_15_4:
+ bx lr
+.Lrand_a_15_5:
+ and r2, r0, #134
+ eor r0, r0, r2
+ cmp r1, #87
+ bcs a_add7
+.Lrand_a_15_6:
+ cmp r0, #255
+ subeq r0, r2, r1
+.Lrand_a_15_7:
+ eor r2, r0, #96
+ orr r0, r0, r0
+ bx lr
+ .size rand_a_15,.-rand_a_15
+
+ .p2align 2
+ .arm
+ .global rand_a_16
+ .type rand_a_16,%function
+rand_a_16:
+ push {r4, lr}
+ mov r1, #222
+ mov r2, #43
+.Lrand_a_16_0:
+ cmp r2, #174
+ bge .Lrand_a_16_2
+.Lrand_a_16_1:
+ and r1, r2, #141
+ and r1, r1, #152
+ sub r0, r2, #225
+ cmp r1, #183
+ eorls r2, r0, r0
+ subls r0, r2, #248
+.Lrand_a_16_2:
+ add r0, r1, #4
+ cmp r1, #169
+ ble .Lrand_a_16_6
+.Lrand_a_16_3:
+ pop {r4, lr}
+ b a_add100
+.Lrand_a_16_4:
+ orr r2, r2, #97
+ add r1, r0, #252
+ orr r2, r1, #44
+ b .Lrand_a_16_5
+.Lrand_a_16_5:
+ sub r1, r1, #194
+ sub r0, r0, r1
+ cmp r0, #109
+ bpl .Lrand_a_16_8
+.Lrand_a_16_6:
+ and r2, r1, r0
+ sub r0, r2, #220
+ and r2, r1, #44
+ bl a_add100
+.Lrand_a_16_7:
+ and r0, r1, r0
+ add r1, r1, r2
+ cmp r0, #61
+ ble .Lrand_a_16_8
+.Lrand_a_16_8:
+ eor r1, r1, #118
+ orr r1, r1, r1
+ and r0, r2, r2
+ pop {r4, pc}
+ .size rand_a_16,.-rand_a_16
+
+ .p2align 2
+ .arm
+ .global rand_a_17
+ .type rand_a_17,%function
+rand_a_17:
+ push {r4, lr}
+ mov r1, #219
+ mov r2, #203
+.Lrand_a_17_0:
+ orr r2, r2, #252
+ bl a_add100
+.Lrand_a_17_1:
+ add r2, r2, #101
+ eor r1, r2, r2
+ orr r0, r1, #140
+ bl a_add100
+.Lrand_a_17_2:
+ orr r2, r1, #180
+ and r0, r0, #126
+ orr r2, r0, #147
+ bl a_add7
+.Lrand_a_17_3:
+ eor r2, r2, #36
+ and r3, r0, #3
+ adr r12, 1f
+ ldr pc, [r12, r3, lsl #2]
+1:
+ .word .Lrand_a_17_5, .Lrand_a_17_4, .Lrand_a_17_5, .Lrand_a_17_5
+.Lrand_a_17_4:
+ add r1, r1, #237
+ cmp r1, #241
+ subgt r0, r0, #26
+ orrle r2, r0, #237
+ pople {r4, pc}
+.Lrand_a_17_5:
+ pop {r4, lr}
+ b t_add100
+ .size rand_a_17,.-rand_a_17
+
+ .p2align 2
+ .arm
+ .global rand_a_18
+ .type rand_a_18,%function
+rand_a_18:
+ push {r4, lr}
+ mov r1, #26
+ mov r2, #26
+.Lrand_a_18_0:
+ sub r0, r1, r2
+ pop {r4, lr}
+ b a_add100
+.Lrand_a_18_1:
+ and r2, r0, #249
+ sub r2, r1, #149
+ cmp r0, #53
+ eoreq r0, r2, r0
+ addeq r1, r2, r2
+ eorne r2, r1, #99
+ andeq r1, r2, #84
+.Lrand_a_18_2:
+ add r0, r1, #164
+ bl a_add7
+.Lrand_a_18_3:
+ pop {r4, pc}
+.Lrand_a_18_4:
+ orr r2, r0, #245
+ eor r2, r2, r1
+ and r1, r1, r2
+ pop {r4, pc}
+ .size rand_a_18,.-rand_a_18
+
+ .p2align 2
+ .arm
+ .global rand_a_19
+ .type rand_a_19,%function
+rand_a_19:
+ push {r4, lr}
+ mov r1, #56
+ mov r2, #230
+.Lrand_a_19_0:
+ eor r1, r2, #188
+ orr r1, r2, #47
+ and r3, r0, #3
+ adr r12, 1f
+ ldr pc, [r12, r3, lsl #2]
+1:
+ .word .Lrand_a_19_5, .Lrand_a_19_1, .Lrand_a_19_6, .Lrand_a_19_2
+.Lrand_a_19_1:
+ eor r2, r1, #254
+ cmp r2, #63
+ beq .Lrand_a_19_2
+.Lrand_a_19_2:
+ add r0, r2, #182
+ sub r1, r2, #90
+ cmp r2, #17
+ addcs r1, r2, r0
+.Lrand_a_19_3:
+ and r1, r0, #25
+ and r2, r2, r1
+ bl a_add100
+.Lrand_a_19_4:
+ bl a_add100
+.Lrand_a_19_5:
+ orr r0, r1, #51
+ cmp r1, #163
+ bls .Lrand_a_19_7
+.Lrand_a_19_6:
+ sub r0, r0, #145
+ eor r2, r2, #135
+ orr r2, r2, #197
+ cmp r2, #79
+ bhi .Lrand_a_19_7
+.Lrand_a_19_7:
+ pop {r4, pc}
+ .size rand_a_19,.-rand_a_19
+
+ .p2align 2
+ .arm
+ .global rand_a_20
+ .type rand_a_20,%function
+rand_a_20:
+ push {r4, lr}
+ mov r1, #66
+ mov r2, #184
+.Lrand_a_20_0:
+ add r2, r0, #42
+ eor r0, r0, #102
+ cmp r2, #194
+ bgt .Lrand_a_20_7
+.Lrand_a_20_1:
+ sub r1, r1, #75
+ add r1, r0, r2
+ cmp r2, #24
+ bmi .Lrand_a_20_4
+.Lrand_a_20_2:
+ add r2, r1, r2
+ orr r1, r2, r2
+ pop {r4, pc}
+.Lrand_a_20_3:
+ add r0, r0, r2
+ cmp r0, #157
+ blt .Lrand_a_20_4
+.Lrand_a_20_4:
+ pop {r4, lr}
+ b a_add7
+.Lrand_a_20_5:
+ orr r0, r2, r1
+ cmp r2, #219
+ bpl .Lrand_a_20_7
+.Lrand_a_20_6:
+ eor r2, r1, #138
+ add r2, r0, r2
+ pop {r4, lr}
+ b a_add100
+.Lrand_a_20_7:
+ cmp r1, #110
+ ble .Lrand_a_20_8
+.Lrand_a_20_8:
+ and r0, r0, r0
+ eor r0, r1, #67
+ pop {r4, lr}
+ b t_add100
+.Lrand_a_20_9:
+ orr r2, r1, #250
+ pop {r4, pc}
+ .size rand_a_20,.-rand_a_20
+
+ .p2align 2
+ .arm
+ .global rand_a_21
+ .type rand_a_21,%function
+rand_a_21:
+ push {r4, lr}
+ mov r1, #39
+ mov r2, #255
+.Lrand_a_21_0:
+ cmp r2, #133
+ addmi r0, r1, #16
+ andmi r0, r0, r1
+.Lrand_a_21_1:
+ cmp r2, #202
+ subcs r1, r0, r0
+ subcs r0, r1, #201
+.Lrand_a_21_2:
+ add r1, r2, r1
+ pop {r4, lr}
+ b a_add7
+.Lrand_a_21_3:
+ and r2, r0, #122
+ sub r2, r1, #14
+ orr r0, r1, #2
+ cmp r0, #76
+ subgt r0, r2, r0
+ suble r0, r1, #94
+ pople {r4, pc}
+.Lrand_a_21_4:
+ eor r1, r1, #76
+ and r2, r2, r0
+ add r1, r1, #81
+ pop {r4, pc}
+.Lrand_a_21_5:
+ and r3, r0, #3
+ adr r12, 1f
+ ldr pc, [r12, r3, lsl #2]
+1:
+ .word .Lrand_a_21_7, .Lrand_a_21_6, .Lrand_a_21_8, .Lrand_a_21_6
+.Lrand_a_21_6:
+ orr r0, r2, #189
+ add r1, r0, #221
+ pop {r4, lr}
+ b t_add100
+.Lrand_a_21_7:
+ orr r0, r2, #34
+ pop {r4, lr}
+ b a_add7
+.Lrand_a_21_8:
+ and r0, r1, #118
+ sub r0, r2, #89
+ orr r1, r2, #223
+ cmp r1, #202
+ subge r0, r0, #160
+ sublt r1, r1, #186
+ orrlt r1, r2, #204
+.Lrand_a_21_9:
+ pop {r4, pc}
+ .size rand_a_21,.-rand_a_21
+
+ .p2align 2
+ .arm
+ .global rand_a_22
+ .type rand_a_22,%function
+rand_a_22:
+ push {r4, lr}
+ mov r1, #254
+ mov r2, #101
+.Lrand_a_22_0:
+ sub r2, r2, #100
+ cmp r1, #169
+ bne .Lrand_a_22_1
+.Lrand_a_22_1:
+ b .Lrand_a_22_3
+.Lrand_a_22_2:
+ cmp r2, #116
+ bgt .Lrand_a_22_3
+.Lrand_a_22_3:
+ and r0, r2, r2
+ pop {r4, lr}
+ b a_add100
+ .size rand_a_22,.-rand_a_22
+
+ .p2align 2
+ .arm
+ .global rand_a_23
+ .type rand_a_23,%function
+rand_a_23:
+ push {r4, lr}
+ mov r1, #91
+ mov r2, #147
+.Lrand_a_23_0:
+ sub r0, r1, r2
+ sub r2, r2, #192
+ cmp r2, #153
+ bge .Lrand_a_23_1
+.Lrand_a_23_1:
+ orr r0, r2, r2
+ eor r1, r1, r0
+ cmp r1, #219
+ eorpl r2, r2, #183
+ addmi r1, r2, #4
+ andpl r0, r1, #96
+.Lrand_a_23_2:
+ add r0, r2, #242
+ and r3, r0, #3
+ adr r12, 1f
+ ldr pc, [r12, r3, lsl #2]
+1:
+ .word .Lrand_a_23_4, .Lrand_a_23_3, .Lrand_a_23_4, .Lrand_a_23_4
+.Lrand_a_23_3:
+ orr r1, r2, r0
+ sub r2, r0, #135
+ pop {r4, lr}
+ b t_add5
+.Lrand_a_23_4:
+ pop {r4, lr}
+ b t_add100
+ .size rand_a_23,.-rand_a_23

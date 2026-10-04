@@ -42,8 +42,14 @@ final check, through the existing gates (`full_image_build.py`,
 | Runtime context | functions called from IRQ; recursion; indirect calls | item 9 |
 | Compiler variety | the same C cases at `-O0`/`-O2`/`-Os`, ARM and Thumb, clang and gcc | — |
 
-Stage 2: a randomized CFG/IT/predication generator using the same manifest
-and oracle format.
+Stage 2 (done 2026-10-04): `scripts/bolt_edge/rand.py` generates seeded random
+A32/T32 functions as a small forward-only IR (ALU blocks; return, branch,
+compare+branch, IT/ARM-conditional groups with optional predicated return,
+calls and tail calls across ISAs, conditional tail calls, TBB / `ldr pc`
+switches). The same IR yields the assembly and a Python model of the result,
+so sinks go in the same manifest. Seed 17, 24 per ISA: 146 cases total;
+frozen copy in `docs/bolt_edge/stage2/`. Tuning left: conditional tail calls
+are rare because most functions get a frame.
 
 ## Done means
 
