@@ -66,7 +66,15 @@ Everything needed to continue is in this repo:
 The product target is **Arm Cortex-A55, multi-core (SMP), AArch32, bare-metal
 LK, always privileged SVC, mostly Secure state, no FPU and no NEON**. The Pi 4B
 (Cortex-A72, run as ARMv7-A Cortex-A15 code, Non-secure SVC) is the
-verification stand-in. Completeness against that target:
+verification stand-in.
+
+**Test hardware rule (user, 2026-10-04):** all testing continues on the Pi's
+A72 cores only; no target hardware here. The user will later port to the real
+A55 target from this GitHub repo, in their office environment. So: keep
+everything needed for that port in the repo (overlays, LK port patches, build
+recipes, contracts, how-to-run), make A55-specific choices explicit (e.g. the
+T1 `ARM_CPU`), and only claim what the A72 proves (v8.0 AArch32 subset; no
+A55 timing). Completeness against that target:
 
 | Aspect | Target | Implemented / verified today | Gap |
 |---|---|---|---|
@@ -123,7 +131,7 @@ Take items in the order below; groups reflect dependencies, not ownership.
 | 10 | R13 | Redirect functions starting with a 16-bit instruction | P2 | — | Open | 6c | If not done under 6c |
 | 10a | R21 | A32 `-O0` load-then-jump tables (`add rB, pc, #k; ldr rX, [rB, rI, lsl #2]; mov pc, rX` / `bx rX`) still rejected as PC read | P2 | — | Open | 12 | Found by R17 after R18 (`c_switch_arm_o0`, `c_switch_marm_o0`); extend 0057's table model to a register jump |
 | 10b | T3 | Secure-SVC confirmation run on the Pi (rewriting is state-agnostic; PMU sampling is IRQ, so no FIQ conflict; no SMC calls) | P2 | — | Optional | 9 | Only when the user asks (Pi Secure SVC on hold) |
-| 10c | T4 | Performance on target hardware: A72 gains are not transferable to the in-order A55 | P2 | — | Open | — | Needs target hardware access |
+| 10c | T4 | Performance and final validation on the real A55 target (A72 gains not transferable) | P2 | User | Out of scope here | — | Done by the user in the office environment, from this repo |
 
 
 **D. P1 certification matrices (as capacity allows)**
@@ -139,7 +147,7 @@ Take items in the order below; groups reflect dependencies, not ownership.
 | 17 | 10 | Sampling/PMU ownership | P1 | — | Open | |
 | 18 | 14 | Clean build/content provenance | P1 | — | Partial | Overlay replay only; ISA-aware no-FPU output scanning/metadata needed (0054 audit) |
 
-**Needs the user:** new oracle contracts (6b, T1 v8-A image); target hardware for T4; go-ahead for Secure-SVC on the Pi (T3, optional).
+**Needs the user:** new oracle contracts (6b, T1 v8-A image); go-ahead for Secure-SVC on the Pi (T3, optional).
 
 ### Done
 
