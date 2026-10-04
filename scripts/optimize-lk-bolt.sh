@@ -17,7 +17,7 @@ case "$ARCH" in
     ;;
   arm|arm32|aarch32)
     ARCH=arm32
-    ELF="${ELF:-$LK_DIR/build-qemu-virt-arm32-test/lk.elf}"
+    ELF="${ELF:-$LK_DIR/build-qemu-virt-arm32-bolt-test/lk.elf}"
     FDATA="${FDATA:-$ROOT/build-${BASE:-upstream}/prof-arm32.fdata}"
     OUT="${OUT:-$ROOT/build-${BASE:-upstream}/lk.bolt.arm32.elf}"
     ;;

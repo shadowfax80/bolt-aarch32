@@ -21,7 +21,7 @@ case "$ARCH" in
     ;;
   arm|arm32|aarch32)
     ARCH=arm32
-    ELF="${ELF:-$LK_DIR/build-qemu-virt-arm32-test/lk.elf}"
+    ELF="${ELF:-$LK_DIR/build-qemu-virt-arm32-bolt-test/lk.elf}"
     LIB="${BOLT_RT_LIB:-$ROOT/build-${BASE:-upstream}/bolt-rt-baremetal-arm/libbolt_rt_baremetal.a}"
     SKIP_FUNCS="${SKIP_FUNCS:-_start,arm_reset,arm_undefined,arm_swi,arm_prefetch_abort,arm_data_abort,arm_reserved,arm_irq,arm_fiq,platform_early_init,arch_early_init}"
     # Restore org.text/data and install Thumb counter hooks (same bare-metal

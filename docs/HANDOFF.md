@@ -84,7 +84,7 @@ Take items in the order below; groups reflect dependencies, not ownership.
 
 | Order | ID | Item | Priority | Owner | Status | Part of | Notes |
 |---|---|---|---|---|---|---|---|
-| 3 | 6a | Every gate proves execution: close G1 (fixed-path intermediates), G2 (seal profile chain in QEMU certificate), G3 (contracts for QEMU LK builds) | P0 | — | Partial: G1/G2 coded; QEMU route made diagnostic (user); finish step in log | — | Pi sealed chain certified; G3 needs user review; 0054 ON/OFF builds and scoped Pi runs verified, remaining gate routes still open |
+| 3 | 6a | Every gate proves execution: close G1 (fixed-path intermediates), G2 (seal profile chain in QEMU certificate), G3 (contracts for QEMU LK builds) | P0 | — | Partial: G1/G2 done; QEMU route diagnostic (user), runs to instrumentation, then blocked by R15 | — | Pi sealed chain certified; G3 needs user review; 0054 ON/OFF builds and scoped Pi runs verified, remaining gate routes still open |
 | 4 | 6c | Legacy/manual hook admission | P0 | — | Partial | — | R9 done; includes R13 |
 | 5 | 6d | Durable receipts on every certification route | P0 | — | Partial | — | Pi gate + coverage report receipts exist |
 | 6 | 6b | Oracle contracts for further configurations (Thumb workloads, future `bolt_edge` seeds) | P0 | — | Partial | — | Active `pi4` contracts: full LK (`424606a8…`), bolt_edge stage 1 (`0895d7bc…`), 1b (`439dfd7c…`) and 2 (`ce8dd005…`); each new contract needs user review |
@@ -167,6 +167,36 @@ plus genuine fallthrough such as `bzero`: about 98% of functions.
 4. Update the *Claims* table and LK_COVERAGE.md together.
 
 ## Handoff log
+
+### 2026-10-04 — Claude: 6a QEMU route + no-FPU guard fix; paused at R15
+
+- **No-FPU guard was failing open (fixed).** `scripts/check-no-fpu.sh` took
+  `TOOLCHAIN` as its bin dir; LK builds export `TOOLCHAIN=clang`, so
+  `llvm-objdump` was not found, the error was hidden and every file passed.
+  It now uses `NOFPU_TOOLCHAIN`/a real bin dir, exits 2 without objdump and
+  fails on a disassembly error. Certified Pi fixtures re-checked directly:
+  0 VFP/NEON in all of them.
+- **The QEMU ARM32 image had 3,392 VFP/NEON instructions** (upstream
+  `qemu-virt-arm32-test`: libm, gfx, benchmarks; no `-mfpu=none`). ARM32
+  QEMU defaults (build, instrument, optimize, workload, harness, identity,
+  milestones, verify-all, run-qemu) now use the twin
+  `qemu-virt-arm32-bolt-test`, which sets `ARM_WITHOUT_VFP_NEON`,
+  `-mfpu=none`, overrides LK's float-module flags and, via new LK patch
+  `overlay/lk/patches/0010-qemu-virt-arm-optional-gpu.patch`
+  (`BOLT_NO_VIRTIO_GPU`), drops the virtio GPU / PCI catch-all whose
+  lib/gfx needs soft-float helpers. Result: 0 FP/NEON, boots, 18 workloads.
+  Patch 0010 is applied in the WSL live LK tree.
+- **Diagnostic mode:** `qemu_workload_gate.py --diagnostic` (no contract,
+  baseline/candidate consistency only, receipt scope "DIAGNOSTIC");
+  `verify-bolt-workloads.sh` uses it.
+- **QEMU run (WSL):** `ARM_INSTRUMENTATION_CONTRACT=privileged-single-core-no-fiq
+  BASE=atfe ARCH=arm32 REBUILD_LK=0 scripts/verify-bolt-workloads.sh`:
+  baseline DIAGNOSTIC COMPLETE WORKLOAD; instrumentation then stops on R15
+  (`arch_spin_trylock`: return with a live reservation). Next for 6a: R15
+  (group C) unblocks the rest of this route; then audit the remaining
+  wrappers (identity, P4, milestone, measurement).
+- 13/13 script test modules pass; all scripts pass `bash -n`. WSL synced, no
+  jobs; Pi idle. Lock free; 6a unclaimed.
 
 ### 2026-10-04 — Claude: 6a paused (usage limit); claim released
 

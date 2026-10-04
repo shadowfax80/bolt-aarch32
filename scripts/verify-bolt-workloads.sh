@@ -40,7 +40,7 @@ case "$ARCH" in
     ;;
   arm|arm32|aarch32)
     ARCH=arm32
-    ELF="${ELF:-$ROOT/third_party/lk/build-qemu-virt-arm32-test/lk.elf}"
+    ELF="${ELF:-$ROOT/third_party/lk/build-qemu-virt-arm32-bolt-test/lk.elf}"
     QEMU="${QEMU:-qemu-system-arm}"
     QEMU_CPU="${QEMU_CPU:-cortex-a15}"
     QEMU_SMP="${QEMU_SMP:-1}"
@@ -63,7 +63,7 @@ if [[ "${REBUILD_LK:-1}" == 1 || ! -f "$ELF" ]]; then
 fi
 
 echo "=== sanity: original LK ==="
-python3 "$ROOT/scripts/qemu_workload_gate.py" --elf "$ELF" --qemu "$QEMU" \
+python3 "$ROOT/scripts/qemu_workload_gate.py" --diagnostic --elf "$ELF" --qemu "$QEMU" \
   --cpu "$QEMU_CPU" --smp "$QEMU_SMP" --append "$CMDLINE" \
   --out "$RUN/baseline" --timeout 120
 
@@ -112,7 +112,7 @@ if [[ "$ARCH" == arm32 ]]; then
     --map "$BOLT_OUT.funcmap" --func "$BENCH_FUNCS" --toolchain "$TOOLCHAIN" \
     --report "$BOLT_OUT.redirect.json"
 fi
-python3 "$ROOT/scripts/qemu_workload_gate.py" --elf "$ELF" --candidate "$BOLT_OUT" --qemu "$QEMU" \
+python3 "$ROOT/scripts/qemu_workload_gate.py" --diagnostic --elf "$ELF" --candidate "$BOLT_OUT" --qemu "$QEMU" \
   --cpu "$QEMU_CPU" --smp "$QEMU_SMP" --append "$CMDLINE" \
   --out "$RUN/optimized" --timeout 120
 echo "DIAGNOSTIC ONLY: BOLT $ARCH output consistency in QEMU with an unbound profile;"

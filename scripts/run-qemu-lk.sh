@@ -8,7 +8,7 @@ LK_PROJECT="${LK_PROJECT:-qemu-virt-arm64-test}"
 ELF="${ELF:-$LK_DIR/build-$LK_PROJECT/lk.elf}"
 
 case "$LK_PROJECT" in
-  qemu-virt-arm32-test)
+  qemu-virt-arm32-test|qemu-virt-arm32-bolt-test)
     QEMU="${QEMU:-qemu-system-arm}"
     MACHINE="${QEMU_MACHINE:-virt}"
     CPU="${QEMU_CPU:-cortex-a15}"

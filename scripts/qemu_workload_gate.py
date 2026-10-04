@@ -112,6 +112,7 @@ def main():
     p.add_argument('--cpu',default='cortex-a15'); p.add_argument('--machine',default='virt')
     p.add_argument('--memory',default='512'); p.add_argument('--smp',default='1')
     p.add_argument('--append',default='lk.bolt_bench=all'); p.add_argument('--timeout',type=float,default=120)
+    p.add_argument('--diagnostic',action='store_true',help='no oracle contract needed; baseline/candidate consistency only, never a certificate (QEMU debug route, 6a)')
     a=p.parse_args()
     if a.check_log:
         parse_boot(a.check_log.read_text(errors='replace'))
@@ -125,7 +126,7 @@ def main():
     print('Evidence:',out,flush=True)
     header=a.elf.read_bytes()[:20]
     arm32=len(header)==20 and header[:7]==b'\x7fELF\x01\x01\x01' and struct.unpack_from('<H',header,18)[0]==40
-    if arm32 and sha256(a.elf) not in CONTRACTS: raise ValueError('no reviewed independent oracle contract for input image')
+    if arm32 and not a.diagnostic and sha256(a.elf) not in CONTRACTS: raise ValueError('no reviewed independent oracle contract for input image')
     scripts={str(x.relative_to(ROOT)):sha256(x) for x in [Path(__file__),ROOT/'scripts/qemu_bench_oracle.py',ROOT/'scripts/profile_identity.py',ROOT/'scripts/pi4/passes_check.py']}
     revision=subprocess.check_output(['git','-C',str(ROOT),'rev-parse','HEAD'],text=True).strip()
     tool_hash=sha256(qemu); sources={}; images={}; results={}; commands={}; oracles={}
@@ -137,19 +138,21 @@ def main():
         command=[qemu,'-machine',a.machine,'-cpu',a.cpu,'-m',a.memory,'-smp',a.smp,'-display','none','-monitor','none','-serial','stdio','-append',a.append,'-kernel',str(image)]
         commands[name]=command
         results[name]=boot(command,out/(name+'.log'),a.timeout)
-        if arm32: oracles[name]=check_results(images['baseline'],results[name]['results'])
+        if arm32 and not a.diagnostic: oracles[name]=check_results(images['baseline'],results[name]['results'])
         if sha256(image)!=images[name] or sha256(source)!=images[name]: raise ValueError('image changed during boot')
     if 'candidate' in results and results['candidate']['results']!=results['baseline']['results']:
         raise ValueError('candidate results differ from baseline')
     if scripts!={n:sha256(ROOT/n) for n in scripts} or sha256(qemu)!=tool_hash: raise ValueError('verifier/QEMU changed')
     if revision!=subprocess.check_output(['git','-C',str(ROOT),'rev-parse','HEAD'],text=True).strip(): raise ValueError('revision changed')
     if any(sha256(sources[n])!=h or sha256(out/(n+'.elf'))!=h for n,h in images.items()): raise ValueError('image changed before receipt')
-    scope=('eighteen independent sink oracles for approved ARM input; no selected rewritten execution/state or clean-build proof'
+    scope=('DIAGNOSTIC: baseline/candidate output consistency only; no oracle, execution, profile or build proof; not a certificate'
+           if a.diagnostic else
+           'eighteen independent sink oracles for approved ARM input; no selected rewritten execution/state or clean-build proof'
            if arm32 else 'non-ARM complete output consistency only; no independent oracle or execution proof')
-    write_json(out/'workload.json',dict(schema=2,scope=scope,
+    write_json(out/'workload.json',dict(schema=2,scope=scope,diagnostic=a.diagnostic,
         output_consistent='candidate' in results,complete_workload=True,results=results,commands=commands,images=images,
         independent_oracles=oracles,qemu_sha256=tool_hash,scripts=scripts,repository_revision=revision,logs={n:sha256(out/(n+'.log')) for n in results}))
-    print('COMPLETE WORKLOAD'+(' / OUTPUT CONSISTENCY' if a.candidate else '')+': '+str(out/'workload.json'),flush=True)
+    print(('DIAGNOSTIC ' if a.diagnostic else '')+'COMPLETE WORKLOAD'+(' / OUTPUT CONSISTENCY' if a.candidate else '')+': '+str(out/'workload.json'),flush=True)
 
 
 if __name__=='__main__':

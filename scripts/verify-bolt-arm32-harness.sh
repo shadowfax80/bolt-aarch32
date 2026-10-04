@@ -5,7 +5,7 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
 
-LK_PROJECT="${LK_PROJECT:-qemu-virt-arm32-test}"
+LK_PROJECT="${LK_PROJECT:-qemu-virt-arm32-bolt-test}"
 ELF="${ELF:-$ROOT/third_party/lk/build-$LK_PROJECT/lk.elf}"
 QEMU="${QEMU:-qemu-system-arm}"
 MACHINE="${QEMU_MACHINE:-virt}"

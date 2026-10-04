@@ -13,7 +13,7 @@ mkdir -p "$LOGS"
 
 # The gates build and boot the QEMU project, not the rpi4 one.
 ./scripts/build-lk-aarch32.sh > "$LOGS/build-qemu-lk.log" 2>&1 \
-  || { echo "FAIL build-lk-aarch32 (qemu-virt-arm32-test), see $LOGS/build-qemu-lk.log"; exit 1; }
+  || { echo "FAIL build-lk-aarch32 (qemu-virt-arm32-bolt-test), see $LOGS/build-qemu-lk.log"; exit 1; }
 
 declare -a RESULTS=()
 FAILED=0

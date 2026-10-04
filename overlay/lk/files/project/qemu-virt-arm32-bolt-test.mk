@@ -5,3 +5,13 @@
 MODULES += 	app/shell 	app/bolt_bench
 
 include project/target/qemu-virt-arm32.mk
+
+# No FPU/NEON: the target has none (see overlay patch 0008).
+ARM_WITHOUT_VFP_NEON := true
+GLOBAL_COMPILEFLAGS += -mfpu=none
+# Float modules (lib/gfx): arch/arm/toolchain.mk appends -mfpu=neon later;
+# an override assignment wins over those appends.
+override ARCH_arm_COMPILEFLAGS_FLOAT := -mfpu=none
+# lib/gfx (virtio GPU) needs soft-float helpers that are not linked; drop it
+# (overlay/lk/patches/0010).
+BOLT_NO_VIRTIO_GPU := true

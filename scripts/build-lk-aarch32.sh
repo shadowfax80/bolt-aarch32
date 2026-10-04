@@ -3,7 +3,9 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 CLANG_BINDIR="${CLANG_BINDIR:-${TOOLCHAIN:-$ROOT/build-${BASE:-upstream}/bin}}"
-LK_PROJECT="${LK_PROJECT:-qemu-virt-arm32-test}"
+# Default: the FPU/NEON-free QEMU twin of rpi4-bolt-test (no-FPU hard rule);
+# upstream qemu-virt-arm32-test pulls in libm/gfx float code.
+LK_PROJECT="${LK_PROJECT:-qemu-virt-arm32-bolt-test}"
 
 if [[ ! -x "$CLANG_BINDIR/clang" ]]; then
   echo "error: build toolchain first ($CLANG_BINDIR/clang missing)" >&2

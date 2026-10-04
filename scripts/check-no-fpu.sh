@@ -10,15 +10,26 @@
 # holds the input's instructions plus ldrex/strex counters.
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-TC="${TOOLCHAIN:-$ROOT/build-${BASE:-atfe}/bin}"
+# TOOLCHAIN is a bin directory here. LK builds export TOOLCHAIN=clang (a
+# compiler family, not a path); that once made this guard pass every file
+# because llvm-objdump was not found. Fail closed instead.
+TC="${NOFPU_TOOLCHAIN:-${TOOLCHAIN:-$ROOT/build-${BASE:-atfe}/bin}}"
+[[ -d "$TC" ]] || TC="$ROOT/build-${BASE:-atfe}/bin"
+OBJDUMP="$TC/llvm-objdump"
+if [[ ! -x "$OBJDUMP" ]]; then
+  echo "FAIL: $OBJDUMP not found; set NOFPU_TOOLCHAIN to an LLVM bin directory" >&2
+  exit 2
+fi
 rc=0
 for f in "$@"; do
-  n="$("$TC/llvm-objdump" -d --no-show-raw-insn "$f" 2>/dev/null \
-        | grep -c -E '^[[:space:]]*[0-9a-f]+:[[:space:]]+v[a-z]' || true)"
-  if [[ "$n" != 0 ]]; then
-    echo "FAIL $f: $n FP/NEON instruction(s), e.g.:"
-    "$TC/llvm-objdump" -d --no-show-raw-insn "$f" 2>/dev/null \
-      | grep -E '^[[:space:]]*[0-9a-f]+:[[:space:]]+v[a-z]' | head -3
+  if ! dis="$("$OBJDUMP" -d --no-show-raw-insn "$f")"; then
+    echo "FAIL $f: llvm-objdump could not disassemble it" >&2
+    rc=1; continue
+  fi
+  hits="$(grep -E '^[[:space:]]*[0-9a-f]+:[[:space:]]+v[a-z]' <<<"$dis" || true)"
+  if [[ -n "$hits" ]]; then
+    echo "FAIL $f: $(wc -l <<<"$hits") FP/NEON instruction(s), e.g.:"
+    head -3 <<<"$hits"
     rc=1
   else
     echo "ok   $f: 0 FP/NEON instructions"

@@ -1,0 +1,17 @@
+diff --git a/platform/qemu-virt-arm/rules.mk b/platform/qemu-virt-arm/rules.mk
+--- a/platform/qemu-virt-arm/rules.mk
++++ b/platform/qemu-virt-arm/rules.mk
+@@ -40,6 +40,13 @@
+     lib/fdtwalk \
+     lib/fs/9p \
+ 
++# bolt-aarch32: no-FPU/NEON projects (the bolt-test twins) drop the virtio
++# GPU (also listed by the dev/bus/pci/drivers catch-all): its lib/gfx needs
++# soft-float helpers the bare-metal clang build does not link.
++ifeq ($(BOLT_NO_VIRTIO_GPU),true)
++MODULE_DEPS := $(filter-out dev/virtio/gpu dev/bus/pci/drivers,$(MODULE_DEPS))
++endif
++
+ ifeq ($(call TOBOOL,$(USE_RUST)),true)
+ MODULE_DEPS += lib/rust_support
+ MODULE_DEPS += rust/dev-pl011

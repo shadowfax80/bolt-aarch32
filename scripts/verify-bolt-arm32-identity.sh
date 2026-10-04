@@ -3,7 +3,7 @@
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 TOOLCHAIN="${TOOLCHAIN:-$ROOT/build-${BASE:-upstream}/bin}"
-LK_PROJECT="${LK_PROJECT:-qemu-virt-arm32-test}"
+LK_PROJECT="${LK_PROJECT:-qemu-virt-arm32-bolt-test}"
 ELF="${ELF:-$ROOT/third_party/lk/build-$LK_PROJECT/lk.elf}"
 BOLT_BENCH_FUNCS="${BOLT_BENCH_FUNCS:-bolt_bench_hot_loop,bolt_bench_hot_cold,bolt_bench_branch_chain,bolt_bench_memcpy}"
 if [[ "${BOOT_REWRITTEN:-1}" != 1 || "${BENCH_CMDLINE:-lk.bolt_bench=all}" != lk.bolt_bench=all ]]; then
