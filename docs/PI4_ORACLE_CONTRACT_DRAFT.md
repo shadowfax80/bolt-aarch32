@@ -1,7 +1,7 @@
 # Draft `pi4` oracle contract for the full LK image (6b) — needs user review
 
-Status: **draft, not active.** Nothing is added to
-`scripts/qemu_bench_oracle.py` `CONTRACTS` until the user approves it.
+Status: **approved by the user 2026-10-04 and active** in
+`scripts/qemu_bench_oracle.py` `CONTRACTS` (commit 6ff3f34).
 
 ## What the contract binds
 

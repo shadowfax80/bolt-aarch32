@@ -56,8 +56,8 @@ Suggested order: highest priority first, then items that unblock others.
 
 | ID | Item | Priority | Owner | Status | Part of | Notes |
 |---|---|---|---|---|---|---|
-| 6a | Every optimization gate proves execution end to end | P0 | Claude | Claimed (after 6b) | — | Audit all certification wrappers; diagnostic modes must never certify |
-| 6b | Independent oracles; reviewed `pi4` contract for the full LK image | P0 | Claude | Draft ready; blocked on user review | — | [Draft](PI4_ORACLE_CONTRACT_DRAFT.md); values must not come from Pi output |
+| 6a | Every optimization gate proves execution end to end | P0 | Claude | In progress: full-image route certified on the Pi | — | Audit all certification wrappers; diagnostic modes must never certify |
+| 6b | Independent oracles; reviewed `pi4` contract for the full LK image | P0 | Claude | Partial: full-LK `pi4` contract approved and active | — | Further supported configurations (Thumb workloads) still need contracts |
 | 6c | Legacy/manual hook admission | P0 | Claude | Claimed (queued) | — | R9 done; R13 open |
 | 6d | Durable coverage receipts on every certification route | P0 | Claude | Claimed (queued) | — | R16 adds LK coverage receipts |
 | R8 | r12 clobbered by local-branch LongJmp stubs | P1 | — | Open | 13 | Liveness check or rejection; next to R7's code |
@@ -121,6 +121,20 @@ plus genuine fallthrough such as `bzero`: about 98% of functions.
 4. Update the *Claims* table and LK_COVERAGE.md together.
 
 ## Handoff log
+
+### 2026-10-04 — Claude: 6b contract active; first certified full-image Pi run
+
+- **6b:** the user approved the draft; `CONTRACTS['424606a8…']` (platform
+  `pi4`) added in `scripts/qemu_bench_oracle.py` (6ff3f34). Gate unit tests
+  (oracle, execution, rewrite, workload) pass.
+- **6a:** `full_image_verify.py` certified the full-image candidate
+  (`out/full-check-claude-6a`, 400 emitted, 12 skips, 2 redirects): 10
+  repetitions, 18/18 against the independent contract, 33,849 PC samples,
+  execution observed in both required rewritten functions (27 and 12
+  samples). Receipt: `docs/results/full_image_certified_20261004.json`.
+- **Remaining for 6a:** audit the other certification wrappers (identity,
+  P4, workload, milestone, measurement) and their diagnostic modes; then
+  6d receipts and 6c hook admission.
 
 ### 2026-10-04 — Claude claims the P0 items (user request)
 
