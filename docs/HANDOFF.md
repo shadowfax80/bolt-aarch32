@@ -131,7 +131,7 @@ Take items in the order below; groups reflect dependencies, not ownership.
 
 | Order | ID | Item | Priority | Owner | Status | Part of | Notes |
 |---|---|---|---|---|---|---|---|
-| 2b | T2b | SMP instrumentation: the ARM counter update masks IRQ around a 64-bit increment (not atomic across cores), so the contract stays `privileged-single-core-no-fiq`; needs a cross-core-atomic counter path (or per-core counters) + tests + Pi check | P1 | — | Open | 9, 10 | Profiles from all cores are already available via PC sampling (certified chain) |
+| 2b | T2b | SMP instrumentation: the ARM counter update masks IRQ around a 64-bit increment (not atomic across cores), so the contract stays `privileged-single-core-no-fiq`; needs a cross-core-atomic counter path (or per-core counters) + tests + Pi check | P1 | Claude | In progress | 9, 10 | Profiles from all cores are already available via PC sampling (certified chain) |
 
 **C. Correctness defects (small)**
 
