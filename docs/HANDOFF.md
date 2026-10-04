@@ -37,7 +37,7 @@ and update it before stopping. `AGENTS.md` and `CLAUDE.md` point here.
 
 | Holder | Since | Purpose |
 |---|---|---|
-| — (free) | 2026-10-04 | Released by Claude after overlay 0051 |
+| Claude | 2026-10-04 | R5 (reassigned from Codex by the user) |
 
 ## Claims
 
@@ -51,7 +51,7 @@ existing queue in [CORRECTNESS_PRIORITY_TODO.md](CORRECTNESS_PRIORITY_TODO.md).
 | R2 | ARM `B`/`BL`/`BLX` re-patch drops condition and opcode | P0 | Claude | Done | 0046 (also fixes A32 PC+8 and skipped A32 callers) |
 | R3 | Thumb narrow/conditional fixup → relocation mapping | P1 | Claude | Done | 0046 (also fixes Thumb-encoded-as-ARM `b.w`/`bne.w`) |
 | R4 | Conditional tail calls crash (`LLVM ERROR`), with or without IT | P1 | Claude | Done | 0051; `arm-conditional-tail-call.test`; Pi: 676 IRQs through rewritten `platform_irq` |
-| R5 | Noreturn calls at function end (~80 LK rejections) | P1 | Codex | Open | |
+| R5 | Noreturn calls at function end (~80 LK rejections) | P1 | Claude | In progress | Reassigned 2026-10-04 by the user |
 | R6 | Predicated returns in IT blocks (~45 LK rejections; item 8) | P1 | Codex | Open | |
 | R7 | Far tail call through LongJmp stub becomes `BL` | P1 | Claude | Done | 0049; `arm-far-tail-call.test` |
 | R8 | r12 clobber in local-branch LongJmp stubs | P1 | Codex | Open | |
@@ -96,6 +96,11 @@ plus genuine fallthrough such as `bzero`: about 98% of functions.
 4. Update the *Claims* table and LK_COVERAGE.md together.
 
 ## Handoff log
+
+### 2026-10-04 — R5 reassigned to Claude; Claude takes the lock
+
+- The user asked Claude to take R5. Codex: coverage goal continues at R6
+  once the lock is released.
 
 ### 2026-10-04 — Claude: R4 done (overlay 0051); lock released
 
