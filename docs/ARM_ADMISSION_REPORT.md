@@ -27,7 +27,17 @@ second, normal fatal BOLT run. Coverage comes from that run's actual function
 map. `--legacy-scan` explicitly selects the older multi-run scan; failure of
 the new scan does not silently fall back.
 
-## Verification, 2026-10-04
+## Corrective status after the Astra review
+
+R11 is **Partial, unclaimed**. A truncated ITT/ITE leaves mutable predicate
+state in the shared Thumb decoder and falsely rejects the next independent
+`bx lr` for fallthrough. Earlier successful receipts remain valid within their
+tested scope; complete diagnostic JSON is not proof of order-independent
+classification. Fix independent decoder-state isolation and add both-mode
+rejection-followed-by-valid-function regressions. See the
+[reconciled review and preserved probe evidence](CORRECTNESS_REVIEW_ASTRA_0057.md).
+
+## Historical verification of overlay 0054, 2026-10-04
 
 Both Release toolchains were rebuilt from the same live source with assertions
 ON/OFF. The OFF configuration uses its own BOLT and runtime; its configured
@@ -36,7 +46,7 @@ fixture compiler/linker are shared with the ON build.
 | Check | Assertions ON | Assertions OFF |
 |---|---|---|
 | New admission lit regression | 41 checks; eight local exclusions in each scan | Same |
-| ARM + JITLink AArch32 lit | 61 passed | 60 passed; one timeout-feature test unsupported |
+| ARM + JITLink AArch32 lit | 61 passed | 60 passed; `ELF_data_alignment.s` requires assertions |
 | BOLT CoreTests | 58 passed; 31 target-inapplicable skips | Same |
 | Full-LK diagnostic | 12 rejected primary bodies, 403 admitted, 2 not analyzed; one run | Same |
 | Strict emission coverage | 399/417 functions; 124166/126834 code bytes (97.9%) | Same |
@@ -94,21 +104,24 @@ remains under work item 14. R11 does not change emitted instruction generation.
 - [ON build manifest](results/r11_pi_on_build_manifest_20261004.json), [OFF build manifest](results/r11_pi_off_build_manifest_20261004.json).
 
 Raw build/lit/Core/Pi logs and immutable uploaded copies remain under `out/`.
-The live tree and earlier evidence/preimages are preserved. Next item: R17;
-new edge-image oracle contracts require user review before certification.
+The live tree and earlier evidence/preimages are preserved. Current work order is in HANDOFF.md;
+new image/configuration oracle contracts require user review before certification.
 
-## Pickup state
+## Historical pickup state at e5ef4f3
 
-The live-tree lock is released and remaining items are unclaimed. WSL Ubuntu
-remains running, with the root repo synced to the published milestone and both
+Last observed at the R11 milestone: the live-tree lock was released. WSL Ubuntu
+was running, with the root repo synced to the published milestone and both
 toolchains built through 0054. The dirty ATFE tree is intentional and matches
 the full overlay series; do not reset or reapply it. The Windows Codex/Claude
 checkouts and local Claude project memory have the same handoff state.
 
-The Pi runs the approved baseline LK image, not the R11 transformed candidate.
+At that milestone the Pi was restored to the approved baseline LK image.
 Baseline binary SHA-256:
 `ee9982ba422fa5e40854f0c21c298b20c4be02eb349413eefe7fdcf53bedd612`.
-The console responds on COM5 at 3000000 baud. Sampling is stopped, the watchdog
-is off, and the serial port is closed. Restore log: `out/r11-pi-pickup.log`.
+The console responded on COM5 at 3000000 baud. Sampling was stopped, the watchdog
+was off, and the serial port was closed. Restore log: `out/r11-pi-pickup.log`.
 Use the repo venv `out/correctness/pi-venv/Scripts/python.exe` for Windows serial
 scripts and `--reboot` with the hot-loaded fast loader for future uploads.
+
+These observations predate later Claude work. Read the current remote handoff,
+reserve resources and verify current state before use.

@@ -6,11 +6,12 @@ and update it before stopping. `AGENTS.md` and `CLAUDE.md` point here.
 
 ## Rules
 
-1. **One writer per live tree.** The WSL ATFE source
-   (`/home/user/bolt-aarch32/third_party/llvm-project-atfe`) and its build
-   (`build-atfe`) are shared. Only the agent named in *Live-tree lock* may edit
-   or rebuild them. Take the lock by committing a change to this file first;
-   release it the same way.
+1. **One writer per live tree.** The shared WSL ATFE source
+   (`/home/user/bolt-aarch32/third_party/llvm-project-atfe`), all assertion-mode
+   builds, shared LK source and shared build outputs are covered by *Live-tree
+   lock*. Only its holder may mutate or rebuild them. Acquire and release the
+   lock by committing **and successfully pushing** the table update. A local
+   commit alone grants no shared-resource ownership.
 2. **Shared pool; claim before work.** Open items belong to no agent; either
    may take any of them, whatever its origin. Before starting, set *Owner* to
    yourself and *Status* to "In progress" in one commit and push it. Do not
@@ -34,18 +35,36 @@ and update it before stopping. `AGENTS.md` and `CLAUDE.md` point here.
 7. **Project rules still apply:** no FPU/NEON (`-mfpu=none`,
    `scripts/check-no-fpu.sh`); no oracle contract derived from Pi output
    without the user's review; keep admission guards conservative.
+8. **Reserve the Pi separately.** Publish a *Pi reservation* before opening
+   COM5 for probes, uploads, commands, sampling or watchdog changes. The source
+   lock does not reserve the Pi. Close the port and record the board, sampler
+   and watchdog state before publishing the release.
+
+## Picking up shared work
+
+Fetch and fast-forward a clean checkout, then read remote claims and resource
+holders before claiming work. Preserve dirty trees and evidence; do not reset,
+stash or reapply overlays to synchronize. Publish the item claim and required
+reservations with a normal push before resource use. If the push is rejected,
+fetch, re-read ownership and retry only for resources still free. Never resolve
+a documentation conflict by overwriting another agent's winning claim.
+
+Recorded WSL/Pi state is a **last-observed snapshot**, not a live guarantee.
+Check current ownership and tool/input identities before use. Local memories
+and historical log entries do not assign ownership.
 
 ## Resuming (no session context needed)
 
 Everything needed to continue is in this repo:
 
 - **What to do next:** *Claims* below, Open tables in resume order.
-- **Findings and plans:** [CORRECTNESS_REVIEW_CLAUDE_0E616EB.md](CORRECTNESS_REVIEW_CLAUDE_0E616EB.md),
+- **Findings and plans:** [Recovered Astra review, reconciled through 0061](CORRECTNESS_REVIEW_ASTRA_0057.md),
+  [CORRECTNESS_REVIEW_CLAUDE_0E616EB.md](CORRECTNESS_REVIEW_CLAUDE_0E616EB.md),
   [R17_BOLT_EDGE_PLAN.md](R17_BOLT_EDGE_PLAN.md), [LK_COVERAGE.md](LK_COVERAGE.md),
   [PI4_ORACLE_CONTRACT_DRAFT.md](PI4_ORACLE_CONTRACT_DRAFT.md) (approved).
 - **Certified input image:** `fixtures/lk-rpi4-bolt-test-424606a8.elf`
   (see `fixtures/README.md`); the skip list is in
-  `docs/results/lk_coverage_20261004_r6.json` (`skip_funcs`).
+  `docs/results/lk_coverage_r15_20261004.json` (`skip_funcs`).
 - **Backend source:** overlays `overlay/llvm/patches/atfe/0001–0061`; the WSL
   live tree must replay them exactly (`scripts/verify-atfe-overlays.py`).
   Do not run `scripts/apply-overlays.sh` on the dirty live tree.
@@ -57,56 +76,40 @@ Everything needed to continue is in this repo:
   - Sealed profile chain: `profile_identity.py seal-samples` →
     `pi4/pi4_sample_profile.py` → `samples_to_fdata.py --skip-funcs …` →
     `full_image_build.py --profile …` (see `docs/PI_PROFILE_IDENTITY.md`).
-- **Environment notes:** Windows Python with pyserial is `py -3.12`; Pi on
+- **Environment notes:** use a Windows Python with pyserial (`py -3.12` or
+  the Codex venv `out/correctness/pi-venv/Scripts/python.exe`); Pi on
   COM5; sample captures occasionally fail chunk validation (USB corruption),
   retry; never `git stash` from WSL on the Windows checkout.
+- **Build versions:** ON is `build-atfe`; current OFF is `build-atfe-noassert`,
+  last reported tested through 0059. The older OFF build
+  `out/correctness/build-atfe-noasserts-20261002` is 0054 evidence. ON 0060–0061
+  checks do not establish OFF parity for those overlays; recheck build hashes.
+  Preserve both older receipts and dirty live source.
 
 ## Target platform (user, 2026-10-04) and gap to it
 
-The product target is **Arm Cortex-A55, multi-core (SMP), AArch32, bare-metal
-LK, always privileged SVC, mostly Secure state, no FPU and no NEON**. The Pi 4B
-(Cortex-A72, run as ARMv7-A Cortex-A15 code, Non-secure SVC) is the
-verification stand-in.
+The product target is **Cortex-A55, SMP, AArch32 bare-metal LK, always SVC,
+mostly Secure, no FPU and no NEON**. Testing here uses Pi 4B A72 cores only;
+the user will port and perform final validation on the real A55 target from
+this repo. Keep build recipes, LK/backend overlays and approved contracts
+portable. Pi evidence covers the executed A72-compatible instructions and
+workloads; A55 timing and target-platform behavior require target evidence.
 
-**Test hardware rule (user, 2026-10-04):** all testing continues on the Pi's
-A72 cores only; no target hardware here. The user will later port to the real
-A55 target from this GitHub repo, in their office environment. So: keep
-everything needed for that port in the repo (overlays, LK port patches, build
-recipes, contracts, how-to-run), make A55-specific choices explicit (e.g. the
-T1 `ARM_CPU`), and only claim what the A72 proves (v8.0 AArch32 subset; no
-A55 timing). Completeness against that target:
+| Aspect | Implemented / verified at 89dd17f | Remaining gap |
+|---|---|---|
+| ARMv8-A AArch32 | T1 Done: 0058 accepts v8-A attributes and decodes v8 integer instructions; LK patch 0011 adds `cortex-a55`; approved A55-built Pi fixtures certified | No A55-only instruction or target-hardware claim; keep the A72-compatible subset explicit |
+| SMP execution | T2 Done: declared rewritten workloads run on all four Pi cores with independent sinks and per-core PC evidence | Wider runtime/IRQ matrix 9 and PMU/loss matrix 10 remain Partial |
+| SMP counters | T2b Done: 0060 privileged-SMP-no-FIQ helper; all 74 selected counters match the scoped Pi model | Reset/snapshot require quiescence; broader instrumentation matrix and OFF checks for 0060 remain open |
+| No FPU / NEON | Inputs guarded with `-mfpu=none`; scanner fail-closed since 000a8a4; runtime integer-only | Item 14: candidate ISA metadata/scanner still misdecodes restored original code; keep input and emitted-code checks scoped |
+| Privileged SVC | Declared Pi routes run in SVC | Broader entry/state/interrupt preservation remains in the certification matrices |
+| Secure state | Prepared Secure armstub in `tools/pi4-armstub-secure/`, uninstalled; all Pi evidence remains Non-secure SVC | T3 P2 Deferred TODO by latest user decision: wait for the user before SD-card install or Secure re-runs |
+| IRQ / PMU | IRQ sampling hook and scoped rewritten IRQ evidence; per-core watch ranges available | Active IRQ/reentrancy, per-sample core attribution and loss/saturation accounting remain open; GICv3 target needs the equivalent platform hook |
+| Performance / real target | Pi is out-of-order A72; target A55 is in-order | T4 P2 belongs to the user on target hardware; Pi gains do not transfer |
 
-| Aspect | Target | Implemented / verified today | Gap |
-|---|---|---|---|
-| Architecture | ARMv8.2-A, AArch32 state (A32/T32) | Admission (0041) accepts **only ARMv7-A** attributes and decodes with v7 features; `armv8a` is a must-reject test case | **T1 (P0): an A55-built image is rejected outright.** Needs v8-A AArch32 admission + decode (LDA/STL, LDAEX/STLEX, `dmb ishld`, `sevl`, v8 IT restrictions), lit tests, and a Pi image built for v8-A AArch32 (the A72 runs it) |
-| No FPU / no NEON | none at all | Enforced: `-mfpu=none` everywhere, `check-no-fpu.sh` (fail-closed since 000a8a4), BOLT runtime NEON-free; certified fixtures 0 VFP/NEON | None, keep the guard on every new build (incl. v8 images) |
-| Privileged SVC only | always SVC | Matches the instrumentation contract (privileged); all Pi runs in SVC | None for rewriting |
-| SMP | multi-core | Pi LK runs `WITH_SMP` (4 cores) but rewritten code is only exercised on the boot core; instrumentation contract is `single-core-no-fiq` (counter reset/snapshot need quiescence); exclusive-pair guards know LDREX/STREX and LDAEX/STLEX | **T2 (P0): concurrent execution of rewritten code on all cores not verified; SMP instrumentation not admitted.** Pi has 4 cores, so this is testable |
-| Secure state | Secure SVC only; PMU sampling interrupts are IRQ (user) | Pi runs Non-secure SVC; Secure-SVC Pi bring-up plan on hold (user). Rewriting is Secure/Non-secure agnostic; IRQ-based PMU sampling is compatible with the `no-fiq` instrumentation contract; no SMC/monitor calls in target LK | **T3 (P2, optional):** a Secure-SVC confirmation run on the Pi, only when the user asks |
-| Interrupts | IRQ active (incl. PMU sampling); no FIQ | Rewritten IRQ handler verified on the Pi (676 IRQs, R4); quiet fixtures otherwise | Matrix 9 (interrupts/reentrancy) and 10 (PMU ownership) remain open |
-| Performance numbers | in-order A55, small caches | Measured on out-of-order A72 | **T4 (P2):** layout gains are not transferable; final measurements belong on target hardware |
-
-**PoC parity goal (user, 2026-10-04):** make the Pi PoC as close to the target
-as the A72 allows. Parity per aspect:
-
-| Aspect | Target | Pi PoC today | Can the Pi match? | Action |
-|---|---|---|---|---|
-| Execution state / ISA | AArch32, ARMv8.2-A (A55) | AArch32, built as ARMv7-A (`cortex-a15`) | Yes, up to v8.0 (A72) | T1: LK `ARM_CPU` for A55, build with `-mcpu=cortex-a55 -mfpu=none` (A55 scheduling/codegen); scan that no v8.1+ instruction is emitted |
-| Cores | SMP | `WITH_SMP`, 4 cores up; workloads on core 0 only | Yes | T2: run workloads and rewritten code on all 4 cores |
-| Privilege | always SVC | SVC | Yes (matches) | — |
-| Security state | Secure (mostly) | Non-secure | Yes, with a custom firmware stub keeping LK in Secure SVC | T3: Secure-SVC bring-up on the Pi (approved by the user 2026-10-04; after T1 and T2) |
-| FPU / NEON | none | none (`-mfpu=none`, guarded) | Yes (matches) | Keep the guard on every image |
-| PMU sampling | IRQ | IRQ (PMU counter 5 overflow via GIC-400, `bolt_sample_on_irq` hook in `gic_v2.c`, LK patch 0009) | Yes (matches) | Port note: the hook lives in the GICv2 driver; a GICv3 target needs the same hook there |
-| Interrupt controller | SoC-specific (A55 SoCs usually GICv3) | GIC-400 (GICv2) | No | Keep platform code separate from BOLT; document the hook for porting |
-| Microarchitecture | in-order A55 | out-of-order A72 | No | Correctness transfers; performance only on target (T4, user) |
-
-Resume order for parity: T1 → T2 → T3 (approved), interleaved with the
-correctness items as listed in *Claims*.
-
-Bottom line: within the declared boundary the backend is functional and Pi-verified
-for ARMv7-A, single-core-exercised code. For the actual target it is **not yet
-applicable** (T1 blocks any A55-built image) and SMP execution is unverified (T2).
-T1 and T2 lead the resume order.
+T1/T2 and the declared P0 routes are completed milestones. The recovered Astra
+review predates them: use its reconciled findings, not its old target-blocker
+summary. R22, R11 and R23 are the first corrective work below. T3 remains
+deferred; new image/configuration oracle contracts still require user review.
 
 ## Live-tree lock
 
@@ -114,10 +117,17 @@ T1 and T2 lead the resume order.
 |---|---|---|
 | — (free) | 2026-10-04 | Released by Claude after overlays 0060–0061 |
 
+## Pi reservation
+
+| Holder | Since | Purpose / last observation |
+|---|---|---|
+| — (unreserved) | 2026-10-04 | Latest Claude handoff reports Pi idle at 89dd17f. Codex/Sol has not opened COM5 or changed the board during this review; reserve and recheck before use. |
+
 ## Claims (consolidated TODO)
 
 One shared list. Review items (R*) come from the 2026-10-04 Claude review
-([details](CORRECTNESS_REVIEW_CLAUDE_0E616EB.md)); certification items
+([details](CORRECTNESS_REVIEW_CLAUDE_0E616EB.md)) and the
+[recovered Astra review](CORRECTNESS_REVIEW_ASTRA_0057.md); certification items
 (6a–14) keep their closure criteria in
 [CORRECTNESS_PRIORITY_TODO.md](CORRECTNESS_PRIORITY_TODO.md). "Part of"
 links an R item to the certification item it contributes to; closing the R
@@ -127,10 +137,14 @@ item does not close that item. *Owner* is empty until someone claims it.
 
 Take items in the order below; groups reflect dependencies, not ownership.
 
-**C. Correctness defects and target items** (group B, P0 certification, is complete)
+**C. Correctness defects and target items** (declared group B P0 milestones are complete)
 
 | Order | ID | Item | Priority | Owner | Status | Part of | Notes |
 |---|---|---|---|---|---|---|---|
+| 7a | R22 | Privileged LDM overwrites an inline-table base without rejection | P1 | — | Open | 12 (R18 follow-up) | Host probe accepts `ldmia r4,{r3,r5}^` that clobbers r3; ordinary LDM control rejects. Model register-list definitions or reject conservatively; both-mode must-reject tests. Fix before relying on expanded table admission. |
+| 7b | R11 | Isolate Thumb decoder IT state between independent admission scans | P1 | — | Partial (reopened) | 8, 6d | 0054 report mode remains implemented, but truncated ITT/ITE falsely rejects the following valid `bx lr`. Preserve prior receipts; fix symbolic/plain decoder isolation and add both-mode order-independence regressions. |
+| 7c | R23 | Noreturn absolute-thunk traversal bypasses cycle detection | P1 | — | Open | 8 (R19 follow-up) | A→B→A MOVW/MOVT/BX thunk chain times out at 8 s; self-cycle rejects, acyclic chain succeeds. Put traversal inside the cache/visited guard; both-mode A32/T32 regressions. |
+| 8a | R24 | Decode A32 rotated immediates when computing inline-table bases | P2 | — | Open | 12 (R18 follow-up) | #256 ADD table fixture falsely rejects while #8 control succeeds; ADDri/SUBri MC operand is encoded mod_imm. Test rotated ADD/SUB and malformed table addresses. |
 | 9 | R12 | ADR to an inline TBB/TBH table (`vsnprintf`) | P2 | — | Open (analysed, see log) | 12 | Pattern: `adr.w r2, <table>; tbh [pc, r4, lsl #1]; <table>` (424606a8: 0x80030c04). Plan: treat the ADR right before TBB/TBH that addresses that table as a table reference; re-emit it against the emitted table label (reuse 0057's ADR-base mechanism with 0024's TBH model; relax 0045's PC-read rejection only for this shape) |
 | 10a | R21 | A32 `-O0` load-then-jump tables (`add rB, pc, #k; ldr rX, [rB, rI, lsl #2]; mov pc, rX` / `bx rX`) still rejected as PC read | P2 | — | Open | 12 | Found by R17 after R18 (`c_switch_arm_o0`, `c_switch_marm_o0`); extend 0057's table model to a register jump |
 | 10b | T3 | Secure-SVC parity on the Pi | P2 | — | Deferred TODO (user, 2026-10-04): Secure armstub is built (`tools/pi4-armstub-secure/`, sha `af4a5512…`, install/rollback in its README) but not installed; the SD-card step and the Secure re-runs wait until the user asks | 9 | All Pi results so far are Non-secure SVC; BOLT rewriting is state-agnostic, so T3 is a parity confirmation |
@@ -141,14 +155,14 @@ Take items in the order below; groups reflect dependencies, not ownership.
 
 | Order | ID | Item | Priority | Owner | Status | Notes |
 |---|---|---|---|---|---|---|
-| 11 | 8 | CFG and mutation invariants | P1 | — | Partial | R4–R6, R19 done |
+| 11 | 8 | CFG and mutation invariants | P1 | — | Partial | R4–R6, R19 milestones done; R11, R23 pending |
 | 12 | 7 | Relocation/literal/veneer matrix | P1 | — | Partial | R1–R3, R7, R14 done |
 | 13 | 11 | Entries/symbols/reference routes | P1 | — | Partial | R9 done |
-| 14 | 12 | Tables and inline data | P1 | — | Partial | R18 done; R12, R21 pending |
+| 14 | 12 | Tables and inline data | P1 | — | Partial | R18 milestone done; R22, R24, R12, R21 pending |
 | 15 | 13 | Actual pass combinations | P1 | — | Partial | R7, R8, R20 done |
 | 16 | 9 | Interrupt/reentrancy/reset boundaries | P1 | — | Partial | T2/T2b (SMP execution and counters) done; active-IRQ fixtures still open |
 | 17 | 10 | Sampling/PMU ownership | P1 | — | Partial | Per-core PC watch ranges (T2) done; per-sample core attribution and loss/saturation accounting open |
-| 18 | 14 | Clean build/content provenance | P1 | — | Partial | Overlay replay + assertions-off build (6a); clean full build still open; no-FPU guard misreads BOLT outputs (no input $t in original .text) |
+| 18 | 14 | Clean build/content provenance | P1 | — | Partial | Overlay replay + assertions-off build (6a); clean full build and OFF parity for 0060–0061 still open; no-FPU guard misreads BOLT outputs (no input $t in original .text) |
 
 **Needs the user:** new oracle contracts for new configurations; T3 SD-card install only when the user decides (deferred).
 
@@ -181,7 +195,6 @@ Take items in the order below; groups reflect dependencies, not ownership.
 | T1 | ARMv8-A AArch32 (Cortex-A55) admission and decode; v8-A Pi image, coverage and certified gate | P0 | Claude | 6b, 7, 11 | Done and certified: contract `47c73bc0` approved (d3c8253); certified gate 10 reps, 18/18, both redirects executed; Image `lk-rpi4-bolt-test-a55-47c73bc0.elf`: 406/416 admitted, rewritten image 2x18 on the Pi; evidence `docs/results/t1_a55_20261004.json`. Build: `make rpi4-bolt-test RPI4_ARM_CPU=cortex-a55` |
 | T2b | SMP instrumentation | P1 | Claude | 9, 10 | 0060: `--arm-instrumentation-contract=privileged-smp-no-fiq` routes every counter through an injected A32 LDREXD/STREXD helper (single-core snippet unchanged); injected ARM functions get $a/$t mapping symbols; `arm-counter-smp.test`. Pi (A55 SMP image, 4 cores): all 74 moved counters exact, while the old snippet loses up to ~1.9M increments on 9 hot counters (`scripts/pi4/smp_counter_check.py`, logs `docs/results/t2b_*_counters_pi_20261004.log`). Also fixed: `instrument-lk-bolt.sh` now passes `--no-huge-pages` (instrumented code landed outside LK's reserved window and crashed) |
 | R8 | r12 clobbered by local-branch LongJmp stubs | P1 | Claude | 13 | 0061: before stubbing a local branch on ARM, LongJmp computes r12 liveness at the target block (backward CFG fixpoint; calls kill, returns dead) and fails with a clear error when live; `arm-r12-local-stub.test` (ARM+Thumb: live rejected, dead splits with real r12 stubs) |
-| R11 | Skip-and-report admission mode | P1 | Codex | — | 0054; [diagnostic contract/evidence](ARM_ADMISSION_REPORT.md); one scan, same 399/417 coverage; both assertion modes + scoped Pi |
 
 ## Coverage goal
 
@@ -194,12 +207,15 @@ Raise BOLT coverage of the full LK test binary, measured only by
 | 1 | R4 conditional tail calls (crash) — **done, 0051** | 3 | 276/417 (66.2%); 79.2% of code bytes |
 | 2 | R5 noreturn calls at function end — **done, 0052** | 78 | 354/417 (84.9%); 92.6% of code bytes |
 | 3 | R6 predicated returns and calls in IT blocks — **done, 0053** | 45 | 399/417 (95.7%); 97.9% of code bytes |
-| 4 | R12 ADR to inline switch table | 1 | ~96% |
-| 5 | R15 try-lock reservation guard | instrumentation of the image | — |
+| 4 | R19 call idiom — **done, 0055** | 1 | 400/417 (95.9%); 98.0% of code bytes |
+| 5 | R12 ADR to inline switch table | 1 expected | Pending |
+| 6 | R15 try-lock reservation guard — **done, 0059** | in-scope workload instrumentation | See `lk_coverage_r15_20261004.json` |
 
-**Target:** everything except the 9 functions that must stay in place
-(7 PC-writing vectors and early setup, `arm_reset`, `arm_secondary_entry`),
-plus genuine fallthrough such as `bzero`: about 98% of functions.
+**Published v7 coverage:** 400/417 functions, 124282/126834 code bytes (98.0%).
+Ten rejected symbol rows remain in the latest v7 receipt; admission of
+`arm_secondary_entry` does not authorize relocating or redirecting startup code.
+Keep vectors/early setup in place and reject genuine fallthrough. Coverage is
+emission coverage, not execution or whole-backend correctness.
 
 **Done means, for each step:**
 
@@ -214,6 +230,32 @@ plus genuine fallthrough such as `bzero`: about 98% of functions.
 4. Update the *Claims* table and LK_COVERAGE.md together.
 
 ## Handoff log
+
+### 2026-10-04 — Codex/Sol: recovered Astra review consolidated through 0061
+
+- Synced to `89dd17f`, read Claude's newer milestones, recovered the completed
+  Astra review and earlier host probes. Published
+  [review](CORRECTNESS_REVIEW_ASTRA_0057.md) and
+  [durable evidence](results/astra_review_20261004/evidence.json).
+- R11 reopened Partial/unclaimed for leaked Thumb IT state. New shared items:
+  R22 P1 privileged-LDM base-clobber admission, R23 P1 thunk-cycle analysis
+  nontermination, R24 P2 encoded-immediate table-base rejection. Source through
+  0061 still contains their causes. Original probes bind ON 0057 and OFF 0054
+  (IT only); no new probe or both-mode 0061 claim is made.
+- Kept T1/T2, T2b, R8/R13/R15 and declared 6a–6d milestones Done. R18/R19's
+  positive milestones remain; new IDs track their edge cases. T3 stays Deferred
+  under the latest user decision. Corrected stale target/skip-list/build guidance,
+  synchronized TODO/resume views and local Claude memory, and added successful-
+  push ownership plus separate Pi reservation rules.
+- Review/docs only: no backend/image change, rebuild, upload, sampling or COM5
+  access. Coverage unchanged: v7 400/417 functions, 124282/126834 bytes (98.0%);
+  existing receipts preserved. No coverage rerun required. Dirty ATFE/LK,
+  unrelated Microsoft/ and prior raw evidence are preserved. WSL executes reads;
+  Pi idle is Claude's last observation, not a new access check.
+- No implementation item claimed; live-tree lock remains free. Next agent:
+  claim R22, then R11/R23, before resuming the P2 table work; export one overlay
+  per item with both-mode regressions, replay and appropriate execution evidence.
+  Use the next available overlay number, not the old R12 plan's reserved 0062.
 
 ### 2026-10-04 — Claude: R12 analysed; released (usage limit)
 
@@ -687,7 +729,7 @@ plus genuine fallthrough such as `bzero`: about 98% of functions.
   with explicit skips; old scanner remains an explicit compatibility option.
 - ON/OFF Release builds from the same source pass the new 41-check lit
   regression. ARM + AArch32 JITLink: ON 61 passed; OFF 60 passed, one
-  timeout-feature test unsupported. CoreTests: 58 passed/31 target skips each.
+  `ELF_data_alignment.s` unsupported (`REQUIRES: asserts`), correcting the earlier timeout-feature description. CoreTests: 58 passed/31 target skips each.
   Windows host suite: 145 tests, four Linux process-test skips. Full 54-overlay
   replay has no mismatched/uncovered source files, identity `484c5825…`.
 - Coverage before/after: **399/417 functions (95.7%)**, **124166/126834 code

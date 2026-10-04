@@ -1,28 +1,39 @@
-# ATFE correctness checkpoint - 2026-10-04
-
-> **2026-10-04 update (Claude):** the consolidated, prioritized TODO for both
-> agents is in [HANDOFF.md](HANDOFF.md) (*Claims*, resume order). Overlays
-> 0046–0053 and the approved full-LK `pi4` contract are recorded there.
+# ATFE correctness checkpoint — 2026-10-04
 
 ## Current coordination: shared Claude/Codex work pool
 
-Read [HANDOFF.md](HANDOFF.md) first. Its *Claims* tables contain the current
-status, ownership and resume order for both agents; its *Live-tree lock* controls
-edits and rebuilds of shared WSL ATFE. Either agent may claim any unowned item,
-regardless of origin, by committing and pushing the claim before implementation.
-R11 is **done through overlay 0054**; the next listed item is **R17**, followed
-by the remaining ordered groups. The live-tree lock is free at this milestone.
-Both assertion-mode builds, admission tests, coverage and scoped Pi runs passed;
-see [R11 contract/evidence](ARM_ADMISSION_REPORT.md). Coverage is unchanged at
-399/417 functions and 97.9% of code bytes. Candidate no-FPU scanning needs
-ISA-aware metadata; that caveat is recorded under item 14.
-[CORRECTNESS_PRIORITY_TODO.md](CORRECTNESS_PRIORITY_TODO.md) retains certification
-closure criteria; the checkpoints below predate overlays 0046–0054,
-approved Pi oracle and sealed-chain milestone. Use the latest handoff for status.
-WSL executes commands and the Pi's LK shell responds on COM5 at 3 Mbaud.
-The Pi is restored to the approved baseline shell, sampling stopped and
-watchdog off. The serial port is closed; WSL remains running. Windows Codex
-and Claude checkouts and the WSL repo are synced to the published milestone.
+Read and fetch [HANDOFF.md](HANDOFF.md) first. Current baseline is main through
+overlay **0061**, reconciled after `89dd17f`. Claims and successful published
+resource reservations govern all implementation. Preserve dirty shared ATFE/LK,
+untracked Microsoft/third_party and raw evidence; never reapply overlays to the
+live source or rerun one-time publication helpers.
+
+The [recovered Astra review](CORRECTNESS_REVIEW_ASTRA_0057.md) has four concrete
+follow-ups: **R22** privileged-LDM table-base clobber, **R11 Partial** leaked
+Thumb IT state, **R23** cyclic thunk analysis, **R24** encoded A32 table offsets.
+Next claim is R22, then R11/R23; R12 and R21 remain open table work. No new
+implementation item has been claimed. Live-tree lock is free; Pi access needs
+its separate reservation and a current state check.
+
+Claude's T1/T2, T2b, R8/R13/R15 and declared 6a–6d milestones remain Done.
+Secure-SVC T3 is prepared but **Deferred** by the latest user decision. T4 is
+for real-target validation by the user. Wider matrices remain Partial.
+
+Published v7 emission coverage: **400/417 functions**, **124282/126834 bytes
+(98.0%)**. Candidate no-FPU scanning and clean provenance remain item 14;
+coverage does not prove every emitted function executes. ON tests are reported
+through 0061; current OFF `build-atfe-noassert` tests are reported through 0059.
+The older R11 OFF build is distinct 0054 evidence. Recheck tool hashes before use.
+
+WSL was readable during this documentation review. Pi idle is the last Claude
+observation at `89dd17f`; Codex/Sol did not open COM5 or alter the board. Consult
+the latest log for image/sampler/watchdog state rather than using the older R11
+baseline snapshot as current state. Windows serial Python with pyserial is
+`out/correctness/pi-venv/Scripts/python.exe` in the Codex checkout.
+
+[CORRECTNESS_PRIORITY_TODO.md](CORRECTNESS_PRIORITY_TODO.md) mirrors the current
+table and preserves historical closure criteria. All checkpoints below are
+historical and do not override current status, ownership or user decisions.
 
 ## Historical 0045 oracle/Pi milestone and review
 

@@ -1,0 +1,592 @@
+{
+  "schema": 1,
+  "reviewed_revision": "b6b68dc783dcfd85d52741526290c3fbcaa1781f",
+  "reviewed_overlays": "0001-0057",
+  "reconciled_revision": "89dd17fc98743e679cc7811383f28e3a750346b8",
+  "reconciled_overlays": "0001-0061",
+  "scope": "Recovered earlier isolated host probes; source-only reconciliation at 0061. No new test execution or hardware verification.",
+  "probes": [
+    {
+      "path": "/home/user/bolt-aarch32/out/astra-review-it-um54d2cy",
+      "manifest": {
+        "scope": "isolated diagnostic host probe; no hardware or source mutation",
+        "tools": {
+          "on": {
+            "llvm_bolt_sha256": "40a1eca3a547f19eed1ec18873a3e301778f1ce965a851eb7de4bda0c777a186"
+          },
+          "off": {
+            "llvm_bolt_sha256": "765678198fe0cdf4fe2523420a23d4a73efc197a8f054386d2285dfdc5c3b152"
+          }
+        },
+        "cases": [
+          {
+            "mode": "on",
+            "case": "control",
+            "exit": 0,
+            "input_sha256": "dab4e80deba5b3b2e7af6856bac1dae4cde1686ac312862754eb0f954d8873c7",
+            "functions": [
+              {
+                "address": 32768,
+                "isa": "A32",
+                "name": "_start",
+                "size": 12,
+                "status": "admitted"
+              },
+              {
+                "address": 32780,
+                "isa": "T32",
+                "name": "good_thumb",
+                "size": 2,
+                "status": "admitted"
+              },
+              {
+                "address": 32784,
+                "isa": "T32",
+                "name": "another_good",
+                "size": 2,
+                "status": "admitted"
+              },
+              {
+                "address": 32788,
+                "isa": "A32",
+                "name": "last_arm",
+                "size": 4,
+                "status": "admitted"
+              }
+            ],
+            "command": [
+              "/home/user/bolt-aarch32/build-atfe/bin/llvm-bolt",
+              "/home/user/bolt-aarch32/out/astra-review-it-um54d2cy/on-control/input.elf",
+              "-o",
+              "/dev/null",
+              "--no-huge-pages",
+              "-lite=0",
+              "--arm-admission-report=/home/user/bolt-aarch32/out/astra-review-it-um54d2cy/on-control/report.json"
+            ]
+          },
+          {
+            "mode": "on",
+            "case": "truncated_itt",
+            "exit": 0,
+            "input_sha256": "6b7352f415dbce5f1985fbb3ebccf1b197f573ff074e01cde73cffcdb50b3d5f",
+            "functions": [
+              {
+                "address": 32768,
+                "isa": "A32",
+                "name": "_start",
+                "size": 12,
+                "status": "admitted"
+              },
+              {
+                "address": 32780,
+                "isa": "T32",
+                "name": "bad_it",
+                "reason": "truncated Thumb IT group in bad_it",
+                "size": 4,
+                "stage": "disassembly",
+                "status": "rejected"
+              },
+              {
+                "address": 32784,
+                "isa": "T32",
+                "name": "good_thumb",
+                "reason": "unmodeled AArch32 function fallthrough in good_thumb",
+                "size": 2,
+                "stage": "cfg",
+                "status": "rejected"
+              },
+              {
+                "address": 32788,
+                "isa": "T32",
+                "name": "another_good",
+                "size": 2,
+                "status": "admitted"
+              },
+              {
+                "address": 32792,
+                "isa": "A32",
+                "name": "last_arm",
+                "size": 4,
+                "status": "admitted"
+              }
+            ],
+            "command": [
+              "/home/user/bolt-aarch32/build-atfe/bin/llvm-bolt",
+              "/home/user/bolt-aarch32/out/astra-review-it-um54d2cy/on-truncated_itt/input.elf",
+              "-o",
+              "/dev/null",
+              "--no-huge-pages",
+              "-lite=0",
+              "--arm-admission-report=/home/user/bolt-aarch32/out/astra-review-it-um54d2cy/on-truncated_itt/report.json"
+            ]
+          },
+          {
+            "mode": "on",
+            "case": "truncated_ite",
+            "exit": 0,
+            "input_sha256": "5c0b19e2e6a902cacd32944c98b38cd5acc5ce930028e163ebc5cd9ecc305d6e",
+            "functions": [
+              {
+                "address": 32768,
+                "isa": "A32",
+                "name": "_start",
+                "size": 12,
+                "status": "admitted"
+              },
+              {
+                "address": 32780,
+                "isa": "T32",
+                "name": "bad_it",
+                "reason": "truncated Thumb IT group in bad_it",
+                "size": 4,
+                "stage": "disassembly",
+                "status": "rejected"
+              },
+              {
+                "address": 32784,
+                "isa": "T32",
+                "name": "good_thumb",
+                "reason": "unmodeled AArch32 function fallthrough in good_thumb",
+                "size": 2,
+                "stage": "cfg",
+                "status": "rejected"
+              },
+              {
+                "address": 32788,
+                "isa": "T32",
+                "name": "another_good",
+                "size": 2,
+                "status": "admitted"
+              },
+              {
+                "address": 32792,
+                "isa": "A32",
+                "name": "last_arm",
+                "size": 4,
+                "status": "admitted"
+              }
+            ],
+            "command": [
+              "/home/user/bolt-aarch32/build-atfe/bin/llvm-bolt",
+              "/home/user/bolt-aarch32/out/astra-review-it-um54d2cy/on-truncated_ite/input.elf",
+              "-o",
+              "/dev/null",
+              "--no-huge-pages",
+              "-lite=0",
+              "--arm-admission-report=/home/user/bolt-aarch32/out/astra-review-it-um54d2cy/on-truncated_ite/report.json"
+            ]
+          },
+          {
+            "mode": "off",
+            "case": "control",
+            "exit": 0,
+            "input_sha256": "dab4e80deba5b3b2e7af6856bac1dae4cde1686ac312862754eb0f954d8873c7",
+            "functions": [
+              {
+                "address": 32768,
+                "isa": "A32",
+                "name": "_start",
+                "size": 12,
+                "status": "admitted"
+              },
+              {
+                "address": 32780,
+                "isa": "T32",
+                "name": "good_thumb",
+                "size": 2,
+                "status": "admitted"
+              },
+              {
+                "address": 32784,
+                "isa": "T32",
+                "name": "another_good",
+                "size": 2,
+                "status": "admitted"
+              },
+              {
+                "address": 32788,
+                "isa": "A32",
+                "name": "last_arm",
+                "size": 4,
+                "status": "admitted"
+              }
+            ],
+            "command": [
+              "/home/user/bolt-aarch32/out/correctness/build-atfe-noasserts-20261002/bin/llvm-bolt",
+              "/home/user/bolt-aarch32/out/astra-review-it-um54d2cy/off-control/input.elf",
+              "-o",
+              "/dev/null",
+              "--no-huge-pages",
+              "-lite=0",
+              "--arm-admission-report=/home/user/bolt-aarch32/out/astra-review-it-um54d2cy/off-control/report.json"
+            ]
+          },
+          {
+            "mode": "off",
+            "case": "truncated_itt",
+            "exit": 0,
+            "input_sha256": "6b7352f415dbce5f1985fbb3ebccf1b197f573ff074e01cde73cffcdb50b3d5f",
+            "functions": [
+              {
+                "address": 32768,
+                "isa": "A32",
+                "name": "_start",
+                "size": 12,
+                "status": "admitted"
+              },
+              {
+                "address": 32780,
+                "isa": "T32",
+                "name": "bad_it",
+                "reason": "truncated Thumb IT group in bad_it",
+                "size": 4,
+                "stage": "disassembly",
+                "status": "rejected"
+              },
+              {
+                "address": 32784,
+                "isa": "T32",
+                "name": "good_thumb",
+                "reason": "unmodeled AArch32 function fallthrough in good_thumb",
+                "size": 2,
+                "stage": "cfg",
+                "status": "rejected"
+              },
+              {
+                "address": 32788,
+                "isa": "T32",
+                "name": "another_good",
+                "size": 2,
+                "status": "admitted"
+              },
+              {
+                "address": 32792,
+                "isa": "A32",
+                "name": "last_arm",
+                "size": 4,
+                "status": "admitted"
+              }
+            ],
+            "command": [
+              "/home/user/bolt-aarch32/out/correctness/build-atfe-noasserts-20261002/bin/llvm-bolt",
+              "/home/user/bolt-aarch32/out/astra-review-it-um54d2cy/off-truncated_itt/input.elf",
+              "-o",
+              "/dev/null",
+              "--no-huge-pages",
+              "-lite=0",
+              "--arm-admission-report=/home/user/bolt-aarch32/out/astra-review-it-um54d2cy/off-truncated_itt/report.json"
+            ]
+          },
+          {
+            "mode": "off",
+            "case": "truncated_ite",
+            "exit": 0,
+            "input_sha256": "5c0b19e2e6a902cacd32944c98b38cd5acc5ce930028e163ebc5cd9ecc305d6e",
+            "functions": [
+              {
+                "address": 32768,
+                "isa": "A32",
+                "name": "_start",
+                "size": 12,
+                "status": "admitted"
+              },
+              {
+                "address": 32780,
+                "isa": "T32",
+                "name": "bad_it",
+                "reason": "truncated Thumb IT group in bad_it",
+                "size": 4,
+                "stage": "disassembly",
+                "status": "rejected"
+              },
+              {
+                "address": 32784,
+                "isa": "T32",
+                "name": "good_thumb",
+                "reason": "unmodeled AArch32 function fallthrough in good_thumb",
+                "size": 2,
+                "stage": "cfg",
+                "status": "rejected"
+              },
+              {
+                "address": 32788,
+                "isa": "T32",
+                "name": "another_good",
+                "size": 2,
+                "status": "admitted"
+              },
+              {
+                "address": 32792,
+                "isa": "A32",
+                "name": "last_arm",
+                "size": 4,
+                "status": "admitted"
+              }
+            ],
+            "command": [
+              "/home/user/bolt-aarch32/out/correctness/build-atfe-noasserts-20261002/bin/llvm-bolt",
+              "/home/user/bolt-aarch32/out/astra-review-it-um54d2cy/off-truncated_ite/input.elf",
+              "-o",
+              "/dev/null",
+              "--no-huge-pages",
+              "-lite=0",
+              "--arm-admission-report=/home/user/bolt-aarch32/out/astra-review-it-um54d2cy/off-truncated_ite/report.json"
+            ]
+          }
+        ]
+      },
+      "input_sha256": {
+        "off-control/input.elf": "dab4e80deba5b3b2e7af6856bac1dae4cde1686ac312862754eb0f954d8873c7",
+        "off-truncated_ite/input.elf": "5c0b19e2e6a902cacd32944c98b38cd5acc5ce930028e163ebc5cd9ecc305d6e",
+        "off-truncated_itt/input.elf": "6b7352f415dbce5f1985fbb3ebccf1b197f573ff074e01cde73cffcdb50b3d5f",
+        "on-control/input.elf": "dab4e80deba5b3b2e7af6856bac1dae4cde1686ac312862754eb0f954d8873c7",
+        "on-truncated_ite/input.elf": "5c0b19e2e6a902cacd32944c98b38cd5acc5ce930028e163ebc5cd9ecc305d6e",
+        "on-truncated_itt/input.elf": "6b7352f415dbce5f1985fbb3ebccf1b197f573ff074e01cde73cffcdb50b3d5f"
+      },
+      "text_files": {
+        "off-control/input.s": ".syntax unified\n.arch armv7-a\n.text\n.arm\n.global _start\n.type _start,%function\n_start:\npush {r4,lr}\nbl good_thumb\npop {r4,pc}\n.size _start,.-_start\n.balign 4\n.thumb\n.global good_thumb\n.type good_thumb,%function\n.thumb_func\ngood_thumb:\nbx lr\n.size good_thumb,.-good_thumb\n.balign 4\n.thumb\n.global another_good\n.type another_good,%function\n.thumb_func\nanother_good:\nbx lr\n.size another_good,.-another_good\n.balign 4\n.arm\n.global last_arm\n.type last_arm,%function\nlast_arm:\nbx lr\n.size last_arm,.-last_arm\n",
+        "off-control/layout.ld": "ENTRY(_start)\nSECTIONS { . = 0x8000; .text : { *(.text*) } }\n",
+        "off-control/report.json": "{\n  \"admitted\": 4,\n  \"complete\": true,\n  \"execution_verified\": false,\n  \"functions\": [\n    {\n      \"address\": 32768,\n      \"isa\": \"A32\",\n      \"name\": \"_start\",\n      \"size\": 12,\n      \"status\": \"admitted\"\n    },\n    {\n      \"address\": 32780,\n      \"isa\": \"T32\",\n      \"name\": \"good_thumb\",\n      \"size\": 2,\n      \"status\": \"admitted\"\n    },\n    {\n      \"address\": 32784,\n      \"isa\": \"T32\",\n      \"name\": \"another_good\",\n      \"size\": 2,\n      \"status\": \"admitted\"\n    },\n    {\n      \"address\": 32788,\n      \"isa\": \"A32\",\n      \"name\": \"last_arm\",\n      \"size\": 4,\n      \"status\": \"admitted\"\n    }\n  ],\n  \"input_sha256\": \"dab4e80deba5b3b2e7af6856bac1dae4cde1686ac312862754eb0f954d8873c7\",\n  \"kind\": \"aarch32-admission-diagnostic\",\n  \"not_analyzed\": 0,\n  \"rejected\": 0,\n  \"schema\": 1,\n  \"scope\": \"local disassembly/CFG admission only; not emission, passes, reference correctness, instrumentation or execution proof\"\n}\n",
+        "off-control/run.log": "BOLT-INFO: Target architecture: arm\nBOLT-INFO: BOLT version: bcc08884995ff3cbee70749524621803b9bd258a\nBOLT-INFO: diagnostic AArch32 admission report; no optimization, emitted image or execution certificate\nBOLT-INFO: first alloc address is 0x0\nBOLT-INFO: creating new program header table at address 0x9000, offset 0x9000\nBOLT-INFO: enabling relocation mode\nBOLT-INFO: static input executable detected\nBOLT-INFO: diagnostic admission report: 4 admitted, 0 rejected, 0 not analyzed; no output ELF\n",
+        "off-truncated_ite/input.s": ".syntax unified\n.arch armv7-a\n.text\n.arm\n.global _start\n.type _start,%function\n_start:\npush {r4,lr}\nbl good_thumb\npop {r4,pc}\n.size _start,.-_start\n.balign 4\n.thumb\n.global bad_it\n.type bad_it,%function\n.thumb_func\nbad_it:\n.hword 0xbf0c\n.hword 0x2001\n.size bad_it,.-bad_it\n.balign 4\n.thumb\n.global good_thumb\n.type good_thumb,%function\n.thumb_func\ngood_thumb:\nbx lr\n.size good_thumb,.-good_thumb\n.balign 4\n.thumb\n.global another_good\n.type another_good,%function\n.thumb_func\nanother_good:\nbx lr\n.size another_good,.-another_good\n.balign 4\n.arm\n.global last_arm\n.type last_arm,%function\nlast_arm:\nbx lr\n.size last_arm,.-last_arm\n",
+        "off-truncated_ite/layout.ld": "ENTRY(_start)\nSECTIONS { . = 0x8000; .text : { *(.text*) } }\n",
+        "off-truncated_ite/report.json": "{\n  \"admitted\": 3,\n  \"complete\": true,\n  \"execution_verified\": false,\n  \"functions\": [\n    {\n      \"address\": 32768,\n      \"isa\": \"A32\",\n      \"name\": \"_start\",\n      \"size\": 12,\n      \"status\": \"admitted\"\n    },\n    {\n      \"address\": 32780,\n      \"isa\": \"T32\",\n      \"name\": \"bad_it\",\n      \"reason\": \"truncated Thumb IT group in bad_it\",\n      \"size\": 4,\n      \"stage\": \"disassembly\",\n      \"status\": \"rejected\"\n    },\n    {\n      \"address\": 32784,\n      \"isa\": \"T32\",\n      \"name\": \"good_thumb\",\n      \"reason\": \"unmodeled AArch32 function fallthrough in good_thumb\",\n      \"size\": 2,\n      \"stage\": \"cfg\",\n      \"status\": \"rejected\"\n    },\n    {\n      \"address\": 32788,\n      \"isa\": \"T32\",\n      \"name\": \"another_good\",\n      \"size\": 2,\n      \"status\": \"admitted\"\n    },\n    {\n      \"address\": 32792,\n      \"isa\": \"A32\",\n      \"name\": \"last_arm\",\n      \"size\": 4,\n      \"status\": \"admitted\"\n    }\n  ],\n  \"input_sha256\": \"5c0b19e2e6a902cacd32944c98b38cd5acc5ce930028e163ebc5cd9ecc305d6e\",\n  \"kind\": \"aarch32-admission-diagnostic\",\n  \"not_analyzed\": 0,\n  \"rejected\": 2,\n  \"schema\": 1,\n  \"scope\": \"local disassembly/CFG admission only; not emission, passes, reference correctness, instrumentation or execution proof\"\n}\n",
+        "off-truncated_ite/run.log": "BOLT-INFO: Target architecture: arm\nBOLT-INFO: BOLT version: bcc08884995ff3cbee70749524621803b9bd258a\nBOLT-INFO: diagnostic AArch32 admission report; no optimization, emitted image or execution certificate\nBOLT-INFO: first alloc address is 0x0\nBOLT-INFO: creating new program header table at address 0x9000, offset 0x9000\nBOLT-INFO: enabling relocation mode\nBOLT-INFO: static input executable detected\nBOLT-INFO: diagnostic admission report: 3 admitted, 2 rejected, 0 not analyzed; no output ELF\nBOLT-WARNING: ignoring data marker conflicting with function symbol bad_it\nBOLT-WARNING: diagnostic admission rejection: truncated Thumb IT group in bad_it\nBOLT-WARNING: diagnostic admission rejection: unmodeled AArch32 function fallthrough in good_thumb\n",
+        "off-truncated_itt/input.s": ".syntax unified\n.arch armv7-a\n.text\n.arm\n.global _start\n.type _start,%function\n_start:\npush {r4,lr}\nbl good_thumb\npop {r4,pc}\n.size _start,.-_start\n.balign 4\n.thumb\n.global bad_it\n.type bad_it,%function\n.thumb_func\nbad_it:\n.hword 0xbf04\n.hword 0x2001\n.size bad_it,.-bad_it\n.balign 4\n.thumb\n.global good_thumb\n.type good_thumb,%function\n.thumb_func\ngood_thumb:\nbx lr\n.size good_thumb,.-good_thumb\n.balign 4\n.thumb\n.global another_good\n.type another_good,%function\n.thumb_func\nanother_good:\nbx lr\n.size another_good,.-another_good\n.balign 4\n.arm\n.global last_arm\n.type last_arm,%function\nlast_arm:\nbx lr\n.size last_arm,.-last_arm\n",
+        "off-truncated_itt/layout.ld": "ENTRY(_start)\nSECTIONS { . = 0x8000; .text : { *(.text*) } }\n",
+        "off-truncated_itt/report.json": "{\n  \"admitted\": 3,\n  \"complete\": true,\n  \"execution_verified\": false,\n  \"functions\": [\n    {\n      \"address\": 32768,\n      \"isa\": \"A32\",\n      \"name\": \"_start\",\n      \"size\": 12,\n      \"status\": \"admitted\"\n    },\n    {\n      \"address\": 32780,\n      \"isa\": \"T32\",\n      \"name\": \"bad_it\",\n      \"reason\": \"truncated Thumb IT group in bad_it\",\n      \"size\": 4,\n      \"stage\": \"disassembly\",\n      \"status\": \"rejected\"\n    },\n    {\n      \"address\": 32784,\n      \"isa\": \"T32\",\n      \"name\": \"good_thumb\",\n      \"reason\": \"unmodeled AArch32 function fallthrough in good_thumb\",\n      \"size\": 2,\n      \"stage\": \"cfg\",\n      \"status\": \"rejected\"\n    },\n    {\n      \"address\": 32788,\n      \"isa\": \"T32\",\n      \"name\": \"another_good\",\n      \"size\": 2,\n      \"status\": \"admitted\"\n    },\n    {\n      \"address\": 32792,\n      \"isa\": \"A32\",\n      \"name\": \"last_arm\",\n      \"size\": 4,\n      \"status\": \"admitted\"\n    }\n  ],\n  \"input_sha256\": \"6b7352f415dbce5f1985fbb3ebccf1b197f573ff074e01cde73cffcdb50b3d5f\",\n  \"kind\": \"aarch32-admission-diagnostic\",\n  \"not_analyzed\": 0,\n  \"rejected\": 2,\n  \"schema\": 1,\n  \"scope\": \"local disassembly/CFG admission only; not emission, passes, reference correctness, instrumentation or execution proof\"\n}\n",
+        "off-truncated_itt/run.log": "BOLT-INFO: Target architecture: arm\nBOLT-INFO: BOLT version: bcc08884995ff3cbee70749524621803b9bd258a\nBOLT-INFO: diagnostic AArch32 admission report; no optimization, emitted image or execution certificate\nBOLT-INFO: first alloc address is 0x0\nBOLT-INFO: creating new program header table at address 0x9000, offset 0x9000\nBOLT-INFO: enabling relocation mode\nBOLT-INFO: static input executable detected\nBOLT-INFO: diagnostic admission report: 3 admitted, 2 rejected, 0 not analyzed; no output ELF\nBOLT-WARNING: ignoring data marker conflicting with function symbol bad_it\nBOLT-WARNING: diagnostic admission rejection: truncated Thumb IT group in bad_it\nBOLT-WARNING: diagnostic admission rejection: unmodeled AArch32 function fallthrough in good_thumb\n",
+        "on-control/input.s": ".syntax unified\n.arch armv7-a\n.text\n.arm\n.global _start\n.type _start,%function\n_start:\npush {r4,lr}\nbl good_thumb\npop {r4,pc}\n.size _start,.-_start\n.balign 4\n.thumb\n.global good_thumb\n.type good_thumb,%function\n.thumb_func\ngood_thumb:\nbx lr\n.size good_thumb,.-good_thumb\n.balign 4\n.thumb\n.global another_good\n.type another_good,%function\n.thumb_func\nanother_good:\nbx lr\n.size another_good,.-another_good\n.balign 4\n.arm\n.global last_arm\n.type last_arm,%function\nlast_arm:\nbx lr\n.size last_arm,.-last_arm\n",
+        "on-control/layout.ld": "ENTRY(_start)\nSECTIONS { . = 0x8000; .text : { *(.text*) } }\n",
+        "on-control/report.json": "{\n  \"admitted\": 4,\n  \"complete\": true,\n  \"execution_verified\": false,\n  \"functions\": [\n    {\n      \"address\": 32768,\n      \"isa\": \"A32\",\n      \"name\": \"_start\",\n      \"size\": 12,\n      \"status\": \"admitted\"\n    },\n    {\n      \"address\": 32780,\n      \"isa\": \"T32\",\n      \"name\": \"good_thumb\",\n      \"size\": 2,\n      \"status\": \"admitted\"\n    },\n    {\n      \"address\": 32784,\n      \"isa\": \"T32\",\n      \"name\": \"another_good\",\n      \"size\": 2,\n      \"status\": \"admitted\"\n    },\n    {\n      \"address\": 32788,\n      \"isa\": \"A32\",\n      \"name\": \"last_arm\",\n      \"size\": 4,\n      \"status\": \"admitted\"\n    }\n  ],\n  \"input_sha256\": \"dab4e80deba5b3b2e7af6856bac1dae4cde1686ac312862754eb0f954d8873c7\",\n  \"kind\": \"aarch32-admission-diagnostic\",\n  \"not_analyzed\": 0,\n  \"rejected\": 0,\n  \"schema\": 1,\n  \"scope\": \"local disassembly/CFG admission only; not emission, passes, reference correctness, instrumentation or execution proof\"\n}\n",
+        "on-control/run.log": "BOLT-INFO: Target architecture: arm\nBOLT-INFO: BOLT version: bcc08884995ff3cbee70749524621803b9bd258a\nBOLT-INFO: diagnostic AArch32 admission report; no optimization, emitted image or execution certificate\nBOLT-INFO: first alloc address is 0x0\nBOLT-INFO: creating new program header table at address 0x9000, offset 0x9000\nBOLT-INFO: enabling relocation mode\nBOLT-INFO: static input executable detected\nBOLT-INFO: diagnostic admission report: 4 admitted, 0 rejected, 0 not analyzed; no output ELF\n",
+        "on-truncated_ite/input.s": ".syntax unified\n.arch armv7-a\n.text\n.arm\n.global _start\n.type _start,%function\n_start:\npush {r4,lr}\nbl good_thumb\npop {r4,pc}\n.size _start,.-_start\n.balign 4\n.thumb\n.global bad_it\n.type bad_it,%function\n.thumb_func\nbad_it:\n.hword 0xbf0c\n.hword 0x2001\n.size bad_it,.-bad_it\n.balign 4\n.thumb\n.global good_thumb\n.type good_thumb,%function\n.thumb_func\ngood_thumb:\nbx lr\n.size good_thumb,.-good_thumb\n.balign 4\n.thumb\n.global another_good\n.type another_good,%function\n.thumb_func\nanother_good:\nbx lr\n.size another_good,.-another_good\n.balign 4\n.arm\n.global last_arm\n.type last_arm,%function\nlast_arm:\nbx lr\n.size last_arm,.-last_arm\n",
+        "on-truncated_ite/layout.ld": "ENTRY(_start)\nSECTIONS { . = 0x8000; .text : { *(.text*) } }\n",
+        "on-truncated_ite/report.json": "{\n  \"admitted\": 3,\n  \"complete\": true,\n  \"execution_verified\": false,\n  \"functions\": [\n    {\n      \"address\": 32768,\n      \"isa\": \"A32\",\n      \"name\": \"_start\",\n      \"size\": 12,\n      \"status\": \"admitted\"\n    },\n    {\n      \"address\": 32780,\n      \"isa\": \"T32\",\n      \"name\": \"bad_it\",\n      \"reason\": \"truncated Thumb IT group in bad_it\",\n      \"size\": 4,\n      \"stage\": \"disassembly\",\n      \"status\": \"rejected\"\n    },\n    {\n      \"address\": 32784,\n      \"isa\": \"T32\",\n      \"name\": \"good_thumb\",\n      \"reason\": \"unmodeled AArch32 function fallthrough in good_thumb\",\n      \"size\": 2,\n      \"stage\": \"cfg\",\n      \"status\": \"rejected\"\n    },\n    {\n      \"address\": 32788,\n      \"isa\": \"T32\",\n      \"name\": \"another_good\",\n      \"size\": 2,\n      \"status\": \"admitted\"\n    },\n    {\n      \"address\": 32792,\n      \"isa\": \"A32\",\n      \"name\": \"last_arm\",\n      \"size\": 4,\n      \"status\": \"admitted\"\n    }\n  ],\n  \"input_sha256\": \"5c0b19e2e6a902cacd32944c98b38cd5acc5ce930028e163ebc5cd9ecc305d6e\",\n  \"kind\": \"aarch32-admission-diagnostic\",\n  \"not_analyzed\": 0,\n  \"rejected\": 2,\n  \"schema\": 1,\n  \"scope\": \"local disassembly/CFG admission only; not emission, passes, reference correctness, instrumentation or execution proof\"\n}\n",
+        "on-truncated_ite/run.log": "BOLT-INFO: Target architecture: arm\nBOLT-INFO: BOLT version: bcc08884995ff3cbee70749524621803b9bd258a\nBOLT-INFO: diagnostic AArch32 admission report; no optimization, emitted image or execution certificate\nBOLT-INFO: first alloc address is 0x0\nBOLT-INFO: creating new program header table at address 0x9000, offset 0x9000\nBOLT-INFO: enabling relocation mode\nBOLT-INFO: static input executable detected\nBOLT-INFO: diagnostic admission report: 3 admitted, 2 rejected, 0 not analyzed; no output ELF\nBOLT-WARNING: ignoring data marker conflicting with function symbol bad_it\nBOLT-WARNING: diagnostic admission rejection: truncated Thumb IT group in bad_it\nBOLT-WARNING: diagnostic admission rejection: unmodeled AArch32 function fallthrough in good_thumb\n",
+        "on-truncated_itt/input.s": ".syntax unified\n.arch armv7-a\n.text\n.arm\n.global _start\n.type _start,%function\n_start:\npush {r4,lr}\nbl good_thumb\npop {r4,pc}\n.size _start,.-_start\n.balign 4\n.thumb\n.global bad_it\n.type bad_it,%function\n.thumb_func\nbad_it:\n.hword 0xbf04\n.hword 0x2001\n.size bad_it,.-bad_it\n.balign 4\n.thumb\n.global good_thumb\n.type good_thumb,%function\n.thumb_func\ngood_thumb:\nbx lr\n.size good_thumb,.-good_thumb\n.balign 4\n.thumb\n.global another_good\n.type another_good,%function\n.thumb_func\nanother_good:\nbx lr\n.size another_good,.-another_good\n.balign 4\n.arm\n.global last_arm\n.type last_arm,%function\nlast_arm:\nbx lr\n.size last_arm,.-last_arm\n",
+        "on-truncated_itt/layout.ld": "ENTRY(_start)\nSECTIONS { . = 0x8000; .text : { *(.text*) } }\n",
+        "on-truncated_itt/report.json": "{\n  \"admitted\": 3,\n  \"complete\": true,\n  \"execution_verified\": false,\n  \"functions\": [\n    {\n      \"address\": 32768,\n      \"isa\": \"A32\",\n      \"name\": \"_start\",\n      \"size\": 12,\n      \"status\": \"admitted\"\n    },\n    {\n      \"address\": 32780,\n      \"isa\": \"T32\",\n      \"name\": \"bad_it\",\n      \"reason\": \"truncated Thumb IT group in bad_it\",\n      \"size\": 4,\n      \"stage\": \"disassembly\",\n      \"status\": \"rejected\"\n    },\n    {\n      \"address\": 32784,\n      \"isa\": \"T32\",\n      \"name\": \"good_thumb\",\n      \"reason\": \"unmodeled AArch32 function fallthrough in good_thumb\",\n      \"size\": 2,\n      \"stage\": \"cfg\",\n      \"status\": \"rejected\"\n    },\n    {\n      \"address\": 32788,\n      \"isa\": \"T32\",\n      \"name\": \"another_good\",\n      \"size\": 2,\n      \"status\": \"admitted\"\n    },\n    {\n      \"address\": 32792,\n      \"isa\": \"A32\",\n      \"name\": \"last_arm\",\n      \"size\": 4,\n      \"status\": \"admitted\"\n    }\n  ],\n  \"input_sha256\": \"6b7352f415dbce5f1985fbb3ebccf1b197f573ff074e01cde73cffcdb50b3d5f\",\n  \"kind\": \"aarch32-admission-diagnostic\",\n  \"not_analyzed\": 0,\n  \"rejected\": 2,\n  \"schema\": 1,\n  \"scope\": \"local disassembly/CFG admission only; not emission, passes, reference correctness, instrumentation or execution proof\"\n}\n",
+        "on-truncated_itt/run.log": "BOLT-INFO: Target architecture: arm\nBOLT-INFO: BOLT version: bcc08884995ff3cbee70749524621803b9bd258a\nBOLT-INFO: diagnostic AArch32 admission report; no optimization, emitted image or execution certificate\nBOLT-INFO: first alloc address is 0x0\nBOLT-INFO: creating new program header table at address 0x9000, offset 0x9000\nBOLT-INFO: enabling relocation mode\nBOLT-INFO: static input executable detected\nBOLT-INFO: diagnostic admission report: 3 admitted, 2 rejected, 0 not analyzed; no output ELF\nBOLT-WARNING: ignoring data marker conflicting with function symbol bad_it\nBOLT-WARNING: diagnostic admission rejection: truncated Thumb IT group in bad_it\nBOLT-WARNING: diagnostic admission rejection: unmodeled AArch32 function fallthrough in good_thumb\n",
+        "probe.json": "{\n  \"scope\": \"isolated diagnostic host probe; no hardware or source mutation\",\n  \"tools\": {\n    \"on\": {\n      \"llvm_bolt_sha256\": \"40a1eca3a547f19eed1ec18873a3e301778f1ce965a851eb7de4bda0c777a186\"\n    },\n    \"off\": {\n      \"llvm_bolt_sha256\": \"765678198fe0cdf4fe2523420a23d4a73efc197a8f054386d2285dfdc5c3b152\"\n    }\n  },\n  \"cases\": [\n    {\n      \"mode\": \"on\",\n      \"case\": \"control\",\n      \"exit\": 0,\n      \"input_sha256\": \"dab4e80deba5b3b2e7af6856bac1dae4cde1686ac312862754eb0f954d8873c7\",\n      \"functions\": [\n        {\n          \"address\": 32768,\n          \"isa\": \"A32\",\n          \"name\": \"_start\",\n          \"size\": 12,\n          \"status\": \"admitted\"\n        },\n        {\n          \"address\": 32780,\n          \"isa\": \"T32\",\n          \"name\": \"good_thumb\",\n          \"size\": 2,\n          \"status\": \"admitted\"\n        },\n        {\n          \"address\": 32784,\n          \"isa\": \"T32\",\n          \"name\": \"another_good\",\n          \"size\": 2,\n          \"status\": \"admitted\"\n        },\n        {\n          \"address\": 32788,\n          \"isa\": \"A32\",\n          \"name\": \"last_arm\",\n          \"size\": 4,\n          \"status\": \"admitted\"\n        }\n      ],\n      \"command\": [\n        \"/home/user/bolt-aarch32/build-atfe/bin/llvm-bolt\",\n        \"/home/user/bolt-aarch32/out/astra-review-it-um54d2cy/on-control/input.elf\",\n        \"-o\",\n        \"/dev/null\",\n        \"--no-huge-pages\",\n        \"-lite=0\",\n        \"--arm-admission-report=/home/user/bolt-aarch32/out/astra-review-it-um54d2cy/on-control/report.json\"\n      ]\n    },\n    {\n      \"mode\": \"on\",\n      \"case\": \"truncated_itt\",\n      \"exit\": 0,\n      \"input_sha256\": \"6b7352f415dbce5f1985fbb3ebccf1b197f573ff074e01cde73cffcdb50b3d5f\",\n      \"functions\": [\n        {\n          \"address\": 32768,\n          \"isa\": \"A32\",\n          \"name\": \"_start\",\n          \"size\": 12,\n          \"status\": \"admitted\"\n        },\n        {\n          \"address\": 32780,\n          \"isa\": \"T32\",\n          \"name\": \"bad_it\",\n          \"reason\": \"truncated Thumb IT group in bad_it\",\n          \"size\": 4,\n          \"stage\": \"disassembly\",\n          \"status\": \"rejected\"\n        },\n        {\n          \"address\": 32784,\n          \"isa\": \"T32\",\n          \"name\": \"good_thumb\",\n          \"reason\": \"unmodeled AArch32 function fallthrough in good_thumb\",\n          \"size\": 2,\n          \"stage\": \"cfg\",\n          \"status\": \"rejected\"\n        },\n        {\n          \"address\": 32788,\n          \"isa\": \"T32\",\n          \"name\": \"another_good\",\n          \"size\": 2,\n          \"status\": \"admitted\"\n        },\n        {\n          \"address\": 32792,\n          \"isa\": \"A32\",\n          \"name\": \"last_arm\",\n          \"size\": 4,\n          \"status\": \"admitted\"\n        }\n      ],\n      \"command\": [\n        \"/home/user/bolt-aarch32/build-atfe/bin/llvm-bolt\",\n        \"/home/user/bolt-aarch32/out/astra-review-it-um54d2cy/on-truncated_itt/input.elf\",\n        \"-o\",\n        \"/dev/null\",\n        \"--no-huge-pages\",\n        \"-lite=0\",\n        \"--arm-admission-report=/home/user/bolt-aarch32/out/astra-review-it-um54d2cy/on-truncated_itt/report.json\"\n      ]\n    },\n    {\n      \"mode\": \"on\",\n      \"case\": \"truncated_ite\",\n      \"exit\": 0,\n      \"input_sha256\": \"5c0b19e2e6a902cacd32944c98b38cd5acc5ce930028e163ebc5cd9ecc305d6e\",\n      \"functions\": [\n        {\n          \"address\": 32768,\n          \"isa\": \"A32\",\n          \"name\": \"_start\",\n          \"size\": 12,\n          \"status\": \"admitted\"\n        },\n        {\n          \"address\": 32780,\n          \"isa\": \"T32\",\n          \"name\": \"bad_it\",\n          \"reason\": \"truncated Thumb IT group in bad_it\",\n          \"size\": 4,\n          \"stage\": \"disassembly\",\n          \"status\": \"rejected\"\n        },\n        {\n          \"address\": 32784,\n          \"isa\": \"T32\",\n          \"name\": \"good_thumb\",\n          \"reason\": \"unmodeled AArch32 function fallthrough in good_thumb\",\n          \"size\": 2,\n          \"stage\": \"cfg\",\n          \"status\": \"rejected\"\n        },\n        {\n          \"address\": 32788,\n          \"isa\": \"T32\",\n          \"name\": \"another_good\",\n          \"size\": 2,\n          \"status\": \"admitted\"\n        },\n        {\n          \"address\": 32792,\n          \"isa\": \"A32\",\n          \"name\": \"last_arm\",\n          \"size\": 4,\n          \"status\": \"admitted\"\n        }\n      ],\n      \"command\": [\n        \"/home/user/bolt-aarch32/build-atfe/bin/llvm-bolt\",\n        \"/home/user/bolt-aarch32/out/astra-review-it-um54d2cy/on-truncated_ite/input.elf\",\n        \"-o\",\n        \"/dev/null\",\n        \"--no-huge-pages\",\n        \"-lite=0\",\n        \"--arm-admission-report=/home/user/bolt-aarch32/out/astra-review-it-um54d2cy/on-truncated_ite/report.json\"\n      ]\n    },\n    {\n      \"mode\": \"off\",\n      \"case\": \"control\",\n      \"exit\": 0,\n      \"input_sha256\": \"dab4e80deba5b3b2e7af6856bac1dae4cde1686ac312862754eb0f954d8873c7\",\n      \"functions\": [\n        {\n          \"address\": 32768,\n          \"isa\": \"A32\",\n          \"name\": \"_start\",\n          \"size\": 12,\n          \"status\": \"admitted\"\n        },\n        {\n          \"address\": 32780,\n          \"isa\": \"T32\",\n          \"name\": \"good_thumb\",\n          \"size\": 2,\n          \"status\": \"admitted\"\n        },\n        {\n          \"address\": 32784,\n          \"isa\": \"T32\",\n          \"name\": \"another_good\",\n          \"size\": 2,\n          \"status\": \"admitted\"\n        },\n        {\n          \"address\": 32788,\n          \"isa\": \"A32\",\n          \"name\": \"last_arm\",\n          \"size\": 4,\n          \"status\": \"admitted\"\n        }\n      ],\n      \"command\": [\n        \"/home/user/bolt-aarch32/out/correctness/build-atfe-noasserts-20261002/bin/llvm-bolt\",\n        \"/home/user/bolt-aarch32/out/astra-review-it-um54d2cy/off-control/input.elf\",\n        \"-o\",\n        \"/dev/null\",\n        \"--no-huge-pages\",\n        \"-lite=0\",\n        \"--arm-admission-report=/home/user/bolt-aarch32/out/astra-review-it-um54d2cy/off-control/report.json\"\n      ]\n    },\n    {\n      \"mode\": \"off\",\n      \"case\": \"truncated_itt\",\n      \"exit\": 0,\n      \"input_sha256\": \"6b7352f415dbce5f1985fbb3ebccf1b197f573ff074e01cde73cffcdb50b3d5f\",\n      \"functions\": [\n        {\n          \"address\": 32768,\n          \"isa\": \"A32\",\n          \"name\": \"_start\",\n          \"size\": 12,\n          \"status\": \"admitted\"\n        },\n        {\n          \"address\": 32780,\n          \"isa\": \"T32\",\n          \"name\": \"bad_it\",\n          \"reason\": \"truncated Thumb IT group in bad_it\",\n          \"size\": 4,\n          \"stage\": \"disassembly\",\n          \"status\": \"rejected\"\n        },\n        {\n          \"address\": 32784,\n          \"isa\": \"T32\",\n          \"name\": \"good_thumb\",\n          \"reason\": \"unmodeled AArch32 function fallthrough in good_thumb\",\n          \"size\": 2,\n          \"stage\": \"cfg\",\n          \"status\": \"rejected\"\n        },\n        {\n          \"address\": 32788,\n          \"isa\": \"T32\",\n          \"name\": \"another_good\",\n          \"size\": 2,\n          \"status\": \"admitted\"\n        },\n        {\n          \"address\": 32792,\n          \"isa\": \"A32\",\n          \"name\": \"last_arm\",\n          \"size\": 4,\n          \"status\": \"admitted\"\n        }\n      ],\n      \"command\": [\n        \"/home/user/bolt-aarch32/out/correctness/build-atfe-noasserts-20261002/bin/llvm-bolt\",\n        \"/home/user/bolt-aarch32/out/astra-review-it-um54d2cy/off-truncated_itt/input.elf\",\n        \"-o\",\n        \"/dev/null\",\n        \"--no-huge-pages\",\n        \"-lite=0\",\n        \"--arm-admission-report=/home/user/bolt-aarch32/out/astra-review-it-um54d2cy/off-truncated_itt/report.json\"\n      ]\n    },\n    {\n      \"mode\": \"off\",\n      \"case\": \"truncated_ite\",\n      \"exit\": 0,\n      \"input_sha256\": \"5c0b19e2e6a902cacd32944c98b38cd5acc5ce930028e163ebc5cd9ecc305d6e\",\n      \"functions\": [\n        {\n          \"address\": 32768,\n          \"isa\": \"A32\",\n          \"name\": \"_start\",\n          \"size\": 12,\n          \"status\": \"admitted\"\n        },\n        {\n          \"address\": 32780,\n          \"isa\": \"T32\",\n          \"name\": \"bad_it\",\n          \"reason\": \"truncated Thumb IT group in bad_it\",\n          \"size\": 4,\n          \"stage\": \"disassembly\",\n          \"status\": \"rejected\"\n        },\n        {\n          \"address\": 32784,\n          \"isa\": \"T32\",\n          \"name\": \"good_thumb\",\n          \"reason\": \"unmodeled AArch32 function fallthrough in good_thumb\",\n          \"size\": 2,\n          \"stage\": \"cfg\",\n          \"status\": \"rejected\"\n        },\n        {\n          \"address\": 32788,\n          \"isa\": \"T32\",\n          \"name\": \"another_good\",\n          \"size\": 2,\n          \"status\": \"admitted\"\n        },\n        {\n          \"address\": 32792,\n          \"isa\": \"A32\",\n          \"name\": \"last_arm\",\n          \"size\": 4,\n          \"status\": \"admitted\"\n        }\n      ],\n      \"command\": [\n        \"/home/user/bolt-aarch32/out/correctness/build-atfe-noasserts-20261002/bin/llvm-bolt\",\n        \"/home/user/bolt-aarch32/out/astra-review-it-um54d2cy/off-truncated_ite/input.elf\",\n        \"-o\",\n        \"/dev/null\",\n        \"--no-huge-pages\",\n        \"-lite=0\",\n        \"--arm-admission-report=/home/user/bolt-aarch32/out/astra-review-it-um54d2cy/off-truncated_ite/report.json\"\n      ]\n    }\n  ]\n}\n"
+      }
+    },
+    {
+      "path": "/home/user/bolt-aarch32/out/astra-review-extra-29tt7x0z",
+      "manifest": {
+        "scope": "isolated host probes, assertion-enabled installed toolchain; no hardware or source mutation",
+        "tools": {
+          "llvm-bolt": "40a1eca3a547f19eed1ec18873a3e301778f1ce965a851eb7de4bda0c777a186",
+          "llvm-mc": "0419ed87fde9fa95b827a58cc1e6d2817c0970304c9fb0bd7779e7188122dbed",
+          "ld.lld": "ddfa5d8e0ec27c3035c24b9d8cca749b029b1075f463f4993a5826ef3d52bd1b"
+        },
+        "cases": [
+          {
+            "case": "thunk_cycle",
+            "command": [
+              "/home/user/bolt-aarch32/build-atfe/bin/llvm-bolt",
+              "/home/user/bolt-aarch32/out/astra-review-extra-29tt7x0z/thunk_cycle/input.elf",
+              "-o",
+              "/home/user/bolt-aarch32/out/astra-review-extra-29tt7x0z/thunk_cycle/output.elf",
+              "--no-huge-pages",
+              "-lite=0",
+              "--funcs=_start"
+            ],
+            "exit": "timeout_8s",
+            "input_sha256": "611bf9a471043b0f3e7abe2dfbe75b83b546c6c6c6227130f422194452269a4f",
+            "output_exists": false
+          },
+          {
+            "case": "thunk_self",
+            "command": [
+              "/home/user/bolt-aarch32/build-atfe/bin/llvm-bolt",
+              "/home/user/bolt-aarch32/out/astra-review-extra-29tt7x0z/thunk_self/input.elf",
+              "-o",
+              "/home/user/bolt-aarch32/out/astra-review-extra-29tt7x0z/thunk_self/output.elf",
+              "--no-huge-pages",
+              "-lite=0",
+              "--funcs=_start"
+            ],
+            "exit": 1,
+            "input_sha256": "3372c588201100fb0d916d936bcbd4e91c7554350da9cf5c25b5b66e22944ae6",
+            "output_exists": false
+          },
+          {
+            "case": "thunk_acyclic",
+            "command": [
+              "/home/user/bolt-aarch32/build-atfe/bin/llvm-bolt",
+              "/home/user/bolt-aarch32/out/astra-review-extra-29tt7x0z/thunk_acyclic/input.elf",
+              "-o",
+              "/home/user/bolt-aarch32/out/astra-review-extra-29tt7x0z/thunk_acyclic/output.elf",
+              "--no-huge-pages",
+              "-lite=0",
+              "--funcs=_start"
+            ],
+            "exit": 0,
+            "input_sha256": "bccc1937d9fe4959df0c7014a97d415b007dbd339b8d0c2796ab172a7dbc529c",
+            "output_exists": true
+          },
+          {
+            "case": "table_normal_ldm",
+            "command": [
+              "/home/user/bolt-aarch32/build-atfe/bin/llvm-bolt",
+              "/home/user/bolt-aarch32/out/astra-review-extra-29tt7x0z/table_normal_ldm/input.elf",
+              "-o",
+              "/home/user/bolt-aarch32/out/astra-review-extra-29tt7x0z/table_normal_ldm/output.elf",
+              "--no-huge-pages",
+              "-lite=0",
+              "--funcs=sw"
+            ],
+            "exit": 1,
+            "input_sha256": "7f196e7654df1917e74fb85ea78429c4c50a9ec7b80c45f174cf0554c875d111",
+            "output_exists": false
+          },
+          {
+            "case": "table_sys_ldm",
+            "command": [
+              "/home/user/bolt-aarch32/build-atfe/bin/llvm-bolt",
+              "/home/user/bolt-aarch32/out/astra-review-extra-29tt7x0z/table_sys_ldm/input.elf",
+              "-o",
+              "/home/user/bolt-aarch32/out/astra-review-extra-29tt7x0z/table_sys_ldm/output.elf",
+              "--no-huge-pages",
+              "-lite=0",
+              "--funcs=sw"
+            ],
+            "exit": 0,
+            "input_sha256": "e860d1aeb0b0bf4a84f44b024f06604734e30ff0eb10d3adabfb6d3ff194ee94",
+            "output_exists": true
+          },
+          {
+            "case": "table_safe",
+            "command": [
+              "/home/user/bolt-aarch32/build-atfe/bin/llvm-bolt",
+              "/home/user/bolt-aarch32/out/astra-review-extra-29tt7x0z/table_safe/input.elf",
+              "-o",
+              "/home/user/bolt-aarch32/out/astra-review-extra-29tt7x0z/table_safe/output.elf",
+              "--no-huge-pages",
+              "-lite=0",
+              "--funcs=sw"
+            ],
+            "exit": 0,
+            "input_sha256": "57885fbe79629bf3df8488ddf9bfb1edb0d0eab5ea9300d871c053cfac591d89",
+            "output_exists": true
+          },
+          {
+            "case": "table_imm_8",
+            "command": [
+              "/home/user/bolt-aarch32/build-atfe/bin/llvm-bolt",
+              "/home/user/bolt-aarch32/out/astra-review-extra-29tt7x0z/table_imm_8/input.elf",
+              "-o",
+              "/home/user/bolt-aarch32/out/astra-review-extra-29tt7x0z/table_imm_8/output.elf",
+              "--no-huge-pages",
+              "-lite=0",
+              "--funcs=sw"
+            ],
+            "exit": 0,
+            "input_sha256": "4a1c07f947e742c5ef6283dce1a9041bcc04ce2b4da187491515a4e76afab5cf",
+            "output_exists": true
+          },
+          {
+            "case": "table_imm_256",
+            "command": [
+              "/home/user/bolt-aarch32/build-atfe/bin/llvm-bolt",
+              "/home/user/bolt-aarch32/out/astra-review-extra-29tt7x0z/table_imm_256/input.elf",
+              "-o",
+              "/home/user/bolt-aarch32/out/astra-review-extra-29tt7x0z/table_imm_256/output.elf",
+              "--no-huge-pages",
+              "-lite=0",
+              "--funcs=sw"
+            ],
+            "exit": 1,
+            "input_sha256": "8d803cc971b8b41cba2f1489f13d30f1c6cf0330fc8632995f31d34b65f805c7",
+            "output_exists": false
+          }
+        ]
+      },
+      "input_sha256": {
+        "table_imm_256/input.elf": "8d803cc971b8b41cba2f1489f13d30f1c6cf0330fc8632995f31d34b65f805c7",
+        "table_imm_8/input.elf": "4a1c07f947e742c5ef6283dce1a9041bcc04ce2b4da187491515a4e76afab5cf",
+        "table_normal_ldm/input.elf": "7f196e7654df1917e74fb85ea78429c4c50a9ec7b80c45f174cf0554c875d111",
+        "table_safe/input.elf": "57885fbe79629bf3df8488ddf9bfb1edb0d0eab5ea9300d871c053cfac591d89",
+        "table_sys_ldm/input.elf": "e860d1aeb0b0bf4a84f44b024f06604734e30ff0eb10d3adabfb6d3ff194ee94",
+        "thunk_acyclic/input.elf": "bccc1937d9fe4959df0c7014a97d415b007dbd339b8d0c2796ab172a7dbc529c",
+        "thunk_cycle/input.elf": "611bf9a471043b0f3e7abe2dfbe75b83b546c6c6c6227130f422194452269a4f",
+        "thunk_self/input.elf": "3372c588201100fb0d916d936bcbd4e91c7554350da9cf5c25b5b66e22944ae6"
+      },
+      "text_files": {
+        "probe.json": "{\n  \"scope\": \"isolated host probes, assertion-enabled installed toolchain; no hardware or source mutation\",\n  \"tools\": {\n    \"llvm-bolt\": \"40a1eca3a547f19eed1ec18873a3e301778f1ce965a851eb7de4bda0c777a186\",\n    \"llvm-mc\": \"0419ed87fde9fa95b827a58cc1e6d2817c0970304c9fb0bd7779e7188122dbed\",\n    \"ld.lld\": \"ddfa5d8e0ec27c3035c24b9d8cca749b029b1075f463f4993a5826ef3d52bd1b\"\n  },\n  \"cases\": [\n    {\n      \"case\": \"thunk_cycle\",\n      \"command\": [\n        \"/home/user/bolt-aarch32/build-atfe/bin/llvm-bolt\",\n        \"/home/user/bolt-aarch32/out/astra-review-extra-29tt7x0z/thunk_cycle/input.elf\",\n        \"-o\",\n        \"/home/user/bolt-aarch32/out/astra-review-extra-29tt7x0z/thunk_cycle/output.elf\",\n        \"--no-huge-pages\",\n        \"-lite=0\",\n        \"--funcs=_start\"\n      ],\n      \"exit\": \"timeout_8s\",\n      \"input_sha256\": \"611bf9a471043b0f3e7abe2dfbe75b83b546c6c6c6227130f422194452269a4f\",\n      \"output_exists\": false\n    },\n    {\n      \"case\": \"thunk_self\",\n      \"command\": [\n        \"/home/user/bolt-aarch32/build-atfe/bin/llvm-bolt\",\n        \"/home/user/bolt-aarch32/out/astra-review-extra-29tt7x0z/thunk_self/input.elf\",\n        \"-o\",\n        \"/home/user/bolt-aarch32/out/astra-review-extra-29tt7x0z/thunk_self/output.elf\",\n        \"--no-huge-pages\",\n        \"-lite=0\",\n        \"--funcs=_start\"\n      ],\n      \"exit\": 1,\n      \"input_sha256\": \"3372c588201100fb0d916d936bcbd4e91c7554350da9cf5c25b5b66e22944ae6\",\n      \"output_exists\": false\n    },\n    {\n      \"case\": \"thunk_acyclic\",\n      \"command\": [\n        \"/home/user/bolt-aarch32/build-atfe/bin/llvm-bolt\",\n        \"/home/user/bolt-aarch32/out/astra-review-extra-29tt7x0z/thunk_acyclic/input.elf\",\n        \"-o\",\n        \"/home/user/bolt-aarch32/out/astra-review-extra-29tt7x0z/thunk_acyclic/output.elf\",\n        \"--no-huge-pages\",\n        \"-lite=0\",\n        \"--funcs=_start\"\n      ],\n      \"exit\": 0,\n      \"input_sha256\": \"bccc1937d9fe4959df0c7014a97d415b007dbd339b8d0c2796ab172a7dbc529c\",\n      \"output_exists\": true\n    },\n    {\n      \"case\": \"table_normal_ldm\",\n      \"command\": [\n        \"/home/user/bolt-aarch32/build-atfe/bin/llvm-bolt\",\n        \"/home/user/bolt-aarch32/out/astra-review-extra-29tt7x0z/table_normal_ldm/input.elf\",\n        \"-o\",\n        \"/home/user/bolt-aarch32/out/astra-review-extra-29tt7x0z/table_normal_ldm/output.elf\",\n        \"--no-huge-pages\",\n        \"-lite=0\",\n        \"--funcs=sw\"\n      ],\n      \"exit\": 1,\n      \"input_sha256\": \"7f196e7654df1917e74fb85ea78429c4c50a9ec7b80c45f174cf0554c875d111\",\n      \"output_exists\": false\n    },\n    {\n      \"case\": \"table_sys_ldm\",\n      \"command\": [\n        \"/home/user/bolt-aarch32/build-atfe/bin/llvm-bolt\",\n        \"/home/user/bolt-aarch32/out/astra-review-extra-29tt7x0z/table_sys_ldm/input.elf\",\n        \"-o\",\n        \"/home/user/bolt-aarch32/out/astra-review-extra-29tt7x0z/table_sys_ldm/output.elf\",\n        \"--no-huge-pages\",\n        \"-lite=0\",\n        \"--funcs=sw\"\n      ],\n      \"exit\": 0,\n      \"input_sha256\": \"e860d1aeb0b0bf4a84f44b024f06604734e30ff0eb10d3adabfb6d3ff194ee94\",\n      \"output_exists\": true\n    },\n    {\n      \"case\": \"table_safe\",\n      \"command\": [\n        \"/home/user/bolt-aarch32/build-atfe/bin/llvm-bolt\",\n        \"/home/user/bolt-aarch32/out/astra-review-extra-29tt7x0z/table_safe/input.elf\",\n        \"-o\",\n        \"/home/user/bolt-aarch32/out/astra-review-extra-29tt7x0z/table_safe/output.elf\",\n        \"--no-huge-pages\",\n        \"-lite=0\",\n        \"--funcs=sw\"\n      ],\n      \"exit\": 0,\n      \"input_sha256\": \"57885fbe79629bf3df8488ddf9bfb1edb0d0eab5ea9300d871c053cfac591d89\",\n      \"output_exists\": true\n    },\n    {\n      \"case\": \"table_imm_8\",\n      \"command\": [\n        \"/home/user/bolt-aarch32/build-atfe/bin/llvm-bolt\",\n        \"/home/user/bolt-aarch32/out/astra-review-extra-29tt7x0z/table_imm_8/input.elf\",\n        \"-o\",\n        \"/home/user/bolt-aarch32/out/astra-review-extra-29tt7x0z/table_imm_8/output.elf\",\n        \"--no-huge-pages\",\n        \"-lite=0\",\n        \"--funcs=sw\"\n      ],\n      \"exit\": 0,\n      \"input_sha256\": \"4a1c07f947e742c5ef6283dce1a9041bcc04ce2b4da187491515a4e76afab5cf\",\n      \"output_exists\": true\n    },\n    {\n      \"case\": \"table_imm_256\",\n      \"command\": [\n        \"/home/user/bolt-aarch32/build-atfe/bin/llvm-bolt\",\n        \"/home/user/bolt-aarch32/out/astra-review-extra-29tt7x0z/table_imm_256/input.elf\",\n        \"-o\",\n        \"/home/user/bolt-aarch32/out/astra-review-extra-29tt7x0z/table_imm_256/output.elf\",\n        \"--no-huge-pages\",\n        \"-lite=0\",\n        \"--funcs=sw\"\n      ],\n      \"exit\": 1,\n      \"input_sha256\": \"8d803cc971b8b41cba2f1489f13d30f1c6cf0330fc8632995f31d34b65f805c7\",\n      \"output_exists\": false\n    }\n  ]\n}\n",
+        "table_imm_256/input.s": ".syntax unified\n.arch armv7-a\n.text\n.arm\n.balign 4\n.global _start\n.type _start,%function\n_start:\nbl sw\nb _start\n.size _start,.-_start\n.balign 4\n.global sw\n.type sw,%function\nsw:\nand r2,r0,#3\nadd r3,pc,#256\nnop\nnop\nnop\nnop\nnop\nnop\nnop\nnop\nnop\nnop\nnop\nnop\nnop\nnop\nnop\nnop\nnop\nnop\nnop\nnop\nnop\nnop\nnop\nnop\nnop\nnop\nnop\nnop\nnop\nnop\nnop\nnop\nnop\nnop\nnop\nnop\nnop\nnop\nnop\nnop\nnop\nnop\nnop\nnop\nnop\nnop\nnop\nnop\nnop\nnop\nnop\nnop\nnop\nnop\nnop\nnop\nnop\nnop\nnop\nnop\nnop\nnop\nnop\nnop\nldr pc,[r3,r2,lsl#2]\n.word c1,c2,c3,c4\nc1: mov r0,#1\nbx lr\nc2: mov r0,#2\nbx lr\nc3: mov r0,#3\nbx lr\nc4: mov r0,#4\nbx lr\n\n.size sw,.-sw\n",
+        "table_imm_256/layout.ld": "ENTRY(_start)\nSECTIONS { . = 0x8000; .text : { *(.text*) } }\n",
+        "table_imm_256/run.log": "BOLT-INFO: Target architecture: arm\nBOLT-INFO: BOLT version: bcc08884995ff3cbee70749524621803b9bd258a\nBOLT-INFO: first alloc address is 0x0\nBOLT-INFO: creating new program header table at address 0x9000, offset 0x9000\nBOLT-INFO: enabling relocation mode\nBOLT-INFO: static input executable detected\nFATAL BOLT-ERROR: unsupported AArch32 position-dependent PC read in sw at 0x800c\n",
+        "table_imm_8/input.s": ".syntax unified\n.arch armv7-a\n.text\n.arm\n.balign 4\n.global _start\n.type _start,%function\n_start:\nbl sw\nb _start\n.size _start,.-_start\n.balign 4\n.global sw\n.type sw,%function\nsw:\nand r2,r0,#3\nadd r3,pc,#8\nnop\nnop\nldr pc,[r3,r2,lsl#2]\n.word c1,c2,c3,c4\nc1: mov r0,#1\nbx lr\nc2: mov r0,#2\nbx lr\nc3: mov r0,#3\nbx lr\nc4: mov r0,#4\nbx lr\n\n.size sw,.-sw\n",
+        "table_imm_8/layout.ld": "ENTRY(_start)\nSECTIONS { . = 0x8000; .text : { *(.text*) } }\n",
+        "table_imm_8/run.log": "BOLT-INFO: Target architecture: arm\nBOLT-INFO: BOLT version: bcc08884995ff3cbee70749524621803b9bd258a\nBOLT-INFO: first alloc address is 0x0\nBOLT-INFO: creating new program header table at address 0x9000, offset 0x9000\nBOLT-INFO: enabling relocation mode\nBOLT-INFO: static input executable detected\nBOLT-INFO: number of removed linker-inserted veneers: 0\nBOLT-INFO: 0 out of 2 functions in the binary (0.0%) have non-empty execution profile\nBOLT-INFO: Starting stub-insertion pass\nBOLT-INFO: Inserted 0 stubs in the hot area and 0 stubs in the cold area. Shared 0 times, iterated 1 times.\n",
+        "table_normal_ldm/input.s": ".syntax unified\n.arch armv7-a\n.text\n.arm\n.balign 4\n.global _start\n.type _start,%function\n_start:\nbl sw\nb _start\n.size _start,.-_start\n.balign 4\n.global sw\n.type sw,%function\nsw:\nand r2,r0,#3\nadd r3,pc,#8\nmov r1,r0\nldmia r4,{r3,r5}\nldr pc,[r3,r2,lsl#2]\n.word c1,c2,c3,c4\nc1: add r0,r1,#1\nbx lr\nc2: add r0,r1,#2\nbx lr\nc3: add r0,r1,#3\nbx lr\nc4: add r0,r1,#4\nbx lr\n\n.size sw,.-sw\n",
+        "table_normal_ldm/layout.ld": "ENTRY(_start)\nSECTIONS { . = 0x8000; .text : { *(.text*) } }\n",
+        "table_normal_ldm/run.log": "BOLT-INFO: Target architecture: arm\nBOLT-INFO: BOLT version: bcc08884995ff3cbee70749524621803b9bd258a\nBOLT-INFO: first alloc address is 0x0\nBOLT-INFO: creating new program header table at address 0x9000, offset 0x9000\nBOLT-INFO: enabling relocation mode\nBOLT-INFO: static input executable detected\nFATAL BOLT-ERROR: unsupported AArch32 inline jump table base in sw\n",
+        "table_safe/input.s": ".syntax unified\n.arch armv7-a\n.text\n.arm\n.balign 4\n.global _start\n.type _start,%function\n_start:\nbl sw\nb _start\n.size _start,.-_start\n.balign 4\n.global sw\n.type sw,%function\nsw:\nand r2,r0,#3\nadd r3,pc,#8\nmov r1,r0\nmov r0,#77\nldr pc,[r3,r2,lsl#2]\n.word c1,c2,c3,c4\nc1: add r0,r1,#1\nbx lr\nc2: add r0,r1,#2\nbx lr\nc3: add r0,r1,#3\nbx lr\nc4: add r0,r1,#4\nbx lr\n\n.size sw,.-sw\n",
+        "table_safe/layout.ld": "ENTRY(_start)\nSECTIONS { . = 0x8000; .text : { *(.text*) } }\n",
+        "table_safe/run.log": "BOLT-INFO: Target architecture: arm\nBOLT-INFO: BOLT version: bcc08884995ff3cbee70749524621803b9bd258a\nBOLT-INFO: first alloc address is 0x0\nBOLT-INFO: creating new program header table at address 0x9000, offset 0x9000\nBOLT-INFO: enabling relocation mode\nBOLT-INFO: static input executable detected\nBOLT-INFO: number of removed linker-inserted veneers: 0\nBOLT-INFO: 0 out of 2 functions in the binary (0.0%) have non-empty execution profile\nBOLT-INFO: Starting stub-insertion pass\nBOLT-INFO: Inserted 0 stubs in the hot area and 0 stubs in the cold area. Shared 0 times, iterated 1 times.\n",
+        "table_sys_ldm/input.s": ".syntax unified\n.arch armv7-a\n.text\n.arm\n.balign 4\n.global _start\n.type _start,%function\n_start:\nbl sw\nb _start\n.size _start,.-_start\n.balign 4\n.global sw\n.type sw,%function\nsw:\nand r2,r0,#3\nadd r3,pc,#8\nmov r1,r0\nldmia r4,{r3,r5}^\nldr pc,[r3,r2,lsl#2]\n.word c1,c2,c3,c4\nc1: add r0,r1,#1\nbx lr\nc2: add r0,r1,#2\nbx lr\nc3: add r0,r1,#3\nbx lr\nc4: add r0,r1,#4\nbx lr\n\n.size sw,.-sw\n",
+        "table_sys_ldm/layout.ld": "ENTRY(_start)\nSECTIONS { . = 0x8000; .text : { *(.text*) } }\n",
+        "table_sys_ldm/run.log": "BOLT-INFO: Target architecture: arm\nBOLT-INFO: BOLT version: bcc08884995ff3cbee70749524621803b9bd258a\nBOLT-INFO: first alloc address is 0x0\nBOLT-INFO: creating new program header table at address 0x9000, offset 0x9000\nBOLT-INFO: enabling relocation mode\nBOLT-INFO: static input executable detected\nBOLT-INFO: number of removed linker-inserted veneers: 0\nBOLT-INFO: 0 out of 2 functions in the binary (0.0%) have non-empty execution profile\nBOLT-INFO: Starting stub-insertion pass\nBOLT-INFO: Inserted 0 stubs in the hot area and 0 stubs in the cold area. Shared 0 times, iterated 1 times.\n",
+        "thunk_acyclic/input.s": ".syntax unified\n.arch armv7-a\n.text\n.arm\n.balign 4\n.global _start\n.type _start,%function\n_start:\nbl thunk_a\n.size _start,.-_start\n.balign 4\n.global thunk_a\n.type thunk_a,%function\nthunk_a:\nmovw r12,:lower16:stop\nmovt r12,:upper16:stop\nbx r12\n.size thunk_a,.-thunk_a\n.balign 4\n.global thunk_b\n.type thunk_b,%function\nthunk_b:\nmovw r12,:lower16:thunk_a\nmovt r12,:upper16:thunk_a\nbx r12\n.size thunk_b,.-thunk_b\n.balign 4\n.global stop\n.type stop,%function\nstop:\nb stop\n.size stop,.-stop\n",
+        "thunk_acyclic/layout.ld": "ENTRY(_start)\nSECTIONS { . = 0x8000; .text : { *(.text*) } }\n",
+        "thunk_acyclic/run.log": "BOLT-INFO: Target architecture: arm\nBOLT-INFO: BOLT version: bcc08884995ff3cbee70749524621803b9bd258a\nBOLT-INFO: first alloc address is 0x0\nBOLT-INFO: creating new program header table at address 0x9000, offset 0x9000\nBOLT-INFO: enabling relocation mode\nBOLT-INFO: static input executable detected\nBOLT-INFO: number of removed linker-inserted veneers: 0\nBOLT-INFO: 0 out of 4 functions in the binary (0.0%) have non-empty execution profile\nBOLT-INFO: Starting stub-insertion pass\nBOLT-INFO: Inserted 0 stubs in the hot area and 0 stubs in the cold area. Shared 0 times, iterated 1 times.\n",
+        "thunk_cycle/input.s": ".syntax unified\n.arch armv7-a\n.text\n.arm\n.balign 4\n.global _start\n.type _start,%function\n_start:\nbl thunk_a\n.size _start,.-_start\n.balign 4\n.global thunk_a\n.type thunk_a,%function\nthunk_a:\nmovw r12,:lower16:thunk_b\nmovt r12,:upper16:thunk_b\nbx r12\n.size thunk_a,.-thunk_a\n.balign 4\n.global thunk_b\n.type thunk_b,%function\nthunk_b:\nmovw r12,:lower16:thunk_a\nmovt r12,:upper16:thunk_a\nbx r12\n.size thunk_b,.-thunk_b\n.balign 4\n.global stop\n.type stop,%function\nstop:\nb stop\n.size stop,.-stop\n",
+        "thunk_cycle/layout.ld": "ENTRY(_start)\nSECTIONS { . = 0x8000; .text : { *(.text*) } }\n",
+        "thunk_cycle/run.log": "BOLT-INFO: Target architecture: arm\nBOLT-INFO: BOLT version: bcc08884995ff3cbee70749524621803b9bd258a\nBOLT-INFO: first alloc address is 0x0\nBOLT-INFO: creating new program header table at address 0x9000, offset 0x9000\nBOLT-INFO: enabling relocation mode\nBOLT-INFO: static input executable detected\n",
+        "thunk_self/input.s": ".syntax unified\n.arch armv7-a\n.text\n.arm\n.balign 4\n.global _start\n.type _start,%function\n_start:\nbl thunk_a\n.size _start,.-_start\n.balign 4\n.global thunk_a\n.type thunk_a,%function\nthunk_a:\nmovw r12,:lower16:thunk_a\nmovt r12,:upper16:thunk_a\nbx r12\n.size thunk_a,.-thunk_a\n.balign 4\n.global thunk_b\n.type thunk_b,%function\nthunk_b:\nmovw r12,:lower16:thunk_a\nmovt r12,:upper16:thunk_a\nbx r12\n.size thunk_b,.-thunk_b\n.balign 4\n.global stop\n.type stop,%function\nstop:\nb stop\n.size stop,.-stop\n",
+        "thunk_self/layout.ld": "ENTRY(_start)\nSECTIONS { . = 0x8000; .text : { *(.text*) } }\n",
+        "thunk_self/run.log": "BOLT-INFO: Target architecture: arm\nBOLT-INFO: BOLT version: bcc08884995ff3cbee70749524621803b9bd258a\nBOLT-INFO: first alloc address is 0x0\nBOLT-INFO: creating new program header table at address 0x9000, offset 0x9000\nBOLT-INFO: enabling relocation mode\nBOLT-INFO: static input executable detected\nFATAL BOLT-ERROR: unmodeled AArch32 function fallthrough in _start\n"
+      }
+    }
+  ],
+  "current_source": {
+    "bolt/lib/Core/BinaryFunction.cpp": {
+      "sha256": "d2746da74fe3dfa8d99269270f6c9ec13a2538d78095b579f0dbce16cff96425",
+      "excerpts": [
+        {
+          "start": 1465,
+          "end": 1510,
+          "text": "  if ((H[0] & 0xfbf0) != 0xf240 || (H[1] & 0x0f00) != 0x0c00 ||\n      (H[2] & 0xfbf0) != 0xf2c0 || (H[3] & 0x0f00) != 0x0c00 || H[4] != 0x4760)\n    return std::nullopt;\n  auto imm = [](uint16_t Hi, uint16_t Lo) {\n    return ((Hi & 0xf) << 12) | (((Hi >> 10) & 1) << 11) |\n           (((Lo >> 12) & 7) << 8) | (Lo & 0xff);\n  };\n  return ((uint64_t(imm(H[2], H[3])) << 16) | imm(H[0], H[1])) & ~1ULL;\n}\n\nbool BinaryFunction::isProvenNoReturnARM() const {\n  if (!BC.isARM() || !getSize() || isPseudo())\n    return false;\n  // A linker thunk to a proven noreturn function does not return either.\n  if (std::optional<uint64_t> Thunk = armAbsLongThunkTarget(*this)) {\n    const BinaryFunction *F = BC.getBinaryFunctionAtAddress(*Thunk);\n    return F && F != this && F->getAddress() == *Thunk && F->isProvenNoReturnARM();\n  }\n  std::lock_guard<std::recursive_mutex> Lock(BC.ARMNoReturnMutex);\n  auto It = BC.ARMNoReturnCache.find(this);\n  if (It != BC.ARMNoReturnCache.end())\n    return It->second.value_or(false); // Recursion is not a proof.\n  BC.ARMNoReturnCache[this] = std::nullopt;\n\n  const bool Result = [&] {\n    ErrorOr<ArrayRef<uint8_t>> Data = getData();\n    if (!Data)\n      return false;\n    const bool Thumb = isARMThumb();\n    MCPlusBuilder *MIB = BC.getMIBFor(Thumb);\n    // Plain decode: the symbolic disassembler may hold another function's\n    // symbolizer while this runs from that function's disassembly.\n    MCDisassembler *DisAsm =\n        Thumb && BC.ThumbDisAsm ? BC.ThumbDisAsm.get() : BC.DisAsm.get();\n    // Only the primary entry of a proven function may be relied on.\n    auto targetNoReturn = [&](uint64_t Target) {\n      const BinaryFunction *F = BC.getBinaryFunctionAtAddress(Target);\n      return F && F->getAddress() == Target && F->isProvenNoReturnARM();\n    };\n    bool EndsInExit = false; // The last instruction cannot run off the end.\n    MCInst Inst;\n    uint64_t Size = 0;\n    for (uint64_t Offset = 0; Offset < getSize(); Offset += Size) {\n      if (const size_t DataSize = getSizeOfDataInCodeAt(Offset)) {\n        Size = DataSize;\n        continue;"
+        },
+        {
+          "start": 1930,
+          "end": 1980,
+          "text": "    if (PrefixBodyOffsets.contains(Entry.first))\n      return createFatalBOLTError(\"branch into Thumb IT body in \" + getPrintName());\n    if (LinkCallOffsets.contains(Entry.first))\n      return createFatalBOLTError(\"branch into AArch32 mov-lr/b call in \" +\n                                  getPrintName());\n  }\n\n  // A32 absolute inline tables: every table branch needs its recognized base,\n  // and the base must reach the branch unchanged within one basic block (no\n  // label, control transfer or redefinition of the base register between).\n  if (InvalidAbsoluteTable)\n    return createFatalBOLTError(\"unsupported AArch32 inline jump table in \" +\n                                getPrintName());\n  for (const auto &[TableOff, Pending] : PendingAbsoluteTables) {\n    const auto [BaseReg, BaseOffset] = Pending;\n    const uint64_t BranchOffset = TableOff - 4;\n    auto BranchIt = Instructions.find(BranchOffset);\n    if (BranchIt == Instructions.end() ||\n        !BC.MIB->hasAnnotation(BranchIt->second, \"InlineTable\"))\n      return createFatalBOLTError(\"unsupported AArch32 inline jump table in \" +\n                                  getPrintName());\n    for (auto It = Instructions.upper_bound(BaseOffset); It != BranchIt; ++It)\n      if (Labels.count(It->first) || BC.MIB->isBranch(It->second) ||\n          BC.MIB->isCall(It->second) || BC.MIB->isReturn(It->second) ||\n          BC.MIB->hasDefOfPhysReg(It->second, BaseReg))\n        return createFatalBOLTError(\"unsupported AArch32 inline jump table \"\n                                    \"base in \" + getPrintName());\n    if (Labels.count(BranchOffset))\n      return createFatalBOLTError(\"unsupported AArch32 inline jump table \"\n                                  \"base in \" + getPrintName());\n  }\n  PendingAbsoluteTables.clear();\n\n  // Scope-boundary markers are only consulted while assigning offsets above.\n  DebugScopeBoundaryOffsets.clear();\n\n  // Reset symbolizer for the disassembler.\n  BC.SymbolicDisAsm->setSymbolizer(nullptr);\n  if (BC.ThumbSymbolicDisAsm)\n    BC.ThumbSymbolicDisAsm->setSymbolizer(nullptr);\n\n  if (uint64_t Offset = getFirstInstructionOffset())\n    Labels[Offset] = BC.Ctx->createNamedTempSymbol();\n\n  if (!IsSimple) {\n    clearList(Instructions);\n    return createNonFatalBOLTError(\"\");\n  }\n\n  updateState(State::Disassembled);\n"
+        }
+      ]
+    },
+    "bolt/lib/Target/ARM/ARMMCPlusBuilder.cpp": {
+      "sha256": "a6b10a91c45df4f8cfa4a93df4af55b5db4472b56c0b9527a3f33de7160fe24b",
+      "excerpts": [
+        {
+          "start": 320,
+          "end": 358,
+          "text": "    const unsigned AM2 = Am.getImm();\n    if (ARM_AM::getAM2Op(AM2) != ARM_AM::add ||\n        ARM_AM::getAM2ShiftOpc(AM2) != ARM_AM::lsl ||\n        ARM_AM::getAM2Offset(AM2) != 2)\n      return false;\n    if (Base)\n      *Base = Rn.getReg();\n    return true;\n  }\n\n  bool getPCRelativeBase(const MCInst &Inst, MCPhysReg &Reg,\n                         int64_t &Disp) const override {\n    switch (Inst.getOpcode()) {\n    case ARM::ADR:\n      // (Rd, imm, pred, predreg); the decoder stores the signed offset.\n      if (MCPlus::getNumPrimeOperands(Inst) < 4 || !Inst.getOperand(1).isImm() ||\n          !Inst.getOperand(2).isImm() || Inst.getOperand(2).getImm() != ARMCC::AL)\n        return false;\n      Reg = Inst.getOperand(0).getReg();\n      Disp = Inst.getOperand(1).getImm();\n      return true;\n    case ARM::ADDri:\n    case ARM::SUBri:\n      // (Rd, Rn, imm, pred, predreg, cc_out): Rn = PC, no flag update.\n      if (MCPlus::getNumPrimeOperands(Inst) < 6 || !Inst.getOperand(1).isReg() ||\n          Inst.getOperand(1).getReg() != ARM::PC || !Inst.getOperand(2).isImm() ||\n          !Inst.getOperand(3).isImm() || Inst.getOperand(3).getImm() != ARMCC::AL ||\n          !Inst.getOperand(5).isReg() || Inst.getOperand(5).getReg())\n        return false;\n      Reg = Inst.getOperand(0).getReg();\n      Disp = Inst.getOpcode() == ARM::ADDri ? Inst.getOperand(2).getImm()\n                                            : -Inst.getOperand(2).getImm();\n      return Reg != ARM::PC;\n    default:\n      return false;\n    }\n  }\n\n  void createInlineTableBase(MCInst &Inst, MCPhysReg Reg, const MCSymbol *Label,"
+        }
+      ]
+    },
+    "llvm/lib/Target/ARM/ARMInstrInfo.td": {
+      "sha256": "8d8db9ba203d57b24f0df5939ef3a1134afa30ad705c24b8e78eb7ae16fd2575",
+      "excerpts": [
+        {
+          "start": 3710,
+          "end": 3770,
+          "text": "    AXI4<(outs GPR:$wb), (ins GPR:$Rn, pred:$p, reglist:$regs, variable_ops),\n         IndexModeUpd, f, itin_upd,\n         !strconcat(asm, \"ib${p}\\t$Rn!, $regs\", sfx), \"$Rn = $wb\", []> {\n    let Inst{24-23} = 0b11;       // Increment Before\n    let Inst{22}    = P_bit;\n    let Inst{21}    = 1;          // Writeback\n    let Inst{20}    = L_bit;\n\n    let DecoderMethod = \"DecodeMemMultipleWritebackInstruction\";\n  }\n}\n\nlet hasSideEffects = 0 in {\n\nlet mayLoad = 1, hasExtraDefRegAllocReq = 1, variadicOpsAreDefs = 1 in\ndefm LDM : arm_ldst_mult<\"ldm\", \"\", 1, 0, LdStMulFrm, IIC_iLoad_m,\n                         IIC_iLoad_mu>, ComplexDeprecationPredicate<\"ARMLoad\">;\n\nlet mayStore = 1, hasExtraSrcRegAllocReq = 1 in\ndefm STM : arm_ldst_mult<\"stm\", \"\", 0, 0, LdStMulFrm, IIC_iStore_m,\n                         IIC_iStore_mu>,\n           ComplexDeprecationPredicate<\"ARMStore\">;\n\n} // hasSideEffects\n\n// FIXME: remove when we have a way to marking a MI with these properties.\n// FIXME: Should pc be an implicit operand like PICADD, etc?\nlet isReturn = 1, isTerminator = 1, isBarrier = 1, mayLoad = 1,\n    hasExtraDefRegAllocReq = 1, isCodeGenOnly = 1 in\ndef LDMIA_RET : ARMPseudoExpand<(outs GPR:$wb), (ins GPR:$Rn, pred:$p,\n                                                 reglist:$regs, variable_ops),\n                     4, IIC_iLoad_mBr, [],\n                     (LDMIA_UPD GPR:$wb, GPR:$Rn, pred:$p, reglist:$regs)>,\n      RegConstraint<\"$Rn = $wb\">;\n\nlet mayLoad = 1, hasExtraDefRegAllocReq = 1 in\ndefm sysLDM : arm_ldst_mult<\"ldm\", \" ^\", 1, 1, LdStMulFrm, IIC_iLoad_m,\n                               IIC_iLoad_mu>;\n\nlet mayStore = 1, hasExtraSrcRegAllocReq = 1 in\ndefm sysSTM : arm_ldst_mult<\"stm\", \" ^\", 0, 1, LdStMulFrm, IIC_iStore_m,\n                               IIC_iStore_mu>;\n\n\n\n//===----------------------------------------------------------------------===//\n//  Move Instructions.\n//\n\nlet hasSideEffects = 0, isMoveReg = 1 in\ndef MOVr : AsI1<0b1101, (outs GPR:$Rd), (ins GPR:$Rm), DPFrm, IIC_iMOVr,\n                \"mov\", \"\\t$Rd, $Rm\", []>, UnaryDP, Sched<[WriteALU]> {\n  bits<4> Rd;\n  bits<4> Rm;\n\n  let Inst{19-16} = 0b0000;\n  let Inst{11-4} = 0b00000000;\n  let Inst{25} = 0;\n  let Inst{3-0} = Rm;\n  let Inst{15-12} = Rd;\n}"
+        }
+      ]
+    },
+    "llvm/lib/Target/ARM/Disassembler/ARMDisassembler.cpp": {
+      "sha256": "50915706e76b7898ad2f85551b03642deb3df119e0971b91e8860fb6015861d5",
+      "excerpts": [
+        {
+          "start": 610,
+          "end": 655,
+          "text": "      static_cast<const ARMDisassembler *>(Decoder)->MCII.get();\n  if (Val != ARMCC::AL && !MCII->get(Inst.getOpcode()).isPredicable())\n    Check(S, MCDisassembler::SoftFail);\n  Inst.addOperand(MCOperand::createImm(Val));\n  if (Val == ARMCC::AL) {\n    Inst.addOperand(MCOperand::createReg(ARM::NoRegister));\n  } else\n    Inst.addOperand(MCOperand::createReg(ARM::CPSR));\n  return S;\n}\n\n// This overload is used to decode a `pred` operand that is not encoded into\n// instruction. This is the case for almost all predicable Thumb instructions\n// (exceptions are tBcc and t2Bcc). Some predicable Thumb instructions have ARM\n// equivalents where they are not predicable (always executed). This function\n// is used to decode `pred` operand of these ARM instructions, too.\nstatic DecodeStatus DecodePredicateOperand(MCInst &Inst,\n                                           const MCDisassembler *Decoder) {\n  const auto *D = static_cast<const ARMDisassembler *>(Decoder);\n  unsigned CC = ARMCC::AL;\n  if (D->getSubtargetInfo().hasFeature(ARM::ModeThumb))\n    CC = D->ITBlock.getITCC();\n  MCRegister CondReg = CC == ARMCC::AL ? ARM::NoRegister : ARM::CPSR;\n  Inst.addOperand(MCOperand::createImm(CC));\n  Inst.addOperand(MCOperand::createReg(CondReg));\n  return MCDisassembler::Success;\n}\n\nstatic DecodeStatus DecodeCCOutOperand(MCInst &Inst, unsigned Val,\n                                       uint64_t Address,\n                                       const MCDisassembler *Decoder) {\n  if (Val)\n    Inst.addOperand(MCOperand::createReg(ARM::CPSR));\n  else\n    Inst.addOperand(MCOperand::createReg(ARM::NoRegister));\n  return MCDisassembler::Success;\n}\n\n// This overload is called when decoding `s_cc_out` operand, which is not\n// encoded into instruction. It is only used in Thumb1 instructions.\nstatic DecodeStatus DecodeCCOutOperand(MCInst &Inst,\n                                       const MCDisassembler *Decoder) {\n  const auto *D = static_cast<const ARMDisassembler *>(Decoder);\n  // Thumb1 instructions define CPSR unless they are inside an IT block.\n  MCRegister CCR = D->ITBlock.instrInITBlock() ? ARM::NoRegister : ARM::CPSR;\n  Inst.addOperand(MCOperand::createReg(CCR));"
+        }
+      ]
+    }
+  }
+}
