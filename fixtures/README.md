@@ -11,7 +11,7 @@
 
 Build provenance: LK project `rpi4-bolt-test` (ARM_CPU_CORTEX_A15, Thumb-2
 kernel) with the bolt_bench overlay from `overlay/lk/files/app/bolt_bench/`
-(content-identical at the time of approval), `-marm` module, `WITH_BOLT_PGO`
+(content-identical at the time of approval), default Thumb module (per-function ARM attributes; earlier text said `-marm`), `WITH_BOLT_PGO`
 off, `STAIR_M=10`, `STAIR_X=0`, no FPU/NEON. A rebuild is not guaranteed to be
 bit-identical, so this copy is the reference; certify only against its hash.
 The original lives in WSL at

@@ -24,7 +24,7 @@ CONTRACTS = {
         'bench_source_sha256': 'a48247945d47b359c04f40883361b72c1be87a4a7983aecc299d7c121d0d96d0',
         'composite_source_sha256': '8d830b9ca2a3884270f81cc3b00811f16d6744d5ac838d754664e2ec0ea12adb',
         'rules_sha256': 'c34149eda9808d114cdc8da415a0863ed5de2d2effa3de3c133ed385d3b5a38e',
-        'configuration': 'LK rpi4-bolt-test (ARM_CPU_CORTEX_A15, Thumb-2 kernel); bolt_bench -marm, WITH_BOLT_PGO off; STAIR_M=10, STAIR_X=0, input variant=0; 0 FP/NEON instructions',
+        'configuration': 'LK rpi4-bolt-test (ARM_CPU_CORTEX_A15, Thumb-2 kernel); bolt_bench default Thumb module (39 of 44 functions Thumb; ARM ones by per-function target("arm")) [corrected 2026-10-04: earlier text said -marm], WITH_BOLT_PGO off; STAIR_M=10, STAIR_X=0, input variant=0; 0 FP/NEON instructions',
     },
     # Approved by the user 2026-10-04: T1, the same full LK built for the
     # target core (fixtures/lk-rpi4-bolt-test-a55-47c73bc0.elf).
@@ -34,7 +34,7 @@ CONTRACTS = {
         'bench_source_sha256': 'a48247945d47b359c04f40883361b72c1be87a4a7983aecc299d7c121d0d96d0',
         'composite_source_sha256': '8d830b9ca2a3884270f81cc3b00811f16d6744d5ac838d754664e2ec0ea12adb',
         'rules_sha256': 'c34149eda9808d114cdc8da415a0863ed5de2d2effa3de3c133ed385d3b5a38e',
-        'configuration': 'LK rpi4-bolt-test with RPI4_ARM_CPU=cortex-a55 (LK patch 0011: ARMv8-A AArch32, -mcpu=cortex-a55 -mfpu=none); bolt_bench -marm, WITH_BOLT_PGO off; STAIR_M=10, STAIR_X=0, input variant=0; 0 FP/NEON instructions; v8.0 subset only (runs on the A72)',
+        'configuration': 'LK rpi4-bolt-test with RPI4_ARM_CPU=cortex-a55 (LK patch 0011: ARMv8-A AArch32, -mcpu=cortex-a55 -mfpu=none); bolt_bench default Thumb module (39 of 44 functions Thumb; ARM ones by per-function target("arm")), WITH_BOLT_PGO off; STAIR_M=10, STAIR_X=0, input variant=0; 0 FP/NEON instructions; v8.0 subset only (runs on the A72)',
     },
     # Approved by the user 2026-10-04: T2, A55-built full LK with the
     # `bolt_bench smp` harness (fixtures/lk-rpi4-bolt-test-a55-smp-e1139981.elf).
