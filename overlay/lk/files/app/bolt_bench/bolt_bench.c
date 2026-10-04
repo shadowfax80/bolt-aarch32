@@ -1431,6 +1431,13 @@ static volatile uint32_t g_sample_on;
 static uint32_t g_sample_reload;
 static uint32_t g_sample_cpu;
 static volatile uint32_t g_sample_irqs[4]; /* PMU overflow interrupts seen, per core */
+/* T2: per-core execution evidence. `bolt_sample watch <lo> <hi>` counts, per
+ * core, the samples whose PC lies in [lo, hi) (e.g. a rewritten function), so
+ * the host can require that every core executed it. */
+#define BB_WATCH_MAX 8u
+static uint32_t g_watch_lo[BB_WATCH_MAX], g_watch_hi[BB_WATCH_MAX];
+static volatile uint32_t g_watch_n;
+static volatile uint32_t g_watch_hits[BB_WATCH_MAX][4];
 
 /* not in a public header; defined by dev/interrupt/arm_gic */
 status_t gic_configure_interrupt(unsigned int vector, enum interrupt_trigger_mode tm,
@@ -1452,6 +1459,10 @@ void bolt_sample_on_irq(struct arm_iframe *frame, unsigned int vector) {
     uint32_t i = atomic_add((volatile int *)&g_sample_n, 1);
     if (i < BB_SAMPLE_MAX)
         bolt_sample_buf[i] = (frame->pc & ~1u) | ((frame->spsr >> 5) & 1u);
+    const uint32_t pc = frame->pc & ~1u;
+    for (uint32_t w = 0; w < g_watch_n; w++)
+        if (pc >= g_watch_lo[w] && pc < g_watch_hi[w])
+            g_watch_hits[w][arch_curr_cpu_num() & 3]++;
 }
 
 static void sample_arm_this_cpu(void *unused) {
@@ -1509,6 +1520,20 @@ static int sample_cmd(int argc, const console_cmd_args *argv) {
         printf("bolt_sample: on, every %u cycles\n", (unsigned)period);
         return 0;
     }
+    if (argc > 3 && !strcmp(argv[1].str, "watch")) {
+        if (g_sample_on || g_watch_n >= BB_WATCH_MAX) {
+            printf("bolt_sample: watch must be set before start (max %u)\n", BB_WATCH_MAX);
+            return -1;
+        }
+        g_watch_lo[g_watch_n] = (uint32_t)strtoul(argv[2].str, NULL, 16);
+        g_watch_hi[g_watch_n] = (uint32_t)strtoul(argv[3].str, NULL, 16);
+        for (unsigned c = 0; c < 4; c++)
+            g_watch_hits[g_watch_n][c] = 0;
+        printf("bolt_sample: watch %u 0x%08x-0x%08x\n", (unsigned)g_watch_n,
+               (unsigned)g_watch_lo[g_watch_n], (unsigned)g_watch_hi[g_watch_n]);
+        g_watch_n++;
+        return 0;
+    }
     if (argc > 1 && !strcmp(argv[1].str, "stop")) {
         g_sample_on = 0;
         g_bolt_sampling = 0;
@@ -1521,9 +1546,14 @@ static int sample_cmd(int argc, const console_cmd_args *argv) {
         printf("bolt_sample: cpu %u; PMU interrupts per core: %u %u %u %u\n",
                (unsigned)g_sample_cpu, (unsigned)g_sample_irqs[0], (unsigned)g_sample_irqs[1],
                (unsigned)g_sample_irqs[2], (unsigned)g_sample_irqs[3]);
+        for (uint32_t w = 0; w < g_watch_n; w++)
+            printf("bolt_sample: watch %u hits per core: %u %u %u %u\n", (unsigned)w,
+                   (unsigned)g_watch_hits[w][0], (unsigned)g_watch_hits[w][1],
+                   (unsigned)g_watch_hits[w][2], (unsigned)g_watch_hits[w][3]);
+        g_watch_n = 0;
         return 0;
     }
-    printf("usage: bolt_sample start <cycles> | stop\n");
+    printf("usage: bolt_sample watch <lo_hex> <hi_hex> | start <cycles> | stop\n");
     return -1;
 }
 #endif
