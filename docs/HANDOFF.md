@@ -37,7 +37,7 @@ and update it before stopping. `AGENTS.md` and `CLAUDE.md` point here.
 
 | Holder | Since | Purpose |
 |---|---|---|
-| Claude | 2026-10-04 | R4 (reassigned from Codex by the user) |
+| — (free) | 2026-10-04 | Released by Claude after overlay 0051 |
 
 ## Claims
 
@@ -50,7 +50,7 @@ existing queue in [CORRECTNESS_PRIORITY_TODO.md](CORRECTNESS_PRIORITY_TODO.md).
 | R1 | Thumb `blx` re-patched as `bl` to ARM targets (61 LK sites) | P0 | Claude | Done | 0046; `arm-external-branch-repatch.test`; LK raw output 61 → 0 bad sites |
 | R2 | ARM `B`/`BL`/`BLX` re-patch drops condition and opcode | P0 | Claude | Done | 0046 (also fixes A32 PC+8 and skipped A32 callers) |
 | R3 | Thumb narrow/conditional fixup → relocation mapping | P1 | Claude | Done | 0046 (also fixes Thumb-encoded-as-ARM `b.w`/`bne.w`) |
-| R4 | IT-predicated conditional tail call crashes (`LLVM ERROR`) | P1 | Claude | In progress | Reassigned 2026-10-04 by the user |
+| R4 | Conditional tail calls crash (`LLVM ERROR`), with or without IT | P1 | Claude | Done | 0051; `arm-conditional-tail-call.test`; Pi: 676 IRQs through rewritten `platform_irq` |
 | R5 | Noreturn calls at function end (~80 LK rejections) | P1 | Codex | Open | |
 | R6 | Predicated returns in IT blocks (~45 LK rejections; item 8) | P1 | Codex | Open | |
 | R7 | Far tail call through LongJmp stub becomes `BL` | P1 | Claude | Done | 0049; `arm-far-tail-call.test` |
@@ -73,7 +73,7 @@ Raise BOLT coverage of the full LK test binary, measured only by
 | Step | Item | LK functions recovered | Coverage after (functions) |
 |---|---|---|---|
 | Baseline 2026-10-04 | — | — | 273/417 (65.5%); 79.1% of code bytes |
-| 1 | R4 conditional tail call in IT (crash) | 3 | ~66% |
+| 1 | R4 conditional tail calls (crash) — **done, 0051** | 3 | 276/417 (66.2%); 79.2% of code bytes |
 | 2 | R5 noreturn calls at function end | ~79 (not `bzero`) | ~85% |
 | 3 | R6 predicated returns in IT blocks | ~46 | ~96% |
 | 4 | R12 ADR to inline switch table | 1 | ~96% |
@@ -96,6 +96,32 @@ plus genuine fallthrough such as `bzero`: about 98% of functions.
 4. Update the *Claims* table and LK_COVERAGE.md together.
 
 ## Handoff log
+
+### 2026-10-04 — Claude: R4 done (overlay 0051); lock released
+
+- **Root cause:** not IT-specific. Any AArch32 conditional tail call
+  (`b<c> f` to another function, with or without IT) crashed:
+  `removeConditionalTailCalls()` retargets the branch to a local tail-call
+  block via `convertTailCallToJmp()`, which ARM did not override, so the
+  branch kept its tail-call annotation and `analyzeBranch()` ignored it.
+  0051 adds the override (same as AArch64).
+- **Tests:** new `arm-conditional-tail-call.test` (ARM, Thumb, IT with one
+  and two instructions, default and reversed layout; the predicated ADD
+  keeps its shortened IT). ARM lit 43/43; BOLT lit 853/854 (same unrelated
+  AArch64 test); CoreTests 58 passed; JITLink AArch32 15/15; overlays
+  0001–0051 replay exactly.
+- **Coverage:** 273 → 276/417 functions, 79.1% → 79.2% of code bytes
+  (`platform_irq`, `platform_fiq`, `arm_gic_init_percpu` now rewritten);
+  CFG-crash class gone. [LK_COVERAGE.md](LK_COVERAGE.md),
+  `docs/results/lk_coverage_20261004_r4.json`.
+- **Pi:** full-image candidate (`out/full-check-claude-r4`, 277 emitted)
+  with `platform_irq` and `arm_gic_init_percpu/1` redirected to their
+  rewritten copies: 18/18 results equal baseline and the reference formulas;
+  with the PMU sampler on, 676 interrupts went through the rewritten
+  `platform_irq`. No faults.
+- **Note:** a one-instruction IT around the branch leaves a harmless 2-byte
+  `mov r0, r0` (existing 0027 behaviour).
+- **Next for Codex:** coverage goal step 2 (R5). The lock is free.
 
 ### 2026-10-04 — R4 reassigned to Claude; Claude takes the lock
 

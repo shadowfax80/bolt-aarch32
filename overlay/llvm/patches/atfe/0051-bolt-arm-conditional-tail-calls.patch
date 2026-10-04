@@ -1,0 +1,212 @@
+--- a/bolt/lib/Target/ARM/ARMMCPlusBuilder.cpp
++++ b/bolt/lib/Target/ARM/ARMMCPlusBuilder.cpp
+@@ -1127,6 +1127,18 @@
+     return true;
+   }
+ 
++  // removeConditionalTailCalls() retargets B<c> to a local tail-call block.
++  // The branch must stop being a tail call: analyzeBranch() ignores tail
++  // calls, so a stale annotation leaves a two-successor block without a
++  // conditional branch and the CFG fails validation.
++  bool convertTailCallToJmp(MCInst &Inst) override {
++    removeAnnotation(Inst, MCPlus::MCAnnotation::kTailCall);
++    clearOffset(Inst);
++    if (getConditionalTailCall(Inst))
++      unsetConditionalTailCall(Inst);
++    return true;
++  }
++
+   bool lowerTailCall(MCInst &Inst) override {
+     removeAnnotation(Inst, MCPlus::MCAnnotation::kTailCall);
+     if (getConditionalTailCall(Inst))
+--- /dev/null
++++ b/bolt/test/ARM/Inputs/check-arm-conditional-tail-call.py
+@@ -0,0 +1,179 @@
++from pathlib import Path
++import re
++import shutil
++import subprocess
++import sys
++import tempfile
++
++# Conditional tail calls (B<c> to another function) are split into a local
++# conditional branch to a tail-call block. Before the fix the conditional
++# branch kept its tail-call annotation and llvm-bolt aborted with "invalid
++# AArch32 CFG after branch post-processing". Follow the emitted branches: the
++# condition must reach `taken`, the other path `other`, in every form.
++tc = Path(shutil.which('llvm-bolt')).resolve().parent
++evidence = Path(sys.argv[1])
++evidence.mkdir(parents=True, exist_ok=True)
++out = Path(tempfile.mkdtemp(prefix='run-', dir=evidence))
++print('Evidence:', out)
++
++SRC = r''' .syntax unified
++ .text
++ .arm
++ .global _start
++ .type _start,%function
++_start:
++ blx it1_ctc
++ blx it2_ctc
++ blx plain_ctc
++ bl arm_ctc
++ b _start
++ .size _start,.-_start
++
++ .global arm_ctc
++ .type arm_ctc,%function
++arm_ctc:
++ cmp r0, #3
++ blt arm_taken
++ b arm_other
++ .size arm_ctc,.-arm_ctc
++
++ .global arm_taken
++ .type arm_taken,%function
++arm_taken:
++ add r0, r0, #1
++ bx lr
++ .size arm_taken,.-arm_taken
++
++ .global arm_other
++ .type arm_other,%function
++arm_other:
++ add r0, r0, #2
++ bx lr
++ .size arm_other,.-arm_other
++
++ .thumb
++ .global it1_ctc
++ .type it1_ctc,%function
++ .thumb_func
++it1_ctc:
++ cmp r0, #3
++ it lt
++ blt.w taken
++ b.w other
++ .size it1_ctc,.-it1_ctc
++
++ .global it2_ctc
++ .type it2_ctc,%function
++ .thumb_func
++it2_ctc:
++ cmp r0, #3
++ itt ge
++ addge r1, r1, #1
++ bge.w taken
++ b.w other
++ .size it2_ctc,.-it2_ctc
++
++ .global plain_ctc
++ .type plain_ctc,%function
++ .thumb_func
++plain_ctc:
++ cmp r0, #3
++ bne.w taken
++ b.w other
++ .size plain_ctc,.-plain_ctc
++
++ .global taken
++ .type taken,%function
++ .thumb_func
++taken:
++ adds r0, #1
++ bx lr
++ .size taken,.-taken
++
++ .global other
++ .type other,%function
++ .thumb_func
++other:
++ adds r0, #2
++ bx lr
++ .size other,.-other
++'''
++
++LD = 'ENTRY(_start)\nSECTIONS {\n  . = 0x8000;\n  .text : { *(.text*) }\n}\n'
++
++
++def run(cmd):
++    p = subprocess.run([str(x) for x in cmd], cwd=out, capture_output=True,
++                       text=True)
++    if p.returncode:
++        sys.exit(f'FAIL: {cmd[0]} exited {p.returncode}\n{p.stdout}{p.stderr}')
++    return p.stdout + p.stderr
++
++
++(out / 'in.s').write_text(SRC)
++(out / 'in.ld').write_text(LD)
++run([tc / 'llvm-mc', '-arm-add-build-attributes', '-filetype=obj',
++     '-triple=armv7-unknown-linux-gnueabi', 'in.s', '-o', 'in.o'])
++run([tc / 'ld.lld', '--emit-relocs', '-T', 'in.ld', 'in.o', '-o', 'in.exe'])
++for mode, extra in (('default', []), ('reverse', ['--reorder-blocks=reverse'])):
++    log = run([tc / 'llvm-bolt', 'in.exe', '-o', f'{mode}.exe', '-lite=0',
++               *extra])
++    (out / f'{mode}.log').write_text(log)
++    if 'ERROR' in log:
++        sys.exit(f'FAIL: {mode}: error\n{log}')
++
++    dis = run([tc / 'llvm-objdump', '-d', '--no-show-raw-insn', f'{mode}.exe'])
++    (out / f'{mode}.dis').write_text(dis)
++    insts = {}
++    order = []
++    for line in dis.splitlines():
++        m = re.match(r'\s*([0-9a-f]+):\s+(\S+)\s*([^@]*)', line)
++        if m:
++            addr = int(m.group(1), 16)
++            insts[addr] = (m.group(2), m.group(3).strip())
++            order.append(addr)
++    nxt = {a: b for a, b in zip(order, order[1:])}
++    funcs = {m.group(2): int(m.group(1), 16)
++             for m in re.finditer(r'^([0-9a-f]+) <(\w+)>:', dis, re.M)}
++
++    def reaches(addr, depth=0):
++        """Follow unconditional local branches to a direct tail-call target."""
++        mn, ops = insts[addr]
++        m = re.match(r'b(?:\.w)?$', mn) and re.search(r'<(\w+)(\+0x[0-9a-f]+)?>', ops)
++        if not m:
++            return None
++        if not m.group(2) and m.group(1) in funcs and funcs[m.group(1)] != funcs.get(
++                next((f for f, a in sorted(funcs.items(), key=lambda x: -x[1])
++                      if a <= addr), None)):
++            return m.group(1)
++        target = int(ops.split()[0], 16)
++        return reaches(target, depth + 1) if depth < 4 and target in insts else None
++
++    bad = 0
++    for name, cond, taken, other in (
++            ('arm_ctc', 'lt', 'arm_taken', 'arm_other'),
++            ('it1_ctc', 'lt', 'taken', 'other'),
++            ('it2_ctc', 'ge', 'taken', 'other'),
++            ('plain_ctc', 'ne', 'taken', 'other')):
++        a, got = funcs[name], None
++        while a in insts and a < funcs[name] + 0x40:
++            mn, ops = insts[a]
++            m = re.match(r'b([a-z]{2})(?:\.w)?$', mn)
++            if m and m.group(1) != 'l':
++                # Taken path, then the fall-through path after the branch.
++                got = (m.group(1), reaches(int(ops.split()[0], 16)),
++                       reaches(nxt[a]))
++                break
++            a = nxt.get(a, -1)
++        # Layout may invert the condition: accept either orientation.
++        inv = {'lt': 'ge', 'ge': 'lt', 'ne': 'eq', 'eq': 'ne'}
++        ok = got in ((cond, taken, other), (inv[cond], other, taken))
++        bad += not ok
++        print(f"{'PASS' if ok else 'FAIL'}: {mode}: {name}: {got}")
++    # The predicated ADD keeps its own shortened IT; only the branch leaves it.
++    body = [insts[a] for a in order if funcs['it2_ctc'] <= a < funcs['it2_ctc'] + 8]
++    ok = body[1:3] == [('it', 'ge'), ('addge', 'r1, r1, #0x1')]
++    bad += not ok
++    print(f"{'PASS' if ok else 'FAIL'}: {mode}: it2_ctc keeps 'it ge; addge': {body}")
++    if bad:
++        sys.exit(1)
+--- /dev/null
++++ b/bolt/test/ARM/arm-conditional-tail-call.test
+@@ -0,0 +1,6 @@
++## Conditional tail calls in ARM and Thumb state, with and without an IT
++## block, become a local conditional branch to a tail-call block; the
++## condition reaches the right callee in either block order.
++
++RUN: rm -rf %t.dir
++RUN: %python %p/Inputs/check-arm-conditional-tail-call.py %t.dir
