@@ -10,8 +10,8 @@ before implementation; take the separate live-tree lock before editing/rebuildin
 shared ATFE. Update HANDOFF.md first if status changes, then refresh this view
 when publishing the list. Detailed certification closure criteria remain below.
 
-At publication: **18 remaining items** (7 Open, 11 Partial), all unclaimed;
-**11 completed review items**; live-tree lock free. Resume order is **A → B → C → D**,
+Current: **18 remaining items** (6 Open, 11 Partial, 1 In progress);
+**11 completed review items**; Codex holds the live-tree lock for R11. Resume order is **A → B → C → D**,
 starting at **R11**, then R17. The P1 unblockers precede P0 by the handoff's
 explicit dependency order. Closing a review sub-item does not close its parent
 certification item. Original workstream #12 remains included and open.
@@ -28,7 +28,7 @@ Take items in the order below; groups reflect dependencies, not ownership.
 
 | Order | ID | Item | Priority | Owner | Status | Part of | Notes |
 |---|---|---|---|---|---|---|---|
-| 1 | R11 | Skip-and-report admission mode | P1 | — | Open | — | Replaces the multi-round coverage scan; needed by R17 |
+| 1 | R11 | Skip-and-report admission mode | P1 | Codex | In progress | — | Replaces the multi-round coverage scan; needed by R17; fatal remains default for certification |
 | 2 | R17 | Synthesized edge-case test image (`bolt_edge`), stage 1 (~40 cases) | P1 | — | Open | 7, 8, 11, 12 | Generator emits sources + admission manifest + independent checksums; QEMU + Pi; stage 2 randomized generator later |
 
 **B. P0 certification (finish)**

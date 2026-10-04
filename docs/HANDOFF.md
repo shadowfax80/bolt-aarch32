@@ -39,7 +39,7 @@ and update it before stopping. `AGENTS.md` and `CLAUDE.md` point here.
 
 | Holder | Since | Purpose |
 |---|---|---|
-| — (free) | 2026-10-04 | Released by Claude after overlay 0053 |
+| Codex | 2026-10-04 | R11 skip-and-report admission; source/build validation and overlay 0054 |
 
 ## Claims (consolidated TODO)
 
@@ -50,7 +50,7 @@ One shared list. Review items (R*) come from the 2026-10-04 Claude review
 links an R item to the certification item it contributes to; closing the R
 item does not close that item. *Owner* is empty until someone claims it.
 
-### Open (unclaimed — anyone may take), in resume order
+### Remaining shared work, in resume order
 
 Take items in the order below; groups reflect dependencies, not ownership.
 
@@ -58,7 +58,7 @@ Take items in the order below; groups reflect dependencies, not ownership.
 
 | Order | ID | Item | Priority | Owner | Status | Part of | Notes |
 |---|---|---|---|---|---|---|---|
-| 1 | R11 | Skip-and-report admission mode | P1 | — | Open | — | Replaces the multi-round coverage scan; needed by R17 |
+| 1 | R11 | Skip-and-report admission mode | P1 | Codex | In progress | — | Replaces the multi-round coverage scan; needed by R17; fatal remains default for certification |
 | 2 | R17 | Synthesized edge-case test image (`bolt_edge`), stage 1 (~40 cases) | P1 | — | Open | 7, 8, 11, 12 | Generator emits sources + admission manifest + independent checksums; QEMU + Pi; stage 2 randomized generator later |
 
 **B. P0 certification (finish)**
@@ -141,6 +141,18 @@ plus genuine fallthrough such as `bzero`: about 98% of functions.
 4. Update the *Claims* table and LK_COVERAGE.md together.
 
 ## Handoff log
+
+### 2026-10-04 — Codex claims R11 and takes the live-tree lock
+
+- Starting in the user-approved A → B → C → D order. R11 is claimed by
+  Codex; all other remaining items are unclaimed. Taking the shared ATFE
+  source/build lock before implementation. Planned overlay: 0054.
+- Implement an explicit diagnostic skip-and-report mode, retaining fatal
+  admission by default and conservative input/global guards. Add regression
+  tests, verify both assertion modes, replay the full overlay set and regenerate
+  full-LK coverage before marking R11 done. Next item is R17.
+- Starting recorded coverage: 399/417 functions (95.7%), 97.9% of function code
+  bytes. No backend change or new execution evidence at claim time.
 
 ### 2026-10-04 — Codex: latest shared TODO tables published
 
