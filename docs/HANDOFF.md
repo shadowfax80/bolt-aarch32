@@ -94,13 +94,13 @@ as the A72 allows. Parity per aspect:
 | Execution state / ISA | AArch32, ARMv8.2-A (A55) | AArch32, built as ARMv7-A (`cortex-a15`) | Yes, up to v8.0 (A72) | T1: LK `ARM_CPU` for A55, build with `-mcpu=cortex-a55 -mfpu=none` (A55 scheduling/codegen); scan that no v8.1+ instruction is emitted |
 | Cores | SMP | `WITH_SMP`, 4 cores up; workloads on core 0 only | Yes | T2: run workloads and rewritten code on all 4 cores |
 | Privilege | always SVC | SVC | Yes (matches) | — |
-| Security state | Secure (mostly) | Non-secure | Yes, with a custom firmware stub keeping LK in Secure SVC | T3: Secure-SVC bring-up on the Pi (plan drafted, on hold; needs the user's go-ahead) |
+| Security state | Secure (mostly) | Non-secure | Yes, with a custom firmware stub keeping LK in Secure SVC | T3: Secure-SVC bring-up on the Pi (approved by the user 2026-10-04; after T1 and T2) |
 | FPU / NEON | none | none (`-mfpu=none`, guarded) | Yes (matches) | Keep the guard on every image |
 | PMU sampling | IRQ | IRQ (PMU counter 5 overflow via GIC-400, `bolt_sample_on_irq` hook in `gic_v2.c`, LK patch 0009) | Yes (matches) | Port note: the hook lives in the GICv2 driver; a GICv3 target needs the same hook there |
 | Interrupt controller | SoC-specific (A55 SoCs usually GICv3) | GIC-400 (GICv2) | No | Keep platform code separate from BOLT; document the hook for porting |
 | Microarchitecture | in-order A55 | out-of-order A72 | No | Correctness transfers; performance only on target (T4, user) |
 
-Resume order for parity: T1 → T2 → T3 (after go-ahead), interleaved with the
+Resume order for parity: T1 → T2 → T3 (approved), interleaved with the
 correctness items as listed in *Claims*.
 
 Bottom line: within the declared boundary the backend is functional and Pi-verified
@@ -147,7 +147,7 @@ Take items in the order below; groups reflect dependencies, not ownership.
 | 9 | R12 | ADR to an inline TBB/TBH table (`vsnprintf`) | P2 | — | Open | 12 | Last coverage item |
 | 10 | R13 | Redirect functions starting with a 16-bit instruction | P2 | — | Open | 6c | If not done under 6c |
 | 10a | R21 | A32 `-O0` load-then-jump tables (`add rB, pc, #k; ldr rX, [rB, rI, lsl #2]; mov pc, rX` / `bx rX`) still rejected as PC read | P2 | — | Open | 12 | Found by R17 after R18 (`c_switch_arm_o0`, `c_switch_marm_o0`); extend 0057's table model to a register jump |
-| 10b | T3 | Secure-SVC parity on the Pi: firmware stub that keeps LK in Secure SVC, then rerun the certified gates (rewriting is state-agnostic; PMU sampling is IRQ; no SMC calls) | P1 | — | Needs user go-ahead | 9 | Raised from optional by the PoC parity goal; Secure-SVC plan drafted earlier, on hold |
+| 10b | T3 | Secure-SVC parity on the Pi: firmware stub that keeps LK in Secure SVC, then rerun the certified gates (rewriting is state-agnostic; PMU sampling is IRQ; no SMC calls) | P1 | — | Open (approved 2026-10-04; start after T1 and T2) | 9 | User go-ahead given for the PoC parity goal; start from the earlier Secure-SVC plan |
 | 10c | T4 | Performance and final validation on the real A55 target (A72 gains not transferable) | P2 | User | Out of scope here | — | Done by the user in the office environment, from this repo |
 
 
@@ -164,7 +164,7 @@ Take items in the order below; groups reflect dependencies, not ownership.
 | 17 | 10 | Sampling/PMU ownership | P1 | — | Open | |
 | 18 | 14 | Clean build/content provenance | P1 | — | Partial | Overlay replay only; ISA-aware no-FPU output scanning/metadata needed (0054 audit) |
 
-**Needs the user:** new oracle contracts (6b, T1 v8-A image); go-ahead for Secure-SVC on the Pi (T3, parity).
+**Needs the user:** new oracle contracts (6b, T1 v8-A image).
 
 ### Done
 
@@ -218,6 +218,12 @@ plus genuine fallthrough such as `bzero`: about 98% of functions.
 4. Update the *Claims* table and LK_COVERAGE.md together.
 
 ## Handoff log
+
+### 2026-10-04 — Claude: Secure SVC on the Pi approved (T3)
+
+- User approved Secure-SVC bring-up on the Pi for PoC parity; it follows T1
+  (A55 build) and T2 (SMP). This lifts the earlier "Secure SVC only when the
+  user asks" hold for T3. No code change; lock free.
 
 ### 2026-10-04 — Claude: target platform recorded; T1–T4 added
 
