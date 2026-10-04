@@ -1,0 +1,649 @@
+{
+  "schema": 1,
+  "date": "2026-10-04",
+  "overlay": "0045-bolt-arm-pc-read-admission.patch",
+  "patch_sha256": "a4a7c764b473977024e30f921b58c013e0a9f0fc965d3ed0f03c866d020c2dbe",
+  "scope": "selected decoded PC-read admission; bounded integer-only four-entry QEMU output consistency; no independent whole-LK oracle, new Pi run or clean build proof",
+  "before": {
+    "stage": "/home/user/pc-read-before-r7iuppu7",
+    "rows": [
+      {
+        "build": "on",
+        "isa": "arm",
+        "layout": "normal",
+        "stage": "/home/user/pc-read-before-r7iuppu7/on-arm-normal",
+        "commands": [
+          "/home/user/bolt-aarch32/build-atfe/bin/llvm-bolt",
+          "/home/user/pc-read-before-r7iuppu7/on-arm-normal/input.elf",
+          "--no-huge-pages",
+          "--custom-allocation-vma=0x40000",
+          "--emit-function-map=/home/user/pc-read-before-r7iuppu7/on-arm-normal/output.map",
+          "-o",
+          "/home/user/pc-read-before-r7iuppu7/on-arm-normal/output.elf"
+        ],
+        "results": {
+          "input": 42,
+          "output": -11
+        },
+        "mapping": "_start 10000 41000 10\nprobe 10010 41010 c\n",
+        "bolt_sha256": "2f15093338c0950e9ff696fa18fcaad37febbdff04ac5af6bc67da293f130e31",
+        "images": {
+          "input": "93b2fbef21c037212c181359a7756b0ddc121600a13439d587062eedbede3bd2",
+          "output": "c004d2042e5a164de3cfa143e0518a76e5a75a3b1534aeb1a4b0dd9437a90291"
+        }
+      },
+      {
+        "build": "on",
+        "isa": "arm",
+        "layout": "reverse",
+        "stage": "/home/user/pc-read-before-r7iuppu7/on-arm-reverse",
+        "commands": [
+          "/home/user/bolt-aarch32/build-atfe/bin/llvm-bolt",
+          "/home/user/pc-read-before-r7iuppu7/on-arm-reverse/input.elf",
+          "--no-huge-pages",
+          "--custom-allocation-vma=0x40000",
+          "--emit-function-map=/home/user/pc-read-before-r7iuppu7/on-arm-reverse/output.map",
+          "-o",
+          "/home/user/pc-read-before-r7iuppu7/on-arm-reverse/output.elf",
+          "--reorder-blocks=reverse"
+        ],
+        "results": {
+          "input": 42,
+          "output": -11
+        },
+        "mapping": "_start 10000 41000 10\nprobe 10010 41010 c\n",
+        "bolt_sha256": "2f15093338c0950e9ff696fa18fcaad37febbdff04ac5af6bc67da293f130e31",
+        "images": {
+          "input": "93b2fbef21c037212c181359a7756b0ddc121600a13439d587062eedbede3bd2",
+          "output": "c562c2516b90d4ef9e3e3cb38828538515a0ec4b8b56575ae57c9105a662c900"
+        }
+      },
+      {
+        "build": "on",
+        "isa": "thumb",
+        "layout": "normal",
+        "stage": "/home/user/pc-read-before-r7iuppu7/on-thumb-normal",
+        "commands": [
+          "/home/user/bolt-aarch32/build-atfe/bin/llvm-bolt",
+          "/home/user/pc-read-before-r7iuppu7/on-thumb-normal/input.elf",
+          "--no-huge-pages",
+          "--custom-allocation-vma=0x40000",
+          "--emit-function-map=/home/user/pc-read-before-r7iuppu7/on-thumb-normal/output.map",
+          "-o",
+          "/home/user/pc-read-before-r7iuppu7/on-thumb-normal/output.elf"
+        ],
+        "results": {
+          "input": 42,
+          "output": -11
+        },
+        "mapping": "_start 10000 41000 10\nprobe 10010 41010 8\n",
+        "bolt_sha256": "2f15093338c0950e9ff696fa18fcaad37febbdff04ac5af6bc67da293f130e31",
+        "images": {
+          "input": "79c8cff39769584733789144c7fae58d7013900d246ba0f3bee1cc72e53d7fa0",
+          "output": "da65ea81be01556de7fad98f94337ef6675534646f5ec0bf4e4217d09050270a"
+        }
+      },
+      {
+        "build": "on",
+        "isa": "thumb",
+        "layout": "reverse",
+        "stage": "/home/user/pc-read-before-r7iuppu7/on-thumb-reverse",
+        "commands": [
+          "/home/user/bolt-aarch32/build-atfe/bin/llvm-bolt",
+          "/home/user/pc-read-before-r7iuppu7/on-thumb-reverse/input.elf",
+          "--no-huge-pages",
+          "--custom-allocation-vma=0x40000",
+          "--emit-function-map=/home/user/pc-read-before-r7iuppu7/on-thumb-reverse/output.map",
+          "-o",
+          "/home/user/pc-read-before-r7iuppu7/on-thumb-reverse/output.elf",
+          "--reorder-blocks=reverse"
+        ],
+        "results": {
+          "input": 42,
+          "output": -11
+        },
+        "mapping": "_start 10000 41000 10\nprobe 10010 41010 8\n",
+        "bolt_sha256": "2f15093338c0950e9ff696fa18fcaad37febbdff04ac5af6bc67da293f130e31",
+        "images": {
+          "input": "79c8cff39769584733789144c7fae58d7013900d246ba0f3bee1cc72e53d7fa0",
+          "output": "6d279b50314656b6c6b83e9bed611cd4a1fae5c830021e0a0694c8e5cf47ff39"
+        }
+      },
+      {
+        "build": "off",
+        "isa": "arm",
+        "layout": "normal",
+        "stage": "/home/user/pc-read-before-r7iuppu7/off-arm-normal",
+        "commands": [
+          "/home/user/bolt-aarch32/out/correctness/build-atfe-noasserts-20261002/bin/llvm-bolt",
+          "/home/user/pc-read-before-r7iuppu7/off-arm-normal/input.elf",
+          "--no-huge-pages",
+          "--custom-allocation-vma=0x40000",
+          "--emit-function-map=/home/user/pc-read-before-r7iuppu7/off-arm-normal/output.map",
+          "-o",
+          "/home/user/pc-read-before-r7iuppu7/off-arm-normal/output.elf"
+        ],
+        "results": {
+          "input": 42,
+          "output": -11
+        },
+        "mapping": "_start 10000 41000 10\nprobe 10010 41010 c\n",
+        "bolt_sha256": "218a23999cce557fcaf979d0cb228d556d1f63c2b5fed72b441fa33767af6e2b",
+        "images": {
+          "input": "93b2fbef21c037212c181359a7756b0ddc121600a13439d587062eedbede3bd2",
+          "output": "0e6863d579ad2e9d9bd26fd4cabd72218a2f3e22739d11c4323fb23ce64aae7d"
+        }
+      },
+      {
+        "build": "off",
+        "isa": "arm",
+        "layout": "reverse",
+        "stage": "/home/user/pc-read-before-r7iuppu7/off-arm-reverse",
+        "commands": [
+          "/home/user/bolt-aarch32/out/correctness/build-atfe-noasserts-20261002/bin/llvm-bolt",
+          "/home/user/pc-read-before-r7iuppu7/off-arm-reverse/input.elf",
+          "--no-huge-pages",
+          "--custom-allocation-vma=0x40000",
+          "--emit-function-map=/home/user/pc-read-before-r7iuppu7/off-arm-reverse/output.map",
+          "-o",
+          "/home/user/pc-read-before-r7iuppu7/off-arm-reverse/output.elf",
+          "--reorder-blocks=reverse"
+        ],
+        "results": {
+          "input": 42,
+          "output": -11
+        },
+        "mapping": "_start 10000 41000 10\nprobe 10010 41010 c\n",
+        "bolt_sha256": "218a23999cce557fcaf979d0cb228d556d1f63c2b5fed72b441fa33767af6e2b",
+        "images": {
+          "input": "93b2fbef21c037212c181359a7756b0ddc121600a13439d587062eedbede3bd2",
+          "output": "66b4e3efe9754bc3e91fd350d4fff4f8615c4cdaa40fcb41e81cdb71cfe0a136"
+        }
+      },
+      {
+        "build": "off",
+        "isa": "thumb",
+        "layout": "normal",
+        "stage": "/home/user/pc-read-before-r7iuppu7/off-thumb-normal",
+        "commands": [
+          "/home/user/bolt-aarch32/out/correctness/build-atfe-noasserts-20261002/bin/llvm-bolt",
+          "/home/user/pc-read-before-r7iuppu7/off-thumb-normal/input.elf",
+          "--no-huge-pages",
+          "--custom-allocation-vma=0x40000",
+          "--emit-function-map=/home/user/pc-read-before-r7iuppu7/off-thumb-normal/output.map",
+          "-o",
+          "/home/user/pc-read-before-r7iuppu7/off-thumb-normal/output.elf"
+        ],
+        "results": {
+          "input": 42,
+          "output": -11
+        },
+        "mapping": "_start 10000 41000 10\nprobe 10010 41010 8\n",
+        "bolt_sha256": "218a23999cce557fcaf979d0cb228d556d1f63c2b5fed72b441fa33767af6e2b",
+        "images": {
+          "input": "79c8cff39769584733789144c7fae58d7013900d246ba0f3bee1cc72e53d7fa0",
+          "output": "80ffb2d6fe949afb870d2cb15fa3c398b57ef4325a028bca3806e32e198f2685"
+        }
+      },
+      {
+        "build": "off",
+        "isa": "thumb",
+        "layout": "reverse",
+        "stage": "/home/user/pc-read-before-r7iuppu7/off-thumb-reverse",
+        "commands": [
+          "/home/user/bolt-aarch32/out/correctness/build-atfe-noasserts-20261002/bin/llvm-bolt",
+          "/home/user/pc-read-before-r7iuppu7/off-thumb-reverse/input.elf",
+          "--no-huge-pages",
+          "--custom-allocation-vma=0x40000",
+          "--emit-function-map=/home/user/pc-read-before-r7iuppu7/off-thumb-reverse/output.map",
+          "-o",
+          "/home/user/pc-read-before-r7iuppu7/off-thumb-reverse/output.elf",
+          "--reorder-blocks=reverse"
+        ],
+        "results": {
+          "input": 42,
+          "output": -11
+        },
+        "mapping": "_start 10000 41000 10\nprobe 10010 41010 8\n",
+        "bolt_sha256": "218a23999cce557fcaf979d0cb228d556d1f63c2b5fed72b441fa33767af6e2b",
+        "images": {
+          "input": "79c8cff39769584733789144c7fae58d7013900d246ba0f3bee1cc72e53d7fa0",
+          "output": "106ad9fc813d9f397d9bd9508dc800331336ecad4701e4ce02bffd7e53bca566"
+        }
+      }
+    ]
+  },
+  "after": {
+    "stage": "/tmp/pc-read-after-fq12ax0v",
+    "rows": [
+      {
+        "build": "on",
+        "isa": "arm",
+        "layout": "normal",
+        "stage": "/tmp/pc-read-after-fq12ax0v/on-arm-normal",
+        "commands": [
+          "/home/user/bolt-aarch32/build-atfe/bin/llvm-bolt",
+          "/home/user/pc-read-before-r7iuppu7/on-arm-normal/input.elf",
+          "--no-huge-pages",
+          "--custom-allocation-vma=0x40000",
+          "--emit-function-map=/tmp/pc-read-after-fq12ax0v/on-arm-normal/output.map",
+          "-o",
+          "/tmp/pc-read-after-fq12ax0v/on-arm-normal/output.elf"
+        ],
+        "baseline_exit": 42,
+        "bolt_exit": 1,
+        "output_absent": true,
+        "map_absent": true,
+        "bolt_sha256": "31590d2a6cb2a03eda589fec2d084f6cff6a2b96276be65e2763f42badec665b",
+        "input_sha256": "93b2fbef21c037212c181359a7756b0ddc121600a13439d587062eedbede3bd2"
+      },
+      {
+        "build": "on",
+        "isa": "arm",
+        "layout": "reverse",
+        "stage": "/tmp/pc-read-after-fq12ax0v/on-arm-reverse",
+        "commands": [
+          "/home/user/bolt-aarch32/build-atfe/bin/llvm-bolt",
+          "/home/user/pc-read-before-r7iuppu7/on-arm-reverse/input.elf",
+          "--no-huge-pages",
+          "--custom-allocation-vma=0x40000",
+          "--emit-function-map=/tmp/pc-read-after-fq12ax0v/on-arm-reverse/output.map",
+          "-o",
+          "/tmp/pc-read-after-fq12ax0v/on-arm-reverse/output.elf",
+          "--reorder-blocks=reverse"
+        ],
+        "baseline_exit": 42,
+        "bolt_exit": 1,
+        "output_absent": true,
+        "map_absent": true,
+        "bolt_sha256": "31590d2a6cb2a03eda589fec2d084f6cff6a2b96276be65e2763f42badec665b",
+        "input_sha256": "93b2fbef21c037212c181359a7756b0ddc121600a13439d587062eedbede3bd2"
+      },
+      {
+        "build": "on",
+        "isa": "thumb",
+        "layout": "normal",
+        "stage": "/tmp/pc-read-after-fq12ax0v/on-thumb-normal",
+        "commands": [
+          "/home/user/bolt-aarch32/build-atfe/bin/llvm-bolt",
+          "/home/user/pc-read-before-r7iuppu7/on-thumb-normal/input.elf",
+          "--no-huge-pages",
+          "--custom-allocation-vma=0x40000",
+          "--emit-function-map=/tmp/pc-read-after-fq12ax0v/on-thumb-normal/output.map",
+          "-o",
+          "/tmp/pc-read-after-fq12ax0v/on-thumb-normal/output.elf"
+        ],
+        "baseline_exit": 42,
+        "bolt_exit": 1,
+        "output_absent": true,
+        "map_absent": true,
+        "bolt_sha256": "31590d2a6cb2a03eda589fec2d084f6cff6a2b96276be65e2763f42badec665b",
+        "input_sha256": "79c8cff39769584733789144c7fae58d7013900d246ba0f3bee1cc72e53d7fa0"
+      },
+      {
+        "build": "on",
+        "isa": "thumb",
+        "layout": "reverse",
+        "stage": "/tmp/pc-read-after-fq12ax0v/on-thumb-reverse",
+        "commands": [
+          "/home/user/bolt-aarch32/build-atfe/bin/llvm-bolt",
+          "/home/user/pc-read-before-r7iuppu7/on-thumb-reverse/input.elf",
+          "--no-huge-pages",
+          "--custom-allocation-vma=0x40000",
+          "--emit-function-map=/tmp/pc-read-after-fq12ax0v/on-thumb-reverse/output.map",
+          "-o",
+          "/tmp/pc-read-after-fq12ax0v/on-thumb-reverse/output.elf",
+          "--reorder-blocks=reverse"
+        ],
+        "baseline_exit": 42,
+        "bolt_exit": 1,
+        "output_absent": true,
+        "map_absent": true,
+        "bolt_sha256": "31590d2a6cb2a03eda589fec2d084f6cff6a2b96276be65e2763f42badec665b",
+        "input_sha256": "79c8cff39769584733789144c7fae58d7013900d246ba0f3bee1cc72e53d7fa0"
+      },
+      {
+        "build": "off",
+        "isa": "arm",
+        "layout": "normal",
+        "stage": "/tmp/pc-read-after-fq12ax0v/off-arm-normal",
+        "commands": [
+          "/home/user/bolt-aarch32/out/correctness/build-atfe-noasserts-20261002/bin/llvm-bolt",
+          "/home/user/pc-read-before-r7iuppu7/off-arm-normal/input.elf",
+          "--no-huge-pages",
+          "--custom-allocation-vma=0x40000",
+          "--emit-function-map=/tmp/pc-read-after-fq12ax0v/off-arm-normal/output.map",
+          "-o",
+          "/tmp/pc-read-after-fq12ax0v/off-arm-normal/output.elf"
+        ],
+        "baseline_exit": 42,
+        "bolt_exit": 1,
+        "output_absent": true,
+        "map_absent": true,
+        "bolt_sha256": "8fc4ebc26cd202beda700f164312bc7a48ee6f1fe6d94bbb46dd23b580fa00a6",
+        "input_sha256": "93b2fbef21c037212c181359a7756b0ddc121600a13439d587062eedbede3bd2"
+      },
+      {
+        "build": "off",
+        "isa": "arm",
+        "layout": "reverse",
+        "stage": "/tmp/pc-read-after-fq12ax0v/off-arm-reverse",
+        "commands": [
+          "/home/user/bolt-aarch32/out/correctness/build-atfe-noasserts-20261002/bin/llvm-bolt",
+          "/home/user/pc-read-before-r7iuppu7/off-arm-reverse/input.elf",
+          "--no-huge-pages",
+          "--custom-allocation-vma=0x40000",
+          "--emit-function-map=/tmp/pc-read-after-fq12ax0v/off-arm-reverse/output.map",
+          "-o",
+          "/tmp/pc-read-after-fq12ax0v/off-arm-reverse/output.elf",
+          "--reorder-blocks=reverse"
+        ],
+        "baseline_exit": 42,
+        "bolt_exit": 1,
+        "output_absent": true,
+        "map_absent": true,
+        "bolt_sha256": "8fc4ebc26cd202beda700f164312bc7a48ee6f1fe6d94bbb46dd23b580fa00a6",
+        "input_sha256": "93b2fbef21c037212c181359a7756b0ddc121600a13439d587062eedbede3bd2"
+      },
+      {
+        "build": "off",
+        "isa": "thumb",
+        "layout": "normal",
+        "stage": "/tmp/pc-read-after-fq12ax0v/off-thumb-normal",
+        "commands": [
+          "/home/user/bolt-aarch32/out/correctness/build-atfe-noasserts-20261002/bin/llvm-bolt",
+          "/home/user/pc-read-before-r7iuppu7/off-thumb-normal/input.elf",
+          "--no-huge-pages",
+          "--custom-allocation-vma=0x40000",
+          "--emit-function-map=/tmp/pc-read-after-fq12ax0v/off-thumb-normal/output.map",
+          "-o",
+          "/tmp/pc-read-after-fq12ax0v/off-thumb-normal/output.elf"
+        ],
+        "baseline_exit": 42,
+        "bolt_exit": 1,
+        "output_absent": true,
+        "map_absent": true,
+        "bolt_sha256": "8fc4ebc26cd202beda700f164312bc7a48ee6f1fe6d94bbb46dd23b580fa00a6",
+        "input_sha256": "79c8cff39769584733789144c7fae58d7013900d246ba0f3bee1cc72e53d7fa0"
+      },
+      {
+        "build": "off",
+        "isa": "thumb",
+        "layout": "reverse",
+        "stage": "/tmp/pc-read-after-fq12ax0v/off-thumb-reverse",
+        "commands": [
+          "/home/user/bolt-aarch32/out/correctness/build-atfe-noasserts-20261002/bin/llvm-bolt",
+          "/home/user/pc-read-before-r7iuppu7/off-thumb-reverse/input.elf",
+          "--no-huge-pages",
+          "--custom-allocation-vma=0x40000",
+          "--emit-function-map=/tmp/pc-read-after-fq12ax0v/off-thumb-reverse/output.map",
+          "-o",
+          "/tmp/pc-read-after-fq12ax0v/off-thumb-reverse/output.elf",
+          "--reorder-blocks=reverse"
+        ],
+        "baseline_exit": 42,
+        "bolt_exit": 1,
+        "output_absent": true,
+        "map_absent": true,
+        "bolt_sha256": "8fc4ebc26cd202beda700f164312bc7a48ee6f1fe6d94bbb46dd23b580fa00a6",
+        "input_sha256": "79c8cff39769584733789144c7fae58d7013900d246ba0f3bee1cc72e53d7fa0"
+      }
+    ]
+  },
+  "matrix": {
+    "on": {
+      "path": "out/correctness/memcpy-coverage-20261004/matrix-on-release/pc-reads-oxkllsqb/results.json",
+      "sha256": "b87b450023b9b572973d3d2fd9e646bab9beb2f512bc88f1818840d379e63e1c",
+      "cases": 189,
+      "rejections": 145,
+      "admissions": 44
+    },
+    "off": {
+      "path": "out/correctness/memcpy-coverage-20261004/matrix-off-final/pc-reads-g693ve78/results.json",
+      "sha256": "b87b450023b9b572973d3d2fd9e646bab9beb2f512bc88f1818840d379e63e1c",
+      "cases": 189,
+      "rejections": 145,
+      "admissions": 44
+    }
+  },
+  "focused_suites": {
+    "on": {
+      "passed": 53,
+      "unsupported": 0
+    },
+    "off": {
+      "passed": 52,
+      "unsupported": 1,
+      "unsupported_test": "ELF_data_alignment.s requires assertions"
+    }
+  },
+  "core_tests": {
+    "per_build_passed": 58,
+    "per_build_skipped": 31
+  },
+  "test_logs": {
+    "lit-on": {
+      "path": "out/correctness/memcpy-coverage-20261004/lit-on-final.log",
+      "sha256": "3cf2baaeb7bb47f94efeb2544b2f4d1984cbe50b44ad2d1eb042017aca4f8663"
+    },
+    "core-on": {
+      "path": "out/correctness/memcpy-coverage-20261004/core-on-final.log",
+      "sha256": "d92443ba397e73f31bfcb7d0f5c1b2d2de24c2ed5115e4f78c63924f34427915"
+    },
+    "lit-off": {
+      "path": "out/correctness/memcpy-coverage-20261004/lit-off-final.log",
+      "sha256": "d999875cede7ba2b5bbcbe56d2b0a2c115d974d84fd87e4a972b1f9371d91fb2"
+    },
+    "core-off": {
+      "path": "out/correctness/memcpy-coverage-20261004/core-off-final.log",
+      "sha256": "329ca96eacc39a02ae12f215b13ac1db63ac84114cab388d1f018a39700cd86d"
+    }
+  },
+  "replay": {
+    "path": "out/correctness/memcpy-coverage-20261004/replay-45/replay.json",
+    "sha256": "3af98764ce722997ef328d2efe8d87b77e0765ae24c0f0f397fb6070df67a6ed"
+  },
+  "source_identity_sha256": "b8d61f9d3724fd81d54c76d3cf89b04621d994e0780e1725bc32c37a0a4875f4",
+  "source_changes": {
+    "bolt/include/bolt/Core/MCPlusBuilder.h": {
+      "before": "7f83ec0c41be077b7a0fad567208fb6c9454c6de1437d6a05545b68db759311a",
+      "after": "76fcda5572c2b6e9f4aa6fa451b8c4ea4f356aa15c7023ce7ef7762d9422ba7a"
+    },
+    "bolt/lib/Target/ARM/ARMMCPlusBuilder.cpp": {
+      "before": "37239bd80cc7aa61b25dc8da463bb5b183b93e202df47defb7cb6055929ee185",
+      "after": "6a9d25bcd69dee43ccdd85a58a283d3ede2b608148a5f3733ad814a515537c4b"
+    },
+    "bolt/lib/Core/BinaryFunction.cpp": {
+      "before": "f9e815912180352a03d7375db98dc9337ecdcd202155c0cf1af3d305e94864e1",
+      "after": "9dcc43c3d620c209a3b7f5c490de8d01ad8d331f8cf6a4ae315130a27cbdc868"
+    },
+    "bolt/test/ARM/Inputs/check-arm-inline-safety.py": {
+      "before": "5ffadd07f61cf2a73ba80620d013ff8aa3e447f2aa2c01d4369a88f2d38db9f1",
+      "after": "8ddb7a3084007240b85955dded75e63417df6baa713a87bf813bfd5b87f949e7"
+    },
+    "bolt/test/ARM/arm-pc-reads.test": {
+      "before": null,
+      "after": "a508c136ea8938144806a6389eba412ae1a9e44b8c548834e0b3ba4372baccb9"
+    },
+    "bolt/test/ARM/Inputs/check-arm-pc-reads.py": {
+      "before": null,
+      "after": "67de2cdfb49e10547ae61936416179c762f12a4372829e0ed9ac98576938c789"
+    }
+  },
+  "integer_fixture": {
+    "stage": "/home/user/qemu-integer-reserve-5rv7_oq8",
+    "elf": "/home/user/qemu-integer-reserve-5rv7_oq8/lk/build-qemu-virt-arm32-test/lk.elf",
+    "elf_sha256": "e13fa5f45c1b9f970ac29221b15b6efad73c490e291cebd9b06493704f20db20",
+    "make": [
+      "make",
+      "qemu-virt-arm32-test",
+      "SIZE=size",
+      "BOLT_BENCH_ISA=arm",
+      "GLOBAL_LDFLAGS=--gc-sections --emit-relocs --undefined=__bolt_reserved_start",
+      "-j2"
+    ],
+    "clang_sha256": "296dd268c36e9431e2fcc4e2f89ee3fa1cf66e47f5487df73fca85ea8999ecc6",
+    "lld_sha256": "21f3d1e800b8de414efc347ed4630126d22996cddf663d92004af5e089b51be9",
+    "source_files": {
+      "app/bolt_bench/bolt_bench.c": "dec4cca0ca0bb0c45e9ed85d166e3b66ad3363638ae781fe32bd8c20b65b5087",
+      "app/bolt_bench/rules.mk": "ea8c49a2d016ee24fab40ccd439cac077cf02922ad75c7681834e9b198719bad",
+      "app/bolt_bench/composite.c": "a42b1249a8ce739a64b6a9a7086352d5f1d0dfaef0a51a12b06f1c305e873f29",
+      "project/qemu-virt-arm32-test.mk": "8ada997e3f2f925886add80237ae1523a4e203a3bf5b13d6d25927e5f33fc8f5"
+    },
+    "scope": "isolated dirty LK copy, linked 64KiB reservation and explicitly integer-only benchmark module; not original NEON memcpy or clean provenance"
+  },
+  "four_entry_execution": {
+    "on": {
+      "build": {
+        "path": "out/correctness/memcpy-coverage-20261004/four-on-final/build-e07hkjm7/build.json",
+        "sha256": "ff9beee5d6768c572dc9aff4e5ecfad0aa824bd16470338f38127b818a9420ba"
+      },
+      "verification": {
+        "path": "out/correctness/memcpy-coverage-20261004/four-on-final/build-e07hkjm7/verification/rewrite-33toy9vw/rewrite.json",
+        "sha256": "b12ce0b82d1e488e85f4c8e7e00495cf666cc0c36c7c35a1433a77d90d656b74"
+      },
+      "selected": [
+        "bolt_bench_hot_loop",
+        "bolt_bench_hot_cold",
+        "bolt_bench_branch_chain",
+        "bolt_bench_memcpy"
+      ],
+      "executed": [
+        {
+          "name": "bolt_bench_hot_loop",
+          "pairs": 1,
+          "input": 2148545116,
+          "output": 2149158912,
+          "thumb": false
+        },
+        {
+          "name": "bolt_bench_hot_cold",
+          "pairs": 1,
+          "input": 2148545180,
+          "output": 2149158976,
+          "thumb": false
+        },
+        {
+          "name": "bolt_bench_branch_chain",
+          "pairs": 1,
+          "input": 2148545240,
+          "output": 2149159040,
+          "thumb": false
+        },
+        {
+          "name": "bolt_bench_memcpy",
+          "pairs": 1,
+          "input": 2148546284,
+          "output": 2149159256,
+          "thumb": false
+        }
+      ],
+      "results": {
+        "hot_loop": "0x6a4ae6e0",
+        "hot_cold": "0x00000000",
+        "branch_chain": "0x007a5100",
+        "memcpy": "0x5acd3dc5",
+        "far_call": "0xb7082fa9",
+        "it_cond": "0x021e8480",
+        "interwork": "0x2fb21555",
+        "switch": "0xa953bbf0",
+        "spill_ret": "0x504980a0",
+        "litpool": "0x16b596e0",
+        "indirect_call": "0x0e6aac80",
+        "interwork_tail": "0xda3416f0",
+        "regpressure": "0xc5da3550",
+        "hotcold_split": "0xd4751003",
+        "icf": "0xdc7c3be0",
+        "shrinkwrap": "0x6a1b87d4",
+        "composite": "0x939f4ea0",
+        "stair": "0x9fef2a18"
+      },
+      "tools": {
+        "llvm-bolt": "31590d2a6cb2a03eda589fec2d084f6cff6a2b96276be65e2763f42badec665b",
+        "llvm-nm": "3bf529fd49cf73c6eb8c0049fd15b85933195cdfedcd0084451fffa1f2ceafe5",
+        "llvm-readelf": "34ffb11d9ed81366c93817f462483e1d76b341c90d35f85895d5b768b0b974ac"
+      },
+      "scope": "selected entry TB execution/ISA witnesses and complete output consistency; no independent whole-LK oracle, hardware or clean-build proof"
+    },
+    "off": {
+      "build": {
+        "path": "out/correctness/memcpy-coverage-20261004/four-off-final/build-tmci21xn/build.json",
+        "sha256": "7737ad084d3f7cc34315887101f97e19d325849b4844c62adc3a48646f46ee17"
+      },
+      "verification": {
+        "path": "out/correctness/memcpy-coverage-20261004/four-off-final/build-tmci21xn/verification/rewrite-2d7xuubp/rewrite.json",
+        "sha256": "03b315ee6efe6d458e5a7dc23bdbff362c5f6e112a1f286833f7c8074215c593"
+      },
+      "selected": [
+        "bolt_bench_hot_loop",
+        "bolt_bench_hot_cold",
+        "bolt_bench_branch_chain",
+        "bolt_bench_memcpy"
+      ],
+      "executed": [
+        {
+          "name": "bolt_bench_hot_loop",
+          "pairs": 1,
+          "input": 2148545116,
+          "output": 2149158912,
+          "thumb": false
+        },
+        {
+          "name": "bolt_bench_hot_cold",
+          "pairs": 1,
+          "input": 2148545180,
+          "output": 2149158976,
+          "thumb": false
+        },
+        {
+          "name": "bolt_bench_branch_chain",
+          "pairs": 1,
+          "input": 2148545240,
+          "output": 2149159040,
+          "thumb": false
+        },
+        {
+          "name": "bolt_bench_memcpy",
+          "pairs": 1,
+          "input": 2148546284,
+          "output": 2149159256,
+          "thumb": false
+        }
+      ],
+      "results": {
+        "hot_loop": "0x6a4ae6e0",
+        "hot_cold": "0x00000000",
+        "branch_chain": "0x007a5100",
+        "memcpy": "0x5acd3dc5",
+        "far_call": "0xb7082fa9",
+        "it_cond": "0x021e8480",
+        "interwork": "0x2fb21555",
+        "switch": "0xa953bbf0",
+        "spill_ret": "0x504980a0",
+        "litpool": "0x16b596e0",
+        "indirect_call": "0x0e6aac80",
+        "interwork_tail": "0xda3416f0",
+        "regpressure": "0xc5da3550",
+        "hotcold_split": "0xd4751003",
+        "icf": "0xdc7c3be0",
+        "shrinkwrap": "0x6a1b87d4",
+        "composite": "0x939f4ea0",
+        "stair": "0x9fef2a18"
+      },
+      "tools": {
+        "llvm-bolt": "8fc4ebc26cd202beda700f164312bc7a48ee6f1fe6d94bbb46dd23b580fa00a6",
+        "llvm-nm": "3bf529fd49cf73c6eb8c0049fd15b85933195cdfedcd0084451fffa1f2ceafe5",
+        "llvm-readelf": "34ffb11d9ed81366c93817f462483e1d76b341c90d35f85895d5b768b0b974ac"
+      },
+      "scope": "selected entry TB execution/ISA witnesses and complete output consistency; no independent whole-LK oracle, hardware or clean-build proof"
+    }
+  },
+  "remaining": [
+    "original NEON memcpy emission and relocation",
+    "independent workload oracles",
+    "compatible far-safety live witness and fresh Pi execution",
+    "wider ISA/pass/reference coverage",
+    "interrupt and PMU ownership",
+    "manual hooks and clean provenance"
+  ]
+}

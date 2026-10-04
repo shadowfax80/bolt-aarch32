@@ -1,5 +1,11 @@
 # Known limitations and improvement items
 
+> **0045 audit (2026-10-04):** moving unmodeled PC reads caused eight reproduced
+> ARM/Thumb crashes. Selected decoded reads now reject conservatively. Four
+> integer-only reserved LK entries execute in both builds; original NEON memcpy,
+> independent oracles and rebuilding the old MOV-PC Pi witness remain open.
+> See [PC-read contract](AARCH32_PC_READ_ADMISSION.md).
+
 > **QEMU gate audit (2026-10-04):** old workload banners could pass without
 > sink results and child failures were ignored. Four runtime paths now require
 > complete ordered results and fresh baseline equality. This remains output

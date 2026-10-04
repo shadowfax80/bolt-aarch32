@@ -6,7 +6,7 @@ Queue positions below are new priorities; the original twelve workstream IDs
 remain stable in [CORRECTNESS_TODO.md](CORRECTNESS_TODO.md).
 
 ATFE only. Items 1-5 have verified scoped fixes in overlays 0039-0043.
-Item 6 is active; its gate-hardening, four-ISA QEMU (0044) and sparse Pi far-call stages are verified. The user
+Item 6 is active; gate hardening, four-ISA QEMU (0044), historical sparse Pi far calls, PC-read admission (0045) and four reserved integer-only ARM entries are scoped verified. The user
 reactivated #12 on 2026-10-02; all its remaining work is included below. Nothing
 is paused in this correctness queue. Three original
 items are complete in their bounded scope (#2/#8/#10); nine remain open.
@@ -20,7 +20,7 @@ items are complete in their bounded scope (#2/#8/#10); nine remain open.
 | 3 · P0 | ISA/profile/ABI admission | Verified conservative contract; 0041 + Pi |
 | 4 · P0 | Fixed-load ELF/PIE boundary | Verified fixed-load admission; 0042 |
 | 5 · P0 | Exact profile/artifact identity | Verified sealed pipeline scope; 0043; #12 active |
-| 6 · P0 | Execution/result gate integrity | Active; gate hardening, four-ISA QEMU/Pi, measurement association, complete workloads and three reserved ARM entries verified; memcpy/oracle/wider proof pending |
+| 6 · P0 | Execution/result gate integrity | Active; 0045 PC-read guard and four reserved integer-only ARM entries verified; original NEON memcpy, independent oracles, updated Pi witnesses and wider proof pending |
 | 7 · P1 | Relocation/literal matrix | Partial; remaining work pending |
 | 8 · P1 | Control-flow/mutation invariants | Partial; remaining work pending |
 | 9 · P1 | Interrupt/reentrancy boundaries | Partial; remaining work pending |
@@ -92,6 +92,30 @@ See [contract](AARCH32_QEMU_REWRITE_COVERAGE.md) and
 entry-execution stage, not a whole-LK or independent-output oracle. Item 6 and
 original #12 remain active; stop at this verified milestone.
 
+## Latest: item 6 PC-read admission fix and four-entry integer fixture verified
+
+Overlay 0045 closes a reproduced position-dependent PC-read defect. Eight ARM/
+Thumb normal/reverse candidates previously faulted after moving a PC-derived
+address; both builds now reject before output/map publication while originals
+still exit 42. Each build passes 189 admission cases (145 rejections, 44
+admissions). ARM/JITLink suites pass 53/52 with one expected release skip;
+CoreTests pass 58/31 skips per build. All 45 overlays replay exactly.
+
+A separate explicitly integer-only LK fixture emits, redirects and executes
+all four selected ARM entries, including memcpy, in both builds. All eighteen
+outputs match fresh baselines. The original NEON memcpy remains excluded;
+independent oracles and whole-LK rewriting are not certified. The historical
+Pi far-safety fixture uses MOV-PC witnesses now excluded by 0045; compatible
+live witnesses and fresh hardware verification are pending. See
+[contract](AARCH32_PC_READ_ADMISSION.md) and
+[evidence](results/correctness_pc_reads_20261004.json).
+
+Item 6 and original #12 remain active. The latest user instruction is to stop
+when all P0 items are complete, before starting P1 work; it supersedes the
+historical milestone-stop instructions below. Continue the remaining P0 oracle,
+execution-gate, manual-hook and durable-evidence requirements. Do not weaken
+whole-LK admission, close #12 prematurely or advance to priority 7.
+
 ## P0: confirmed defects and unsafe admission
 
 1. **Close skipped interior-entry reservation bypass — F1, #6/#9.**
@@ -154,6 +178,12 @@ original #12 remain active; stop at this verified milestone.
      staged publication and caught-error rollback leave existing profiles intact after late failures.
 
 6. **Make every execution/result gate prove its claimed coverage — #12/#11.**
+   - [x] Reject unmodeled position-dependent PC reads before transformation;
+     eight reproduced crashes now reject and 189 admission cases pass per build.
+     Verify all four reserved ARM entries on a separately integer-only LK input.
+   - [ ] Add independent workload oracles, retain the original NEON memcpy
+     exclusion, and replace excluded MOV-PC hardware witnesses with a supported
+     live witness before fresh Pi verification.
    - [x] Close the reproduced repetition/dump admissions; require every selected
      redirect, stable upload/manifest/loader identities and cleanup failure
      propagation. Reject unsafe ARM/Thumb entry-bump hooks; enforce exact

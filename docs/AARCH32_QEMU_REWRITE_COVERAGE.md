@@ -1,5 +1,9 @@
 # Selected LK rewrite execution in QEMU
 
+The 0045 follow-up verifies four selected entries on an explicitly integer-only
+fixture in both builds. The original three-entry/NEON exclusion below remains
+historical scope. See [PC-read admission and limits](AARCH32_PC_READ_ADMISSION.md).
+
 The previous complete-output stage deliberately made no rewritten-execution
 claim. Its hot-loop candidates retained the original entry bytes. Filtered live
 QEMU traces confirm execution at the original entry without visiting the emitted

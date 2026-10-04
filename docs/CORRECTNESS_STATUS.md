@@ -1,5 +1,29 @@
 # Twelve-item correctness work
 
+## Latest: item 6 PC-read admission fix and four-entry integer fixture verified
+
+Overlay 0045 closes a reproduced position-dependent PC-read defect. Eight ARM/
+Thumb normal/reverse candidates previously faulted after moving a PC-derived
+address; both builds now reject before output/map publication while originals
+still exit 42. Each build passes 189 admission cases (145 rejections, 44
+admissions). ARM/JITLink suites pass 53/52 with one expected release skip;
+CoreTests pass 58/31 skips per build. All 45 overlays replay exactly.
+
+A separate explicitly integer-only LK fixture emits, redirects and executes
+all four selected ARM entries, including memcpy, in both builds. All eighteen
+outputs match fresh baselines. The original NEON memcpy remains excluded;
+independent oracles and whole-LK rewriting are not certified. The historical
+Pi far-safety fixture uses MOV-PC witnesses now excluded by 0045; compatible
+live witnesses and fresh hardware verification are pending. See
+[contract](AARCH32_PC_READ_ADMISSION.md) and
+[evidence](results/correctness_pc_reads_20261004.json).
+
+Item 6 and original #12 remain active. The latest user instruction is to stop
+when all P0 items are complete, before starting P1 work; it supersedes the
+historical milestone-stop instructions below. Continue the remaining P0 oracle,
+execution-gate, manual-hook and durable-evidence requirements. Do not weaken
+whole-LK admission, close #12 prematurely or advance to priority 7.
+
 ## Latest: item 6 scoped QEMU rewrite execution verified
 
 Both assertion-mode builds emit, redirect and execute three explicitly selected

@@ -1,0 +1,177 @@
+--- a/bolt/include/bolt/Core/MCPlusBuilder.h
++++ b/bolt/include/bolt/Core/MCPlusBuilder.h
+@@ -622,6 +622,9 @@
+ 
+   /// A target PC write whose control flow cannot safely be transformed.
+   virtual bool isUnsupportedPCWrite(const MCInst &Inst) const { return false; }
++
++  /// A target PC read whose position-dependent value cannot be relocated.
++  virtual bool isUnsupportedPCRead(const MCInst &Inst) const { return false; }
+ 
+   /// Returns the registers that are trusted at function entry.
+   ///
+--- a/bolt/lib/Target/ARM/ARMMCPlusBuilder.cpp
++++ b/bolt/lib/Target/ARM/ARMMCPlusBuilder.cpp
+@@ -370,6 +370,49 @@
+     }
+   }
+ 
++  bool isUnsupportedPCRead(const MCInst &Inst) const override {
++    // Only the modeled word literal forms may use PC as a memory base.
++    // Arbitrary MOV/ADD/STR and FP/byte/halfword literals retain an old
++    // position-dependent value after movement. Reject instead of silently
++    // copying their displacement or dropping a function from an exact scope.
++    if (isLiteralLoad(Inst) || isReturn(Inst))
++      return false;
++    switch (Inst.getOpcode()) {
++    case ARM::ADR:
++    case ARM::tADR:
++    case ARM::t2ADR:
++      // ADR's MC operand omits the architectural PC register.
++      return true;
++    default:
++      break;
++    }
++    const MCInstrDesc &Desc = Info->get(Inst.getOpcode());
++    // Thumb wide byte/halfword/signed literals and prefetches omit PC from
++    // both operands and implicit-use lists. Their address mode exposes it.
++    if ((Desc.TSFlags & ARMII::AddrModeMask) == ARMII::AddrModeT2_pc)
++      return true;
++    for (unsigned I = Desc.getNumDefs(), E = MCPlus::getNumPrimeOperands(Inst);
++         I < E; ++I) {
++      const MCOperand &Op = Inst.getOperand(I);
++      if (!Op.isReg() || Op.getReg() != ARM::PC)
++        continue;
++      // Inline TBB/TBH PC bases are explicitly retargeted by the table model.
++      // A PC index or another PC operand is not part of that model.
++      if ((Inst.getOpcode() == ARM::t2TBB ||
++           Inst.getOpcode() == ARM::t2TBH) && I == 0)
++        continue;
++      return true;
++    }
++    // Direct branches/calls have modeled PC-relative targets. Register BX/BLX
++    // PC was rejected above; ordinary BX/BLX registers stay supported.
++    if (isBranch(Inst) || isCall(Inst))
++      return false;
++    for (MCPhysReg Reg : Desc.implicit_uses())
++      if (Reg == ARM::PC)
++        return true;
++    return false;
++  }
++
+   bool isUnsupportedPCWrite(const MCInst &Inst) const override {
+     // Exception returns restore PC and processor state, not a normal call
+     // continuation. ARM RFE descriptors omit their PC definition/terminator,
+--- a/bolt/lib/Core/BinaryFunction.cpp
++++ b/bolt/lib/Core/BinaryFunction.cpp
+@@ -1446,6 +1446,11 @@
+     if (BC.isARM() && MIB->isUnsupportedPCWrite(Instruction) &&
+         !(Offset == 0 && isRecognizedARMAbsoluteVeneer(*this)))
+       return createFatalBOLTError("unsupported AArch32 PC-writing control transfer in " +
++                                 getPrintName() + " at 0x" +
++                                 Twine::utohexstr(AbsoluteInstrAddr));
++
++    if (BC.isARM() && MIB->isUnsupportedPCRead(Instruction))
++      return createFatalBOLTError("unsupported AArch32 position-dependent PC read in " +
+                                  getPrintName() + " at 0x" +
+                                  Twine::utohexstr(AbsoluteInstrAddr));
+ 
+--- a/bolt/test/ARM/Inputs/check-arm-inline-safety.py
++++ b/bolt/test/ARM/Inputs/check-arm-inline-safety.py
+@@ -48,9 +48,21 @@
+ for mode,extra in [('normal',[]),('reverse',['--reorder-blocks=reverse']),('all',['--inline-all']),('small',['--inline-small-functions','--inline-small-functions-bytes=10000'])]:
+     for name,expected in cases.items():
+         label=mode+'-'+name;candidate=out/(label+'.elf');mapping=out/(label+'.map')
++        if expected['callee'] in ('arm_pc','thumb_pc'):
++            # A PC read is rejected before transformation, including inlining.
++            other='thumb_pc' if expected['callee']=='arm_pc' else 'arm_pc'
++            r=subprocess.run(['llvm-bolt',str(out/'input.elf'),'-o',str(candidate),
++                '--no-huge-pages','-lite=0','--skip-funcs='+other,
++                *([] if mode in ('all','small') else ['--force-inline='+expected['callee']]),
++                '--emit-function-map='+str(mapping),*extra],capture_output=True,text=True)
++            (out/(label+'.log')).write_text(r.stdout+r.stderr)
++            good=(r.returncode==1 and 'unsupported AArch32 position-dependent PC read in '+expected['callee']+' at ' in r.stdout+r.stderr
++                  and not candidate.exists() and not mapping.exists())
++            results.append({'mode':mode,'caller':name,'safe':False,'calls':None,'passed':good,'rejected_pc_read':good})
++            continue
+         try:
+             run(label,['llvm-bolt',out/'input.elf','-o',candidate,'--no-huge-pages','-lite=0',
+-                  *([] if mode in ('all','small') else ['--force-inline='+expected['callee']]),'--emit-function-map='+str(mapping),*extra])
++                  *([] if mode in ('all','small') else ['--force-inline='+expected['callee']]),'--emit-function-map='+str(mapping),*extra,'--skip-funcs=arm_pc,thumb_pc'])
+         except RuntimeError:
+             if not a.observe:raise
+             results.append({'mode':mode,'caller':name,'safe':expected['safe'],'calls':None,'passed':False,'crashed':True})
+@@ -82,4 +94,4 @@
+     (out/('it-call-'+mode+'.log')).write_text(r.stdout+r.stderr)
+     if r.returncode!=1 or 'unsupported control transfer in Thumb IT group' not in r.stdout+r.stderr or candidate.exists():
+         raise RuntimeError('IT call admitted under '+mode+'\n'+r.stdout+r.stderr)
+-print('PASS: 92 forced/automatic/size-based inlining cases and four IT-call rejections')
++print('PASS: 84 forced/automatic/size-based inlining cases, eight PC-read rejections and four IT-call rejections')
+--- /dev/null
++++ b/bolt/test/ARM/arm-pc-reads.test
+@@ -0,0 +1,3 @@
++## Reject unmodeled architectural PC reads before output, including ADR
++## without an explicit PC operand. Preserve supported literals/returns/calls.
++RUN: %python %p/Inputs/check-arm-pc-reads.py %t.dir
+--- /dev/null
++++ b/bolt/test/ARM/Inputs/check-arm-pc-reads.py
+@@ -0,0 +1,59 @@
++from pathlib import Path
++import json,shutil,subprocess,sys,tempfile
++parent=Path(sys.argv[1]); parent.mkdir(parents=True,exist_ok=True)
++out=Path(tempfile.mkdtemp(prefix='pc-reads-',dir=parent)); rows=[]
++runtime=Path(shutil.which('llvm-bolt')).parent.parent/'bolt-rt-baremetal-arm/libbolt_rt_baremetal.a'
++for isa in ('arm','thumb'):
++    cases={
++        'mov_pc':('mov r0,pc\nbx lr',True),
++        'add_pc':(('add r0,pc,r1' if isa=='arm' else 'add r0,pc')+'\nbx lr',True),
++        'adr_pc':('adr r0,.Lpool\nbx lr\n.balign 4\n.Lpool: .word 0x13579bdf',True),
++        'byte_pc':('ldrb r0,[pc,#0]\nbx lr',True),
++        'half_pc':('ldrh r0,[pc,#0]\nbx lr',True),
++        'signed_byte_pc':('ldrsb r0,[pc,#0]\nbx lr',True),
++        'signed_half_pc':('ldrsh r0,[pc,#0]\nbx lr',True),
++        'prefetch_pc':('pld [pc,#0]\nbx lr',True),
++        'instruction_prefetch_pc':('pli [pc,#0]\nbx lr',True),
++        'dead_pc':('b .Lok\nmov r0,pc\n.Lok: bx lr',True),
++        'vfp_pc':('vldr d0,[pc,#0]\nbx lr',True),
++        'bx_pc':('bx pc',True),
++        'pred_pc':(('cmp r1,#0\nmoveq r0,pc' if isa=='arm' else 'cmp r1,#0\nit eq\nmoveq r0,pc')+'\nbx lr',True),
++        'gpr':('mov r0,r1\nadd r0,r0,#1\nbx lr',False),
++        'load':('ldr r0,[r1]\nldrb r2,[r1]\nldrh r3,[r1]\nbx lr',False),
++        'literal':('ldr r0,.Lpool\nbx lr\n.balign 4\n.Lpool: .word 0x13579bdf',False),
++        'literal_data_pc_bits':('ldr r0,.Lpool\nbx lr\n.balign 4\n.Lpool: .word 0xe1a0000f',False),
++        'call_pop':('push {r4,lr}\nbl helper\npop {r4,pc}',False),
++    }
++    if isa=='arm':
++        cases.update(store_pc=('str pc,[r0]\nbx lr',True),store_list_pc=('stmia r0!,{r1,pc}\nbx lr',True),mov_return=('mov pc,lr',False))
++    else:
++        cases['wide_adr_pc']=('adr.w r0,.Lpool\nbx lr\n.balign 4\n.Lpool: .word 0x13579bdf',True)
++    for kind,(body,unsafe) in cases.items():
++        d=out/(isa+'-'+kind); d.mkdir()
++        asm='.syntax unified\n.arch armv7-a\n.fpu vfpv3\n.text\n.arm\n.global _start\n.type _start,%function\n_start:\nbl probe\nbx lr\n.size _start,.-_start\n.balign 4\n.'+isa+'\n.global probe\n.type probe,%function\n'+('.thumb_func\n' if isa=='thumb' else '')+'probe:\n'+body+'\n.size probe,.-probe\n.balign 4\n.arm\n.global helper\n.type helper,%function\nhelper:\nadd r0,r0,#1\nbx lr\n.size helper,.-helper\n'
++        (d/'input.s').write_text(asm); (d/'layout.ld').write_text('ENTRY(_start)\nSECTIONS { . = 0x8000; .text : { *(.text*) } }\n')
++        def run(label,cmd):
++            p=subprocess.run(list(map(str,cmd)),capture_output=True,text=True,timeout=30)
++            (d/(label+'.log')).write_text(p.stdout+p.stderr); return p
++        for label,cmd in [('mc',['llvm-mc','-triple=armv7-none-eabi','-arm-add-build-attributes','-filetype=obj',d/'input.s','-o',d/'input.o']),('link',['ld.lld','--emit-relocs','-T',d/'layout.ld',d/'input.o','-o',d/'input.elf'])]:
++            p=run(label,cmd)
++            if p.returncode: raise RuntimeError(isa+' '+kind+' '+label+': '+p.stdout+p.stderr)
++        for mode,options in [('normal',[]),('reverse',['--reorder-blocks=reverse']),('instrument',[]),('instrument-reverse',['--reorder-blocks=reverse'])]:
++            if mode.startswith('instrument'):
++                options+=['--instrument','--instrument-calls=false','--arm-instrumentation-contract=privileged-single-core-no-fiq','--instrumentation-sleep-time=1','--runtime-instrumentation-lib='+str(runtime)]
++            candidate=d/(mode+'.elf'); mapping=d/(mode+'.map')
++            cmd=['llvm-bolt',d/'input.elf','-o',candidate,'--no-huge-pages','-lite=0','--funcs=probe','--emit-function-map='+str(mapping),*options]
++            p=run(mode,cmd)
++            if unsafe:
++                good=p.returncode==1 and 'unsupported AArch32 position-dependent PC read' in p.stdout+p.stderr and not candidate.exists() and not mapping.exists()
++            else: good=p.returncode==0 and candidate.exists() and 'probe ' in mapping.read_text()
++            rows.append(dict(isa=isa,kind=kind,mode=mode,rejected=unsafe,returncode=p.returncode,passed=good))
++            if not good: raise RuntimeError(isa+' '+kind+' '+mode+': wrong PC-read boundary\n'+p.stdout+p.stderr)
++        if unsafe:
++            old=b'preserved output'; candidate=d/'existing.elf'; mapping=d/'existing.map'
++            candidate.write_bytes(old); mapping.write_bytes(old)
++            p=run('existing',['llvm-bolt',d/'input.elf','-o',candidate,'--funcs=probe','--emit-function-map='+str(mapping)])
++            if p.returncode!=1 or candidate.read_bytes()!=old or mapping.read_bytes()!=old: raise RuntimeError('PC rejection changed previous output')
++            rows.append(dict(isa=isa,kind=kind,mode='preserve-existing',rejected=True,returncode=p.returncode,passed=True))
++(out/'results.json').write_text(json.dumps(rows,indent=2)+'\n')
++print('PC-read boundary:',len(rows),'cases;',sum(r['rejected'] for r in rows),'rejections;',sum(not r['rejected'] for r in rows),'admissions;',out,flush=True)
