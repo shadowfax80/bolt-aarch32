@@ -16,6 +16,16 @@ CONTRACTS = {
         'rules_sha256': 'ea8c49a2d016ee24fab40ccd439cac077cf02922ad75c7681834e9b198719bad',
         'configuration': 'benchmark -mfpu=none, -marm; explicit __thumb__ macro retains IT arithmetic; STAIR_M=10, STAIR_X=0, input variant=0',
     },
+    # Approved by the user 2026-10-04 (docs/PI4_ORACLE_CONTRACT_DRAFT.md).
+    # Source hashes are over LF-normalized text; the build copy has CRLF.
+    '424606a869c34b5be5f3c97f66a9cec8ea16844ac788c14c77839edcfef2459b': {
+        'name': 'full-lk-rpi4-bolt-test-20261004',
+        'platform': 'pi4',
+        'bench_source_sha256': 'a48247945d47b359c04f40883361b72c1be87a4a7983aecc299d7c121d0d96d0',
+        'composite_source_sha256': '8d830b9ca2a3884270f81cc3b00811f16d6744d5ac838d754664e2ec0ea12adb',
+        'rules_sha256': 'c34149eda9808d114cdc8da415a0863ed5de2d2effa3de3c133ed385d3b5a38e',
+        'configuration': 'LK rpi4-bolt-test (ARM_CPU_CORTEX_A15, Thumb-2 kernel); bolt_bench -marm, WITH_BOLT_PGO off; STAIR_M=10, STAIR_X=0, input variant=0; 0 FP/NEON instructions',
+    },
 }
 
 
