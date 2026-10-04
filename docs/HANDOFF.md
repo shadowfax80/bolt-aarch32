@@ -84,7 +84,7 @@ Take items in the order below; groups reflect dependencies, not ownership.
 
 | Order | ID | Item | Priority | Owner | Status | Part of | Notes |
 |---|---|---|---|---|---|---|---|
-| 3 | 6a | Every gate proves execution: close G1 (fixed-path intermediates), G2 (seal profile chain in QEMU certificate), G3 (contracts for QEMU LK builds) | P0 | Claude | In progress (G1, G2) | — | Pi sealed chain certified; G3 needs user review; 0054 ON/OFF builds and scoped Pi runs verified, remaining gate routes still open |
+| 3 | 6a | Every gate proves execution: close G1 (fixed-path intermediates), G2 (seal profile chain in QEMU certificate), G3 (contracts for QEMU LK builds) | P0 | — | Partial: G1/G2 coded; QEMU route made diagnostic (user); finish step in log | — | Pi sealed chain certified; G3 needs user review; 0054 ON/OFF builds and scoped Pi runs verified, remaining gate routes still open |
 | 4 | 6c | Legacy/manual hook admission | P0 | — | Partial | — | R9 done; includes R13 |
 | 5 | 6d | Durable receipts on every certification route | P0 | — | Partial | — | Pi gate + coverage report receipts exist |
 | 6 | 6b | Oracle contracts for further configurations (Thumb workloads, future `bolt_edge` seeds) | P0 | — | Partial | — | Active `pi4` contracts: full LK (`424606a8…`), bolt_edge stage 1 (`0895d7bc…`), 1b (`439dfd7c…`) and 2 (`ce8dd005…`); each new contract needs user review |
@@ -167,6 +167,34 @@ plus genuine fallthrough such as `bzero`: about 98% of functions.
 4. Update the *Claims* table and LK_COVERAGE.md together.
 
 ## Handoff log
+
+### 2026-10-04 — Claude: 6a paused (usage limit); claim released
+
+- **User decision:** QEMU is a diagnostic/debug route; certification is
+  Pi-only (`full_image_build.py` + `full_image_verify.py`, already proven).
+  G3 (QEMU contracts) is therefore not needed for 6a.
+- **Done (scripts, unit-tested; 13/13 script test modules pass):**
+  - G1: `verify-bolt-workloads.sh` writes every intermediate (instrumented
+    ELF, counters, fdata, optimized ELF, serial log, evidence) to a fresh
+    `out/workload-consistency/run-XXXXXX`; header and final message say
+    DIAGNOSTIC ONLY; fdata uses `--debug-unbound`.
+  - G2: `qemu_rewrite_gate.py` `--profile` (copied, `check_profile` against
+    the input), `--optimizer-record`, `--bind NAME=PATH`; all hashed into
+    `rewrite.json` (`bound`) and re-checked after capture.
+    `optimize-lk-bolt.sh` keeps the funcs list (`OUT.funcs`) and writes
+    `OUT.provenance.json` (input/profile/tool hashes, exact command,
+    `profile_checked`); `BOLT_DIAGNOSTIC_PROFILE=1` skips check-profile and
+    records `profile_checked: false`, which the rewrite gate rejects.
+- **Left (next step):** the QEMU wrapper still stops at its first step: on
+  ARM32, `qemu_workload_gate.py --elf` requires an oracle contract (fails
+  closed). Add a labelled `--diagnostic` mode there (baseline vs candidate
+  consistency only, no oracle, receipt scope says diagnostic), use it in
+  the wrapper, then run `BASE=atfe ARCH=arm32 REBUILD_LK=0
+  scripts/verify-bolt-workloads.sh` in WSL (never REBUILD_LK=1 on the dirty
+  live tree). Then audit the remaining wrappers (identity, P4, milestone,
+  measurement) and close 6a.
+- WSL: synced to this commit, no jobs running. Pi: idle, not in use. Lock
+  free.
 
 ### 2026-10-04 — Claude: R17 stage 2 done (random generator, 146 cases)
 

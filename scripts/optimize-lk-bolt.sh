@@ -37,8 +37,12 @@ if [[ ! -s "$FDATA" ]]; then
 fi
 
 # Every ARM profile must carry the receipt for this exact source ELF.
-if [[ "$ARCH" == arm32 ]]; then
+# BOLT_DIAGNOSTIC_PROFILE=1 (QEMU diagnostic route only): accept an unbound
+# profile; the provenance record says so and no gate certifies from it.
+PROFILE_BOUND=0
+if [[ "$ARCH" == arm32 && "${BOLT_DIAGNOSTIC_PROFILE:-0}" != 1 ]]; then
   python3 "$ROOT/scripts/profile_identity.py" check-profile --elf "$ELF" --profile "$FDATA"
+  PROFILE_BOUND=1
 fi
 
 mkdir -p "$(dirname "$OUT")"
@@ -74,8 +78,8 @@ BOLT_ARGS=(
 # still hits trampoline/literal-pool issues outside bolt_bench_*.
 if [[ "$ARCH" == "arm32" ]]; then
   FUNCS="${OPTIMIZE_FUNCS:-bolt_bench_hot_loop,bolt_bench_hot_cold,bolt_bench_branch_chain,bolt_bench_memcpy,bolt_bench_interwork,bolt_bench_switch,bolt_bench_spill_ret,bolt_bench_litpool,bolt_bench_indirect_call,bolt_bench_interwork_tail,bolt_bench_regpressure,bolt_bench_hotcold_split,bolt_bench_icf,bolt_bench_shrinkwrap}"
-  FUNCS_FILE="$(mktemp)"
-  trap 'rm -f "$FUNCS_FILE"' EXIT
+  # Kept next to the output: the provenance record below hashes it.
+  FUNCS_FILE="$OUT.funcs"
   tr ',' '\n' <<<"$FUNCS" | sed '/^$/d' > "$FUNCS_FILE"
   BOLT_ARGS+=(--funcs-file-no-regex="$FUNCS_FILE")
   # Where each rewritten function landed (overlay patch 0013); the Pi pipeline's
@@ -96,7 +100,20 @@ fi
 # target never reads it -- its counter path is ldrex/strex unconditionally.
 [[ "$ARCH" != arm32 ]] && BOLT_ARGS+=(--no-lse-atomics)
 
+rm -f "$OUT.provenance.json"
 "$TOOLCHAIN/llvm-bolt" "$ELF" "${BOLT_ARGS[@]}" "$@"
+
+# 6a G2: what produced $OUT, so a certificate can bind the profile chain.
+python3 - "$OUT.provenance.json" "$ELF" "$FDATA" "$TOOLCHAIN/llvm-bolt" "${FUNCS_FILE:-}" "$PROFILE_BOUND" \
+    "$TOOLCHAIN/llvm-bolt" "$ELF" "${BOLT_ARGS[@]}" "$@" <<'PY'
+import hashlib, json, sys
+def h(p): return hashlib.sha256(open(p, 'rb').read()).hexdigest()
+out, elf, fdata, bolt, funcs, bound, *command = sys.argv[1:]
+json.dump({'schema': 1, 'kind': 'bolt-optimize', 'input_sha256': h(elf), 'profile_sha256': h(fdata),
+           'profile_checked': bound == '1',
+           'llvm_bolt_sha256': h(bolt), 'funcs_sha256': h(funcs) if funcs else None,
+           'command': command}, open(out, 'w'), indent=1)
+PY
 
 python3 "$ROOT/scripts/fix-kernel-elf-paddr.py" "$OUT"
 python3 "$ROOT/scripts/fix-kernel-elf-entry.py" "$OUT" --original "$ELF" \

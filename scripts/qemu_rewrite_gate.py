@@ -5,6 +5,7 @@ Requires linked __bolt_reserved_start/end, an exact function map and explicit
 redirects. Owns fresh captures; imported traces cannot issue runtime receipts.
 """
 import argparse
+import json
 import re
 import shutil
 import struct
@@ -12,7 +13,7 @@ import subprocess
 import tempfile
 from pathlib import Path
 
-from profile_identity import elf_metadata, sha256, write_json
+from profile_identity import check_profile, elf_metadata, sha256, write_json
 from qemu_workload_gate import boot, ROOT
 from qemu_bench_oracle import CONTRACTS,check_results
 
@@ -198,14 +199,49 @@ def trace_bound(trace):
         raise ValueError('CPU trace exceeds byte bound')
 
 
+def check_optimizer_record(record,input_hash,profile_hash):
+    """The optimizer's own record must name this input and this profile."""
+    if record.get('kind')!='bolt-optimize' or record.get('input_sha256')!=input_hash:
+        raise ValueError('optimizer record does not belong to the input image')
+    if record.get('profile_checked') is not True:
+        raise ValueError('optimizer accepted an unbound (diagnostic) profile')
+    if profile_hash is None or record.get('profile_sha256')!=profile_hash:
+        raise ValueError('optimizer record does not name the bound profile')
+
+
+def bindings(rows,profile,record=None):
+    """Provenance files the certificate binds (6a G2): NAME=PATH, the optimizer
+    record, and the profile with its identity manifest. Names are unique
+    evidence file names."""
+    bound={}
+    for row in rows:
+        name,sep,path=row.partition('=')
+        if not sep or not re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9_.-]*',name) or name in bound:
+            raise ValueError('--bind needs a unique NAME=PATH: '+row)
+        bound[name]=Path(path)
+    if record:
+        if 'optimize.json' in bound: raise ValueError('--bind name reserved for --optimizer-record: optimize.json')
+        bound['optimize.json']=record
+    if profile:
+        for name,path in (('profile.fdata',profile),('profile.fdata.manifest.json',Path(str(profile)+'.manifest.json'))):
+            if name in bound: raise ValueError('--bind name reserved for --profile: '+name)
+            bound[name]=path
+    return bound
+
+
 def main():
     p=argparse.ArgumentParser(description=__doc__)
     p.add_argument('--elf',type=Path,required=True); p.add_argument('--candidate',type=Path,required=True)
     p.add_argument('--map',type=Path,required=True); p.add_argument('--funcs',required=True)
     p.add_argument('--out',type=Path,required=True); p.add_argument('--qemu',default='qemu-system-arm')
     p.add_argument('--timeout',type=float,default=120)
+    p.add_argument('--profile',type=Path,help='bind this profile (and PROFILE.manifest.json); it must belong to --elf')
+    p.add_argument('--optimizer-record',type=Path,help="optimize-lk-bolt.sh's OUT.provenance.json; requires --profile")
+    p.add_argument('--bind',action='append',default=[],metavar='NAME=PATH',help='bind a provenance file (instrumented image, counters, ...)')
     a=p.parse_args(); names=selection(a.funcs)
     if not 0<a.timeout<=600: p.error('bounded timeout required')
+    if a.optimizer_record and not a.profile: p.error('--optimizer-record requires --profile')
+    bound=bindings(a.bind,a.profile,a.optimizer_record)
     qemu=shutil.which(a.qemu)
     if not qemu: raise ValueError('QEMU required')
     a.out.mkdir(parents=True,exist_ok=True); out=Path(tempfile.mkdtemp(prefix='rewrite-',dir=a.out.resolve()))
@@ -216,6 +252,15 @@ def main():
         (out/n).write_bytes(path.read_bytes()); hashes[n]=sha256(out/n)
     if hashes['baseline.elf'] not in CONTRACTS:
         raise ValueError('no reviewed independent oracle contract for input image')
+    if bound: (out/'bound').mkdir()
+    bound_hashes={}
+    for n,path in bound.items():
+        (out/'bound'/n).write_bytes(path.read_bytes()); bound_hashes[n]=sha256(out/'bound'/n)
+    if a.profile:
+        check_profile(out/'baseline.elf',out/'bound'/'profile.fdata',out/'bound'/'profile.fdata.manifest.json')
+    if a.optimizer_record:
+        check_optimizer_record(json.loads((out/'bound'/'optimize.json').read_text(encoding='utf-8')),
+                               hashes['baseline.elf'],bound_hashes.get('profile.fdata'))
     scripts={n:sha256(ROOT/n) for n in ('scripts/qemu_rewrite_gate.py','scripts/qemu_workload_gate.py','scripts/qemu_bench_oracle.py','scripts/profile_identity.py','scripts/pi4/passes_check.py')}
     revision=subprocess.check_output(['git','-C',str(ROOT),'rev-parse','HEAD'],text=True).strip(); tool_hash=sha256(qemu)
     checked=check_artifacts((out/'baseline.elf').read_bytes(),(out/'candidate.elf').read_bytes(),(out/'functions.map').read_text(encoding='utf-8'),names)
@@ -237,11 +282,13 @@ def main():
     coverage=check_execution((out/'entries.trace').read_text(encoding='utf-8'),checked['rows'])
     for n,path in sources.items():
         if sha256(path)!=hashes[n] or sha256(out/n)!=hashes[n]: raise ValueError('artifact changed during capture')
+    for n,path in bound.items():
+        if sha256(path)!=bound_hashes[n] or sha256(out/'bound'/n)!=bound_hashes[n]: raise ValueError('bound artifact changed during capture: '+n)
     if scripts!={n:sha256(ROOT/n) for n in scripts} or sha256(qemu)!=tool_hash: raise ValueError('verifier/QEMU changed')
     if revision!=subprocess.check_output(['git','-C',str(ROOT),'rev-parse','HEAD'],text=True).strip(): raise ValueError('revision changed')
     write_json(out/'rewrite.json',dict(schema=2,scope='selected entry TB execution/ISA witnesses and eighteen independent sink oracles for approved input; no whole-LK/state, hardware or clean-build proof',
         selected=names,emitted_redirected=checked,executed=coverage,results=results,commands=commands,artifacts=hashes,scripts=scripts,
-        independent_oracles=oracles,repository_revision=revision,qemu_sha256=tool_hash,logs={n:sha256(out/n) for n in ('baseline.log','candidate.log','entries.trace')}))
+        independent_oracles=oracles,bound=bound_hashes,profile_bound_to_input=bool(a.profile),optimizer_record_checked=bool(a.optimizer_record),repository_revision=revision,qemu_sha256=tool_hash,logs={n:sha256(out/n) for n in ('baseline.log','candidate.log','entries.trace')}))
     print('SELECTED ENTRY EXECUTION / OUTPUT CONSISTENCY: '+str(out/'rewrite.json'),flush=True)
 
 

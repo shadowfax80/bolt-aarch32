@@ -98,5 +98,19 @@ class RewriteGateTests(unittest.TestCase):
         rows=self.check()['rows']+[dict(name='g',input=0x3000,output=0x4000,thumb=False)]
         with self.assertRaisesRegex(ValueError,'pair for g'): gate.check_execution(frame(0x1000)+frame(0x2000),rows)
 
+    def test_bindings_unique_and_reserved_names(self):
+        bound=gate.bindings(['instrumented.elf=a.elf'],Path('p.fdata'),Path('o.json'))
+        self.assertEqual(set(bound),{'instrumented.elf','optimize.json','profile.fdata','profile.fdata.manifest.json'})
+        for rows,profile,record in ((['x=a','x=b'],None,None),(['noequals'],None,None),(['../x=a'],None,None),
+                                    (['profile.fdata=a'],Path('p'),None),(['optimize.json=a'],None,Path('o'))):
+            with self.subTest(rows=rows),self.assertRaises(ValueError): gate.bindings(rows,profile,record)
+
+    def test_optimizer_record_must_name_input_and_checked_profile(self):
+        good=dict(kind='bolt-optimize',input_sha256='i',profile_sha256='p',profile_checked=True)
+        gate.check_optimizer_record(good,'i','p')
+        for record,profile in ((dict(good,input_sha256='x'),'p'),(dict(good,profile_sha256='x'),'p'),
+                               (dict(good,profile_checked=False),'p'),(dict(good,kind='other'),'p'),(good,None)):
+            with self.subTest(record=record),self.assertRaises(ValueError): gate.check_optimizer_record(record,'i',profile)
+
 
 if __name__=='__main__': unittest.main()
