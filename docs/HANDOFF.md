@@ -127,12 +127,7 @@ item does not close that item. *Owner* is empty until someone claims it.
 
 Take items in the order below; groups reflect dependencies, not ownership.
 
-**B. P0 certification (first)**
-
-| Order | ID | Item | Priority | Owner | Status | Part of | Notes |
-|---|---|---|---|---|---|---|---|
-
-**C. Correctness defects (small)**
+**C. Correctness defects and target items** (group B, P0 certification, is complete)
 
 | Order | ID | Item | Priority | Owner | Status | Part of | Notes |
 |---|---|---|---|---|---|---|---|
@@ -146,14 +141,14 @@ Take items in the order below; groups reflect dependencies, not ownership.
 
 | Order | ID | Item | Priority | Owner | Status | Notes |
 |---|---|---|---|---|---|---|
-| 11 | 8 | CFG and mutation invariants | P1 | — | Partial | R4–R6 done |
+| 11 | 8 | CFG and mutation invariants | P1 | — | Partial | R4–R6, R19 done |
 | 12 | 7 | Relocation/literal/veneer matrix | P1 | — | Partial | R1–R3, R7, R14 done |
 | 13 | 11 | Entries/symbols/reference routes | P1 | — | Partial | R9 done |
-| 14 | 12 | Tables and inline data | P1 | — | Partial | R12 pending |
-| 15 | 13 | Actual pass combinations | P1 | — | Partial | R7 done; R8 pending |
-| 16 | 9 | Interrupt/reentrancy/reset boundaries | P1 | — | Partial | |
-| 17 | 10 | Sampling/PMU ownership | P1 | — | Open | |
-| 18 | 14 | Clean build/content provenance | P1 | — | Partial | Overlay replay only; ISA-aware no-FPU output scanning/metadata needed (0054 audit) |
+| 14 | 12 | Tables and inline data | P1 | — | Partial | R18 done; R12, R21 pending |
+| 15 | 13 | Actual pass combinations | P1 | — | Partial | R7, R8, R20 done |
+| 16 | 9 | Interrupt/reentrancy/reset boundaries | P1 | — | Partial | T2/T2b (SMP execution and counters) done; active-IRQ fixtures still open |
+| 17 | 10 | Sampling/PMU ownership | P1 | — | Partial | Per-core PC watch ranges (T2) done; per-sample core attribution and loss/saturation accounting open |
+| 18 | 14 | Clean build/content provenance | P1 | — | Partial | Overlay replay + assertions-off build (6a); clean full build still open; no-FPU guard misreads BOLT outputs (no input $t in original .text) |
 
 **Needs the user:** new oracle contracts for new configurations; T3 SD-card install only when the user decides (deferred).
 
