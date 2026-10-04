@@ -65,7 +65,7 @@ Everything needed to continue is in this repo:
 
 | Holder | Since | Purpose |
 |---|---|---|
-| — | 2026-10-04 | Free after verified R11 milestone; source/builds through 0054 |
+| Claude | 2026-10-04 | R19 (`mov lr, pc; b` call idiom), overlay 0055 |
 
 ## Claims (consolidated TODO)
 
@@ -104,7 +104,7 @@ Take items in the order below; groups reflect dependencies, not ownership.
 | 9 | R12 | ADR to an inline TBB/TBH table (`vsnprintf`) | P2 | — | Open | 12 | Last coverage item |
 | 10 | R13 | Redirect functions starting with a 16-bit instruction | P2 | — | Open | 6c | If not done under 6c |
 | 10a | R18 | ARM-state inline jump tables (`add rN, pc, #k; ldr pc, [rN, rI, lsl #2]; .word …`) rejected as PC read | P1 | — | Open | 12 | Found by R17 in clang ARM-mode code, both `target("arm")` and whole-module `-marm`, at O2/Os/O0 (8 functions) |
-| 10b | R19 | `mov lr, pc; b <target>` call idiom rejected as PC read | P1 | — | Open | 8 | Found by R17 (`c_noret_arm_*`, `c_noret_marm_*`: clang ARM-mode call to a noreturn function via a thunk; 4 functions); position-independent while adjacent |
+| 10b | R19 | `mov lr, pc; b <target>` call idiom rejected as PC read | P1 | Claude | In progress | 8 | Found by R17 (`c_noret_arm_*`, `c_noret_marm_*`: clang ARM-mode call to a noreturn function via a thunk; 4 functions); position-independent while adjacent |
 
 **D. P1 certification matrices (as capacity allows)**
 
