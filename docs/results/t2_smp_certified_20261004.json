@@ -1,0 +1,61 @@
+{
+  "schema": 1,
+  "verified_at": "2026-10-04T14:18:41.274913+00:00",
+  "scope": "every active core: oracle-equal sinks (sequential and concurrent) on original and rewritten images; PC samples inside every required rewritten function on every core",
+  "input_sha256": "e11399812fca296875435dd2cc9effe5f6405ee11c5b94d2106fc8ae4f830b02",
+  "contract": "full-lk-rpi4-bolt-test-a55-smp-20261004",
+  "images": {
+    "baseline": "91e3fd1b5ca8403717d3899f3da49b490bd8fbec8bde49f8a343f2dbc24eb4a9",
+    "candidate": "27501ea9ddf32bae897caab065e4b7eddf72341418e9d3b58a3ce529567802fb"
+  },
+  "required": [
+    "bolt_bench_interwork",
+    "bolt_bench_spill_ret",
+    "bolt_bench_it_cond"
+  ],
+  "per_core_samples": {
+    "bolt_bench_interwork": [
+      29,
+      23,
+      29,
+      28
+    ],
+    "bolt_bench_spill_ret": [
+      457,
+      463,
+      466,
+      466
+    ],
+    "bolt_bench_it_cond": [
+      2265,
+      2267,
+      2270,
+      2272
+    ]
+  },
+  "reps": 8,
+  "period": 20000,
+  "baseline": {
+    "cpus": 4,
+    "reps": 8,
+    "seq_results": 72,
+    "conc_results": 480
+  },
+  "candidate": {
+    "cpus": 4,
+    "reps": 8,
+    "seq_results": 72,
+    "conc_results": 480
+  },
+  "logs": {
+    "baseline": "eb7ef62fa34d90f75774e70af9efd1dfc4799ac836b18fa217d622366c437664",
+    "candidate": "42c3aaee3f24087fe00b51b7a6c8cdeee4606a28b9aa87a302be54b8113c7fcc"
+  },
+  "scripts": {
+    "scripts/pi4/smp_verify.py": "82edaa012217a97bd873012a78636ca9781787655b66074aae80406d2260bc68",
+    "scripts/pi4/pi4_run.py": "bb640ab00a8a301c81a040127612d6953e0ae47036348e6035084b97ce3401ba",
+    "scripts/bolt_bench_smp_check.py": "080e371a06e2b5a61a563f3e7261bdb0d3755ced5f6ff0b03d42f54a0fdad5b0",
+    "scripts/qemu_bench_oracle.py": "c84e614013ce7a5f9ed5586c69382f8a97eae2c0636f46aac1e5505cc5aa1cc0"
+  },
+  "repository_revision": "ed324be9f897cf312da0c32008c011703c18d5b6"
+}

@@ -132,7 +132,7 @@ Take items in the order below; groups reflect dependencies, not ownership.
 | Order | ID | Item | Priority | Owner | Status | Part of | Notes |
 |---|---|---|---|---|---|---|---|
 | 2a | T1 | ARMv8-A AArch32 (Cortex-A55) admission and decode; v8-A Pi image, coverage and certified gate | P0 | Claude | Done and certified: contract `47c73bc0` approved (d3c8253); certified gate 10 reps, 18/18, both redirects executed | 6b, 7, 11 | Image `lk-rpi4-bolt-test-a55-47c73bc0.elf`: 406/416 admitted, rewritten image 2x18 on the Pi; evidence `docs/results/t1_a55_20261004.json`. Build: `make rpi4-bolt-test RPI4_ARM_CPU=cortex-a55` |
-| 2b | T2 | SMP: run rewritten functions concurrently on all Pi cores (results + execution per core); decide SMP instrumentation contract (counters are LDREX/STREX; reset/snapshot quiescence) | P0 | — | Partial: SMP execution verified on the Pi (uncertified); instrumentation contract, per-core PC evidence, contract + certified gate open | 9, 10 | Pi LK already runs `WITH_SMP` (4 cores, mailbox release); today only the boot core executes rewritten code. Change is app-level (bolt_bench/bolt_edge run cases on all cores, per-core sinks + PC evidence), not port or loader |
+| 2b | T2b | SMP instrumentation: the ARM counter update masks IRQ around a 64-bit increment (not atomic across cores), so the contract stays `privileged-single-core-no-fiq`; needs a cross-core-atomic counter path (or per-core counters) + tests + Pi check | P1 | — | Open | 9, 10 | Profiles from all cores are already available via PC sampling (certified chain) |
 | 3 | 6a | Every gate proves execution: close G1 (fixed-path intermediates), G2 (seal profile chain in QEMU certificate), G3 (contracts for QEMU LK builds) | P0 | — | Partial: G1/G2 done; QEMU route diagnostic (user), runs to instrumentation, then blocked by R15 | — | Pi sealed chain certified; G3 needs user review; 0054 ON/OFF builds and scoped Pi runs verified, remaining gate routes still open |
 | 4 | 6c | Legacy/manual hook admission | P0 | — | Partial | — | R9 done; includes R13 |
 | 5 | 6d | Durable receipts on every certification route | P0 | — | Partial | — | Pi gate + coverage report receipts exist |
@@ -185,6 +185,7 @@ Take items in the order below; groups reflect dependencies, not ownership.
 | R17 | Synthesized edge-case image `bolt_edge`: 146 cases (hand-written A32/T32, C at O0/O2/Os in attribute and whole-module `-marm`/`-mthumb`, 48 seeded random functions) | P1 | Claude | 7, 8, 11, 12 | [Plan](R17_BOLT_EDGE_PLAN.md); contracts `0895d7bc`, `439dfd7c`, `ce8dd005` certified; `docs/results/bolt_edge_*_20261004.json`; optional tuning: more conditional tail calls |
 | R13 | Redirect functions whose first instruction is 16-bit followed by a 32-bit one (split prefix) | P1 | Claude | 6c | `redirect-bolt-entries.py`: allowed when no branch, data word or symbol outside the function references the split bytes; unit tests; A55 image 31 redirects (7 split) pass on 4 cores; certified gate on `47c73bc0` with `it_cond` + `branch_chain` executed (`docs/results/r13_split_prefix_certified_20261004.json`) |
 | R15 | Full-LK instrumentation blocked by the `arch_spin_trylock` exclusive-reservation guard | P1 | Claude | exclusive guards (0038/0039) | 0059: a return with a live reservation (abandoned, e.g. try-lock failure) is admitted only when a raw scan finds no exclusive store outside analyzed functions; calls/branches out stay rejected; new must-reject cases (caller store, orphan store). Full-LK instrumentation now succeeds on `424606a8` and `47c73bc0` (`docs/results/lk_coverage*_r15_20261004.json`) |
+| T2 | SMP: rewritten code on all 4 cores (Cortex-A55-built LK) | P0 | Claude | 9, 10 | `bolt_bench smp` (per-core sink; per-core and concurrent phases), `bolt_sample watch` (per-core PC evidence), `scripts/pi4/smp_verify.py`; contract `e1139981` (smp); certified: SMP gate (72 + 480 sinks on original and rewritten, every core sampled in every required rewritten function) and standard gate (10 reps, 18/18) — `docs/results/t2_*_certified_20261004.json`. Instrumentation part split out as T2b |
 | R11 | Skip-and-report admission mode | P1 | Codex | — | 0054; [diagnostic contract/evidence](ARM_ADMISSION_REPORT.md); one scan, same 399/417 coverage; both assertion modes + scoped Pi |
 
 ## Coverage goal
@@ -218,6 +219,21 @@ plus genuine fallthrough such as `bzero`: about 98% of functions.
 4. Update the *Claims* table and LK_COVERAGE.md together.
 
 ## Handoff log
+
+### 2026-10-04 — Claude: T2 certified (SMP); T2b split out
+
+- `bolt_sample watch <lo> <hi>` counts samples per core inside a range;
+  `scripts/pi4/smp_verify.py` runs `bolt_bench smp` on the original and the
+  rewritten image and requires oracle-equal sinks on every core plus samples
+  inside every required rewritten function on every core.
+- User approved the SMP contract for `fixtures/lk-rpi4-bolt-test-a55-smp-e1139981.elf`
+  (ed324be). Certified with redirects `interwork`, `spill_ret`, `it_cond`
+  (split prefix): SMP gate PASS (per-core samples interwork 29/23/29/28,
+  spill_ret 457/463/466/466, it_cond 2265/2267/2270/2272); standard gate
+  PASS (10 reps, 18/18). Receipts `docs/results/t2_smp_certified_20261004.json`,
+  `docs/results/t2_std_certified_20261004.json`.
+- T2b (P1, open): SMP instrumentation needs a cross-core-atomic counter path.
+- Next toward T3: 6a wrapper audit, 6c, 6d, 6b; then T3 (Secure SVC, approved).
 
 ### 2026-10-04 — Claude: R15 done (overlay 0059)
 
