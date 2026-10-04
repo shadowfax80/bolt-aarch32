@@ -35,6 +35,32 @@ and update it before stopping. `AGENTS.md` and `CLAUDE.md` point here.
    `scripts/check-no-fpu.sh`); no oracle contract derived from Pi output
    without the user's review; keep admission guards conservative.
 
+## Resuming (no session context needed)
+
+Everything needed to continue is in this repo:
+
+- **What to do next:** *Claims* below, Open tables in resume order.
+- **Findings and plans:** [CORRECTNESS_REVIEW_CLAUDE_0E616EB.md](CORRECTNESS_REVIEW_CLAUDE_0E616EB.md),
+  [R17_BOLT_EDGE_PLAN.md](R17_BOLT_EDGE_PLAN.md), [LK_COVERAGE.md](LK_COVERAGE.md),
+  [PI4_ORACLE_CONTRACT_DRAFT.md](PI4_ORACLE_CONTRACT_DRAFT.md) (approved).
+- **Certified input image:** `fixtures/lk-rpi4-bolt-test-424606a8.elf`
+  (see `fixtures/README.md`); the skip list is in
+  `docs/results/lk_coverage_20261004_r6.json` (`skip_funcs`).
+- **Backend source:** overlays `overlay/llvm/patches/atfe/0001–0053`; the WSL
+  live tree must replay them exactly (`scripts/verify-atfe-overlays.py`).
+  Do not run `scripts/apply-overlays.sh` on the dirty live tree.
+- **Commands:**
+  - Coverage: `python3 scripts/lk_coverage_report.py --elf fixtures/lk-rpi4-bolt-test-424606a8.elf --toolchain /home/user/bolt-aarch32/build-atfe/bin --out <fresh dir> --doc docs/LK_COVERAGE.md --json docs/results/lk_coverage_<date>.json`
+  - Raw re-patch check: `python3 scripts/check_raw_original_text.py --input <elf> --raw <llvm-bolt output> --toolchain <bin>`
+  - Certified Pi run: `scripts/pi4/full_image_build.py` then
+    `py -3.12 scripts/pi4/full_image_verify.py <dir> --require-executed <redirects> --repeat 10 --port COM5 --fast-loader tools/pi4-serialboot-fast/kernel7l_fast.img`
+  - Sealed profile chain: `profile_identity.py seal-samples` →
+    `pi4/pi4_sample_profile.py` → `samples_to_fdata.py --skip-funcs …` →
+    `full_image_build.py --profile …` (see `docs/PI_PROFILE_IDENTITY.md`).
+- **Environment notes:** Windows Python with pyserial is `py -3.12`; Pi on
+  COM5; sample captures occasionally fail chunk validation (USB corruption),
+  retry; never `git stash` from WSL on the Windows checkout.
+
 ## Live-tree lock
 
 | Holder | Since | Purpose |
@@ -58,7 +84,7 @@ Take items in the order below; groups reflect dependencies, not ownership.
 
 | Order | ID | Item | Priority | Owner | Status | Part of | Notes |
 |---|---|---|---|---|---|---|---|
-| 2 | R17 | Synthesized edge-case test image (`bolt_edge`), stage 1 (~40 cases) | P1 | — | Open | 7, 8, 11, 12 | Generator emits sources + admission manifest + independent checksums; QEMU + Pi; stage 2 randomized generator later |
+| 2 | R17 | Synthesized edge-case test image (`bolt_edge`), stage 1 (~40 cases) | P1 | — | Open | 7, 8, 11, 12 | Plan: [R17_BOLT_EDGE_PLAN.md](R17_BOLT_EDGE_PLAN.md) |
 
 **B. P0 certification (finish)**
 
@@ -141,6 +167,14 @@ plus genuine fallthrough such as `bzero`: about 98% of functions.
 4. Update the *Claims* table and LK_COVERAGE.md together.
 
 ## Handoff log
+
+### 2026-10-04 — Claude: session-independent handoff
+
+- Added `fixtures/lk-rpi4-bolt-test-424606a8.elf` (certified input, was
+  WSL-only), `scripts/check_raw_original_text.py` (raw re-patch checker that
+  found R1; on the current toolchain: 20 patched sites, 0 changed),
+  `docs/R17_BOLT_EDGE_PLAN.md`, and the *Resuming* section above. Pointers
+  added to CORRECTNESS_RESUME.md and CORRECTNESS_PRIORITY_TODO.md.
 
 ### 2026-10-04 — Codex: R11 verified and published; lock released
 

@@ -1,5 +1,9 @@
 # Shared correctness TODO — Claude / Codex
 
+> **2026-10-04 update (Claude):** the consolidated, prioritized TODO for both
+> agents is in [HANDOFF.md](HANDOFF.md) (*Claims*, resume order). Overlays
+> 0046–0053 and the approved full-LK `pi4` contract are recorded there.
+
 Published 2026-10-04 from [HANDOFF.md](HANDOFF.md#claims-consolidated-todo),
 through ATFE overlay 0054. Ownership and current status are authoritative there.
 Either agent may claim any unowned item, irrespective of origin. Commit and
