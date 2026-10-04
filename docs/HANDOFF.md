@@ -84,7 +84,7 @@ Take items in the order below; groups reflect dependencies, not ownership.
 
 | Order | ID | Item | Priority | Owner | Status | Part of | Notes |
 |---|---|---|---|---|---|---|---|
-| 2 | R17 | Synthesized edge-case test image (`bolt_edge`): 146 cases (stage 1/1b 98 + 48 random from stage 2) | P1 | Claude | Stages 1/1b certified (scoped); stage 2 done, contract pending user approval | 7, 8, 11, 12 | [Plan](R17_BOLT_EDGE_PLAN.md); evidence: `docs/results/bolt_edge_*_20261004.json` |
+| 2 | R17 | Synthesized edge-case test image (`bolt_edge`): 146 cases (stage 1/1b 98 + 48 random from stage 2) | P1 | Claude | Stages 1/1b/2 done and certified (scoped) | 7, 8, 11, 12 | [Plan](R17_BOLT_EDGE_PLAN.md); evidence: `docs/results/bolt_edge_*_20261004.json` |
 
 **B. P0 certification (finish)**
 
@@ -187,8 +187,12 @@ plus genuine fallthrough such as `bzero`: about 98% of functions.
   redirects, 26 random): 146 x 2 on the Pi, 0 mismatches, no faults.
   Evidence: `docs/results/bolt_edge_stage2_20261004.json`. Full LK unchanged
   (400/417; no backend change).
-- **Left:** user approval of a `pi4` contract for `ce8dd005` (then the
-  certified gate); tuning: only 4 conditional tail calls (44/48 functions
+- **Contract:** user approved the `pi4` contract (83f2bc3; also hashes
+  `rand.py` via new `edge_support_sha256`). Certified run (10 reps): 18/18
+  bench + 146/146 edge on baseline and candidate, both sampled redirects
+  executed. Receipt: `docs/results/bolt_edge_stage2_certified_20261004.json`.
+  Same scope note as stage 1.
+- **Left (tuning only):** only 4 conditional tail calls (44/48 functions
   get a frame), could bias toward frameless functions or more seeds.
 - Lock free. Next in resume order: R21, then group B (6a G1–G3, 6c/R13, 6d, 6b).
 
