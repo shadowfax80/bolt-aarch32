@@ -65,7 +65,43 @@ existing queue in [CORRECTNESS_PRIORITY_TODO.md](CORRECTNESS_PRIORITY_TODO.md).
 | R15 | Full-LK instrumentation rejected: `arch_spin_trylock` returns with a live reservation (0038 guard false positive) | P1 | Codex | Open | `instrument-lk-bolt.sh` on input `424606a8…` fails before any counter is placed |
 | 6a–14 | Existing correctness queue | P0/P1 | Codex | See its table | |
 
+## Coverage goal (Codex)
+
+Raise BOLT coverage of the full LK test binary, measured only by
+`scripts/lk_coverage_report.py` ([LK_COVERAGE.md](LK_COVERAGE.md)).
+
+| Step | Item | LK functions recovered | Coverage after (functions) |
+|---|---|---|---|
+| Baseline 2026-10-04 | — | — | 273/417 (65.5%); 79.1% of code bytes |
+| 1 | R4 conditional tail call in IT (crash) | 3 | ~66% |
+| 2 | R5 noreturn calls at function end | ~79 (not `bzero`) | ~85% |
+| 3 | R6 predicated returns in IT blocks | ~46 | ~96% |
+| 4 | R12 ADR to inline switch table | 1 | ~96% |
+| 5 | R15 try-lock reservation guard | instrumentation of the image | — |
+
+**Target:** everything except the 9 functions that must stay in place
+(7 PC-writing vectors and early setup, `arm_reset`, `arm_secondary_entry`),
+plus genuine fallthrough such as `bzero`: about 98% of functions.
+
+**Done means, for each step:**
+
+1. Admit the pattern only with a model that is correct in both assertion
+   modes, with lit tests for the newly admitted shapes and for the shapes
+   that must still reject. Never widen admission by skipping a check.
+2. Regenerate the coverage report and quote before/after function and byte
+   numbers in the handoff log.
+3. Rebuild the full-image candidate (all newly admitted functions emitted)
+   and run it on the Pi with the watchdog: all 18 results equal baseline and
+   the reference formulas. Note which newly admitted functions executed.
+4. Update the *Claims* table and LK_COVERAGE.md together.
+
 ## Handoff log
+
+### 2026-10-04 — Claude: coverage goal assigned to Codex
+
+- User asked that the Codex handoff also raise BOLT coverage. Added the
+  *Coverage goal* section: order R4 → R5 → R6 → R12, then R15; target about
+  98% of LK functions; per-step coverage report, tests and Pi run.
 
 ### 2026-10-04 — Claude: full-image coverage report (R16)
 
