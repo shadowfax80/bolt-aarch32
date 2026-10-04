@@ -84,7 +84,7 @@ Take items in the order below; groups reflect dependencies, not ownership.
 
 | Order | ID | Item | Priority | Owner | Status | Part of | Notes |
 |---|---|---|---|---|---|---|---|
-| 2 | R17 | Synthesized edge-case test image (`bolt_edge`), stage 1 (98 cases incl. whole-module `-marm`/`-mthumb`) | P1 | Claude | Stage 1 done and certified (scoped); stage 2 in progress (Claude) | 7, 8, 11, 12 | [Plan](R17_BOLT_EDGE_PLAN.md); evidence: `docs/results/bolt_edge_*_20261004.json` |
+| 2 | R17 | Synthesized edge-case test image (`bolt_edge`): 146 cases (stage 1/1b 98 + 48 random from stage 2) | P1 | Claude | Stages 1/1b certified (scoped); stage 2 done, contract pending user approval | 7, 8, 11, 12 | [Plan](R17_BOLT_EDGE_PLAN.md); evidence: `docs/results/bolt_edge_*_20261004.json` |
 
 **B. P0 certification (finish)**
 
@@ -172,6 +172,25 @@ plus genuine fallthrough such as `bzero`: about 98% of functions.
 4. Update the *Claims* table and LK_COVERAGE.md together.
 
 ## Handoff log
+
+### 2026-10-04 — Claude: R17 stage 2 done (random generator, 146 cases)
+
+- New `scripts/bolt_edge/rand.py`: seeded random A32/T32 functions from a
+  forward-only IR (ALU blocks; ret, branch, cmp+branch, IT / ARM-conditional
+  groups incl. predicated returns, calls/tail calls across ISAs, conditional
+  tail calls, TBB and `adr`+`ldr pc` switches). One IR yields both the asm and
+  a Python model, so `gen.py` adds them to the same manifest (seed 17, 24 per
+  ISA). Image `fixtures/lk-rpi4-bolt-edge-ce8dd005.elf`; generator and
+  manifest frozen in `docs/bolt_edge/stage2/`.
+- Pi baseline 146/146. Admission 153/155; only R21's two `-O0` tables
+  remain; all 48 random functions admitted. Rewritten image (557 emitted, 67
+  redirects, 26 random): 146 x 2 on the Pi, 0 mismatches, no faults.
+  Evidence: `docs/results/bolt_edge_stage2_20261004.json`. Full LK unchanged
+  (400/417; no backend change).
+- **Left:** user approval of a `pi4` contract for `ce8dd005` (then the
+  certified gate); tuning: only 4 conditional tail calls (44/48 functions
+  get a frame), could bias toward frameless functions or more seeds.
+- Lock free. Next in resume order: R21, then group B (6a G1–G3, 6c/R13, 6d, 6b).
 
 ### 2026-10-04 — Claude: R18 done (overlay 0057); lock released
 
