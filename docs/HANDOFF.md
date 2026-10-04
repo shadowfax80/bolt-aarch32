@@ -134,7 +134,6 @@ Take items in the order below; groups reflect dependencies, not ownership.
 | 2a | T1 | ARMv8-A AArch32 (Cortex-A55) admission and decode; v8-A Pi image, coverage and certified gate | P0 | Claude | Done and certified: contract `47c73bc0` approved (d3c8253); certified gate 10 reps, 18/18, both redirects executed | 6b, 7, 11 | Image `lk-rpi4-bolt-test-a55-47c73bc0.elf`: 406/416 admitted, rewritten image 2x18 on the Pi; evidence `docs/results/t1_a55_20261004.json`. Build: `make rpi4-bolt-test RPI4_ARM_CPU=cortex-a55` |
 | 2b | T2b | SMP instrumentation: the ARM counter update masks IRQ around a 64-bit increment (not atomic across cores), so the contract stays `privileged-single-core-no-fiq`; needs a cross-core-atomic counter path (or per-core counters) + tests + Pi check | P1 | — | Open | 9, 10 | Profiles from all cores are already available via PC sampling (certified chain) |
 | 3 | 6a | Every gate proves execution | P0 | — | Nearly done: Pi gates certify (full_image_verify, smp_verify); QEMU routes are labelled diagnostics that fail closed; wrappers audited (G1/G2 done, G3 n/a by user decision). Left: assertions-off rebuild re-check for overlays 0055–0059 | — | See 2026-10-04 6a audit log entries |
-| 4 | 6c | Legacy/manual hook admission | P0 | — | Partial | — | R9 done; includes R13 |
 | 5 | 6d | Durable receipts on every certification route | P0 | — | Partial | — | Pi gate + coverage report receipts exist |
 | 6 | 6b | Oracle contracts for further configurations (Thumb workloads, future `bolt_edge` seeds) | P0 | — | Partial | — | Active `pi4` contracts: full LK (`424606a8…`), bolt_edge stage 1 (`0895d7bc…`), 1b (`439dfd7c…`) and 2 (`ce8dd005…`); each new contract needs user review |
 
@@ -186,6 +185,7 @@ Take items in the order below; groups reflect dependencies, not ownership.
 | R13 | Redirect functions whose first instruction is 16-bit followed by a 32-bit one (split prefix) | P1 | Claude | 6c | `redirect-bolt-entries.py`: allowed when no branch, data word or symbol outside the function references the split bytes; unit tests; A55 image 31 redirects (7 split) pass on 4 cores; certified gate on `47c73bc0` with `it_cond` + `branch_chain` executed (`docs/results/r13_split_prefix_certified_20261004.json`) |
 | R15 | Full-LK instrumentation blocked by the `arch_spin_trylock` exclusive-reservation guard | P1 | Claude | exclusive guards (0038/0039) | 0059: a return with a live reservation (abandoned, e.g. try-lock failure) is admitted only when a raw scan finds no exclusive store outside analyzed functions; calls/branches out stay rejected; new must-reject cases (caller store, orphan store). Full-LK instrumentation now succeeds on `424606a8` and `47c73bc0` (`docs/results/lk_coverage*_r15_20261004.json`) |
 | T2 | SMP: rewritten code on all 4 cores (Cortex-A55-built LK) | P0 | Claude | 9, 10 | `bolt_bench smp` (per-core sink; per-core and concurrent phases), `bolt_sample watch` (per-core PC evidence), `scripts/pi4/smp_verify.py`; contract `e1139981` (smp); certified: SMP gate (72 + 480 sinks on original and rewritten, every core sampled in every required rewritten function) and standard gate (10 reps, 18/18) — `docs/results/t2_*_certified_20261004.json`. Instrumentation part split out as T2b |
+| 6c | Legacy/manual hook admission | P0 | Claude | 9, 11, 12 | Manual counter hooks rejected (existing); R13 split prefixes; new `scripts/tests/test_redirect_routes.py` (real ELFs: map route ARM/Thumb, legacy no-map, short, secondary entry, PC-relative prologue, referenced/unreferenced split prefix, unknown function; every refusal leaves the ELF byte-identical) + existing restoration/preservation/late-failure tests. Found and fixed: the split-prefix scan missed unpadded (<8-digit) addresses |
 | R11 | Skip-and-report admission mode | P1 | Codex | — | 0054; [diagnostic contract/evidence](ARM_ADMISSION_REPORT.md); one scan, same 399/417 coverage; both assertion modes + scoped Pi |
 
 ## Coverage goal
@@ -219,6 +219,18 @@ plus genuine fallthrough such as `bzero`: about 98% of functions.
 4. Update the *Claims* table and LK_COVERAGE.md together.
 
 ## Handoff log
+
+### 2026-10-04 — Claude: 6c done
+
+- New `scripts/tests/test_redirect_routes.py` runs `redirect-bolt-entries.py`
+  end to end on real llvm-mc/ld.lld/llvm-bolt images (needs TOOLCHAIN): map
+  route ARM and Thumb, legacy no-map, short function, secondary entry in the
+  prefix, PC-relative prologue, referenced and unreferenced split prefix,
+  unknown function. Every refusal leaves the output ELF byte-identical.
+- The test caught a real bug in R13's reference scan: it only matched 8-digit
+  hex, so a branch to `f+2` printed as `0x800a` was missed. Fixed (any width);
+  the LK A55 redirects are unchanged (identical image, 31 redirects, 7 split),
+  so certified results stand. Script tests: 28 + 8 pass.
 
 ### 2026-10-04 — Claude: 6a wrapper audit (QEMU routes diagnostic, fail closed)
 

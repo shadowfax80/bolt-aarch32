@@ -90,7 +90,9 @@ def require_whole_redirect_prefix(data,off,size,thumb,allow_split=False):
     return False
 
 
-_HEX = re.compile(r'\b(?:0x)?([0-9a-f]{8})\b')
+# Every 0x-prefixed value (branch targets, ADR/literal comments, .word data) of
+# any width, plus bare 8-digit words; objdump prints small addresses unpadded.
+_HEX = re.compile(r'\b0x([0-9a-f]+)\b|\b([0-9a-f]{8})\b')
 
 
 def original_text_references(objdump, elf):
@@ -106,8 +108,8 @@ def original_text_references(objdump, elf):
         if not m:
             continue
         src = int(m.group(1), 16)
-        for v in _HEX.findall(m.group(2)):
-            refs.append((src, int(v, 16)))
+        for a, b in _HEX.findall(m.group(2)):
+            refs.append((src, int(a or b, 16)))
     return refs
 
 
