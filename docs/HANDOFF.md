@@ -122,7 +122,7 @@ Board-wide: shared by bolt-aarch32 and lk-perf (one Pi 4B on COM5).
 
 | Holder | Since | Purpose / last observation |
 |---|---|---|
-| — (unreserved) | 2026-10-05 | Released by Codex after lk-perf demo: lk-perf shell at 6000000 baud, both samplers stopped, 3200 samples retained, COM5 closed. Software reset replaced the prior BOLT image; no lk-perf watchdog command issued. Recheck before use; reboot at 6 Mbaud to recover the loader. |
+| Claude (lk-perf) | 2026-10-05 | lk-perf K6: IRQ-masked accounting image on the Pi (PMU and timer captures) |
 
 ## Claims (consolidated TODO)
 
