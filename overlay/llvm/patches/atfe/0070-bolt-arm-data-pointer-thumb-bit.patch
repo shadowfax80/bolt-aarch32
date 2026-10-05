@@ -1,0 +1,213 @@
+--- a/bolt/lib/Rewrite/JITLinkLinker.cpp
++++ b/bolt/lib/Rewrite/JITLinkLinker.cpp
+@@ -7,6 +7,7 @@
+ //===----------------------------------------------------------------------===//
+ 
+ #include "bolt/Rewrite/JITLinkLinker.h"
++#include "llvm/ADT/DenseSet.h"
+ #include "llvm/ADT/StringSet.h"
+ #include "bolt/Core/BinaryContext.h"
+ #include "bolt/Core/BinaryData.h"
+@@ -163,6 +164,35 @@
+             if (const MCSymbol *Sym = BF.getSymbol(FF.getFragmentNum()))
+               ARMNames.insert(Sym->getName());
+         }
++        // R28: an absolute data word (R_ARM_ABS32/TARGET1) whose target is an
++        // unnamed symbol -- in practice the section symbol, which MC uses for
++        // references to local labels -- names the address its addend gives,
++        // with the Thumb bit already in the addend when it is a Thumb code
++        // pointer (as 0068 emits it). It must not inherit the Thumb flag of
++        // whatever function the section symbol happens to sit in: an A32
++        // `ldr pc` table in a block that starts with a Thumb function got bit 0
++        // on every entry and the case blocks ran in the wrong state. Give
++        // each such word its own anonymous target at the even address, carry
++        // the parity in the addend, and keep these targets unflagged.
++        DenseSet<jitlink::Symbol *> DataPointerTargets;
++        for (jitlink::Block *B : LG.blocks())
++          for (jitlink::Edge &E : B->edges()) {
++            if (E.getKind() != jitlink::aarch32::Data_Pointer32)
++              continue;
++            jitlink::Symbol &T = E.getTarget();
++            if (T.hasName() || !T.isDefined())
++              continue;
++            jitlink::Block &TB = T.getBlock();
++            const int64_t Off = static_cast<int64_t>(T.getOffset()) + E.getAddend();
++            if (Off < 0 || static_cast<uint64_t>(Off) >= TB.getSize())
++              continue;
++            jitlink::Symbol &Exact = LG.addAnonymousSymbol(
++                TB, orc::ExecutorAddrDiff(Off & ~int64_t(1)), 0, false, false);
++            E.setTarget(Exact);
++            E.setAddend(Off & 1);
++            DataPointerTargets.insert(&Exact);
++          }
++
+         DenseMap<jitlink::Block *, SmallVector<std::pair<uint64_t, uint64_t>, 4>>
+             ThumbRanges;
+         DenseMap<jitlink::Block *, bool> HasARMFunction;
+@@ -176,6 +206,8 @@
+         for (jitlink::Symbol *O : LG.defined_symbols()) {
+           if (O->getTargetFlags() & jitlink::aarch32::ThumbSymbol)
+             continue;
++          if (DataPointerTargets.contains(O))
++            continue;
+           if (O->hasName() && ARMNames.contains(*O->getName()))
+             continue;
+           jitlink::Block &B = O->getBlock();
+--- /dev/null
++++ b/bolt/test/ARM/Inputs/check-arm-ldr-pc-table-mixed-isa.py
+@@ -0,0 +1,147 @@
++from pathlib import Path
++import re
++import shutil
++import subprocess
++import sys
++import tempfile
++
++# R28: an A32 `ldr pc, [rB, rI, lsl #2]` table in a binary that also contains
++# Thumb code. MC references the case labels through the section symbol; the
++# JITLink Thumb-range marking used to flag that symbol Thumb whenever the
++# section started inside a Thumb function, so every re-emitted entry got bit 0
++# and the case blocks ran in Thumb state (data abort on the Pi). Every entry
++# must be the even address of its case block. Control: a Thumb function's
++# address in an ARM literal pool keeps bit 0 (original or moved copy).
++tc = Path(shutil.which('llvm-bolt')).resolve().parent
++evidence = Path(sys.argv[1])
++evidence.mkdir(parents=True, exist_ok=True)
++out = Path(tempfile.mkdtemp(prefix='run-', dir=evidence))
++print('Evidence:', out)
++
++SW = r'''
++ .arm
++ .global sw
++ .type sw,%function
++ .p2align 2
++sw:
++ and r2, r0, #3
++ add r3, pc, #0
++ ldr pc, [r3, r2, lsl #2]
++ .word 1f, 2f, 3f, 4f
++1:
++ add r0, r0, #1
++ bx lr
++2:
++ add r0, r0, #2
++ bx lr
++3:
++ add r0, r0, #3
++ bx lr
++4:
++ add r0, r0, #4
++ bx lr
++ .size sw,.-sw
++
++ .arm
++ .global ptr
++ .type ptr,%function
++ .p2align 2
++ptr:
++ ldr r0, 5f
++ bx lr
++5:
++ .word th
++ .size ptr,.-ptr
++'''
++TH = r'''
++ .thumb
++ .global th
++ .type th,%function
++ .thumb_func
++th:
++ adds r0, r0, #1
++ bx lr
++ .size th,.-th
++'''
++START_T = r'''
++ .syntax unified
++ .text
++ .thumb
++ .global _start
++ .type _start,%function
++ .thumb_func
++_start:
++ blx sw
++ blx ptr
++ b _start
++ .size _start,.-_start
++'''
++START_A = r'''
++ .syntax unified
++ .text
++ .arm
++ .global _start
++ .type _start,%function
++_start:
++ bl sw
++ bl ptr
++ b _start
++ .size _start,.-_start
++'''
++CASES = {
++    'arm-start-thumb-after': START_A + SW + TH,
++    'thumb-start': START_T + SW + TH,
++    'thumb-before': START_T + TH + SW,
++}
++LD = 'ENTRY(_start)\nSECTIONS {\n  . = 0x8000;\n  .text : { *(.text*) }\n}\n'
++
++
++def run(cmd, check=True):
++    p = subprocess.run([str(x) for x in cmd], cwd=out, capture_output=True, text=True)
++    if check and p.returncode:
++        sys.exit(f'FAIL: {cmd[0]} exited {p.returncode}\n{p.stdout}{p.stderr}')
++    return p.returncode, p.stdout + p.stderr
++
++
++def symbols(path):
++    _, text = run([tc / 'llvm-nm', path])
++    return {l.split()[2]: int(l.split()[0], 16) for l in text.splitlines() if len(l.split()) == 3}
++
++
++bad = 0
++for name, src in CASES.items():
++    (out / f'{name}.s').write_text(src)
++    (out / 'in.ld').write_text(LD)
++    run([tc / 'llvm-mc', '-arm-add-build-attributes', '-filetype=obj',
++         '-triple=armv7-unknown-linux-gnueabi', f'{name}.s', '-o', f'{name}.o'])
++    run([tc / 'ld.lld', '--emit-relocs', '-T', 'in.ld', f'{name}.o', '-o', f'{name}.exe'])
++    for mode, extra in (('default', []), ('reverse', ['--reorder-blocks=reverse'])):
++        rc, log = run([tc / 'llvm-bolt', f'{name}.exe', '-o', f'{name}.{mode}.bolt', '-lite=0',
++                       *extra], check=False)
++        (out / f'{name}.{mode}.log').write_text(log)
++        if rc:
++            print(f'FAIL: {name}/{mode}: llvm-bolt failed\n{log[-800:]}')
++            bad += 1
++            continue
++        syms = symbols(out / f'{name}.{mode}.bolt')
++        _, dis = run([tc / 'llvm-objdump', '-d', f'{name}.{mode}.bolt'])
++        rows = {}
++        for m in re.finditer(r'^\s*([0-9a-f]+):\s+(?:(?:[0-9a-f]{2} ){4}|[0-9a-f]{8}\s)\s*(\S+)\s*(.*)$', dis, re.M):
++            rows[int(m.group(1), 16)] = (m.group(2), m.group(3))
++        sw, th, ptr = syms['sw'], syms['th'], syms['ptr']
++        ldr = next(a for a, (mn, ops) in rows.items() if sw <= a < sw + 0x60 and mn == 'ldr' and ops.startswith('pc,'))
++        words = [rows.get(ldr + 4 + 4 * i) for i in range(4)]
++        vals = [int(w[1], 16) if w and w[0] == '.word' else None for w in words]
++        cases_ok = all(v is not None and not v & 1 and rows.get(v, ('',))[0] == 'add' for v in vals)
++        lit = next(int(ops, 16) for a, (mn, ops) in rows.items()
++                   if ptr <= a < ptr + 0x10 and mn == '.word')
++        # The literal may keep the original `th` (data pointers can keep
++        # targeting original entries) or follow the moved copy; either way it
++        # must carry the Thumb bit.
++        orig_th = symbols(out / f'{name}.exe')['th']
++        ptr_ok = lit & 1 == 1 and (lit & ~1) in (th & ~1, orig_th & ~1)
++        ok = cases_ok and ptr_ok
++        print(f"{'PASS' if ok else 'FAIL'}: {name}/{mode}: table {[v and hex(v) for v in vals]}, "
++              f"th literal {hex(lit)} (th {hex(th)})")
++        bad += not ok
++sys.exit(1 if bad else 0)
+--- /dev/null
++++ b/bolt/test/ARM/arm-ldr-pc-table-mixed-isa.test
+@@ -0,0 +1,5 @@
++## R28: A32 ldr-pc inline table entries stay ARM (bit 0 clear) when the binary also
++## contains Thumb code; a Thumb function address in an ARM literal keeps bit 0.
++
++RUN: rm -rf %t.dir
++RUN: %python %p/Inputs/check-arm-ldr-pc-table-mixed-isa.py %t.dir

@@ -1,0 +1,227 @@
+--- a/bolt/include/bolt/Core/MCPlusBuilder.h
++++ b/bolt/include/bolt/Core/MCPlusBuilder.h
+@@ -1793,6 +1793,11 @@
+ 
+   /// Returns how many bits we have in this instruction to encode a PC-rel
+   /// imm.
++  /// R29: replace a short-range branch encoding by a longer-range encoding
++  /// of the same branch (AArch32 Thumb: 16-bit B/B<c> -> B.W/B<c>.W).
++  /// Returns false if \p Inst has no wider form.
++  virtual bool widenBranch(MCInst &Inst) const { return false; }
++
+   virtual int getPCRelEncodingSize(const MCInst &Inst) const {
+     llvm_unreachable("not implemented");
+     return 0;
+--- a/bolt/lib/Target/ARM/ARMMCPlusBuilder.cpp
++++ b/bolt/lib/Target/ARM/ARMMCPlusBuilder.cpp
+@@ -1130,7 +1130,31 @@
+       return 21;
+     case ARM::tCBZ:
+     case ARM::tCBNZ:
+-      return 9;
++      // R29: prepareForEmission emits every Thumb CBZ/CBNZ as the inverted
++      // CBZ/CBNZ over a B.W to the target, so what has to reach is the B.W.
++      // Measuring the 7-bit forward CBZ range here made LongJmp ask for
++      // stubs (r12, refused under R8 when live) that the emitted code never
++      // needs.
++      return 25;
++    }
++  }
++
++  // R29: 16-bit Thumb B/B<c> have 32-bit forms with the same operands
++  // (target, condition, condition register), as normalizePredicatedBranch
++  // already relies on. A predicated tB (inside an IT block) is left alone.
++  bool widenBranch(MCInst &Inst) const override {
++    switch (Inst.getOpcode()) {
++    case ARM::tB:
++      if (Inst.getNumOperands() > 1 && Inst.getOperand(1).isImm() &&
++          Inst.getOperand(1).getImm() != ARMCC::AL)
++        return false;
++      Inst.setOpcode(ARM::t2B);
++      return true;
++    case ARM::tBcc:
++      Inst.setOpcode(ARM::t2Bcc);
++      return true;
++    default:
++      return false;
+     }
+   }
+ 
+--- a/bolt/lib/Passes/LongJmp.cpp
++++ b/bolt/lib/Passes/LongJmp.cpp
+@@ -720,6 +720,19 @@
+       }
+       Modified = true;
+ 
++      // R29: a short branch whose wide encoding reaches the target is widened
++      // in place (AArch32 Thumb B/B<c> -> B.W/B<c>.W) instead of going through
++      // a stub: no r12 clobber, no extra jump. The next iteration measures the
++      // layout with the 4-byte size.
++      {
++        MCInst Wide = Inst;
++        if (MIB->widenBranch(Wide) && !needsStub(BB, Wide, DotAddress)) {
++          Inst = Wide;
++          DotAddress += BC.computeInstructionSize(Inst);
++          continue;
++        }
++      }
++
+       if (BC.isARM() && !MIB->isCall(Inst)) {
+         const MCSymbol *TgtSym = MIB->getTargetSymbol(Inst);
+         const BinaryBasicBlock *TgtBB =
+@@ -727,7 +740,8 @@
+         if (TgtBB && isARMR12LiveIn(Func, *TgtBB))
+           return createFatalBOLTError(
+               "BOLT-ERROR: AArch32 local branch in " + Func.getPrintName() +
+-              " to " + TgtBB->getName() +
++              " to " + TgtBB->getName() + " (" +
++              BC.InstPrinter->getOpcodeName(Inst.getOpcode()).str() + ")" +
+               " needs an r12 stub but r12 is live there (R8); do not split "
+               "this function (e.g. --skip-funcs or no --split-functions)");
+       }
+--- /dev/null
++++ b/bolt/test/ARM/Inputs/check-arm-thumb-short-branch-range.py
+@@ -0,0 +1,135 @@
++from pathlib import Path
++import re
++import shutil
++import subprocess
++import sys
++import tempfile
++
++# R29: Thumb short branches that a new layout puts out of range. A 16-bit
++# B<c>/B is widened to B<c>.W/B.W, and CBZ/CBNZ is measured as the B.W that
++# prepareForEmission emits for it, so LongJmp needs no r12 stub (refused by R8
++# when r12 is live at the target, as it is here). Checked by disassembly and,
++# when qemu-arm is available, by running the rewritten program.
++tc = Path(shutil.which('llvm-bolt')).resolve().parent
++evidence = Path(sys.argv[1])
++evidence.mkdir(parents=True, exist_ok=True)
++out = Path(tempfile.mkdtemp(prefix='run-', dir=evidence))
++print('Evidence:', out)
++
++# Every branch target reads r12 (copied from r1) before writing it. After
++# --reorder-blocks=reverse the 1100-instruction filler block sits between each
++# short branch and its target.
++SRC = r'''
++ .syntax unified
++ .text
++ .thumb
++ .global _start
++ .type _start,%function
++ .thumb_func
++_start:
++ movs r0, #0
++ movs r1, #5
++ bl f
++ mov r4, r0
++ movs r0, #1
++ movs r1, #7
++ bl f
++ add r4, r4, r0
++ movs r0, #0
++ movs r1, #9
++ bl g
++ add r4, r4, r0
++ movs r0, #1
++ movs r1, #11
++ bl g
++ add r0, r4, r0
++ movs r7, #1
++ svc #0
++ b .
++ .size _start,.-_start
++
++@ f: 16-bit beq to fzero, 16-bit b to fbig
++ .global f
++ .type f,%function
++ .thumb_func
++f:
++ mov r12, r1
++ cmp r0, #0
++ beq fzero
++ b fbig
++fzero:
++ mov r0, r12
++ bx lr
++fbig:
++ mov r0, r12
++ .rept 1100
++ adds r0, r0, #1
++ .endr
++ bx lr
++ .size f,.-f
++
++@ g: cbz to gzero
++ .global g
++ .type g,%function
++ .thumb_func
++g:
++ mov r12, r1
++ cbz r0, gzero
++ b gbig
++gzero:
++ mov r0, r12
++ bx lr
++gbig:
++ mov r0, r12
++ .rept 1100
++ adds r0, r0, #2
++ .endr
++ bx lr
++ .size g,.-g
++'''
++LD = 'ENTRY(_start)\nSECTIONS {\n  . = 0x10000;\n  .text : { *(.text*) }\n}\n'
++WANT = (5 + (7 + 1100) + 9 + (11 + 2200)) % 256
++
++
++def run(cmd, check=True):
++    p = subprocess.run([str(x) for x in cmd], cwd=out, capture_output=True, text=True)
++    if check and p.returncode:
++        sys.exit(f'FAIL: {cmd[0]} exited {p.returncode}\n{p.stdout}{p.stderr}')
++    return p.returncode, p.stdout + p.stderr
++
++
++(out / 'f.s').write_text(SRC)
++(out / 'in.ld').write_text(LD)
++run([tc / 'llvm-mc', '-arm-add-build-attributes', '-filetype=obj',
++     '-triple=thumbv7-unknown-linux-gnueabi', 'f.s', '-o', 'f.o'])
++run([tc / 'ld.lld', '--emit-relocs', '-T', 'in.ld', 'f.o', '-o', 'f.exe'])
++qemu = shutil.which('qemu-arm')
++bad = 0
++if qemu:
++    rc, _ = run([qemu, 'f.exe'], check=False)
++    print(f"{'PASS' if rc == WANT else 'FAIL'}: input exits {rc} (want {WANT})")
++    bad += rc != WANT
++
++rc, log = run([tc / 'llvm-bolt', 'f.exe', '-o', 'f.bolt', '-lite=0', '--reorder-blocks=reverse'],
++              check=False)
++(out / 'f.bolt.log').write_text(log)
++if rc:
++    print(f'FAIL: llvm-bolt failed\n{log[-600:]}')
++    sys.exit(1)
++stubs = re.search(r'Inserted (\d+) stubs in the hot area and (\d+) stubs in the cold', log)
++_, fdis = run([tc / 'llvm-objdump', '-d', '--disassemble-symbols=f', 'f.bolt'])
++_, gdis = run([tc / 'llvm-objdump', '-d', '--disassemble-symbols=g', 'f.bolt'])
++f_wide = re.search(r'\sbeq\.w\s', fdis) is not None
++g_lines = [l for l in gdis.splitlines() if re.search(r'\s(cbn?z|b\.w)\s', l)]
++g_relaxed = any(re.search(r'\scbn?z\s', a) and re.search(r'\sb\.w\s', b)
++                for a, b in zip(g_lines, g_lines[1:]))
++r12_stub = 'r12' in re.sub(r'mov\s+r12, r1|mov\s+r0, r12', '', fdis + gdis)
++ok = stubs is not None and stubs.groups() == ('0', '0') and f_wide and g_relaxed and not r12_stub
++print(f"{'PASS' if ok else 'FAIL'}: stubs {stubs and stubs.groups()}, f beq.w {f_wide}, "
++      f"g cbz+b.w {g_relaxed}, r12 stub {r12_stub}")
++bad += not ok
++if qemu:
++    rc, _ = run([qemu, 'f.bolt'], check=False)
++    print(f"{'PASS' if rc == WANT else 'FAIL'}: rewritten program exits {rc} (want {WANT})")
++    bad += rc != WANT
++sys.exit(1 if bad else 0)
+--- /dev/null
++++ b/bolt/test/ARM/arm-thumb-short-branch-range.test
+@@ -0,0 +1,5 @@
++## R29: Thumb B<c>/B are widened and CBZ/CBNZ is measured as its emitted B.W when a new
++## layout puts the target out of short range, so no r12 stub is needed (r12 is live).
++
++RUN: rm -rf %t.dir
++RUN: %python %p/Inputs/check-arm-thumb-short-branch-range.py %t.dir
