@@ -16,7 +16,7 @@ FILES=(
 )
 
 # Host-architecture instrumentation runtime. Present for completeness only — it
-# cannot instrument AArch64 targets (see docs/aarch64-bare-metal.md).
+# cannot instrument AArch64 targets (see docs/history/aarch64-bare-metal.md).
 for lib in lib/libbolt_rt_instr.a lib/libbolt_rt_hugify.a; do
   [[ -f "$lib" ]] && FILES+=("$lib")
 done

@@ -171,7 +171,7 @@ But the mechanisms line up unusually well with firmware:
 - **IRQ and exception latency** is dominated by short hot paths and branch prediction — exactly what block layout targets.
 - **Early boot, vectors, and cache maintenance are hand-written assembly.** PGO and LTO cannot touch a line of it. On a kernel that is a large share of the latency-critical code, and BOLT is the only tool in the chain that can reorder it.
 
-See [aarch64-bare-metal.md](aarch64-bare-metal.md) for how the profile is collected without a filesystem, and [aarch32-bolt.md](aarch32-bolt.md) for the ARM/Thumb work.
+See [aarch64-bare-metal.md](history/aarch64-bare-metal.md) for how the profile is collected without a filesystem, and [aarch32-bolt.md](history/aarch32-bolt.md) for the ARM/Thumb work.
 
 ## References
 

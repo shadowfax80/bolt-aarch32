@@ -12,7 +12,7 @@ an independent Python model of what it returns. The generator writes
 is FNV-1a over the case's 32-bit results for INPUTS (little-endian words);
 `manifest.json` holds the values computed from the Python models, never from
 a run. Expected admission is the design intent ("rewrite" or "reject:<class>"),
-checked against BOLT's admission report. See docs/R17_BOLT_EDGE_PLAN.md.
+checked against BOLT's admission report. See docs/verification/R17_BOLT_EDGE_PLAN.md.
 
 Usage: python3 scripts/bolt_edge/gen.py [--check]
   --check  regenerate in memory and fail if the committed files differ.

@@ -16,7 +16,7 @@ CONTRACTS = {
         'rules_sha256': 'ea8c49a2d016ee24fab40ccd439cac077cf02922ad75c7681834e9b198719bad',
         'configuration': 'benchmark -mfpu=none, -marm; explicit __thumb__ macro retains IT arithmetic; STAIR_M=10, STAIR_X=0, input variant=0',
     },
-    # Approved by the user 2026-10-04 (docs/PI4_ORACLE_CONTRACT_DRAFT.md).
+    # Approved by the user 2026-10-04 (docs/verification/PI4_ORACLE_CONTRACT_DRAFT.md).
     # Source hashes are over LF-normalized text; the build copy has CRLF.
     '424606a869c34b5be5f3c97f66a9cec8ea16844ac788c14c77839edcfef2459b': {
         'name': 'full-lk-rpi4-bolt-test-20261004',

@@ -20,7 +20,7 @@ class HandoffStateTests(unittest.TestCase):
 | ID | Item | Priority | Owner | Status | Notes |
 |---|---|---|---|---|---|
 | R11 | Decoder | P1 | — | Partial (reopened) | diagnostic |
-| T3 | Secure | P2 | — | Deferred | user decision |
+| T3 | Deferred example | P2 | — | Deferred | user decision |
 | 14 | Provenance | P1 | — | Partial | receipts |
 ### Done
 | ID | Item | Priority | Owner | Patch / evidence |

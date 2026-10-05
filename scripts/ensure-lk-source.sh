@@ -4,7 +4,7 @@
 # LK's master has no release process, so tracking it directly would let an
 # untested upstream commit land in the build with no warning. Pin to the
 # commit that has been verified through the P0-P5 milestones (see
-# docs/RESUME.md) instead, and bump LK_COMMIT deliberately — with
+# docs/history/RESUME.md) instead, and bump LK_COMMIT deliberately — with
 # re-verification — rather than letting this float.
 set -euo pipefail
 

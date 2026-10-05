@@ -3,8 +3,8 @@
 This is the current way to work on the project. Since 2026-09-30 nothing runs on
 RunPod: EU-RO-1 had no CPU capacity for over an hour (every flavor, 2/4/8 vCPU), the work
 moved to a local WSL2 Ubuntu, and the network volume `3g114i4sby` was deleted at the
-owner's request. The older RunPod docs ([RUNPOD.md](RUNPOD.md), [RESUME.md](RESUME.md),
-[VOLUME_RECREATION.md](VOLUME_RECREATION.md)) are kept as history.
+owner's request. The older RunPod docs ([RUNPOD.md](history/RUNPOD.md), [RESUME.md](history/RESUME.md),
+[VOLUME_RECREATION.md](history/VOLUME_RECREATION.md)) are kept as history.
 
 ## What you need
 
@@ -75,7 +75,7 @@ only needed if LK is hung or a non-LK payload was loaded (not needed so far).
 - If COM5 is busy, check the published Pi reservation and process ownership.
   Do not terminate another agent's serial session; stop only your own stale process.
 
-Results are in [RPI4_HARDWARE_VERIFICATION.md](RPI4_HARDWARE_VERIFICATION.md).
+Results are in [RPI4_HARDWARE_VERIFICATION.md](history/RPI4_HARDWARE_VERIFICATION.md).
 
 ## Historical fresh-clone verification (2026-09-30; not proof for later overlays)
 

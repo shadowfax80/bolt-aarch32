@@ -59,10 +59,12 @@ def check(root):
             if numbers != list(range(1, int(last[1]) + 1)):
                 errors.append("ATFE overlay inventory is gapped/duplicated or differs from HANDOFF")
             counts["atfe_overlays"] = len(numbers)
-        for name in ["TODO.md", "CORRECTNESS_TODO.md", "CORRECTNESS_STATUS.md", "CORRECTNESS_PRIORITY_TODO.md"]:
-            text = (root / "docs" / name).read_text(encoding="utf-8")
-            if "HANDOFF.md" not in text or re.search(r"^\| (?:R\d+|T\d+|M\d+) \|", text, re.M):
-                errors.append(f"docs/{name}: current queue must link to HANDOFF, not duplicate it")
+        # HANDOFF is the only current queue: no other current doc may carry
+        # work-item rows (docs/history, reviews etc. keep their old tables).
+        for doc in sorted((root / "docs").glob("*.md")):
+            if doc.name != "HANDOFF.md" and re.search(r"^\| (?:R\d+|T\d+|M\d+) \|",
+                                                      doc.read_text(encoding="utf-8"), re.M):
+                errors.append(f"docs/{doc.name}: current queue must link to HANDOFF, not duplicate it")
     except (ValueError, OSError) as error:
         errors.append(f"HANDOFF: {error}")
 

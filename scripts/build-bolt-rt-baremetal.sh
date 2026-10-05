@@ -4,7 +4,7 @@
 # The runtime that ships with llvm-bolt is built for the host only (our pod
 # reports "Building BOLT runtime libraries for X86"), so instrumenting a
 # guest image needs its own archive passed via --runtime-instrumentation-lib.
-# See docs/aarch64-bare-metal.md / docs/aarch32-bolt.md P9.
+# See docs/history/aarch64-bare-metal.md / docs/history/aarch32-bolt.md P9.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"

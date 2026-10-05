@@ -4,10 +4,10 @@ Status of this document: current as of overlays **0001–0069** (2026-10-05).
 It describes the backend as built and verified in this repository. Work order
 and ownership are in [HANDOFF.md](HANDOFF.md). Limitations are in
 [KNOWN_LIMITATIONS.md](KNOWN_LIMITATIONS.md#current-atfe-backend-limitations-re-baselined-2026-10-05).
-The latest review is [CORRECTNESS_REVIEW_CLAUDE_0069.md](CORRECTNESS_REVIEW_CLAUDE_0069.md).
-Older design notes ([architecture.md](architecture.md),
-[BOLT_AARCH32_BACKEND.md](BOLT_AARCH32_BACKEND.md),
-[aarch32-bolt.md](aarch32-bolt.md)) are history; where they disagree, this
+The latest review is [CORRECTNESS_REVIEW_CLAUDE_0069.md](reviews/CORRECTNESS_REVIEW_CLAUDE_0069.md).
+Older design notes ([architecture.md](history/architecture.md),
+[BOLT_AARCH32_BACKEND.md](history/BOLT_AARCH32_BACKEND.md),
+[aarch32-bolt.md](history/aarch32-bolt.md)) are history; where they disagree, this
 document and HANDOFF win.
 
 ---
@@ -24,8 +24,8 @@ kernel image.
 | | |
 |---|---|
 | Deliverable | An AArch32 BOLT backend, as an overlay series on the Arm Toolchain for Embedded (ATFE) LLVM fork |
-| Real target | Cortex-A55, AArch32 state, SMP, always Secure SVC, no FPU/NEON, PMU sampling via IRQ, bare-metal LK, no SMC calls |
-| Proof-of-concept target | Raspberry Pi 4B (Cortex-A72, AArch32, Non-secure SVC), as close to the real target as the board allows: no FPU/NEON, SVC, SMP, IRQ sampling |
+| Real target | Cortex-A55, AArch32 state, SMP, always Non-secure SVC, no FPU/NEON, PMU sampling via IRQ, bare-metal LK, no SMC calls |
+| Proof-of-concept target | Raspberry Pi 4B (Cortex-A72, AArch32, Non-secure SVC), matching the real target in security state, mode, SMP, no FPU/NEON and IRQ sampling |
 | Diagnostic target | QEMU (`qemu-system-arm` with LK, `qemu-arm` user mode for the edge probe); debugging only, never certification |
 | Input class | Static, fixed-load (`ET_EXEC`), LLD-linked with `--emit-relocs`, little-endian, ARMv7-A or ARMv8-A AArch32, `-mfpu=none`, `-fno-exceptions` |
 | Optimizations used | Basic-block reordering (`ext-tsp`), function reordering (`hfsort+`/`cdsort`), ICF, function splitting, peepholes; instrumentation and sample-based profiles |
@@ -478,7 +478,7 @@ Evidence rules:
 | Edge image `ce8dd005` | 561 rewritten; 146 × 2 cases on the Pi, 0 mismatches |
 | SMP | Rewritten code on all cores; SMP counters verified |
 | Edge probe | 158 OK, 24 known safe rejections, 0 wrong |
-| Not yet run | Secure SVC (T3, deferred by the user); real Cortex-A55 hardware (T4, the user) |
+| Not yet run | Real Cortex-A55 hardware (T4, the user) |
 
 ---
 

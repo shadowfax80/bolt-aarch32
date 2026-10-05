@@ -14,5 +14,5 @@ Apply with `scripts/apply-overlays.sh`, which runs `git apply` inside each
 **When a patch lands in llvm-project, delete it here.** The overlay should shrink
 over the life of the project.
 
-The planned patch list lives in [docs/PROJECT_PLAN.md](../docs/PROJECT_PLAN.md);
-what each layer is responsible for is in [docs/architecture.md](../docs/architecture.md).
+The planned patch list lives in [docs/history/PROJECT_PLAN.md](../docs/history/PROJECT_PLAN.md);
+what each layer is responsible for is in [docs/history/architecture.md](../docs/history/architecture.md).
