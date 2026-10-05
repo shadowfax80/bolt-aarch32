@@ -35,7 +35,14 @@ function, or the limit is in verification scope) unless marked otherwise.
 | N2 | PC-writing control transfers other than modelled tables/returns: exception returns (`movs pc, lr`, `ldm …^` with pc, `rfe`), `add pc, pc, rI` switches, computed `mov pc` | LK vectors (`arm_irq`, `arm_fiq`, aborts, `arm_syscall`, `arm_undefined`), `arm_secondary_setup`; edge `a_add_pc_switch` |
 | N3 | Position-dependent PC reads as data (other than modelled literal pools and table bases) | startup (`arm_reset`, skipped), edge `a_pcread` |
 | N4 | Inline-table base register read in a case block, or a callee-saved base not restored before return (R26) | probes `t32_tbh_adr_base`, `a32_table_base_read_in_case` |
+| N6 | Thumb functions that hit the R8 r12-stub refusal on reordering or instrumentation (R29) | B1: 120 KB ThinLTO stair kernel, `bolt_bench_multi`, `bolt_bench_stair` (ARM-mode builds pass) |
 | N5 | `-O0` load-then-jump tables whose case reads the jump register, non-adjacent load/jump, or clobbered base (R21) | lit only |
+
+### Known wrong code (open)
+
+| ID | Shape | Status |
+|---|---|---|
+| W1 | ARM-mode inline `add rX, pc; ldr pc, [rX, rY, lsl #2]` table: entries re-emitted with the Thumb bit, so the rewritten function switches to Thumb state and faults (R28) | Found on the Pi by B1 (`pl_b`); keep such functions original (`-skip-funcs`, BOLT's local names such as `pl_b/1`) until fixed |
 
 ### Assumptions the rewrite relies on
 

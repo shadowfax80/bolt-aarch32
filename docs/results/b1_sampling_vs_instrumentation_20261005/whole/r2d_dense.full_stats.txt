@@ -1,0 +1,2 @@
+input functions: 495; emitted: 471; original entries redirected: 1; execution verified: no
+Run full_image_verify.py to check results and observed execution.

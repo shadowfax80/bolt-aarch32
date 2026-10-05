@@ -114,7 +114,7 @@ image/configuration oracle contracts still require user review.
 
 | Holder | Since | Purpose |
 |---|---|---|
-| Claude | 2026-10-05 | B1: BOLT from lk-perf samples vs instrumentation (separate WSL root `~/bolt-b1`; shared toolchain read only) |
+| — (free) | 2026-10-05 | Released by Claude after B1 (no source change; overlays still 0001–0069; private root `~/bolt-b1` left for replay) |
 
 ## Pi reservation
 
@@ -122,7 +122,7 @@ Board-wide: shared by bolt-aarch32 and lk-perf (one Pi 4B on COM5).
 
 | Holder | Since | Purpose / last observation |
 |---|---|---|
-| Claude | 2026-10-05 | B1: sampling vs instrumentation BOLT comparison captures and measurements |
+| — (unreserved) | 2026-10-05 | Released by Claude after B1: lk-perf K15 image at the shell, 6000000 baud, pseudo-NMI off, samplers stopped, no watchdog armed, COM5 closed. Recheck before use; `--reboot` at 6 Mbaud returns it to the loader |
 
 ## Claims (consolidated TODO)
 
@@ -143,7 +143,8 @@ Take items in the order below; groups reflect dependencies, not ownership.
 
 | Order | ID | Item | Priority | Owner | Status | Part of | Notes |
 |---|---|---|---|---|---|---|---|
-| 10b | B1 | BOLT benefit on the Pi from an lk-perf sampling profile vs an instrumentation profile: whole LK image running existing apps, and the stair showcase (user, 2026-10-05) | P2 | Claude | In progress | — | lk-perf profiler built into the bolt-aarch32 image; no oracle contract, measurement only |
+| 10a | R28 | ARM-mode inline `ldr pc, [rX, rY, lsl #2]` table re-emitted with the Thumb bit on every entry; the rewritten function data-aborts when it runs | P0 | — | Open | 12 | Found by B1 on the Pi (`pl_b`), see [B1](results/b1_sampling_vs_instrumentation_20261005/README.md); 0057 models the table shape, so this is a mis-emission inside a supported shape; check the R25 (0068) data-pointer path. Workaround: keep such functions original |
+| 10b | R29 | Thumb code hits the R8 r12-stub refusal on reordering (120 KB ThinLTO stair kernel) and instrumentation (`bolt_bench_multi`, 756 bytes; `bolt_bench_stair`); fails safe | P1 | — | Open | 7 | Found by B1; ARM-mode builds pass; cause not analysed (narrow-branch relaxation itself is probed, R27/V7) |
 | 10c | T4 | Performance and final validation on the real A55 target (A72 gains not transferable) | P2 | User | Out of scope here | — | Done by the user in the office environment, from this repo |
 
 
@@ -164,7 +165,7 @@ Take items in the order below; groups reflect dependencies, not ownership.
 
 ### Done
 
-Completed items with patches and evidence: [history/HANDOFF_DONE.md](history/HANDOFF_DONE.md) (newest first; add new rows there). Latest: M2, T3 (closed), R27, R25, R26, R21, R12, R24, R23.
+Completed items with patches and evidence: [history/HANDOFF_DONE.md](history/HANDOFF_DONE.md) (newest first; add new rows there). Latest: B1, M2, T3 (closed), R27, R25, R26, R21, R12, R24, R23.
 
 ## Coverage goal
 
@@ -192,6 +193,32 @@ emission coverage, not execution or whole-backend correctness.
 4. Update the *Claims* table and LK_COVERAGE.md together.
 
 ## Handoff log
+
+### 2026-10-05 — Claude: B1 done (BOLT from lk-perf sampling vs instrumentation); R28, R29 opened; lock and Pi released
+
+- User asked for the real hardware benefit of BOLT from a sampling profile
+  (lk-perf) vs an instrumentation profile, on a showcase and on the whole LK
+  image running existing apps. Results and method:
+  [B1 results](results/b1_sampling_vs_instrumentation_20261005/README.md).
+- Showcase (stair, ThinLTO 512 sites, 32.60M cycles, 2.09M L1I refills):
+  BOLT from instrumentation 9.196M (-71.8%), from lk-perf samples 9.226M
+  (-71.7%): sampling recovers 99.9% of the gain.
+- Whole image, 9 apps: total -4.43% (instrumentation), -4.37% (lk-perf, same
+  11-function scope), -4.18% (lk-perf, 49 functions incl. kernel); all from
+  `multi` (-45.6/-45.8/-45.7%). Sparse samples (245 in composite) gave
+  +16.4%; a dense capture (13,647) gave +0.01%, equal to instrumentation.
+  Kernel/libc/driver rewriting changed nothing measurable (fits in cache).
+- New scripts: `scripts/pi4/pi4_lkperf_profile.py` (lk-perf capture into the
+  verified sampling route), `scripts/pi4/pi4_suite_measure.py` (whole-image
+  app suite); `pi4_bolt_profile.py --command`. No backend/overlay change;
+  coverage not regenerated (no backend or LK test-image change).
+- Bugs found: R28 (ARM ldr-pc table entries get the Thumb bit; the Pi
+  data-aborted), R29 (Thumb r12-stub refusals). lk-perf side fixed in
+  lk-perf K13-K15 (segment-gap hash, PC-read site capture that blocked 44
+  kernel functions, stat leaving the cycle counter off).
+- Build root `~/bolt-b1` (clone at e0dc130, LK 79d2f560 + bolt overlays +
+  lk-perf overlays, shared toolchain read only); the shared LK tree was not
+  touched. Next: R28 first (P0, wrong code).
 
 ### 2026-10-05 — Codex: shared Pi released after lk-perf demonstration
 

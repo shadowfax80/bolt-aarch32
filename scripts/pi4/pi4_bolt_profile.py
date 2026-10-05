@@ -49,6 +49,10 @@ def main() -> int:
     ap.add_argument('--build-manifest', help='default: IMAGE.manifest.json, sealed before capture')
     ap.add_argument('--debug-unbound', action='store_true')
     ap.add_argument("--workload", default="composite")
+    ap.add_argument("--command", action="append", default=[],
+                    help="shell command to run instead of `bolt_bench WORKLOAD` (repeatable; "
+                         "B1 whole-image suites)")
+    ap.add_argument("--max-wait", default="60", help="per-command timeout, seconds")
     ap.add_argument("--port", default="COM5")
     args = ap.parse_args()
     evidence = Path(tempfile.mkdtemp(prefix='pi-counters-', dir=Path(args.out).resolve().parent))
@@ -75,8 +79,8 @@ def main() -> int:
 
     cmd = [
         sys.executable, os.path.join(HERE, "pi4_run.py"), str(image),
-        "--port", args.port, "--reboot", "--wait", "30", "--max-wait", "60",
-        f"bolt_bench {args.workload}", f"bolt_dump {args.addr} {args.size}",
+        "--port", args.port, "--reboot", "--wait", "30", "--max-wait", str(args.max_wait),
+        *(args.command or [f"bolt_bench {args.workload}"]), f"bolt_dump {args.addr} {args.size}",
     ]
     out = run_bounded(cmd, 900)
     text = out.stdout.decode("utf-8", errors="replace")
@@ -100,7 +104,7 @@ def main() -> int:
                    payload_sha256=hashlib.sha256(blob).hexdigest(), log_sha256=sha256(log),
                    collector_sha256=sha256(__file__), evidence=str(evidence),
                    range=dict(address=int(args.addr, 16), size=int(args.size, 16)),
-                   workload=args.workload, limitation='identity binding only; workload semantics are a separate gate')
+                   workload=args.command or args.workload, limitation='identity binding only; workload semantics are a separate gate')
     publish_files({args.out: blob, args.out + '.manifest.json':
                    (json.dumps(capture, indent=2) + '\n').encode('utf-8')})
     print(f"wrote {len(blob)} bytes to {args.out}")
