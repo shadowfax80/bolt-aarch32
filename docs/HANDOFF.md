@@ -114,7 +114,7 @@ image/configuration oracle contracts still require user review.
 
 | Holder | Since | Purpose |
 |---|---|---|
-| — (free) | 2026-10-05 | Released by Claude after B1 (no source change; overlays still 0001–0069; private root `~/bolt-b1` left for replay) |
+| Claude | 2026-10-05 | R28 (ARM ldr-pc table Thumb bit), R29 (Thumb r12-stub refusals): ATFE source and builds |
 
 ## Pi reservation
 
@@ -143,8 +143,8 @@ Take items in the order below; groups reflect dependencies, not ownership.
 
 | Order | ID | Item | Priority | Owner | Status | Part of | Notes |
 |---|---|---|---|---|---|---|---|
-| 10a | R28 | ARM-mode inline `ldr pc, [rX, rY, lsl #2]` table re-emitted with the Thumb bit on every entry; the rewritten function data-aborts when it runs | P0 | — | Open | 12 | Found by B1 on the Pi (`pl_b`), see [B1](results/b1_sampling_vs_instrumentation_20261005/README.md); 0057 models the table shape, so this is a mis-emission inside a supported shape; check the R25 (0068) data-pointer path. Workaround: keep such functions original |
-| 10b | R29 | Thumb code hits the R8 r12-stub refusal on reordering (120 KB ThinLTO stair kernel) and instrumentation (`bolt_bench_multi`, 756 bytes; `bolt_bench_stair`); fails safe | P1 | — | Open | 7 | Found by B1; ARM-mode builds pass; cause not analysed (narrow-branch relaxation itself is probed, R27/V7) |
+| 10a | R28 | ARM-mode inline `ldr pc, [rX, rY, lsl #2]` table re-emitted with the Thumb bit on every entry; the rewritten function data-aborts when it runs | P0 | Claude | In progress | 12 | Found by B1 on the Pi (`pl_b`), see [B1](results/b1_sampling_vs_instrumentation_20261005/README.md); 0057 models the table shape, so this is a mis-emission inside a supported shape; check the R25 (0068) data-pointer path. Workaround: keep such functions original |
+| 10b | R29 | Thumb code hits the R8 r12-stub refusal on reordering (120 KB ThinLTO stair kernel) and instrumentation (`bolt_bench_multi`, 756 bytes; `bolt_bench_stair`); fails safe | P1 | Claude | In progress | 7 | Found by B1; ARM-mode builds pass; cause not analysed (narrow-branch relaxation itself is probed, R27/V7) |
 | 10c | T4 | Performance and final validation on the real A55 target (A72 gains not transferable) | P2 | User | Out of scope here | — | Done by the user in the office environment, from this repo |
 
 
