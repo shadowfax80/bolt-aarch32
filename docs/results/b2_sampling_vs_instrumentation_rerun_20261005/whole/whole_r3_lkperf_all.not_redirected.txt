@@ -1,0 +1,4 @@
+initial_thread_func/1
+profiler_workload_b/1
+profiler_workload_inner/1
+idle_thread_routine/1

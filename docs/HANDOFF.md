@@ -114,7 +114,7 @@ image/configuration oracle contracts still require user review.
 
 | Holder | Since | Purpose |
 |---|---|---|
-| Claude | 2026-10-05 | B2: rerun of B1 on 0001–0071 (private root `~/bolt-b1`; shared toolchain read only) |
+| — (free) | 2026-10-05 | Released by Claude after B2 (no source change; overlays still 0001–0071) |
 
 ## Pi reservation
 
@@ -122,7 +122,7 @@ Board-wide: shared by bolt-aarch32 and lk-perf (one Pi 4B on COM5).
 
 | Holder | Since | Purpose / last observation |
 |---|---|---|
-| Claude | 2026-10-05 | B2: sampling vs instrumentation BOLT rerun (captures and measurements) |
+| — (unreserved) | 2026-10-05 | Released by Claude after B2: B2 whole-image R3 image at the shell, 3000000 baud, watchdog disarmed by the runner, samplers stopped, COM5 closed. Recheck before use; `--reboot` returns it to the loader |
 
 ## Claims (consolidated TODO)
 
@@ -143,7 +143,6 @@ Take items in the order below; groups reflect dependencies, not ownership.
 
 | Order | ID | Item | Priority | Owner | Status | Part of | Notes |
 |---|---|---|---|---|---|---|---|
-| 10b | B2 | Rerun B1 (BOLT from lk-perf sampling vs instrumentation) on 0001–0071: Thumb builds, no R28 workaround, denser sampling (user, 2026-10-05) | P2 | Claude | In progress | — | Measurement only |
 | 10c | T4 | Performance and final validation on the real A55 target (A72 gains not transferable) | P2 | User | Out of scope here | — | Done by the user in the office environment, from this repo |
 
 
@@ -164,7 +163,7 @@ Take items in the order below; groups reflect dependencies, not ownership.
 
 ### Done
 
-Completed items with patches and evidence: [history/HANDOFF_DONE.md](history/HANDOFF_DONE.md) (newest first; add new rows there). Latest: R28, R29, B1, M2, T3 (closed), R27, R25, R26, R21, R12, R24, R23.
+Completed items with patches and evidence: [history/HANDOFF_DONE.md](history/HANDOFF_DONE.md) (newest first; add new rows there). Latest: B2, R28, R29, B1, M2, T3 (closed), R27, R25, R26, R21, R12, R24, R23.
 
 ## Coverage goal
 
@@ -192,6 +191,21 @@ emission coverage, not execution or whole-backend correctness.
 4. Update the *Claims* table and LK_COVERAGE.md together.
 
 ## Handoff log
+
+### 2026-10-05 — Claude: B2 done (B1 rerun on 0001–0071); lock and Pi released
+
+- Thumb images, no R28 workaround, lk-perf with K13-K15, denser sampling.
+  [B2 results](results/b2_sampling_vs_instrumentation_rerun_20261005/README.md).
+- Showcase (Thumb ThinLTO stair 512): instrumentation -68.1%, lk-perf
+  sampling -67.6% vs the input (99.3% of the gain).
+- Whole image: -4.45% (instrumentation, 11 fns), -4.31% (lk-perf, same
+  scope), -2.77% (lk-perf, 69 fns). Dense sampling fixed B1's composite
+  regression; new: sampled layouts mispredict 5x more on stair at -O2
+  (+10.3%, branch directions inferred from block counts), and a
+  whole-image hfsort+ order splits multi's six functions (L1I refills
+  52k -> 700k, -45% -> -34%). All app results identical; R28-affected
+  code ran rewritten without fault.
+- No source change. Next: P1 certification matrices.
 
 ### 2026-10-05 — Claude: R28 and R29 fixed (0070, 0071); lock and Pi released
 

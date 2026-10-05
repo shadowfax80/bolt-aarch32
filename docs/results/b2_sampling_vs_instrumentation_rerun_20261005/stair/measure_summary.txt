@@ -1,0 +1,80 @@
+round 1/3  o2 ...
+Measurement evidence: C:\Users\User\CURSOR\ClaudeProjects\BOLT_AARCH32\out\pi4\measure-bbvabjc0
+round 1/3  thinlto_input ...
+Measurement evidence: C:\Users\User\CURSOR\ClaudeProjects\BOLT_AARCH32\out\pi4\measure-93flisku
+round 1/3  bolt_instr ...
+Measurement evidence: C:\Users\User\CURSOR\ClaudeProjects\BOLT_AARCH32\out\pi4\measure-m73z6oxp
+round 1/3  bolt_lkperf ...
+Measurement evidence: C:\Users\User\CURSOR\ClaudeProjects\BOLT_AARCH32\out\pi4\measure-bomyld04
+round 2/3  o2 ...
+Measurement evidence: C:\Users\User\CURSOR\ClaudeProjects\BOLT_AARCH32\out\pi4\measure-arxo2pbn
+round 2/3  thinlto_input ...
+Measurement evidence: C:\Users\User\CURSOR\ClaudeProjects\BOLT_AARCH32\out\pi4\measure-z_522fz8
+round 2/3  bolt_instr ...
+Measurement evidence: C:\Users\User\CURSOR\ClaudeProjects\BOLT_AARCH32\out\pi4\measure-6yu9bmz5
+round 2/3  bolt_lkperf ...
+Measurement evidence: C:\Users\User\CURSOR\ClaudeProjects\BOLT_AARCH32\out\pi4\measure-3tpz9jrg
+round 3/3  o2 ...
+Measurement evidence: C:\Users\User\CURSOR\ClaudeProjects\BOLT_AARCH32\out\pi4\measure-8aqpzddf
+round 3/3  thinlto_input ...
+Measurement evidence: C:\Users\User\CURSOR\ClaudeProjects\BOLT_AARCH32\out\pi4\measure-evfyjr_p
+round 3/3  bolt_instr ...
+Measurement evidence: C:\Users\User\CURSOR\ClaudeProjects\BOLT_AARCH32\out\pi4\measure-c4bb4ob6
+round 3/3  bolt_lkperf ...
+Measurement evidence: C:\Users\User\CURSOR\ClaudeProjects\BOLT_AARCH32\out\pi4\measure-_4wrv5jo
+
+24 runs -> C:/Users/User/AppData/Local/Temp/claude/C--Users-User-CURSOR-ClaudeProjects-BOLT-AARCH32/f74ad4de-0e6e-4cd3-b5e9-3b0b9c5bc80c/scratchpad/b2/img/../stair.csv
+
+checksum 0x2f744325 identical in all 24 runs
+
+== o2 (6 runs)
+   cycles      10,495,849.7  [10,495,656 .. 10,496,069]  sd 161.1
+   inst        23,411,947.0  [23,411,947 .. 23,411,947]  sd 0.0
+   l1i_refill           1.7  [0 .. 2]  sd 0.7
+   l1d_refill           0.0  [0 .. 0]  sd 0.0
+   br_mispred       8,392.8  [8,383 .. 8,401]  sd 6.2
+   taken        2,115,715.3  [2,115,715 .. 2,115,717]  sd 0.7
+   ipc                2.231
+   taken/kinst       90.369
+   l1i_refill/kinst        0.000
+   br_mispred/kinst        0.358
+   cycles 95%    10,495,850 +- 185
+== thinlto_input (6 runs)
+   cycles      28,529,042.2  [28,525,763 .. 28,530,823]  sd 2,147.1
+   inst        17,660,869.0  [17,660,869 .. 17,660,869]  sd 0.0
+   l1i_refill   1,748,598.0  [1,748,421 .. 1,748,694]  sd 116.2
+   l1d_refill           0.0  [0 .. 0]  sd 0.0
+   br_mispred       8,643.2  [8,439 .. 8,750]  sd 131.7
+   taken        1,347,714.3  [1,347,714 .. 1,347,716]  sd 0.7
+   ipc                0.619
+   taken/kinst       76.311
+   l1i_refill/kinst       99.010
+   br_mispred/kinst        0.489
+   cycles 95%    28,529,042 +- 2,469
+   cycles vs o2: +171.81% (95% CI +-0.02 pp, significant)
+== bolt_instr (6 runs)
+   cycles       9,102,118.2  [9,100,714 .. 9,103,688]  sd 1,183.2
+   inst        17,479,389.0  [17,479,389 .. 17,479,389]  sd 0.0
+   l1i_refill      42,026.8  [41,856 .. 42,188]  sd 143.2
+   l1d_refill           0.0  [0 .. 0]  sd 0.0
+   br_mispred       8,453.7  [8,391 .. 8,511]  sd 52.6
+   taken        1,166,236.7  [1,166,236 .. 1,166,238]  sd 0.9
+   ipc                1.920
+   taken/kinst       66.721
+   l1i_refill/kinst        2.404
+   br_mispred/kinst        0.484
+   cycles 95%     9,102,118 +- 1,360
+   cycles vs o2: -13.28% (95% CI +-0.01 pp, significant)
+== bolt_lkperf (6 runs)
+   cycles       9,237,043.0  [9,235,324 .. 9,238,169]  sd 1,127.8
+   inst        17,536,265.0  [17,536,265 .. 17,536,265]  sd 0.0
+   l1i_refill      77,350.7  [77,147 .. 77,543]  sd 147.5
+   l1d_refill           0.0  [0 .. 0]  sd 0.0
+   br_mispred       8,474.0  [8,406 .. 8,516]  sd 46.6
+   taken        1,223,110.0  [1,223,110 .. 1,223,110]  sd 0.0
+   ipc                1.898
+   taken/kinst       69.747
+   l1i_refill/kinst        4.411
+   br_mispred/kinst        0.483
+   cycles 95%     9,237,043 +- 1,297
+   cycles vs o2: -11.99% (95% CI +-0.01 pp, significant)

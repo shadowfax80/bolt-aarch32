@@ -1,0 +1,16 @@
+bolt_bench: multi pmu inst=50064025 l1i_refill=2684023 l1d_refill=0 br_mispred=18 taken=76008
+bolt_bench: stair pmu inst=29266185 l1i_refill=2 l1d_refill=0 br_mispred=10507 taken=2643586
+bolt_bench: multi pmu inst=50064025 l1i_refill=43284499 l1d_refill=0 br_mispred=13 taken=76005
+bolt_bench: stair pmu inst=29266185 l1i_refill=13105586 l1d_refill=0 br_mispred=10493 taken=2643587
+bolt_bench: multi pmu inst=50088025 l1i_refill=52010 l1d_refill=0 br_mispred=12012 taken=112003
+bolt_bench: stair pmu inst=29266185 l1i_refill=3 l1d_refill=0 br_mispred=14143 taken=2643584
+bolt_bench: multi pmu inst=50088025 l1i_refill=23652538 l1d_refill=0 br_mispred=22 taken=100011
+bolt_bench: stair pmu inst=29266185 l1i_refill=13179738 l1d_refill=0 br_mispred=14154 taken=2643584
+bolt_bench: multi pmu inst=50088025 l1i_refill=52012 l1d_refill=0 br_mispred=19 taken=100009
+bolt_bench: stair pmu inst=29411685 l1i_refill=3 l1d_refill=0 br_mispred=71428 taken=2795220
+bolt_bench: multi pmu inst=50088025 l1i_refill=23476670 l1d_refill=0 br_mispred=23 taken=100009
+bolt_bench: stair pmu inst=29411685 l1i_refill=14452993 l1d_refill=0 br_mispred=71152 taken=2795233
+bolt_bench: multi pmu inst=50088025 l1i_refill=699994 l1d_refill=0 br_mispred=24 taken=100010
+bolt_bench: stair pmu inst=29411685 l1i_refill=3 l1d_refill=0 br_mispred=71468 taken=2795253
+bolt_bench: multi pmu inst=50088025 l1i_refill=28498216 l1d_refill=0 br_mispred=34 taken=100011
+bolt_bench: stair pmu inst=29411685 l1i_refill=14461978 l1d_refill=0 br_mispred=71407 taken=2795169

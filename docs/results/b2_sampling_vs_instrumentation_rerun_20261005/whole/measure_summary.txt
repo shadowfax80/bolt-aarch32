@@ -1,0 +1,22 @@
+round 3/3  input ...
+round 3/3  r1_instr ...
+
+288 measurements -> C:/Users/User/AppData/Local/Temp/claude/C--Users-User-CURSOR-ClaudeProjects-BOLT-AARCH32/f74ad4de-0e6e-4cd3-b5e9-3b0b9c5bc80c/scratchpad/b2/img/../whole.csv; evidence C:\Users\User\AppData\Local\Temp\claude\C--Users-User-CURSOR-ClaudeProjects-BOLT-AARCH32\f74ad4de-0e6e-4cd3-b5e9-3b0b9c5bc80c\scratchpad\b2\suite-vt_lnl8r
+results identical in every run of every image (10 app results checked)
+
+app                          input              r1_instr      r2_lkperf_scoped         r3_lkperf_all
+composite                   6.105M     6.106M  +0.01%±0.01     6.106M  +0.01%±0.01     6.105M  +0.00%±0.01
+multi                      43.339M    23.744M -45.21%±0.37    23.501M -45.78%±0.09    28.499M -34.24%±0.08
+pl_a                       25.680M    25.680M  +0.00%±0.00    25.680M  -0.00%±0.00    25.681M  +0.00%±0.00
+pl_b                       30.513M    30.513M  -0.00%±0.00    30.513M  +0.00%±0.00    31.302M  +2.59%±0.00
+pl_c                       18.819M    18.819M  +0.00%±0.01    18.818M  -0.00%±0.00    19.084M  +1.41%±0.10
+pl_d                       14.166M    14.173M  +0.05%±0.11    14.167M  +0.01%±0.10    14.159M  -0.04%±0.13
+stair                      13.106M    13.180M  +0.56%±0.00    14.457M +10.31%±0.02    14.463M +10.35%±0.02
+bench                      16.222M    16.222M  +0.00%±0.00    16.222M  -0.00%±0.00    16.222M  -0.00%±0.00
+nest                        2.889M     2.889M  -0.00%±0.01     2.889M  +0.01%±0.02     2.889M  -0.00%±0.01
+memtest                   165.778M   166.259M  +0.29%±0.65   165.870M  +0.06%±0.31   166.404M  +0.38%±0.63
+schedtest                  80.811M    80.780M  -0.04%±0.13    80.761M  -0.06%±0.14    80.775M  -0.04%±0.12
+smp                        10.964M    10.963M  -0.00%±0.01    10.963M  -0.01%±0.02    10.962M  -0.02%±0.03
+total                     428.391M   409.328M  -4.45%         409.946M  -4.31%         416.543M  -2.77%      
+
+[exited with code 0]

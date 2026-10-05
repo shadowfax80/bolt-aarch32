@@ -1,0 +1,1 @@
+_start,arm_reset,arm_undefined,arm_swi,arm_prefetch_abort,arm_data_abort,arm_reserved,arm_irq,arm_fiq,platform_early_init,arch_early_init,bcopy,bzero,arm_secondary_setup,arm_syscall
