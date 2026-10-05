@@ -122,7 +122,7 @@ Board-wide: shared by bolt-aarch32 and lk-perf (one Pi 4B on COM5).
 
 | Holder | Since | Purpose / last observation |
 |---|---|---|
-| — (unreserved) | 2026-10-05 | Released by Claude after lk-perf K1: lk-perf K1 image (lk.bin `0700d4d2…`) at the shell, 6000000 baud, pseudo-NMI off, samplers stopped, accounting off, COM5 closed; no watchdog command issued. Recheck before use; `--reboot` at 6 Mbaud returns it to the loader (a BOLT run needs its own image upload) |
+| Claude (lk-perf) | 2026-10-05 | lk-perf K2: self-describing capture (feasibility probe, then captures) |
 
 ## Claims (consolidated TODO)
 
