@@ -1,0 +1,261 @@
+diff --git a/bolt/include/bolt/Core/BinaryFunction.h b/bolt/include/bolt/Core/BinaryFunction.h
+--- a/bolt/include/bolt/Core/BinaryFunction.h
++++ b/bolt/include/bolt/Core/BinaryFunction.h
+@@ -623,6 +623,9 @@
+   /// register, offset of the `adr`). The `adr` carries an "InlineTableBase"
+   /// annotation with the table index; the emitter creates the table label.
+   std::map<uint64_t, std::pair<MCPhysReg, uint64_t>> PendingAbsoluteTables;
++  /// R12: Thumb `adr rB, <table>` directly before `tbb/tbh [pc, ...]`:
++  /// table offset -> (offset of the adr, offset of the table branch).
++  std::map<uint64_t, std::pair<uint64_t, uint64_t>> PendingThumbTableBases;
+   DenseSet<uint32_t> AbsoluteInlineTables;
+   bool InvalidAbsoluteTable = false;
+ 
+diff --git a/bolt/lib/Core/BinaryFunction.cpp b/bolt/lib/Core/BinaryFunction.cpp
+--- a/bolt/lib/Core/BinaryFunction.cpp
++++ b/bolt/lib/Core/BinaryFunction.cpp
+@@ -1286,6 +1286,11 @@
+   BC.MIB->convertToHalfwordTableBranch(Instruction);
+   BC.MIB->addAnnotation(Instruction, "InlineTable",
+                         static_cast<uint32_t>(InlineTables.size()));
++  // R12: a recognized `adr` base for this table points at the emitted table.
++  if (auto PB = PendingThumbTableBases.find(TableOffset);
++      PB != PendingThumbTableBases.end() && PB->second.second == Offset)
++    BC.MIB->addAnnotation(Instructions.at(PB->second.first), "InlineTableBase",
++                          static_cast<uint32_t>(InlineTables.size()));
+   InlineTables.emplace_back(std::move(Labels));
+   return true;
+ }
+@@ -1668,6 +1673,32 @@
+                                    BC.Ctx->createNamedTempSymbol("ltab_base"),
+                                    BC.Ctx.get());
+         PendingAbsoluteTables[TableOff] = {TableBaseReg, Offset};
++        IsTableBase = true;
++      }
++    }
++
++    // R12: Thumb `adr rB, <table>` directly followed by `tbb/tbh [pc, ...]`
++    // whose inline table starts at that address. The adr is re-pointed at the
++    // re-emitted table (same label mechanism as A32 tables above).
++    if (BC.isARM() && isARMThumb() && !IsTableBase &&
++        MIB->getPCRelativeBase(Instruction, TableBaseReg, TableDisp)) {
++      const int64_t PCBase =
++          int64_t(alignDown(getAddress() + Offset + 4, 4)) - int64_t(getAddress());
++      const int64_t TableOff = PCBase + TableDisp;
++      const uint64_t BranchOff = Offset + Size;
++      MCInst Branch;
++      uint64_t BranchSize;
++      BC.ThumbDisAsm->resetState();
++      if (BranchOff + 4 == uint64_t(TableOff) && uint64_t(TableOff) < getSize() &&
++          getSizeOfDataInCodeAt(TableOff) && !getSizeOfDataInCodeAt(BranchOff) &&
++          BC.ThumbDisAsm->getInstruction(Branch, BranchSize,
++                                         FunctionData.slice(BranchOff),
++                                         getAddress() + BranchOff, nulls()) &&
++          BranchSize == 4 && MIB->getInlineTableEntrySize(Branch)) {
++        MIB->createInlineTableBase(Instruction, TableBaseReg,
++                                   BC.Ctx->createNamedTempSymbol("ttab_base"),
++                                   BC.Ctx.get());
++        PendingThumbTableBases[TableOff] = {Offset, BranchOff};
+         IsTableBase = true;
+       }
+     }
+@@ -1984,6 +2015,17 @@
+                                   "base in " + getPrintName());
+   }
+   PendingAbsoluteTables.clear();
++  // R12: every Thumb table base must be bound to its table, and nothing may
++  // branch to the table branch (the adr and the branch share one block).
++  for (const auto &[TableOff, Pending] : PendingThumbTableBases) {
++    auto AdrIt = Instructions.find(Pending.first);
++    if (AdrIt == Instructions.end() ||
++        !BC.MIB->hasAnnotation(AdrIt->second, "InlineTableBase") ||
++        Labels.count(Pending.second))
++      return createFatalBOLTError("unsupported AArch32 inline jump table "
++                                  "base in " + getPrintName());
++  }
++  PendingThumbTableBases.clear();
+ 
+   // Scope-boundary markers are only consulted while assigning offsets above.
+   DebugScopeBoundaryOffsets.clear();
+diff --git a/bolt/lib/Core/BinaryEmitter.cpp b/bolt/lib/Core/BinaryEmitter.cpp
+--- a/bolt/lib/Core/BinaryEmitter.cpp
++++ b/bolt/lib/Core/BinaryEmitter.cpp
+@@ -606,15 +606,25 @@
+               std::to_string(BF.InlineTableMarks.size()) + "_" +
+               std::to_string(*Idx) + "_start");
+           BF.EmittedTableLabels[*Idx] = Label;
+-          BC.MIB->createInlineTableBase(Clean, Clean.getOperand(0).getReg(),
+-                                        Label, BC.Ctx.get());
++          BC.getMIBFor(BF.isARMThumb())
++              ->createInlineTableBase(Clean, Clean.getOperand(0).getReg(),
++                                      Label, BC.Ctx.get());
+         }
+         Streamer.emitInstruction(Clean, EmitSTI);
+         if (const std::vector<MCSymbol *> *Table = BF.getInlineTable(Instr)) {
+-          if (BF.isAbsoluteInlineTable(Instr))
++          if (BF.isAbsoluteInlineTable(Instr)) {
+             emitAbsoluteInlineTable(BF, Instr, *Table);
+-          else
++          } else {
++            // R12: a Thumb `adr` base for this table points here.
++            if (auto TIdx = BC.MIB->tryGetAnnotationAs<uint32_t>(Instr, "InlineTable")) {
++              auto TL = BF.EmittedTableLabels.find(*TIdx);
++              if (TL != BF.EmittedTableLabels.end()) {
++                Streamer.emitLabel(TL->second);
++                BF.EmittedTableLabels.erase(TL);
++              }
++            }
+             emitInlineTable(BF, FF, *BB, *Table);
++          }
+         }
+       } else {
+         Streamer.emitInstruction(Instr, *BC.STI);
+diff --git a/bolt/lib/Target/ARM/ARMMCPlusBuilder.cpp b/bolt/lib/Target/ARM/ARMMCPlusBuilder.cpp
+--- a/bolt/lib/Target/ARM/ARMMCPlusBuilder.cpp
++++ b/bolt/lib/Target/ARM/ARMMCPlusBuilder.cpp
+@@ -358,6 +358,20 @@
+         Disp = Inst.getOpcode() == ARM::ADDri ? Value : -Value;
+       }
+       return Reg != ARM::PC;
++    case ARM::t2ADR:
++    case ARM::tADR: {
++      // R12: Thumb (Rd, imm, pred, predreg); t2ADR holds a byte offset (a
++      // negative one decodes as its 32-bit pattern), tADR holds words.
++      if (MCPlus::getNumPrimeOperands(Inst) < 4 || !Inst.getOperand(1).isImm() ||
++          !Inst.getOperand(2).isImm() || Inst.getOperand(2).getImm() != ARMCC::AL)
++        return false;
++      Reg = Inst.getOperand(0).getReg();
++      const int64_t Imm = Inst.getOperand(1).getImm();
++      Disp = Inst.getOpcode() == ARM::tADR
++                 ? Imm * 4
++                 : int64_t(int32_t(uint32_t(uint64_t(Imm))));
++      return true;
++    }
+     default:
+       return false;
+     }
+@@ -365,7 +379,7 @@
+ 
+   void createInlineTableBase(MCInst &Inst, MCPhysReg Reg, const MCSymbol *Label,
+                              MCContext *Ctx) const override {
+-    Inst = MCInstBuilder(ARM::ADR)
++    Inst = MCInstBuilder(InThumbMode() ? ARM::t2ADR : ARM::ADR)
+                .addReg(Reg)
+                .addExpr(MCSymbolRefExpr::create(Label, *Ctx))
+                .addImm(ARMCC::AL)
+--- /dev/null
++++ b/bolt/test/ARM/Inputs/check-arm-tbh-adr-base.py
+@@ -0,0 +1,104 @@
++"""R12: clang may materialise a Thumb TBB/TBH table address with
++`adr.w rB, <table>` right before `tbb/tbh [pc, rI]`. BOLT admits that shape
++and re-points the adr at the re-emitted table; it still rejects the adr when
++anything branches to the table branch or the adr is not adjacent."""
++from pathlib import Path
++import re
++import shutil
++import subprocess
++import sys
++import tempfile
++
++tc = Path(shutil.which('llvm-bolt')).resolve().parent
++evidence = Path(sys.argv[1])
++evidence.mkdir(parents=True, exist_ok=True)
++out = Path(tempfile.mkdtemp(prefix='run-', dir=evidence))
++print('Evidence:', out)
++
++
++def source(kind, between='', side=''):
++    entry = '.hword' if kind == 'tbh' else '.byte'
++    table = ''.join(f' {entry} (c{i}-.Ltab)/2\n' for i in range(1, 5))
++    align = ' .p2align 1\n' if kind == 'tbb' else ''
++    return f''' .syntax unified
++ .text
++ .arm
++ .global _start
++ .type _start,%function
++_start:
++ blx sw
++ b _start
++ .size _start,.-_start
++
++ .thumb
++ .global sw
++ .type sw,%function
++ .thumb_func
++sw:
++ and r4, r0, #3
++{side} adr.w r2, .Ltab
++{between}.Ltbx:
++ {kind} [pc, r4{', lsl #1' if kind == 'tbh' else ''}]
++.Ltab:
++{table}{align}c1:
++ adds r0, r0, #1
++ bx lr
++c2:
++ adds r0, r0, #2
++ bx lr
++c3:
++ adds r0, r0, #3
++ bx lr
++c4:
++ adds r0, r0, #4
++ bx lr
++ .size sw,.-sw
++'''
++
++
++def run(cmd, check=True):
++    p = subprocess.run([str(x) for x in cmd], cwd=out, capture_output=True, text=True)
++    if check and p.returncode:
++        sys.exit(f'FAIL: {Path(str(cmd[0])).name} exited {p.returncode}\n{p.stdout}{p.stderr}')
++    return p.returncode, p.stdout + p.stderr
++
++
++bad = 0
++CASES = (('tbh', '', '', True), ('tbb', '', '', True),
++         ('tbh-branch-in', '', ' cmp r0, #9\n beq .Ltbx\n', False),
++         ('tbh-not-adjacent', ' mov r1, r0\n', '', False))
++for name, between, side, admit in CASES:
++    kind = name.split('-')[0]
++    (out / f'{name}.s').write_text(source(kind, between, side))
++    (out / 'in.ld').write_text('ENTRY(_start)\nSECTIONS {\n  . = 0x8000;\n  .text : { *(.text*) }\n}\n')
++    run([tc / 'llvm-mc', '-arm-add-build-attributes', '-filetype=obj', '-triple=armv7-unknown-linux-gnueabi',
++         f'{name}.s', '-o', f'{name}.o'])
++    run([tc / 'ld.lld', '--emit-relocs', '-T', 'in.ld', f'{name}.o', '-o', f'{name}.exe'])
++    for mode, extra in (('default', []), ('reverse', ['--reorder-blocks=reverse'])):
++        rc, log = run([tc / 'llvm-bolt', f'{name}.exe', '-o', f'{name}.{mode}.bolt', '-lite=0',
++                       '--funcs=sw', *extra], check=False)
++        (out / f'{name}.{mode}.log').write_text(log)
++        if not admit:
++            ok = rc != 0 and ('position-dependent PC read in sw' in log or 'inline jump table base in sw' in log)
++            print(f"{'PASS' if ok else 'FAIL'}: {name}/{mode}: rejected={rc != 0}")
++            bad += not ok
++            continue
++        if rc:
++            print(f'FAIL: {name}/{mode}: llvm-bolt failed\n{log[-800:]}')
++            bad += 1
++            continue
++        _, dis = run([tc / 'llvm-objdump', '-d', f'{name}.{mode}.bolt'])
++        m = re.search(r'^([0-9a-f]+) <sw>:\n(.*?)(?:\n\n|\Z)', dis, re.S | re.M)
++        rows = re.findall(r'^\s*([0-9a-f]+):\s+(?:[0-9a-f]{2,4} ?)+\s+(\S+)\s*([^\n]*)', m.group(2), re.M) if m else []
++        addr = {int(a, 16): (mn, ops) for a, mn, ops in rows}
++        adr = next((a for a, (mn, ops) in addr.items() if mn.startswith('adr')), None)
++        tbx = next((a for a, (mn, _) in addr.items() if mn in ('tbb', 'tbh')), None)
++        ok = adr is not None and tbx is not None and tbx == adr + 4
++        if ok:
++            k = int(re.search(r'#(-?(?:0x)?[0-9a-f]+)', addr[adr][1]).group(1), 0)
++            target = ((adr + 4) & ~3) + k
++            ok = target == tbx + 4
++        print(f"{'PASS' if ok else 'FAIL'}: {name}/{mode}: adr@{adr and hex(adr)} -> table "
++              f"{hex(target) if ok else '?'}, {kind}@{tbx and hex(tbx)}")
++        bad += not ok
++sys.exit(1 if bad else 0)
+--- /dev/null
++++ b/bolt/test/ARM/arm-tbh-adr-base.test
+@@ -0,0 +1,6 @@
++## R12: Thumb adr.w <table> directly before tbb/tbh is admitted and re-pointed
++## at the re-emitted table; a branch into the table branch or a non-adjacent
++## adr is still rejected.
++
++RUN: rm -rf %t.dir
++RUN: %python %p/Inputs/check-arm-tbh-adr-base.py %t.dir

@@ -66,7 +66,7 @@ Everything needed to continue is in this repo:
 - **Certified input image:** `fixtures/lk-rpi4-bolt-test-424606a8.elf`
   (see `fixtures/README.md`); the skip list is in
   `docs/results/lk_coverage_r15_20261004.json` (`skip_funcs`).
-- **Backend source:** overlays `overlay/llvm/patches/atfe/0001–0065`; the WSL
+- **Backend source:** overlays `overlay/llvm/patches/atfe/0001–0066`; the WSL
   live tree must replay them exactly (`scripts/verify-atfe-overlays.py`).
   Do not run `scripts/apply-overlays.sh` on the dirty live tree.
 - **Commands:**
@@ -82,7 +82,7 @@ Everything needed to continue is in this repo:
   COM5; sample captures occasionally fail chunk validation (USB corruption),
   retry; never `git stash` from WSL on the Windows checkout.
 - **Build versions:** ON is `build-atfe`; current OFF is `build-atfe-noassert`,
-  tested through 0065 (ARM lit 54/54, 2026-10-05). The older OFF build
+  tested through 0066 (ARM lit 55/55, 2026-10-05). The older OFF build
   `out/correctness/build-atfe-noasserts-20261002` is 0054 evidence. ON 0060–0061
   checks do not establish OFF parity for those overlays; recheck build hashes.
   Preserve both older receipts and dirty live source.
@@ -116,13 +116,13 @@ deferred; new image/configuration oracle contracts still require user review.
 
 | Holder | Since | Purpose |
 |---|---|---|
-| Claude | 2026-10-05 | R12: ADR base before Thumb TBB/TBH (next overlay 0066) |
+| Claude | 2026-10-05 | R21: A32 -O0 load-then-jump tables (next overlay 0067) |
 
 ## Pi reservation
 
 | Holder | Since | Purpose / last observation |
 |---|---|---|
-| Claude | 2026-10-05 | R12: certified full-image gate on `424606a8` with `vsnprintf` redirected (watchdog armed by the gate) |
+| — (unreserved) | 2026-10-05 | Released by Claude after R12. Last state: LK shell after the certified gate on `out/r12cert2` (424606a8 candidate), COM5 closed; watchdog as left by full_image_verify. Reserve and recheck before use; `pi4_run.py --reboot` recovers it. |
 
 ## Claims (consolidated TODO)
 
@@ -142,8 +142,7 @@ Take items in the order below; groups reflect dependencies, not ownership.
 
 | Order | ID | Item | Priority | Owner | Status | Part of | Notes |
 |---|---|---|---|---|---|---|---|
-| 9 | R12 | ADR to an inline TBB/TBH table (`vsnprintf`) | P2 | Claude | In progress | 12 | Pattern: `adr.w r2, <table>; tbh [pc, r4, lsl #1]; <table>` (424606a8: 0x80030c04). Plan: treat the ADR right before TBB/TBH that addresses that table as a table reference; re-emit it against the emitted table label (reuse 0057's ADR-base mechanism with 0024's TBH model; relax 0045's PC-read rejection only for this shape) |
-| 10a | R21 | A32 `-O0` load-then-jump tables (`add rB, pc, #k; ldr rX, [rB, rI, lsl #2]; mov pc, rX` / `bx rX`) still rejected as PC read | P2 | — | Open | 12 | Found by R17 after R18 (`c_switch_arm_o0`, `c_switch_marm_o0`); extend 0057's table model to a register jump |
+| 10a | R21 | A32 `-O0` load-then-jump tables (`add rB, pc, #k; ldr rX, [rB, rI, lsl #2]; mov pc, rX` / `bx rX`) still rejected as PC read | P2 | Claude | In progress | 12 | Found by R17 after R18 (`c_switch_arm_o0`, `c_switch_marm_o0`); extend 0057's table model to a register jump |
 | 10b | T3 | Secure-SVC parity on the Pi | P2 | — | Deferred TODO (user, 2026-10-04): Secure armstub is built (`tools/pi4-armstub-secure/`, sha `af4a5512…`, install/rollback in its README) but not installed; the SD-card step and the Secure re-runs wait until the user asks | 9 | All Pi results so far are Non-secure SVC; BOLT rewriting is state-agnostic, so T3 is a parity confirmation |
 | 10c | T4 | Performance and final validation on the real A55 target (A72 gains not transferable) | P2 | User | Out of scope here | — | Done by the user in the office environment, from this repo |
 
@@ -155,7 +154,7 @@ Take items in the order below; groups reflect dependencies, not ownership.
 | 11 | 8 | CFG and mutation invariants | P1 | — | Partial | R4–R6, R19, R11, R23 done |
 | 12 | 7 | Relocation/literal/veneer matrix | P1 | — | Partial | R1–R3, R7, R14 done |
 | 13 | 11 | Entries/symbols/reference routes | P1 | — | Partial | R9 done |
-| 14 | 12 | Tables and inline data | P1 | — | Partial | R18, R22, R24 done; R12, R21 pending |
+| 14 | 12 | Tables and inline data | P1 | — | Partial | R18, R22, R24, R12 done; R21 pending |
 | 15 | 13 | Actual pass combinations | P1 | — | Partial | R7, R8, R20 done |
 | 16 | 9 | Interrupt/reentrancy/reset boundaries | P1 | — | Partial | T2/T2b (SMP execution and counters) done; active-IRQ fixtures still open |
 | 17 | 10 | Sampling/PMU ownership | P1 | — | Partial | Per-core PC watch ranges (T2) done; per-sample core attribution and loss/saturation accounting open |
@@ -171,6 +170,7 @@ Take items in the order below; groups reflect dependencies, not ownership.
 | R11 | Skip-and-report admission mode; Thumb IT-state isolation (reopened, fixed) | P1 | Codex + Claude | 8, 6d | 0054 report mode (Codex). Reopened by the Astra review: a truncated ITT/ITE leaked IT state into the next function. 0063: `MCDisassembler::resetState()` (ARM clears IT/VPT state); BOLT resets at every independent stream (function disassembly, noreturn/branch-fix scans, nested plain decode, padding/veneer scans, exclusive-reservation scan, every 0059 gap probe). `arm-it-isolation.test`: truncated ITT/ITE before and after clean functions, admission equals control. Unfixed OFF build reproduced the false rejection; fixed ON/OFF 53/53; LLVM ARM disassembler + JITLink AArch32 166 pass/1 XFAIL |
 | R23 | Noreturn absolute-thunk traversal bypassed cycle detection | P1 | Claude | 8 | 0064: thunk following moved inside `isProvenNoReturnARM`'s in-progress cache guard, so A→B→A thunk cycles prove nothing and terminate; `arm-thunk-cycle.test` (A32+T32: cycle and self-cycle rejected promptly, acyclic chain still a proof). Unfixed OFF build reproduced the hang (timeout); fixed ON/OFF 54/54 |
 | R24 | A32 rotated (modified) immediates in inline-table bases | P2 | Claude | 12 | 0065: `getPCRelativeBase` decodes the ADDri/SUBri operand as imm8 ror 2·rot instead of using the encoded value as a byte count; `arm-ldr-pc-table.test` adds `add r3, pc, #256` (admitted, base re-pointed at the re-emitted table, default + reversed). Unfixed OFF build rejected it; fixed ON/OFF 54/54 |
+| R12 | ADR to an inline TBB/TBH table (`vsnprintf`) | P2 | Claude | 12 | 0066: Thumb `adr(.w) rB, <table>` directly before `tbb/tbh [pc,...]` is re-pointed at the re-emitted table (A32 table-base mechanism; ISA-aware builder in the emitter); still rejected when anything branches to the table branch or the adr is not adjacent. `arm-tbh-adr-base.test` (TBH/TBB default+reversed; branch-in and non-adjacent rejected); ON/OFF 55/55. Full LK 400 → 401/417 functions, 98.0% → 99.5% of code bytes. Pi: certified gate PASS with vsnprintf emitted (`r12_certified_20261005.json`); vsnprintf (boot-only, via snprintf) redirected: `threads` prints `idle 0-3` formatted by the rewritten copy, 18/18 (`r12_vsnprintf_threads_pi_20261005.log`) |
 | M1 | Repository health and documentation consolidation | P2 | Codex | — | [Audit/changes](REPO_HEALTH.md); canonical HANDOFF queue, archived duplicate history, current monitor + offline integrity command; 167 host tests run/12 skipped, no failures; fixture/receipt hashes preserved |
 | R1 | Thumb `blx` re-patched as `bl` to ARM targets (61 LK sites) | P0 | Claude | 7 | 0046; `arm-external-branch-repatch.test`; LK raw output 61 → 0 |
 | R2 | ARM `B`/`BL`/`BLX` re-patch drops condition; PC+8 | P0 | Claude | 7 | 0046 |
@@ -210,11 +210,11 @@ Raise BOLT coverage of the full LK test binary, measured only by
 | 2 | R5 noreturn calls at function end — **done, 0052** | 78 | 354/417 (84.9%); 92.6% of code bytes |
 | 3 | R6 predicated returns and calls in IT blocks — **done, 0053** | 45 | 399/417 (95.7%); 97.9% of code bytes |
 | 4 | R19 call idiom — **done, 0055** | 1 | 400/417 (95.9%); 98.0% of code bytes |
-| 5 | R12 ADR to inline switch table | 1 expected | Pending |
+| 5 | R12 ADR to inline switch table — **done, 0066** | 1 | 401/417 (96.2%); 99.5% of code bytes |
 | 6 | R15 try-lock reservation guard — **done, 0059** | in-scope workload instrumentation | See `lk_coverage_r15_20261004.json` |
 
-**Published v7 coverage:** 400/417 functions, 124282/126834 code bytes (98.0%).
-Ten rejected symbol rows remain in the latest v7 receipt; admission of
+**Published v7 coverage:** 401/417 functions, 126164/126834 code bytes (99.5%).
+Nine rejected symbol rows remain in the latest v7 receipt (`lk_coverage_r12_20261005.json`); admission of
 `arm_secondary_entry` does not authorize relocating or redirecting startup code.
 Keep vectors/early setup in place and reject genuine fallthrough. Coverage is
 emission coverage, not execution or whole-backend correctness.
@@ -232,6 +232,26 @@ emission coverage, not execution or whole-backend correctness.
 4. Update the *Claims* table and LK_COVERAGE.md together.
 
 ## Handoff log
+
+### 2026-10-05 — Claude: R12 done (overlay 0066); R21 claimed; Pi released
+
+- `vsnprintf` used `adr.w r2, <table>` right before `tbh [pc, r4, lsl #1]`.
+  0066 recognizes a Thumb `adr`/`adr.w` immediately followed by `tbb/tbh [pc]`
+  whose inline table starts at the adr target, turns it into a table-base
+  placeholder and the emitter points it at the re-emitted table (label
+  emitted at the table start; ISA-aware builder). A branch into the table
+  branch or a non-adjacent adr stays rejected.
+- Tests: `arm-tbh-adr-base.test` 8/8; ON/OFF ARM lit 55/55; BOLT lit 749 +
+  known AArch64 failure; 0001–0066 replay exactly (`9377a517`).
+- Coverage (rule 6): full LK 400 → 401/417 functions, 124282 → 126164 of
+  126834 code bytes (98.0% → 99.5%); 9 rejected rows remain
+  (`lk_coverage_r12_20261005.json`).
+- Pi (reserved/released per rule 8): certified gate on 424606a8 with
+  vsnprintf emitted, 10 reps, 18/18, both redirects executed. vsnprintf only
+  runs at boot (snprintf for idle-thread names), so the sampler cannot see it;
+  with vsnprintf redirected the candidate boots, `threads` lists `idle 0..3`
+  formatted by the rewritten copy, 18/18.
+- Lock kept for R21 (claimed). Pi unreserved.
 
 ### 2026-10-05 — Claude: R24 done (overlay 0065); R12 claimed
 
