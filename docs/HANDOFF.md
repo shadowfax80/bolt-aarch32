@@ -116,7 +116,7 @@ deferred; new image/configuration oracle contracts still require user review.
 
 | Holder | Since | Purpose |
 |---|---|---|
-| — (free) | 2026-10-04 | Released by Claude after overlays 0060–0061 |
+| Claude | 2026-10-05 | R22: privileged LDM table-base clobber (next overlay 0062) |
 
 ## Pi reservation
 
@@ -142,7 +142,7 @@ Take items in the order below; groups reflect dependencies, not ownership.
 
 | Order | ID | Item | Priority | Owner | Status | Part of | Notes |
 |---|---|---|---|---|---|---|---|
-| 7a | R22 | Privileged LDM overwrites an inline-table base without rejection | P1 | — | Open | 12 (R18 follow-up) | Host probe accepts `ldmia r4,{r3,r5}^` that clobbers r3; ordinary LDM control rejects. Model register-list definitions or reject conservatively; both-mode must-reject tests. Fix before relying on expanded table admission. |
+| 7a | R22 | Privileged LDM overwrites an inline-table base without rejection | P1 | Claude | In progress | 12 (R18 follow-up) | Host probe accepts `ldmia r4,{r3,r5}^` that clobbers r3; ordinary LDM control rejects. Model register-list definitions or reject conservatively; both-mode must-reject tests. Fix before relying on expanded table admission. |
 | 7b | R11 | Isolate Thumb decoder IT state between independent admission scans | P1 | — | Partial (reopened) | 8, 6d | 0054 report mode remains implemented, but truncated ITT/ITE falsely rejects the following valid `bx lr`. Preserve prior receipts; fix symbolic/plain decoder isolation and add both-mode order-independence regressions. |
 | 7c | R23 | Noreturn absolute-thunk traversal bypasses cycle detection | P1 | — | Open | 8 (R19 follow-up) | A→B→A MOVW/MOVT/BX thunk chain times out at 8 s; self-cycle rejects, acyclic chain succeeds. Put traversal inside the cache/visited guard; both-mode A32/T32 regressions. |
 | 8a | R24 | Decode A32 rotated immediates when computing inline-table bases | P2 | — | Open | 12 (R18 follow-up) | #256 ADD table fixture falsely rejects while #8 control succeeds; ADDri/SUBri MC operand is encoded mod_imm. Test rotated ADD/SUB and malformed table addresses. |
