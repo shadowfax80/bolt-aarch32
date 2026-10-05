@@ -122,7 +122,7 @@ deferred; new image/configuration oracle contracts still require user review.
 
 | Holder | Since | Purpose / last observation |
 |---|---|---|
-| — (unreserved) | 2026-10-05 | Last observed by Claude after 89dd17f (2026-10-04 health check): LK shell running `out/t1/lk-a55.bin` (A55 v8 image, local build output), watchdog off (`wdog 0`), sampler off, COM5 closed. Reserve and recheck before use; `pi4_run.py --reboot` recovers it from the LK shell. |
+| Claude | 2026-10-05 | R12: certified full-image gate on `424606a8` with `vsnprintf` redirected (watchdog armed by the gate) |
 
 ## Claims (consolidated TODO)
 
