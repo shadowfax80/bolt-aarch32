@@ -122,7 +122,7 @@ Board-wide: shared by bolt-aarch32 and lk-perf (one Pi 4B on COM5).
 
 | Holder | Since | Purpose / last observation |
 |---|---|---|
-| Claude (lk-perf) | 2026-10-05 | lk-perf K8/K9 (scheduling capture, small fixes) |
+| — (unreserved) | 2026-10-05 | Released by Claude after lk-perf K8/K9: lk-perf K8 image (lk.bin `5c6af40e…`) at the shell, 6000000 baud, pseudo-NMI off, samplers and scheduler recording stopped, COM5 closed. Recheck before use; `--reboot` at 6 Mbaud returns it to the loader |
 
 ## Claims (consolidated TODO)
 
