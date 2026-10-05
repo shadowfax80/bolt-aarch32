@@ -67,7 +67,7 @@ Everything needed to continue is in this repo:
 - **Certified input image:** `fixtures/lk-rpi4-bolt-test-424606a8.elf`
   (see `fixtures/README.md`); the skip list is in
   `docs/results/lk_coverage_r15_20261004.json` (`skip_funcs`).
-- **Backend source:** overlays `overlay/llvm/patches/atfe/0001–0069`; the WSL
+- **Backend source:** overlays `overlay/llvm/patches/atfe/0001–0071`; the WSL
   live tree must replay them exactly (`scripts/verify-atfe-overlays.py`).
   Do not run `scripts/apply-overlays.sh` on the dirty live tree.
 - **Commands:**
@@ -114,7 +114,7 @@ image/configuration oracle contracts still require user review.
 
 | Holder | Since | Purpose |
 |---|---|---|
-| Claude | 2026-10-05 | R28 (ARM ldr-pc table Thumb bit), R29 (Thumb r12-stub refusals): ATFE source and builds |
+| — (free) | 2026-10-05 | Released by Claude after R28/R29 (overlays 0001–0071; WSL live tree replays them exactly; both builds rebuilt) |
 
 ## Pi reservation
 
@@ -122,7 +122,7 @@ Board-wide: shared by bolt-aarch32 and lk-perf (one Pi 4B on COM5).
 
 | Holder | Since | Purpose / last observation |
 |---|---|---|
-| Claude | 2026-10-05 | R28/R29 hardware checks (Thumb showcase and Thumb instrumentation on the Pi) |
+| — (unreserved) | 2026-10-05 | Released by Claude after R28/R29: B1 Thumb whole-image BOLT image at the shell, 3000000 baud, watchdog disarmed by the runner, samplers stopped, COM5 closed. Recheck before use; `--reboot` returns it to the loader |
 
 ## Claims (consolidated TODO)
 
@@ -143,8 +143,6 @@ Take items in the order below; groups reflect dependencies, not ownership.
 
 | Order | ID | Item | Priority | Owner | Status | Part of | Notes |
 |---|---|---|---|---|---|---|---|
-| 10a | R28 | ARM-mode inline `ldr pc, [rX, rY, lsl #2]` table re-emitted with the Thumb bit on every entry; the rewritten function data-aborts when it runs | P0 | Claude | In progress | 12 | Found by B1 on the Pi (`pl_b`), see [B1](results/b1_sampling_vs_instrumentation_20261005/README.md); 0057 models the table shape, so this is a mis-emission inside a supported shape; check the R25 (0068) data-pointer path. Workaround: keep such functions original |
-| 10b | R29 | Thumb code hits the R8 r12-stub refusal on reordering (120 KB ThinLTO stair kernel) and instrumentation (`bolt_bench_multi`, 756 bytes; `bolt_bench_stair`); fails safe | P1 | Claude | In progress | 7 | Found by B1; ARM-mode builds pass; cause not analysed (narrow-branch relaxation itself is probed, R27/V7) |
 | 10c | T4 | Performance and final validation on the real A55 target (A72 gains not transferable) | P2 | User | Out of scope here | — | Done by the user in the office environment, from this repo |
 
 
@@ -165,7 +163,7 @@ Take items in the order below; groups reflect dependencies, not ownership.
 
 ### Done
 
-Completed items with patches and evidence: [history/HANDOFF_DONE.md](history/HANDOFF_DONE.md) (newest first; add new rows there). Latest: B1, M2, T3 (closed), R27, R25, R26, R21, R12, R24, R23.
+Completed items with patches and evidence: [history/HANDOFF_DONE.md](history/HANDOFF_DONE.md) (newest first; add new rows there). Latest: R28, R29, B1, M2, T3 (closed), R27, R25, R26, R21, R12, R24, R23.
 
 ## Coverage goal
 
@@ -193,6 +191,32 @@ emission coverage, not execution or whole-backend correctness.
 4. Update the *Claims* table and LK_COVERAGE.md together.
 
 ## Handoff log
+
+### 2026-10-05 — Claude: R28 and R29 fixed (0070, 0071); lock and Pi released
+
+- R28 (P0): BOLT's JITLink pre-prune pass flagged the section symbol Thumb
+  whenever `.text` started inside a Thumb function, so every absolute word
+  built from it (A32 `ldr pc` table entries) got bit 0. 0070 gives each such
+  `Data_Pointer32` edge its own target with the parity from the addend.
+  `arm-ldr-pc-table-mixed-isa.test` fails on 0069, passes on 0070. Pi:
+  rewritten, redirected `pl_b` and `bolt_bench_switch` give identical
+  results (data abort before).
+- R29: LongJmp measured Thumb short branches by their short encodings and
+  asked for r12 stubs (R8 refusal). 0071 widens B/B<c> in place
+  (`MCPlusBuilder::widenBranch`) and measures CBZ/CBNZ as the B.W that
+  prepareForEmission emits. `arm-thumb-short-branch-range.test` (qemu-arm
+  run) fails on 0070, passes on 0071. Pi: Thumb ThinLTO stair BOLT -68.1%
+  vs its input (refused before); Thumb whole-image instrumentation of 11
+  functions and BOLT from it, all app results identical, multi -45.5%.
+- ARM lit 60/60 in both assertion modes; replay 0001-0071 clean; LK coverage
+  unchanged 401/417 (`lk_coverage_r29_20261005.json`). Evidence:
+  [R28/R29 results](results/r28_r29_20261005/README.md).
+- Process note: the first R28 Pi check ran while the Pi was still unreserved
+  after B1 (no conflicting holder); the R29 checks ran under a published
+  reservation (3d5564b).
+- WSL live tree: source = 0001-0071, `build-atfe` and `build-atfe-noassert`
+  rebuilt (llvm-bolt). Next: the P1 certification matrices (items 8, 7, 11,
+  12, 13, 9, 10, 14).
 
 ### 2026-10-05 — Claude: B1 done (BOLT from lk-perf sampling vs instrumentation); R28, R29 opened; lock and Pi released
 

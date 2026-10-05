@@ -1,5 +1,7 @@
 # B1: BOLT on the Pi from an lk-perf sampling profile vs an instrumentation profile (2026-10-05)
 
+> **Update (2026-10-05):** R28 and R29 are fixed by overlays 0070 and 0071 ([results](../r28_r29_20261005/README.md)); the `pl_b` skip and the ARM-mode `bolt_bench` build used here are no longer needed.
+
 Question (user): with lk-perf (sampling) and bolt-aarch32 (instrumentation)
 both able to produce BOLT profiles, how much real benefit does each deliver on
 hardware? Two workloads: a showcase built to need BOLT, and the whole LK image
