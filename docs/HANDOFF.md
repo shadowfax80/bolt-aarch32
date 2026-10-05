@@ -122,7 +122,7 @@ deferred; new image/configuration oracle contracts still require user review.
 
 | Holder | Since | Purpose / last observation |
 |---|---|---|
-| — (unreserved) | 2026-10-05 | Released by Claude after R21. Last state: LK shell after the certified gate on `out/r21cert` (ce8dd005 edge candidate), COM5 closed; watchdog as left by full_image_verify. Reserve and recheck before use; `pi4_run.py --reboot` recovers it. |
+| Claude | 2026-10-05 | R25/R26 (0068/0069): certified full-image gate on `424606a8` with the 0069 toolchain |
 
 ## Claims (consolidated TODO)
 

@@ -1,0 +1,163 @@
+diff --git a/bolt/lib/Rewrite/RewriteInstance.cpp b/bolt/lib/Rewrite/RewriteInstance.cpp
+--- a/bolt/lib/Rewrite/RewriteInstance.cpp
++++ b/bolt/lib/Rewrite/RewriteInstance.cpp
+@@ -3833,7 +3833,7 @@
+     }
+   }
+ 
+-  const uint64_t Address = SymbolAddress + Addend;
++  uint64_t Address = SymbolAddress + Addend; // R25 may clear the Thumb bit
+ 
+   LLVM_DEBUG({
+     dbgs() << "BOLT-DEBUG: ";
+@@ -4009,6 +4009,16 @@
+                << (ReferencedSymbol ? ReferencedSymbol->getName() : "<none>")
+                << " with addend " << Addend << '\n');
+   } else if (ReferencedBF) {
++    // R25: in a data word, the low bit of a Thumb code address is the Thumb
++    // state bit (function pointers, interior entry pointers), not a byte
++    // offset. Reference the even code address and carry the bit in the
++    // addend, so the emitted word keeps it wherever the code moves.
++    const bool ThumbCodePointer =
++        BC->isARM() && !IsFromCode && ReferencedBF->isARMThumb() &&
++        (ExtractedValue & 1) &&
++        (RType == ELF::R_ARM_ABS32 || RType == ELF::R_ARM_TARGET1);
++    if (ThumbCodePointer)
++      Address &= ~1ULL;
+     ReferencedSymbol = ReferencedBF->getSymbol();
+     uint64_t RefFunctionOffset = 0;
+ 
+@@ -4052,6 +4062,10 @@
+       }
+       SymbolAddress = Address;
+       Addend = 0;
++    }
++    if (ThumbCodePointer) {
++      SymbolAddress = Address;
++      Addend = 1;
+     }
+     LLVM_DEBUG({
+       dbgs() << "  referenced function " << *ReferencedBF;
+--- /dev/null
++++ b/bolt/test/ARM/arm-thumb-data-pointer.test
+@@ -0,0 +1,6 @@
++## R25: data words holding Thumb code addresses (function pointers, interior
++## entry pointers) keep the Thumb bit after BOLT moves the code; ARM pointers
++## stay even.
++
++RUN: rm -rf %t.dir
++RUN: %python %p/Inputs/check-arm-thumb-data-pointer.py %t.dir
+--- /dev/null
++++ b/bolt/test/ARM/Inputs/check-arm-thumb-data-pointer.py
+@@ -0,0 +1,111 @@
++"""R25: a data word holding a Thumb code address (a function pointer or a
++pointer to a Thumb interior entry) carries the Thumb state bit. BOLT must
++re-point it at the moved code with the bit kept; ARM function pointers stay
++even."""
++from pathlib import Path
++import re
++import shutil
++import subprocess
++import sys
++import tempfile
++
++tc = Path(shutil.which('llvm-bolt')).resolve().parent
++evidence = Path(sys.argv[1])
++evidence.mkdir(parents=True, exist_ok=True)
++out = Path(tempfile.mkdtemp(prefix='run-', dir=evidence))
++print('Evidence:', out)
++
++SRC = ''' .syntax unified
++ .text
++ .arm
++ .global _start
++ .type _start,%function
++_start:
++ ldr r4, =ptrs
++ ldr r2, [r4]
++ blx r2
++ ldr r2, [r4, #4]
++ blx r2
++ ldr r2, [r4, #8]
++ blx r2
++ b _start
++ .ltorg
++ .size _start,.-_start
++
++ .arm
++ .global fa
++ .type fa,%function
++fa:
++ add r0, r0, #1
++ bx lr
++ .size fa,.-fa
++
++ .thumb
++ .global fb
++ .type fb,%function
++ .thumb_func
++fb:
++ adds r0, #2
++ bx lr
++ .size fb,.-fb
++
++ .global fd
++ .type fd,%function
++ .thumb_func
++fd:
++ cmp r0, #9
++ beq 1f
++ adds r0, #3
++ .global fd_mid
++ .thumb_func
++fd_mid:
++ adds r0, #77
++1:
++ bx lr
++ .size fd,.-fd
++
++ .data
++ .p2align 2
++ptrs: .word fa, fb, fd_mid
++'''
++
++
++def run(cmd, check=True):
++    p = subprocess.run([str(x) for x in cmd], cwd=out, capture_output=True, text=True)
++    if check and p.returncode:
++        sys.exit(f'FAIL: {Path(str(cmd[0])).name} exited {p.returncode}\n{p.stdout}{p.stderr}')
++    return p.returncode, p.stdout + p.stderr
++
++
++(out / 'in.s').write_text(SRC)
++(out / 'in.ld').write_text('ENTRY(_start)\nSECTIONS {\n  . = 0x8000;\n  .text : { *(.text*) }\n'
++                           '  . = 0x40000;\n  .data : { *(.data*) }\n}\n')
++run([tc / 'llvm-mc', '-arm-add-build-attributes', '-filetype=obj', '-triple=armv7-unknown-linux-gnueabi',
++     'in.s', '-o', 'in.o'])
++run([tc / 'ld.lld', '--emit-relocs', '-T', 'in.ld', 'in.o', '-o', 'in.exe'])
++
++bad = 0
++for mode, extra in (('default', []), ('reverse', ['--reorder-blocks=reverse']),
++                    ('padded', ['--pad-funcs-before=fd:0x40'])):
++    rc, log = run([tc / 'llvm-bolt', 'in.exe', '-o', f'{mode}.bolt', '-lite=0', *extra], check=False)
++    (out / f'{mode}.log').write_text(log)
++    if rc:
++        print(f'FAIL: {mode}: llvm-bolt failed\n{log[-800:]}')
++        bad += 1
++        continue
++    _, nm = run([tc / 'llvm-nm', f'{mode}.bolt'])
++    sym = {n: int(a, 16) for a, _, n in (l.split() for l in nm.splitlines() if len(l.split()) == 3)}
++    _, hexdump = run([tc / 'llvm-readelf', '-x', '.data', f'{mode}.bolt'])
++    raw = bytes.fromhex(''.join(''.join(re.findall(r'[0-9a-f]{8}', l.split(None, 1)[1][:35]))
++                                for l in hexdump.splitlines() if l.strip().startswith('0x')))
++    words = [int.from_bytes(raw[i:i + 4], 'little') for i in range(0, 12, 4)]
++    _, dis = run([tc / 'llvm-objdump', '-d', f'{mode}.bolt'])
++    rows = {int(a, 16): ops for a, ops in re.findall(r'^\s*([0-9a-f]+):\s+(?:[0-9a-f]{2,4} ?)+\s+(.*)$', dis, re.M)}
++    checks = [('fa (ARM, even)', words[0] == sym['fa']),
++              ('fb (Thumb start, bit set)', words[1] == sym['fb'] | 1),
++              ('fd_mid (Thumb interior, bit set)', words[2] & 1 and
++               re.match(r'adds\s+r0,\s+#0x4d|adds\s+r0,\s+#77', rows.get(words[2] & ~1, '')) is not None)]
++    for what, ok in checks:
++        print(f"{'PASS' if ok else 'FAIL'}: {mode}: {what}: words={[hex(w) for w in words]}")
++        bad += not ok
++sys.exit(1 if bad else 0)

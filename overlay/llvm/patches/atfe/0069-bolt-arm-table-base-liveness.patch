@@ -1,0 +1,346 @@
+diff --git a/bolt/include/bolt/Core/MCPlusBuilder.h b/bolt/include/bolt/Core/MCPlusBuilder.h
+--- a/bolt/include/bolt/Core/MCPlusBuilder.h
++++ b/bolt/include/bolt/Core/MCPlusBuilder.h
+@@ -463,6 +463,15 @@
+   virtual unsigned getInlineTableEntrySize(const MCInst &Inst) const {
+     return 0;
+   }
++
++  /// AArch32 (R26): the instruction executes only under a condition (A32
++  /// condition field, or a Thumb instruction inside an IT block).
++  virtual bool isPredicatedARM(const MCInst &Inst) const { return false; }
++
++  /// AArch32 (R26): AAPCS role of \p Reg: 0 = argument and result (r0, r1),
++  /// 1 = call-clobbered scratch (r12), 2 = anything else, 3 = argument only
++  /// (r2, r3).
++  virtual unsigned getAAPCSRegKindARM(MCPhysReg Reg) const { return 2; }
+ 
+   /// AArch32 A32: `ldr pc, [rB, rI, lsl #2]` (unconditional), an indirect
+   /// branch through a table of absolute 32-bit addresses. Sets \p Base to rB.
+diff --git a/bolt/lib/Target/ARM/ARMMCPlusBuilder.cpp b/bolt/lib/Target/ARM/ARMMCPlusBuilder.cpp
+--- a/bolt/lib/Target/ARM/ARMMCPlusBuilder.cpp
++++ b/bolt/lib/Target/ARM/ARMMCPlusBuilder.cpp
+@@ -306,6 +306,27 @@
+   }
+ 
+   // A32 `ldr pc, [rB, rI, lsl #2]`, unconditional: an absolute inline table.
++  bool isPredicatedARM(const MCInst &Inst) const override {
++    const MCInstrDesc &Desc = Info->get(Inst.getOpcode());
++    const int Idx = Desc.findFirstPredOperandIdx();
++    return Idx >= 0 && unsigned(Idx) < Inst.getNumOperands() &&
++           Inst.getOperand(Idx).isImm() &&
++           Inst.getOperand(Idx).getImm() != ARMCC::AL;
++  }
++
++  unsigned getAAPCSRegKindARM(MCPhysReg Reg) const override {
++    switch (Reg) {
++    case ARM::R0: case ARM::R1:
++      return 0;
++    case ARM::R2: case ARM::R3:
++      return 3;
++    case ARM::R12:
++      return 1;
++    default:
++      return 2;
++    }
++  }
++
+   bool isAbsoluteTableBranch(const MCInst &Inst,
+                              MCPhysReg *Base = nullptr) const override {
+     if (Inst.getOpcode() != ARM::LDRrs || MCPlus::getNumPrimeOperands(Inst) < 6)
+diff --git a/bolt/include/bolt/Core/BinaryFunction.h b/bolt/include/bolt/Core/BinaryFunction.h
+--- a/bolt/include/bolt/Core/BinaryFunction.h
++++ b/bolt/include/bolt/Core/BinaryFunction.h
+@@ -626,6 +626,12 @@
+   /// R12: Thumb `adr rB, <table>` directly before `tbb/tbh [pc, ...]`:
+   /// table offset -> (offset of the adr, offset of the table branch).
+   std::map<uint64_t, std::pair<uint64_t, uint64_t>> PendingThumbTableBases;
++  /// R22/R26: a register-list load (LDM/POP, including the user-bank `^`
++  /// form that does not mark its list as defs) that loads \p Reg.
++  bool listLoadDefinesARM(const MCInst &Inst, MCPhysReg Reg) const;
++  /// R26: is \p Reg dead at every case target of the inline table branch at
++  /// \p BranchOffset (redefined before any read on every path)?
++  bool isTableBaseDeadAtCases(MCPhysReg Reg, uint64_t BranchOffset);
+   /// R21: is `ldr rX, [Base, rI, lsl #2]; mov pc|bx rX` right before TableOff?
+   /// Records the jump in RegisterTableJumps on success.
+   bool isRegisterTableShape(int64_t TableOff, MCPhysReg BaseReg);
+diff --git a/bolt/lib/Core/BinaryFunction.cpp b/bolt/lib/Core/BinaryFunction.cpp
+--- a/bolt/lib/Core/BinaryFunction.cpp
++++ b/bolt/lib/Core/BinaryFunction.cpp
+@@ -1204,6 +1204,104 @@
+   return BC.getOrCreateGlobalSymbol(TargetAddress, "FUNCat");
+ }
+ 
++bool BinaryFunction::listLoadDefinesARM(const MCInst &Inst,
++                                        MCPhysReg Reg) const {
++  const MCInstrDesc &Desc = BC.MII->get(Inst.getOpcode());
++  if (!Desc.isVariadic() || !Desc.mayLoad())
++    return false;
++  // Operands: [writeback defs], Rn, pred, pred-reg, then the register list
++  // (its first entry is a declared operand, the rest are variadic).
++  for (unsigned I = Desc.getNumDefs() + 3, E = Inst.getNumOperands(); I < E; ++I)
++    if (Inst.getOperand(I).isReg() &&
++        BC.MRI->isSubRegisterEq(Reg, Inst.getOperand(I).getReg()))
++      return true;
++  return false;
++}
++
++bool BinaryFunction::isTableBaseDeadAtCases(MCPhysReg Reg,
++                                            uint64_t BranchOffset) {
++  auto BranchIt = Instructions.find(BranchOffset);
++  const std::vector<MCSymbol *> *Table =
++      BranchIt == Instructions.end() ? nullptr : getInlineTable(BranchIt->second);
++  if (!Table)
++    return false;
++  DenseMap<const MCSymbol *, uint64_t> LabelOffsets;
++  for (const auto &[Off, Sym] : Labels)
++    LabelOffsets[Sym] = Off;
++  // AAPCS: compiled code never hands a jump-table address to a callee or a
++  // caller, so a call or return ends the live range of a call-clobbered
++  // register (r0-r3, r12) unless something read it first. A callee-saved
++  // register must be restored (redefined) before a return.
++  const bool CallClobbered = BC.MIB->getAAPCSRegKindARM(Reg) != 2;
++  auto Fail = [&](const char *Why, uint64_t Off) {
++    LLVM_DEBUG(dbgs() << "BOLT-DEBUG: table base " << BC.MRI->getName(Reg)
++                      << " live at case path 0x" << Twine::utohexstr(Off)
++                      << " in " << *this << ": " << Why << "\n");
++    return false;
++  };
++  SmallVector<uint64_t, 16> Work;
++  DenseSet<uint64_t> Visited;
++  for (const MCSymbol *Label : *Table) {
++    auto L = LabelOffsets.find(Label);
++    if (L == LabelOffsets.end())
++      return false;
++    Work.push_back(L->second);
++  }
++  unsigned Budget = 4096;
++  while (!Work.empty()) {
++    uint64_t Off = Work.pop_back_val();
++    if (!Visited.insert(Off).second)
++      continue;
++    for (auto It = Instructions.find(Off);; ++It) {
++      if (It == Instructions.end() || !Budget--)
++        return Fail("end of code or budget", Off);
++      if (It->first != Off && !Visited.insert(It->first).second)
++        break;
++      const MCInst &I = It->second;
++      if (BC.MIB->hasUseOfPhysReg(I, Reg))
++        return Fail("read", It->first);
++      if ((BC.MIB->hasDefOfPhysReg(I, Reg) || listLoadDefinesARM(I, Reg)) &&
++          !BC.MIB->isPredicatedARM(I))
++        break; // Dead on this path.
++      if (const std::vector<MCSymbol *> *Nested = getInlineTable(I)) {
++        for (const MCSymbol *Label : *Nested) {
++          auto L = LabelOffsets.find(Label);
++          if (L == LabelOffsets.end())
++            return Fail("nested table target", It->first);
++          Work.push_back(L->second);
++        }
++        break;
++      }
++      const bool Exit = BC.MIB->isReturn(I) || BC.MIB->isTailCall(I);
++      if (Exit || BC.MIB->isCall(I)) {
++        if (CallClobbered)
++          break;
++        if (Exit)
++          return Fail("callee-saved base not restored", It->first);
++        continue;
++      }
++      if (BC.MIB->isBranch(I)) {
++        const MCSymbol *Target = BC.MIB->getTargetSymbol(I);
++        auto L = Target ? LabelOffsets.find(Target) : LabelOffsets.end();
++        if (L == LabelOffsets.end()) {
++          if (Target && !BC.MIB->isConditionalBranch(I) &&
++              !BC.MIB->isPredicatedARM(I) && CallClobbered)
++            break; // Tail call out of the function.
++          return Fail("unresolved branch", It->first);
++        }
++        Work.push_back(L->second);
++        if (!BC.MIB->isConditionalBranch(I) && !BC.MIB->isPredicatedARM(I))
++          break;
++      }
++      auto Next = std::next(It);
++      const unsigned Size = BC.MII->get(I.getOpcode()).getSize();
++      if (Next == Instructions.end() || !Size || Next->first != It->first + Size)
++        return Fail("data or end of function", It->first);
++    }
++  }
++  return true;
++}
++
+ bool BinaryFunction::isRegisterTableShape(int64_t TableOff, MCPhysReg BaseReg) {
+   if (TableOff < 8 || !BC.isARM() || isARMThumb())
+     return false;
+@@ -2023,24 +2121,11 @@
+     // LDM form marks its list as definitions (the privileged/user-bank
+     // `ldm rN, {...}^` does not), so hasDefOfPhysReg alone misses it. Treat
+     // any variadic load naming the base in its list as a redefinition.
+-    auto ListLoadDefines = [&](const MCInst &Inst) {
+-      const MCInstrDesc &Desc = BC.MII->get(Inst.getOpcode());
+-      if (!Desc.isVariadic() || !Desc.mayLoad())
+-        return false;
+-      // Operands: [writeback defs], Rn, pred, pred-reg, then the register list
+-      // (its first entry is a declared operand, the rest are variadic).
+-      for (unsigned I = Desc.getNumDefs() + 3, E = Inst.getNumOperands(); I < E;
+-           ++I)
+-        if (Inst.getOperand(I).isReg() &&
+-            BC.MRI->isSubRegisterEq(BaseReg, Inst.getOperand(I).getReg()))
+-          return true;
+-      return false;
+-    };
+     for (auto It = Instructions.upper_bound(BaseOffset); It != BranchIt; ++It)
+       if (Labels.count(It->first) || BC.MIB->isBranch(It->second) ||
+           BC.MIB->isCall(It->second) || BC.MIB->isReturn(It->second) ||
+           BC.MIB->hasDefOfPhysReg(It->second, BaseReg) ||
+-          ListLoadDefines(It->second))
++          listLoadDefinesARM(It->second, BaseReg))
+         return createFatalBOLTError("unsupported AArch32 inline jump table "
+                                     "base in " + getPrintName());
+     if (Labels.count(BranchOffset))
+@@ -2081,6 +2166,24 @@
+         return createFatalBOLTError("unsupported AArch32 inline jump table "
+                                     "register in " + getPrintName());
+     }
++  }
++  // R26: a re-pointed table base holds the new table address after the
++  // table branch, so the cases must not observe it. Admit only when the base
++  // register is dead at every case target: on every path from a target it is
++  // redefined (unconditionally) before any read.
++  for (const auto &[TableOff, Pending] : PendingAbsoluteTables)
++    if (!isTableBaseDeadAtCases(Pending.first, TableOff - 4))
++      return createFatalBOLTError("unsupported AArch32 inline jump table "
++                                  "base read in " + getPrintName());
++  for (const auto &[TableOff, Pending] : PendingThumbTableBases) {
++    // The adr now carries the table-label placeholder; rB is operand 0.
++    auto AdrIt = Instructions.find(Pending.first);
++    if (AdrIt == Instructions.end() || !AdrIt->second.getNumOperands() ||
++        !AdrIt->second.getOperand(0).isReg() ||
++        !isTableBaseDeadAtCases(AdrIt->second.getOperand(0).getReg(),
++                                Pending.second))
++      return createFatalBOLTError("unsupported AArch32 inline jump table "
++                                  "base read in " + getPrintName());
+   }
+   RegisterTableJumps.clear();
+   PendingAbsoluteTables.clear();
+--- /dev/null
++++ b/bolt/test/ARM/arm-table-base-liveness.test
+@@ -0,0 +1,5 @@
++## R26: an inline-table base re-pointed at the emitted table must be dead at
++## every case target; cases that read it (on any path) are rejected.
++
++RUN: rm -rf %t.dir
++RUN: %python %p/Inputs/check-arm-table-base-liveness.py %t.dir
+--- /dev/null
++++ b/bolt/test/ARM/Inputs/check-arm-table-base-liveness.py
+@@ -0,0 +1,110 @@
++"""R26: a re-pointed inline-table base (A32 `add rB, pc, #k; ldr pc, [rB,
++...]`, A32 -O0 load-then-jump, Thumb `adr rB; tbb/tbh`) holds the new table
++address after the branch. BOLT admits the table only when rB is dead at every
++case target: redefined before any read on every path. Calls and returns end
++the live range of a call-clobbered rB (AAPCS); a callee-saved rB must be
++restored before returning."""
++from pathlib import Path
++import shutil
++import subprocess
++import sys
++import tempfile
++
++tc = Path(shutil.which('llvm-bolt')).resolve().parent
++evidence = Path(sys.argv[1])
++evidence.mkdir(parents=True, exist_ok=True)
++out = Path(tempfile.mkdtemp(prefix='run-', dir=evidence))
++print('Evidence:', out)
++
++HEAD = ''' .syntax unified
++ .text
++ .arm
++ .global _start
++ .type _start,%function
++_start:
++ blx sw
++ b _start
++ .size _start,.-_start
++ .global helper
++ .type helper,%function
++helper:
++ bx lr
++ .size helper,.-helper
++'''
++
++
++def a32(base, c1, c2='mov r0, #2\n bx lr'):
++    return HEAD + f''' .arm
++ .global sw
++ .type sw,%function
++sw:
++ and r2, r0, #3
++ add {base}, pc, #0
++ ldr pc, [{base}, r2, lsl #2]
++ .word c1, c2, c2, c2
++c1:
++ {c1}
++c2:
++ {c2}
++ .size sw,.-sw
++'''
++
++
++def t32(c1):
++    return HEAD + f''' .thumb
++ .global sw
++ .type sw,%function
++ .thumb_func
++sw:
++ and r1, r0, #3
++ adr.w r2, .Ltab
++ tbb [pc, r1]
++.Ltab:
++ .byte (c1-.Ltab)/2, (c2-.Ltab)/2, (c2-.Ltab)/2, (c2-.Ltab)/2
++c1:
++ {c1}
++c2:
++ movs r0, #2
++ bx lr
++ .size sw,.-sw
++'''
++
++
++WHY = 'inline jump table base read in sw'
++CASES = (
++    ('a32-dead', a32('r3', 'mov r0, #1\n bx lr'), True),
++    ('a32-read', a32('r3', 'ldr r0, [r3]\n bx lr'), False),
++    ('a32-redefined-then-read', a32('r3', 'mov r3, #5\n add r0, r3, #1\n bx lr'), True),
++    ('a32-read-after-branch', a32('r3', 'mov r0, #1\n b c3\nc3:\n add r0, r0, r3\n bx lr'), False),
++    ('a32-predicated-redefinition', a32('r3', 'cmp r0, #0\n moveq r3, #0\n add r0, r0, r3\n bx lr'), False),
++    ('a32-read-in-other-case', a32('r3', 'mov r0, #1\n bx lr', 'add r0, r3, #0\n bx lr'), False),
++    ('a32-call-ends-range', a32('r3', 'push {lr}\n bl helper\n pop {lr}\n mov r0, #1\n bx lr'), True),
++    ('a32-callee-saved-not-restored', a32('r4', 'mov r0, #1\n bx lr'), False),
++    ('a32-callee-saved-restored', a32('r4', 'pop {r4}\n bx lr', 'pop {r4}\n mov r0, #2\n bx lr'), True),
++    ('t32-dead', t32('movs r0, #1\n bx lr'), True),
++    ('t32-read', t32('ldrb r0, [r2]\n bx lr'), False),
++)
++
++
++def run(cmd, check=True):
++    p = subprocess.run([str(x) for x in cmd], cwd=out, capture_output=True, text=True)
++    if check and p.returncode:
++        sys.exit(f'FAIL: {Path(str(cmd[0])).name} exited {p.returncode}\n{p.stdout}{p.stderr}')
++    return p.returncode, p.stdout + p.stderr
++
++
++bad = 0
++(out / 'in.ld').write_text('ENTRY(_start)\nSECTIONS {\n  . = 0x8000;\n  .text : { *(.text*) }\n}\n')
++for name, src, admit in CASES:
++    (out / f'{name}.s').write_text(src)
++    run([tc / 'llvm-mc', '-arm-add-build-attributes', '-filetype=obj', '-triple=armv7-unknown-linux-gnueabi',
++         f'{name}.s', '-o', f'{name}.o'])
++    run([tc / 'ld.lld', '--emit-relocs', '-T', 'in.ld', f'{name}.o', '-o', f'{name}.exe'])
++    rc, log = run([tc / 'llvm-bolt', f'{name}.exe', '-o', f'{name}.bolt', '-lite=0', '--funcs=sw'], check=False)
++    (out / f'{name}.log').write_text(log)
++    ok = rc == 0 if admit else (rc != 0 and WHY in log)
++    print(f"{'PASS' if ok else 'FAIL'}: {name}: {'admitted' if rc == 0 else 'rejected'}")
++    if not ok:
++        print(log[-600:])
++    bad += not ok
++sys.exit(1 if bad else 0)
