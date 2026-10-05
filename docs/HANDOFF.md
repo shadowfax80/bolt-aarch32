@@ -122,7 +122,7 @@ Board-wide: shared by bolt-aarch32 and lk-perf (one Pi 4B on COM5).
 
 | Holder | Since | Purpose / last observation |
 |---|---|---|
-| — (unreserved) | 2026-10-05 | Released by Claude after B1: lk-perf K15 image at the shell, 6000000 baud, pseudo-NMI off, samplers stopped, no watchdog armed, COM5 closed. Recheck before use; `--reboot` at 6 Mbaud returns it to the loader |
+| Claude | 2026-10-05 | R28/R29 hardware checks (Thumb showcase and Thumb instrumentation on the Pi) |
 
 ## Claims (consolidated TODO)
 
