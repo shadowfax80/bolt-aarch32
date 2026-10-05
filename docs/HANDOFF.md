@@ -66,7 +66,7 @@ Everything needed to continue is in this repo:
 - **Certified input image:** `fixtures/lk-rpi4-bolt-test-424606a8.elf`
   (see `fixtures/README.md`); the skip list is in
   `docs/results/lk_coverage_r15_20261004.json` (`skip_funcs`).
-- **Backend source:** overlays `overlay/llvm/patches/atfe/0001–0061`; the WSL
+- **Backend source:** overlays `overlay/llvm/patches/atfe/0001–0062`; the WSL
   live tree must replay them exactly (`scripts/verify-atfe-overlays.py`).
   Do not run `scripts/apply-overlays.sh` on the dirty live tree.
 - **Commands:**
@@ -82,7 +82,7 @@ Everything needed to continue is in this repo:
   COM5; sample captures occasionally fail chunk validation (USB corruption),
   retry; never `git stash` from WSL on the Windows checkout.
 - **Build versions:** ON is `build-atfe`; current OFF is `build-atfe-noassert`,
-  last reported tested through 0059. The older OFF build
+  tested through 0062 (ARM lit 52/52, 2026-10-05). The older OFF build
   `out/correctness/build-atfe-noasserts-20261002` is 0054 evidence. ON 0060–0061
   checks do not establish OFF parity for those overlays; recheck build hashes.
   Preserve both older receipts and dirty live source.
@@ -116,7 +116,7 @@ deferred; new image/configuration oracle contracts still require user review.
 
 | Holder | Since | Purpose |
 |---|---|---|
-| Claude | 2026-10-05 | R22: privileged LDM table-base clobber (next overlay 0062) |
+| Claude | 2026-10-05 | R11: Thumb decoder IT-state isolation (next overlay 0063) |
 
 ## Pi reservation
 
@@ -142,8 +142,7 @@ Take items in the order below; groups reflect dependencies, not ownership.
 
 | Order | ID | Item | Priority | Owner | Status | Part of | Notes |
 |---|---|---|---|---|---|---|---|
-| 7a | R22 | Privileged LDM overwrites an inline-table base without rejection | P1 | Claude | In progress | 12 (R18 follow-up) | Host probe accepts `ldmia r4,{r3,r5}^` that clobbers r3; ordinary LDM control rejects. Model register-list definitions or reject conservatively; both-mode must-reject tests. Fix before relying on expanded table admission. |
-| 7b | R11 | Isolate Thumb decoder IT state between independent admission scans | P1 | — | Partial (reopened) | 8, 6d | 0054 report mode remains implemented, but truncated ITT/ITE falsely rejects the following valid `bx lr`. Preserve prior receipts; fix symbolic/plain decoder isolation and add both-mode order-independence regressions. |
+| 7b | R11 | Isolate Thumb decoder IT state between independent admission scans | P1 | Claude | In progress (reopened) | 8, 6d | 0054 report mode remains implemented, but truncated ITT/ITE falsely rejects the following valid `bx lr`. Preserve prior receipts; fix symbolic/plain decoder isolation and add both-mode order-independence regressions. |
 | 7c | R23 | Noreturn absolute-thunk traversal bypasses cycle detection | P1 | — | Open | 8 (R19 follow-up) | A→B→A MOVW/MOVT/BX thunk chain times out at 8 s; self-cycle rejects, acyclic chain succeeds. Put traversal inside the cache/visited guard; both-mode A32/T32 regressions. |
 | 8a | R24 | Decode A32 rotated immediates when computing inline-table bases | P2 | — | Open | 12 (R18 follow-up) | #256 ADD table fixture falsely rejects while #8 control succeeds; ADDri/SUBri MC operand is encoded mod_imm. Test rotated ADD/SUB and malformed table addresses. |
 | 9 | R12 | ADR to an inline TBB/TBH table (`vsnprintf`) | P2 | — | Open (analysed, see log) | 12 | Pattern: `adr.w r2, <table>; tbh [pc, r4, lsl #1]; <table>` (424606a8: 0x80030c04). Plan: treat the ADR right before TBB/TBH that addresses that table as a table reference; re-emit it against the emitted table label (reuse 0057's ADR-base mechanism with 0024's TBH model; relax 0045's PC-read rejection only for this shape) |
@@ -171,6 +170,7 @@ Take items in the order below; groups reflect dependencies, not ownership.
 
 | ID | Item | Priority | Owner | Part of | Patch / evidence |
 |---|---|---|---|---|---|
+| R22 | Privileged LDM overwrote an inline-table base without rejection | P1 | Claude | 12 | 0062: the R18 base-survival check also treats any register-list load naming the base as a redefinition (the privileged/user-bank `ldm ..^` does not mark its list as defs); `arm-ldr-pc-table.test` adds ordinary/user-bank/writeback LDM must-reject and a user-bank non-base control (12/12). ARM lit 52/52 in both assertion modes (OFF build now includes 0060–0062); coverage unchanged 400/417 (`lk_coverage_r22_20261005.json`) |
 | M1 | Repository health and documentation consolidation | P2 | Codex | — | [Audit/changes](REPO_HEALTH.md); canonical HANDOFF queue, archived duplicate history, current monitor + offline integrity command; 167 host tests run/12 skipped, no failures; fixture/receipt hashes preserved |
 | R1 | Thumb `blx` re-patched as `bl` to ARM targets (61 LK sites) | P0 | Claude | 7 | 0046; `arm-external-branch-repatch.test`; LK raw output 61 → 0 |
 | R2 | ARM `B`/`BL`/`BLX` re-patch drops condition; PC+8 | P0 | Claude | 7 | 0046 |
@@ -232,6 +232,18 @@ emission coverage, not execution or whole-backend correctness.
 4. Update the *Claims* table and LK_COVERAGE.md together.
 
 ## Handoff log
+
+### 2026-10-05 — Claude: R22 done (overlay 0062); R11 claimed
+
+- R18's table-base survival check missed register-list loads whose list is
+  not marked as definitions (privileged/user-bank `ldm ..^`). It now treats any
+  variadic load naming the base in its list as a redefinition. Test: ordinary,
+  user-bank and writeback LDM into the base reject (default + reversed
+  layout); user-bank LDM not naming the base still admits.
+- Both modes: ARM lit 52/52 ON and OFF (OFF rebuilt; now covers 0060–0062).
+  BOLT lit 746 + the known AArch64 failure. 0001–0062 replay exactly
+  (`88c0d473`). Coverage regenerated: 400/417 unchanged (tightening only).
+- No Pi access. Lock kept for R11 (claimed).
 
 ### 2026-10-05 — Claude: reviewed Codex's M1/Astra update (ea23639); consolidated
 

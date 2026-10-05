@@ -1,0 +1,71 @@
+--- a/bolt/lib/Core/BinaryFunction.cpp
++++ b/bolt/lib/Core/BinaryFunction.cpp
+@@ -1948,10 +1948,28 @@
+         !BC.MIB->hasAnnotation(BranchIt->second, "InlineTable"))
+       return createFatalBOLTError("unsupported AArch32 inline jump table in " +
+                                   getPrintName());
++    // R22: a register-list load defines every listed register, but not every
++    // LDM form marks its list as definitions (the privileged/user-bank
++    // `ldm rN, {...}^` does not), so hasDefOfPhysReg alone misses it. Treat
++    // any variadic load naming the base in its list as a redefinition.
++    auto ListLoadDefines = [&](const MCInst &Inst) {
++      const MCInstrDesc &Desc = BC.MII->get(Inst.getOpcode());
++      if (!Desc.isVariadic() || !Desc.mayLoad())
++        return false;
++      // Operands: [writeback defs], Rn, pred, pred-reg, then the register list
++      // (its first entry is a declared operand, the rest are variadic).
++      for (unsigned I = Desc.getNumDefs() + 3, E = Inst.getNumOperands(); I < E;
++           ++I)
++        if (Inst.getOperand(I).isReg() &&
++            BC.MRI->isSubRegisterEq(BaseReg, Inst.getOperand(I).getReg()))
++          return true;
++      return false;
++    };
+     for (auto It = Instructions.upper_bound(BaseOffset); It != BranchIt; ++It)
+       if (Labels.count(It->first) || BC.MIB->isBranch(It->second) ||
+           BC.MIB->isCall(It->second) || BC.MIB->isReturn(It->second) ||
+-          BC.MIB->hasDefOfPhysReg(It->second, BaseReg))
++          BC.MIB->hasDefOfPhysReg(It->second, BaseReg) ||
++          ListLoadDefines(It->second))
+         return createFatalBOLTError("unsupported AArch32 inline jump table "
+                                     "base in " + getPrintName());
+     if (Labels.count(BranchOffset))
+--- a/bolt/test/ARM/Inputs/check-arm-ldr-pc-table.py
++++ b/bolt/test/ARM/Inputs/check-arm-ldr-pc-table.py
+@@ -17,7 +17,7 @@
+ print('Evidence:', out)
+ 
+ 
+-def fixture(clobber):
++def fixture(mid):
+     return r''' .syntax unified
+  .text
+  .arm
+@@ -34,7 +34,7 @@
+  and r2, r0, #3
+  add r3, pc, #8
+  mov r1, r0
+- ''' + ('mov r3, #0' if clobber else 'mov r0, #77') + r'''
++ ''' + mid + r'''
+  ldr pc, [r3, r2, lsl #2]
+  .word 1f, 2f, 3f, 4f
+ 1:
+@@ -64,8 +64,16 @@
+ 
+ 
+ bad = 0
+-for name, clobber in (('table', False), ('clobbered-base', True)):
+-    (out / f'{name}.s').write_text(fixture(clobber))
++# R22: register-list loads into the base must reject too, including the
++# privileged/user-bank `ldm ..^` whose list is not marked as definitions.
++CASES = (('table', 'mov r0, #77', False),
++         ('clobbered-base', 'mov r3, #0', True),
++         ('ldm-base', 'ldmia r4, {r3, r5}', True),
++         ('ldm-user-base', 'ldmia r4, {r3, r5}^', True),
++         ('ldm-writeback-base', 'ldmia r3!, {r5, r6}', True),
++         ('ldm-user-other', 'ldmia r4, {r5, r6}^', False))
++for name, mid, clobber in CASES:
++    (out / f'{name}.s').write_text(fixture(mid))
+     (out / 'in.ld').write_text(LD)
+     run([tc / 'llvm-mc', '-arm-add-build-attributes', '-filetype=obj',
+          '-triple=armv7-unknown-linux-gnueabi', f'{name}.s', '-o', f'{name}.o'])
