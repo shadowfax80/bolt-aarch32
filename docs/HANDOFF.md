@@ -122,7 +122,7 @@ deferred; new image/configuration oracle contracts still require user review.
 
 | Holder | Since | Purpose / last observation |
 |---|---|---|
-| — (unreserved) | 2026-10-05 | Released by Claude after R12. Last state: LK shell after the certified gate on `out/r12cert2` (424606a8 candidate), COM5 closed; watchdog as left by full_image_verify. Reserve and recheck before use; `pi4_run.py --reboot` recovers it. |
+| Claude | 2026-10-05 | R21: edge image (ce8dd005) with the -O0 switch functions redirected, bolt_edge runs + certified gate |
 
 ## Claims (consolidated TODO)
 
