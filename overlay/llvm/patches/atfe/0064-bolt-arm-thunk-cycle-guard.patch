@@ -1,0 +1,100 @@
+diff --git a/bolt/lib/Core/BinaryFunction.cpp b/bolt/lib/Core/BinaryFunction.cpp
+--- a/bolt/lib/Core/BinaryFunction.cpp
++++ b/bolt/lib/Core/BinaryFunction.cpp
+@@ -1475,11 +1475,6 @@
+ bool BinaryFunction::isProvenNoReturnARM() const {
+   if (!BC.isARM() || !getSize() || isPseudo())
+     return false;
+-  // A linker thunk to a proven noreturn function does not return either.
+-  if (std::optional<uint64_t> Thunk = armAbsLongThunkTarget(*this)) {
+-    const BinaryFunction *F = BC.getBinaryFunctionAtAddress(*Thunk);
+-    return F && F != this && F->getAddress() == *Thunk && F->isProvenNoReturnARM();
+-  }
+   std::lock_guard<std::recursive_mutex> Lock(BC.ARMNoReturnMutex);
+   auto It = BC.ARMNoReturnCache.find(this);
+   if (It != BC.ARMNoReturnCache.end())
+@@ -1487,6 +1482,14 @@
+   BC.ARMNoReturnCache[this] = std::nullopt;
+ 
+   const bool Result = [&] {
++    // A linker thunk to a proven noreturn function does not return either.
++    // R23: followed inside the in-progress guard, so a thunk cycle
++    // (A -> B -> A) is rejected instead of recursing without end.
++    if (std::optional<uint64_t> Thunk = armAbsLongThunkTarget(*this)) {
++      const BinaryFunction *F = BC.getBinaryFunctionAtAddress(*Thunk);
++      return F && F != this && F->getAddress() == *Thunk &&
++             F->isProvenNoReturnARM();
++    }
+     ErrorOr<ArrayRef<uint8_t>> Data = getData();
+     if (!Data)
+       return false;
+--- /dev/null
++++ b/bolt/test/ARM/Inputs/check-arm-thunk-cycle.py
+@@ -0,0 +1,59 @@
++"""R23: noreturn proofs follow absolute MOVW/MOVT/BX thunks. A thunk cycle
++(A -> B -> A) must terminate with a rejection (it proves nothing), a
++self-cycle rejects, and an acyclic thunk chain to a non-returning function
++is still a proof. A32 and T32 thunks; each run is bounded by a timeout."""
++from pathlib import Path
++import shutil
++import subprocess
++import sys
++import tempfile
++
++tc = Path(shutil.which('llvm-bolt')).resolve().parent
++evidence = Path(sys.argv[1])
++evidence.mkdir(parents=True, exist_ok=True)
++out = Path(tempfile.mkdtemp(prefix='run-', dir=evidence))
++print('Evidence:', out)
++
++
++def fn(name, body, isa):
++    tf = '.thumb_func\n' if isa == 'thumb' else ''
++    return f'.balign 4\n.{isa}\n.global {name}\n.type {name},%function\n{tf}{name}:\n{body}\n.size {name},.-{name}\n'
++
++
++def thunk(target):
++    return f'movw r12, :lower16:{target}\nmovt r12, :upper16:{target}\nbx r12'
++
++
++bad = 0
++for isa in ('arm', 'thumb'):
++    for name, target, admitted in (('cycle', 'thunk_b', False), ('self', 'thunk_a', False),
++                                   ('acyclic', 'stop', True)):
++        d = out / f'{isa}-{name}'
++        d.mkdir()
++        call = 'bl thunk_a' if isa == 'arm' else 'blx thunk_a'
++        src = ('.syntax unified\n.arch armv7-a\n.text\n' + fn('_start', call, 'arm')
++               + fn('thunk_a', thunk(target), isa) + fn('thunk_b', thunk('thunk_a'), isa)
++               + fn('stop', 'b stop', isa))
++        (d / 'in.s').write_text(src)
++        (d / 'in.ld').write_text('ENTRY(_start)\nSECTIONS { . = 0x8000; .text : { *(.text*) } }\n')
++        for cmd in ([tc / 'llvm-mc', '-triple=armv7-none-eabi', '-arm-add-build-attributes', '-filetype=obj',
++                     d / 'in.s', '-o', d / 'in.o'],
++                    [tc / 'ld.lld', '--emit-relocs', '-T', d / 'in.ld', d / 'in.o', '-o', d / 'in.elf']):
++            subprocess.run([str(x) for x in cmd], check=True, capture_output=True)
++        try:
++            p = subprocess.run([str(tc / 'llvm-bolt'), str(d / 'in.elf'), '-o', str(d / 'out.elf'),
++                                '--no-huge-pages', '-lite=0', '--funcs=_start'],
++                               capture_output=True, text=True, timeout=60)
++            rc, log = p.returncode, p.stdout + p.stderr
++        except subprocess.TimeoutExpired:
++            rc, log = 'timeout', ''
++        (d / 'run.log').write_text(log)
++        if admitted:
++            ok = rc == 0 and (d / 'out.elf').exists()
++        else:
++            ok = rc not in (0, 'timeout') and 'fallthrough in _start' in log
++        print(f"{'PASS' if ok else 'FAIL'}: {isa}/{name}: rc={rc}")
++        if not ok:
++            print(log[-800:])
++        bad += not ok
++sys.exit(1 if bad else 0)
+--- /dev/null
++++ b/bolt/test/ARM/arm-thunk-cycle.test
+@@ -0,0 +1,5 @@
++## R23: noreturn proofs through absolute thunks terminate on thunk cycles
++## (rejected), reject self-cycles and keep acyclic chains as proofs.
++
++RUN: rm -rf %t.dir
++RUN: %python %p/Inputs/check-arm-thunk-cycle.py %t.dir
