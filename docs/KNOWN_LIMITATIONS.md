@@ -1,10 +1,71 @@
 # Limitations and historical audit
 
-Current ATFE defects and certification gaps are in
-[HANDOFF.md](HANDOFF.md#claims-consolidated-todo) and the
+Current ATFE limitations are in the first section below. Open work is in
+[HANDOFF.md](HANDOFF.md#claims-consolidated-todo); the latest reviews are the
+[deep review at 0069](CORRECTNESS_REVIEW_CLAUDE_0069.md) and the
 [reconciled review](CORRECTNESS_REVIEW_ASTRA_0057.md).
 Candidate no-FPU scanning, clean provenance and broader runtime/entry/pass
 matrices remain bounded by their current work items.
+
+## Current ATFE backend limitations (re-baselined 2026-10-05)
+
+State: overlays 0001–0069, full LK `424606a8` 401/417 functions (126164 of
+126834 code bytes, 99.5%), edge image `ce8dd005` 561 rewritten, A55 `47c73bc0`
+400 rewritten. Verified on the Pi 4B (Cortex-A72, AArch32, Non-secure SVC);
+the real target is a Cortex-A55 in Secure SVC. Sources:
+[deep review 0069](CORRECTNESS_REVIEW_CLAUDE_0069.md), [HANDOFF](HANDOFF.md),
+[LK coverage](LK_COVERAGE.md). Everything below fails safe (BOLT rejects the
+function, or the limit is in verification scope) unless marked otherwise.
+
+### Declared scope
+
+| ID | Limitation | Consequence |
+|---|---|---|
+| S1 | Static, non-PIC, LLD-linked AArch32 images (`--emit-relocs`), little-endian, ARMv7-A/ARMv8-A AArch32, A32 + T32 | Other inputs are untested; PIC/TLS/GOT forms are not modelled (L2) |
+| S2 | No FPU/NEON anywhere (`-mfpu=none`), including the BOLT runtime | VFP/NEON code is outside the verified set; `scripts/check-no-fpu.sh` guards inputs |
+| S3 | No `.ARM.exidx`/`.ARM.extab` handling (U3) | `-fno-exceptions`, no unwinding through rewritten code; unwind sections are rejected, not rewritten |
+| S4 | Instrumentation contract `privileged-smp-no-fiq`: SVC, counters via injected LDREXD/STREXD helper (0060), no FIQ handlers in rewritten code | Instrumented code must not run from FIQ or user mode |
+| S5 | Full-image pipeline restores `.data`, `.rodata`, `lk_init`, `commands` from the input and redirects original entries | Data never points at rewritten code directly; original entries stay as redirect stubs (address-taken functions still work, at one extra branch) |
+
+### Rejected shapes (coverage loss, not wrong code)
+
+| ID | Shape | Where seen |
+|---|---|---|
+| N1 | Callee whose noreturn property is not provable (e.g. `svc` exit followed by a loop): a terminal `bl` to it reads as fall-through | probe `noreturn_call_at_end`; LK's `bcopy`/`bzero` are real fall-through and must stay rejected |
+| N2 | PC-writing control transfers other than modelled tables/returns: exception returns (`movs pc, lr`, `ldm …^` with pc, `rfe`), `add pc, pc, rI` switches, computed `mov pc` | LK vectors (`arm_irq`, `arm_fiq`, aborts, `arm_syscall`, `arm_undefined`), `arm_secondary_setup`; edge `a_add_pc_switch` |
+| N3 | Position-dependent PC reads as data (other than modelled literal pools and table bases) | startup (`arm_reset`, skipped), edge `a_pcread` |
+| N4 | Inline-table base register read in a case block, or a callee-saved base not restored before return (R26) | probes `t32_tbh_adr_base`, `a32_table_base_read_in_case` |
+| N5 | `-O0` load-then-jump tables whose case reads the jump register, non-adjacent load/jump, or clobbered base (R21) | lit only |
+
+### Assumptions the rewrite relies on
+
+| ID | Assumption | If violated |
+|---|---|---|
+| A1 | AAPCS at calls and returns (R26): a call-clobbered register last written as a table base is not consumed by a callee or caller | Hand-written assembly that passes a jump-table address in r0–r3 through a call/return would be admitted and see the new table address. Compilers never do this (inline tables are not address-taken) |
+| A2 | A data word holding an odd value inside a Thumb function is a Thumb code pointer (R25) | An odd byte pointer into Thumb code used as data (not as a code pointer) would be re-pointed to the matching instruction with bit 0 set, which is the same bytes only if the code is unchanged; no such use is known |
+| A3 | The ICF/reorder passes see the whole relocation set (`--emit-relocs`) | Missing relocations leave stale references; LLD with `--emit-relocs` is required |
+
+### Verification gaps
+
+| ID | Gap | Status |
+|---|---|---|
+| V1 | Secure SVC never run on the Pi (T3) | Deferred by the user; armstub built, not installed |
+| V2 | Real Cortex-A55 hardware (T4) | User, office environment; A72 timing gains do not transfer |
+| V3 | R25's rewritten data pointers are not exercised by the LK pipeline (S5 restores data) | Covered by lit and the qemu-user probe only |
+| V4 | IRQ PC sampling cannot see code that runs with IRQs masked | Execution evidence for such code needs other means (counters) |
+| V5 | QEMU twin image has no protected BOLT window (`__bolt_reserved_*`); BOLT code after `_end` is overwritten by the heap | QEMU rewrite routes are diagnostics only and refuse such images |
+| V6 | `check-no-fpu.sh` on BOLT outputs misreads the original `.text`, which keeps no input `$t` mapping symbols | Run the guard on inputs and on the new `.text`; tracked in HANDOFF item 18 |
+| V7 | Not yet probed differentially: split functions with tables, instrumentation of table functions, ICF across ISAs, Thumb narrow-branch relaxation at range limits | Next probe extension (HANDOFF R27) |
+| V8 | Upstream (non-ATFE) series still has U2–U4, U8/U9, L1–L12 below | Deferred TODO (user, 2026-09-30) |
+
+### Superseded index entries
+
+- **U1** (7% full-image coverage, non-determinism): superseded for ATFE by the
+  401/417 (99.5%) full-image coverage and certified Pi gates. The upstream base
+  measurement remains historical.
+- **U5** (TBB/TBH unrecoverable): superseded for ATFE. TBB/TBH tables are
+  modelled and re-emitted (0024), including an `adr` base (0066, guarded by
+  R26). Upstream base unchanged.
 
 ## Historical upstream and ATFE audit
 
@@ -112,11 +173,11 @@ IDs are stable, not ordered by priority. **Next, in order:** post the RFC (U8)
 
 | ID | Item | Severity | Status |
 |----|------|----------|--------|
-| U1 | Full-image rewrite boots but moves only 7% of functions; output non-deterministic (8/8 runs differ) | Blocker | Open — narrowed 2026-09-17 |
+| U1 | Full-image rewrite boots but moves only 7% of functions; output non-deterministic (8/8 runs differ) | Blocker | Upstream base: open. **ATFE: superseded** (401/417, see current section) |
 | U2 | Relocation matrix incomplete, and BOLT-core / JITLink disagree | Blocker | Open |
 | U3 | No `.ARM.exidx` / `.ARM.extab` unwind-table handling | Blocker | Open |
 | U4 | No lit coverage for P9 (instrumentation) or P10 (optimization) | Blocker | Open |
-| U5 | TBB/TBH jump-table targets unrecoverable | High | Open (intentional boundary) |
+| U5 | TBB/TBH jump-table targets unrecoverable | High | Upstream base: open. **ATFE: superseded** (0024/0066) |
 | U6 | `upstream` patch set missing 2 lit tests the `atfe` set has | High | **Resolved** 2026-09-17 |
 | D3 | `isTerminator()` for POP/LDM corrupts emission | High | Open (fix reverted) |
 | D5 | Function symbols dropped from rewritten output | Low | Open, not root-caused |

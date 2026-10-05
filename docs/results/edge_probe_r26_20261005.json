@@ -1,0 +1,474 @@
+[
+ {
+  "case": "t32_tbb_8way",
+  "opt": "default",
+  "verdict": "OK"
+ },
+ {
+  "case": "t32_tbb_8way",
+  "opt": "reverse",
+  "verdict": "OK"
+ },
+ {
+  "case": "t32_tbb_8way",
+  "opt": "icf",
+  "verdict": "OK"
+ },
+ {
+  "case": "t32_tbb_8way",
+  "opt": "far",
+  "verdict": "OK"
+ },
+ {
+  "case": "t32_tbh_adr_base",
+  "opt": "default",
+  "verdict": "REJECTED",
+  "detail": "FATAL BOLT-ERROR: unsupported AArch32 inline jump table base read in t"
+ },
+ {
+  "case": "t32_tbh_adr_base",
+  "opt": "reverse",
+  "verdict": "REJECTED",
+  "detail": "FATAL BOLT-ERROR: unsupported AArch32 inline jump table base read in t"
+ },
+ {
+  "case": "t32_tbh_adr_base",
+  "opt": "icf",
+  "verdict": "REJECTED",
+  "detail": "FATAL BOLT-ERROR: unsupported AArch32 inline jump table base read in t"
+ },
+ {
+  "case": "t32_tbh_adr_base",
+  "opt": "far",
+  "verdict": "REJECTED",
+  "detail": "FATAL BOLT-ERROR: unsupported AArch32 inline jump table base read in t"
+ },
+ {
+  "case": "a32_ldr_pc_table",
+  "opt": "default",
+  "verdict": "OK"
+ },
+ {
+  "case": "a32_ldr_pc_table",
+  "opt": "reverse",
+  "verdict": "OK"
+ },
+ {
+  "case": "a32_ldr_pc_table",
+  "opt": "icf",
+  "verdict": "OK"
+ },
+ {
+  "case": "a32_ldr_pc_table",
+  "opt": "far",
+  "verdict": "OK"
+ },
+ {
+  "case": "a32_load_jump_O0",
+  "opt": "default",
+  "verdict": "OK"
+ },
+ {
+  "case": "a32_load_jump_O0",
+  "opt": "reverse",
+  "verdict": "OK"
+ },
+ {
+  "case": "a32_load_jump_O0",
+  "opt": "icf",
+  "verdict": "OK"
+ },
+ {
+  "case": "a32_load_jump_O0",
+  "opt": "far",
+  "verdict": "OK"
+ },
+ {
+  "case": "a32_table_base_read_in_case",
+  "opt": "default",
+  "verdict": "REJECTED",
+  "detail": "FATAL BOLT-ERROR: unsupported AArch32 inline jump table base read in t"
+ },
+ {
+  "case": "a32_table_base_read_in_case",
+  "opt": "reverse",
+  "verdict": "REJECTED",
+  "detail": "FATAL BOLT-ERROR: unsupported AArch32 inline jump table base read in t"
+ },
+ {
+  "case": "a32_table_base_read_in_case",
+  "opt": "icf",
+  "verdict": "REJECTED",
+  "detail": "FATAL BOLT-ERROR: unsupported AArch32 inline jump table base read in t"
+ },
+ {
+  "case": "a32_table_base_read_in_case",
+  "opt": "far",
+  "verdict": "REJECTED",
+  "detail": "FATAL BOLT-ERROR: unsupported AArch32 inline jump table base read in t"
+ },
+ {
+  "case": "t32_it_pred_return_call",
+  "opt": "default",
+  "verdict": "OK"
+ },
+ {
+  "case": "t32_it_pred_return_call",
+  "opt": "reverse",
+  "verdict": "OK"
+ },
+ {
+  "case": "t32_it_pred_return_call",
+  "opt": "icf",
+  "verdict": "OK"
+ },
+ {
+  "case": "t32_it_pred_return_call",
+  "opt": "far",
+  "verdict": "OK"
+ },
+ {
+  "case": "t32_it_cond_tail_call",
+  "opt": "default",
+  "verdict": "OK"
+ },
+ {
+  "case": "t32_it_cond_tail_call",
+  "opt": "reverse",
+  "verdict": "OK"
+ },
+ {
+  "case": "t32_it_cond_tail_call",
+  "opt": "icf",
+  "verdict": "OK"
+ },
+ {
+  "case": "t32_it_cond_tail_call",
+  "opt": "far",
+  "verdict": "OK"
+ },
+ {
+  "case": "a32_cond_return_call",
+  "opt": "default",
+  "verdict": "OK"
+ },
+ {
+  "case": "a32_cond_return_call",
+  "opt": "reverse",
+  "verdict": "OK"
+ },
+ {
+  "case": "a32_cond_return_call",
+  "opt": "icf",
+  "verdict": "OK"
+ },
+ {
+  "case": "a32_cond_return_call",
+  "opt": "far",
+  "verdict": "OK"
+ },
+ {
+  "case": "interwork_blx_both_ways",
+  "opt": "default",
+  "verdict": "OK"
+ },
+ {
+  "case": "interwork_blx_both_ways",
+  "opt": "reverse",
+  "verdict": "OK"
+ },
+ {
+  "case": "interwork_blx_both_ways",
+  "opt": "icf",
+  "verdict": "OK"
+ },
+ {
+  "case": "interwork_blx_both_ways",
+  "opt": "far",
+  "verdict": "OK"
+ },
+ {
+  "case": "interwork_tail_bx_reg",
+  "opt": "default",
+  "verdict": "OK"
+ },
+ {
+  "case": "interwork_tail_bx_reg",
+  "opt": "reverse",
+  "verdict": "OK"
+ },
+ {
+  "case": "interwork_tail_bx_reg",
+  "opt": "icf",
+  "verdict": "OK"
+ },
+ {
+  "case": "interwork_tail_bx_reg",
+  "opt": "far",
+  "verdict": "OK"
+ },
+ {
+  "case": "thumb_literal_pool",
+  "opt": "default",
+  "verdict": "OK"
+ },
+ {
+  "case": "thumb_literal_pool",
+  "opt": "reverse",
+  "verdict": "OK"
+ },
+ {
+  "case": "thumb_literal_pool",
+  "opt": "icf",
+  "verdict": "OK"
+ },
+ {
+  "case": "thumb_literal_pool",
+  "opt": "far",
+  "verdict": "OK"
+ },
+ {
+  "case": "arm_literal_pool_mid_function",
+  "opt": "default",
+  "verdict": "OK"
+ },
+ {
+  "case": "arm_literal_pool_mid_function",
+  "opt": "reverse",
+  "verdict": "OK"
+ },
+ {
+  "case": "arm_literal_pool_mid_function",
+  "opt": "icf",
+  "verdict": "OK"
+ },
+ {
+  "case": "arm_literal_pool_mid_function",
+  "opt": "far",
+  "verdict": "OK"
+ },
+ {
+  "case": "fnptr_table_in_data",
+  "opt": "default",
+  "verdict": "OK"
+ },
+ {
+  "case": "fnptr_table_in_data",
+  "opt": "reverse",
+  "verdict": "OK"
+ },
+ {
+  "case": "fnptr_table_in_data",
+  "opt": "icf",
+  "verdict": "OK"
+ },
+ {
+  "case": "fnptr_table_in_data",
+  "opt": "far",
+  "verdict": "OK"
+ },
+ {
+  "case": "movw_movt_thumb_fnptr",
+  "opt": "default",
+  "verdict": "OK"
+ },
+ {
+  "case": "movw_movt_thumb_fnptr",
+  "opt": "reverse",
+  "verdict": "OK"
+ },
+ {
+  "case": "movw_movt_thumb_fnptr",
+  "opt": "icf",
+  "verdict": "OK"
+ },
+ {
+  "case": "movw_movt_thumb_fnptr",
+  "opt": "far",
+  "verdict": "OK"
+ },
+ {
+  "case": "literal_pool_thumb_fnptr",
+  "opt": "default",
+  "verdict": "OK"
+ },
+ {
+  "case": "literal_pool_thumb_fnptr",
+  "opt": "reverse",
+  "verdict": "OK"
+ },
+ {
+  "case": "literal_pool_thumb_fnptr",
+  "opt": "icf",
+  "verdict": "OK"
+ },
+ {
+  "case": "literal_pool_thumb_fnptr",
+  "opt": "far",
+  "verdict": "OK"
+ },
+ {
+  "case": "data_ptr_thumb_interior_entry",
+  "opt": "default",
+  "verdict": "OK"
+ },
+ {
+  "case": "data_ptr_thumb_interior_entry",
+  "opt": "reverse",
+  "verdict": "OK"
+ },
+ {
+  "case": "data_ptr_thumb_interior_entry",
+  "opt": "icf",
+  "verdict": "OK"
+ },
+ {
+  "case": "data_ptr_thumb_interior_entry",
+  "opt": "far",
+  "verdict": "OK"
+ },
+ {
+  "case": "a32_mov_lr_pc_call",
+  "opt": "default",
+  "verdict": "OK"
+ },
+ {
+  "case": "a32_mov_lr_pc_call",
+  "opt": "reverse",
+  "verdict": "OK"
+ },
+ {
+  "case": "a32_mov_lr_pc_call",
+  "opt": "icf",
+  "verdict": "OK"
+ },
+ {
+  "case": "a32_mov_lr_pc_call",
+  "opt": "far",
+  "verdict": "OK"
+ },
+ {
+  "case": "noreturn_call_at_end",
+  "opt": "default",
+  "verdict": "REJECTED",
+  "detail": "FATAL BOLT-ERROR: unmodeled AArch32 function fallthrough in t"
+ },
+ {
+  "case": "noreturn_call_at_end",
+  "opt": "reverse",
+  "verdict": "REJECTED",
+  "detail": "FATAL BOLT-ERROR: unmodeled AArch32 function fallthrough in t"
+ },
+ {
+  "case": "noreturn_call_at_end",
+  "opt": "icf",
+  "verdict": "REJECTED",
+  "detail": "FATAL BOLT-ERROR: unmodeled AArch32 function fallthrough in t"
+ },
+ {
+  "case": "noreturn_call_at_end",
+  "opt": "far",
+  "verdict": "REJECTED",
+  "detail": "FATAL BOLT-ERROR: unmodeled AArch32 function fallthrough in t"
+ },
+ {
+  "case": "t32_cbz_cbnz",
+  "opt": "default",
+  "verdict": "OK"
+ },
+ {
+  "case": "t32_cbz_cbnz",
+  "opt": "reverse",
+  "verdict": "OK"
+ },
+ {
+  "case": "t32_cbz_cbnz",
+  "opt": "icf",
+  "verdict": "OK"
+ },
+ {
+  "case": "t32_cbz_cbnz",
+  "opt": "far",
+  "verdict": "OK"
+ },
+ {
+  "case": "ldrex_strex_local_loop",
+  "opt": "default",
+  "verdict": "OK"
+ },
+ {
+  "case": "ldrex_strex_local_loop",
+  "opt": "reverse",
+  "verdict": "OK"
+ },
+ {
+  "case": "ldrex_strex_local_loop",
+  "opt": "icf",
+  "verdict": "OK"
+ },
+ {
+  "case": "ldrex_strex_local_loop",
+  "opt": "far",
+  "verdict": "OK"
+ },
+ {
+  "case": "recursion_thumb",
+  "opt": "default",
+  "verdict": "OK"
+ },
+ {
+  "case": "recursion_thumb",
+  "opt": "reverse",
+  "verdict": "OK"
+ },
+ {
+  "case": "recursion_thumb",
+  "opt": "icf",
+  "verdict": "OK"
+ },
+ {
+  "case": "recursion_thumb",
+  "opt": "far",
+  "verdict": "OK"
+ },
+ {
+  "case": "icf_twin_tables",
+  "opt": "default",
+  "verdict": "OK"
+ },
+ {
+  "case": "icf_twin_tables",
+  "opt": "reverse",
+  "verdict": "OK"
+ },
+ {
+  "case": "icf_twin_tables",
+  "opt": "icf",
+  "verdict": "OK"
+ },
+ {
+  "case": "icf_twin_tables",
+  "opt": "far",
+  "verdict": "OK"
+ },
+ {
+  "case": "thumb_conditional_tail_other_mode",
+  "opt": "default",
+  "verdict": "OK"
+ },
+ {
+  "case": "thumb_conditional_tail_other_mode",
+  "opt": "reverse",
+  "verdict": "OK"
+ },
+ {
+  "case": "thumb_conditional_tail_other_mode",
+  "opt": "icf",
+  "verdict": "OK"
+ },
+ {
+  "case": "thumb_conditional_tail_other_mode",
+  "opt": "far",
+  "verdict": "OK"
+ }
+]

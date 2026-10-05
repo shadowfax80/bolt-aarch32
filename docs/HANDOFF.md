@@ -60,13 +60,15 @@ Everything needed to continue is in this repo:
 - **What to do next:** *Claims* below, Open tables in resume order.
 - **Findings and plans:** [Recovered Astra review, reconciled through 0061](CORRECTNESS_REVIEW_ASTRA_0057.md),
   [CORRECTNESS_REVIEW_CLAUDE_0E616EB.md](CORRECTNESS_REVIEW_CLAUDE_0E616EB.md),
+  [deep edge-case review at 0069](CORRECTNESS_REVIEW_CLAUDE_0069.md),
+  [current limitations](KNOWN_LIMITATIONS.md#current-atfe-backend-limitations-re-baselined-2026-10-05),
   [R17_BOLT_EDGE_PLAN.md](R17_BOLT_EDGE_PLAN.md), [LK_COVERAGE.md](LK_COVERAGE.md),
   [PI4_ORACLE_CONTRACT_DRAFT.md](PI4_ORACLE_CONTRACT_DRAFT.md) (approved),
   [earlier implementation handoffs](HANDOFF_HISTORY.md).
 - **Certified input image:** `fixtures/lk-rpi4-bolt-test-424606a8.elf`
   (see `fixtures/README.md`); the skip list is in
   `docs/results/lk_coverage_r15_20261004.json` (`skip_funcs`).
-- **Backend source:** overlays `overlay/llvm/patches/atfe/0001–0067`; the WSL
+- **Backend source:** overlays `overlay/llvm/patches/atfe/0001–0069`; the WSL
   live tree must replay them exactly (`scripts/verify-atfe-overlays.py`).
   Do not run `scripts/apply-overlays.sh` on the dirty live tree.
 - **Commands:**
@@ -82,7 +84,7 @@ Everything needed to continue is in this repo:
   COM5; sample captures occasionally fail chunk validation (USB corruption),
   retry; never `git stash` from WSL on the Windows checkout.
 - **Build versions:** ON is `build-atfe`; current OFF is `build-atfe-noassert`,
-  tested through 0067 (ARM lit 56/56, 2026-10-05). The older OFF build
+  tested through 0069 (ARM lit 58/58, 2026-10-05). The older OFF build
   `out/correctness/build-atfe-noasserts-20261002` is 0054 evidence. ON 0060–0061
   checks do not establish OFF parity for those overlays; recheck build hashes.
   Preserve both older receipts and dirty live source.
@@ -116,13 +118,13 @@ deferred; new image/configuration oracle contracts still require user review.
 
 | Holder | Since | Purpose |
 |---|---|---|
-| Claude | 2026-10-05 | R25 (data Thumb pointers) and R26 (table base read in cases): overlays 0068+ |
+| — (free) | 2026-10-05 | Released by Claude after overlays 0068–0069 (R25, R26) |
 
 ## Pi reservation
 
 | Holder | Since | Purpose / last observation |
 |---|---|---|
-| Claude | 2026-10-05 | R25/R26 (0068/0069): certified full-image gate on `424606a8` with the 0069 toolchain |
+| — (unreserved) | 2026-10-05 | Released by Claude after the R26 certified gate. Last state: LK shell after the gate on `out/r26cert` (424606a8 candidate), COM5 closed; watchdog as left by full_image_verify. Reserve and recheck before use; `pi4_run.py --reboot` recovers it. |
 
 ## Claims (consolidated TODO)
 
@@ -142,8 +144,7 @@ Take items in the order below; groups reflect dependencies, not ownership.
 
 | Order | ID | Item | Priority | Owner | Status | Part of | Notes |
 |---|---|---|---|---|---|---|---|
-| 10d | R25 | Thumb code pointers in data words lose the Thumb bit (function-pointer tables, interior entry pointers in `.data`) | P0 | Claude | In progress (live tree) | 7 | Found by the 2026-10-05 deep review (`scripts/review/edge_probe.py`): output words point at the even address, so a `blx`/`bx` through them enters ARM state (SIGSEGV/SIGBUS). Masked in the LK pipeline only because `.data`/`.rodata`/`lk_init`/`commands` are restored and original entries redirect |
-| 10e | R26 | Inline-table base register read as data in a case block (0057 A32 `ldr pc` tables, 0066 Thumb ADR base) | P0 | Claude | Claimed | 12 | Deep review: after re-pointing the base, a case that reads rB sees the new table address, so the result depends on layout (WRONG under `--reorder-blocks=reverse`). Fix: admit only when rB is dead at every case target, as R21 already requires for rX |
+| 10d | R27 | Extend the differential edge probe (`scripts/review/edge_probe.py`) | P2 | — | Open | 13 | Deep review 0069 left these unprobed (KNOWN_LIMITATIONS V7): split functions with inline tables (needs a profile), instrumentation of table functions, ICF across ISAs, Thumb narrow-branch relaxation at range limits. qemu-user is a diagnostic oracle; promote any WRONG to a P0 item with a lit test |
 | 10b | T3 | Secure-SVC parity on the Pi | P2 | — | Deferred TODO (user, 2026-10-04): Secure armstub is built (`tools/pi4-armstub-secure/`, sha `af4a5512…`, install/rollback in its README) but not installed; the SD-card step and the Secure re-runs wait until the user asks | 9 | All Pi results so far are Non-secure SVC; BOLT rewriting is state-agnostic, so T3 is a parity confirmation |
 | 10c | T4 | Performance and final validation on the real A55 target (A72 gains not transferable) | P2 | User | Out of scope here | — | Done by the user in the office environment, from this repo |
 
@@ -153,9 +154,9 @@ Take items in the order below; groups reflect dependencies, not ownership.
 | Order | ID | Item | Priority | Owner | Status | Notes |
 |---|---|---|---|---|---|---|
 | 11 | 8 | CFG and mutation invariants | P1 | — | Partial | R4–R6, R19, R11, R23 done |
-| 12 | 7 | Relocation/literal/veneer matrix | P1 | — | Partial | R1–R3, R7, R14 done |
+| 12 | 7 | Relocation/literal/veneer matrix | P1 | — | Partial | R1–R3, R7, R14, R25 done |
 | 13 | 11 | Entries/symbols/reference routes | P1 | — | Partial | R9 done |
-| 14 | 12 | Tables and inline data | P1 | — | Partial | R18, R22, R24, R12, R21 done |
+| 14 | 12 | Tables and inline data | P1 | — | Partial | R18, R22, R24, R12, R21, R26 done |
 | 15 | 13 | Actual pass combinations | P1 | — | Partial | R7, R8, R20 done |
 | 16 | 9 | Interrupt/reentrancy/reset boundaries | P1 | — | Partial | T2/T2b (SMP execution and counters) done; active-IRQ fixtures still open |
 | 17 | 10 | Sampling/PMU ownership | P1 | — | Partial | Per-core PC watch ranges (T2) done; per-sample core attribution and loss/saturation accounting open |
@@ -167,6 +168,8 @@ Take items in the order below; groups reflect dependencies, not ownership.
 
 | ID | Item | Priority | Owner | Part of | Patch / evidence |
 |---|---|---|---|---|---|
+| R25 | Thumb code pointers in data words lost the Thumb bit | P0 | Claude | 7 | 0068: a non-code ABS32/TARGET1 relocation with an odd value into a Thumb function references the even code address and carries the bit as addend 1, so `.data` function-pointer tables and interior-entry pointers stay Thumb on every emission path (the flush path already set it; `emitAsData` did not). `arm-thumb-data-pointer.test` (default, reversed, padded layouts) fails on 0067, passes on 0069. Not observable in the LK pipeline (data sections restored); found by the deep review probe (SIGSEGV/SIGBUS under qemu-user) |
+| R26 | Inline-table base register read as data in a case block | P0 | Claude | 12 | 0069: `isTableBaseDeadAtCases` walks every path from every case target (labels, nested tables, fall-through) and admits 0057/0066/0067 tables only when rB is redefined unconditionally before any read; register-list loads count as definitions (R22 helper shared); AAPCS at calls/returns (call-clobbered base dead, callee-saved base must be restored). `arm-table-base-liveness.test` 11 cases; the 0067 build admits all 6 must-reject cases. ON/OFF ARM lit 58/58; coverage unchanged (LK 401/417, edge 561, A55 400); certified Pi gate on `424606a8` PASS (`r26_certified_20261005.json`). Review: [CORRECTNESS_REVIEW_CLAUDE_0069.md](CORRECTNESS_REVIEW_CLAUDE_0069.md) |
 | R22 | Privileged LDM overwrote an inline-table base without rejection | P1 | Claude | 12 | 0062: the R18 base-survival check also treats any register-list load naming the base as a redefinition (the privileged/user-bank `ldm ..^` does not mark its list as defs); `arm-ldr-pc-table.test` adds ordinary/user-bank/writeback LDM must-reject and a user-bank non-base control (12/12). ARM lit 52/52 in both assertion modes (OFF build now includes 0060–0062); coverage unchanged 400/417 (`lk_coverage_r22_20261005.json`) |
 | R11 | Skip-and-report admission mode; Thumb IT-state isolation (reopened, fixed) | P1 | Codex + Claude | 8, 6d | 0054 report mode (Codex). Reopened by the Astra review: a truncated ITT/ITE leaked IT state into the next function. 0063: `MCDisassembler::resetState()` (ARM clears IT/VPT state); BOLT resets at every independent stream (function disassembly, noreturn/branch-fix scans, nested plain decode, padding/veneer scans, exclusive-reservation scan, every 0059 gap probe). `arm-it-isolation.test`: truncated ITT/ITE before and after clean functions, admission equals control. Unfixed OFF build reproduced the false rejection; fixed ON/OFF 53/53; LLVM ARM disassembler + JITLink AArch32 166 pass/1 XFAIL |
 | R23 | Noreturn absolute-thunk traversal bypassed cycle detection | P1 | Claude | 8 | 0064: thunk following moved inside `isProvenNoReturnARM`'s in-progress cache guard, so A→B→A thunk cycles prove nothing and terminate; `arm-thunk-cycle.test` (A32+T32: cycle and self-cycle rejected promptly, acyclic chain still a proof). Unfixed OFF build reproduced the hang (timeout); fixed ON/OFF 54/54 |
@@ -234,6 +237,30 @@ emission coverage, not execution or whole-backend correctness.
 4. Update the *Claims* table and LK_COVERAGE.md together.
 
 ## Handoff log
+
+### 2026-10-05 — Claude: deep edge-case review; R25 (0068) and R26 (0069) fixed; limitations re-baselined; lock and Pi released
+
+- New differential harness `scripts/review/edge_probe.py`: 23 small programs
+  × 4 BOLT option sets (default, reversed blocks, ICF + random function
+  order, far padding), original vs BOLT output under qemu-user (diagnostic).
+  First run on 0067: 6 WRONG. Final on 0069: 80 OK, 12 safe rejections, 0
+  WRONG (`docs/results/edge_probe_r26_20261005.json`).
+- R25 (P0, 0068): Thumb function pointers and interior-entry pointers in
+  `.data` came out even (call entered ARM state). Masked in LK because the
+  pipeline restores data sections. `arm-thumb-data-pointer.test`.
+- R26 (P0, 0069): a re-pointed table base (0057/0066/0067) read in a case
+  gave layout-dependent results; tables now need the base dead at every case
+  target. `arm-table-base-liveness.test`. No coverage loss (vsnprintf still
+  admitted).
+- Verified: ON/OFF ARM lit 58/58; BOLT lit known AArch64 failure only;
+  0001–0069 replay exactly (`f47e50ee…`); coverage LK 401/417, edge 561, A55
+  400 (unchanged); certified Pi gate on `424606a8` PASS (10 reps, 18/18).
+- Docs: [review](CORRECTNESS_REVIEW_CLAUDE_0069.md);
+  [KNOWN_LIMITATIONS.md](KNOWN_LIMITATIONS.md) has a new current section
+  (scope S1–S5, rejected shapes N1–N5, assumptions A1–A3, verification gaps
+  V1–V8); U1/U5 marked superseded for ATFE.
+- Next: R27 (probe extension) or the P1 matrices; T3 deferred, T4 user. Lock
+  free, Pi unreserved, WSL live tree = 0001–0069.
 
 ### 2026-10-05 — Claude: R21 done (overlay 0067); group C correctness items complete; lock and Pi released
 
