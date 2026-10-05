@@ -114,7 +114,7 @@ image/configuration oracle contracts still require user review.
 
 | Holder | Since | Purpose |
 |---|---|---|
-| — (free) | 2026-10-05 | Released by Claude after R27 (no source change; overlays still 0001–0069) |
+| Claude | 2026-10-05 | B1: BOLT from lk-perf samples vs instrumentation (separate WSL root `~/bolt-b1`; shared toolchain read only) |
 
 ## Pi reservation
 
@@ -122,7 +122,7 @@ Board-wide: shared by bolt-aarch32 and lk-perf (one Pi 4B on COM5).
 
 | Holder | Since | Purpose / last observation |
 |---|---|---|
-| — (unreserved) | 2026-10-05 | Released by Claude after lk-perf K8/K9: lk-perf K8 image (lk.bin `5c6af40e…`) at the shell, 6000000 baud, pseudo-NMI off, samplers and scheduler recording stopped, COM5 closed. Recheck before use; `--reboot` at 6 Mbaud returns it to the loader |
+| Claude | 2026-10-05 | B1: sampling vs instrumentation BOLT comparison captures and measurements |
 
 ## Claims (consolidated TODO)
 
@@ -143,6 +143,7 @@ Take items in the order below; groups reflect dependencies, not ownership.
 
 | Order | ID | Item | Priority | Owner | Status | Part of | Notes |
 |---|---|---|---|---|---|---|---|
+| 10b | B1 | BOLT benefit on the Pi from an lk-perf sampling profile vs an instrumentation profile: whole LK image running existing apps, and the stair showcase (user, 2026-10-05) | P2 | Claude | In progress | — | lk-perf profiler built into the bolt-aarch32 image; no oracle contract, measurement only |
 | 10c | T4 | Performance and final validation on the real A55 target (A72 gains not transferable) | P2 | User | Out of scope here | — | Done by the user in the office environment, from this repo |
 
 
