@@ -122,7 +122,7 @@ deferred; new image/configuration oracle contracts still require user review.
 
 | Holder | Since | Purpose / last observation |
 |---|---|---|
-| — (unreserved) | 2026-10-04 | Latest Claude handoff reports Pi idle at 89dd17f. Codex/Sol has not opened COM5 or changed the board during this review; reserve and recheck before use. |
+| — (unreserved) | 2026-10-05 | Last observed by Claude after 89dd17f (2026-10-04 health check): LK shell running `out/t1/lk-a55.bin` (A55 v8 image, local build output), watchdog off (`wdog 0`), sampler off, COM5 closed. Reserve and recheck before use; `pi4_run.py --reboot` recovers it from the LK shell. |
 
 ## Claims (consolidated TODO)
 
@@ -232,6 +232,19 @@ emission coverage, not execution or whole-backend correctness.
 4. Update the *Claims* table and LK_COVERAGE.md together.
 
 ## Handoff log
+
+### 2026-10-05 — Claude: reviewed Codex's M1/Astra update (ea23639); consolidated
+
+- Synced Windows and WSL to `ea23639`. Reviewed the Astra consolidation and
+  M1 cleanup: queue R22 → R11 (reopened) → R23 → R24 → R12 → R21 is
+  consistent with Claude's last state (T1/T2/T2b/R8/R13/R15/6a–6d Done; T3
+  deferred). New rules (pushed claims; separate Pi reservation) adopted.
+- `py -3.12 scripts/repo_health.py`: no errors (7 fixtures, 61 overlays,
+  42 work items, 11 R11 artifacts).
+- Corrected the Pi reservation row to the last real observation (Claude ran a
+  health check after 89dd17f): LK shell, A55 image, watchdog off, COM5 closed.
+- No backend/LK change, no Pi access in this step. Live-tree lock free; no
+  claims. Next agent: claim R22.
 
 ### 2026-10-04 — Codex: M1 repository health cleanup complete
 
