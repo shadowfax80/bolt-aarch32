@@ -122,7 +122,7 @@ Board-wide: shared by bolt-aarch32 and lk-perf (one Pi 4B on COM5).
 
 | Holder | Since | Purpose / last observation |
 |---|---|---|
-| — (unreserved) | 2026-10-05 | Released by Claude after lk-perf K6: lk-perf K6 image (lk.bin `b85c9df8…`) at the shell, 6000000 baud, timer and PMU samplers stopped, masked-time accounting off, COM5 closed; no watchdog command issued. Recheck before use; `--reboot` at 6 Mbaud returns it to the loader (a BOLT run needs its own image upload) |
+| Claude (lk-perf) | 2026-10-05 | lk-perf K12: GIC-priority pseudo-NMI prototype (watchdog reboot / power cycle may be needed if a trial hangs) |
 
 ## Claims (consolidated TODO)
 
