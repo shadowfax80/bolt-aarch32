@@ -114,7 +114,7 @@ image/configuration oracle contracts still require user review.
 
 | Holder | Since | Purpose |
 |---|---|---|
-| — (free) | 2026-10-05 | Released by Claude after R28/R29 (overlays 0001–0071; WSL live tree replays them exactly; both builds rebuilt) |
+| Claude | 2026-10-05 | B2: rerun of B1 on 0001–0071 (private root `~/bolt-b1`; shared toolchain read only) |
 
 ## Pi reservation
 
@@ -122,7 +122,7 @@ Board-wide: shared by bolt-aarch32 and lk-perf (one Pi 4B on COM5).
 
 | Holder | Since | Purpose / last observation |
 |---|---|---|
-| — (unreserved) | 2026-10-05 | Released by Claude after R28/R29: B1 Thumb whole-image BOLT image at the shell, 3000000 baud, watchdog disarmed by the runner, samplers stopped, COM5 closed. Recheck before use; `--reboot` returns it to the loader |
+| Claude | 2026-10-05 | B2: sampling vs instrumentation BOLT rerun (captures and measurements) |
 
 ## Claims (consolidated TODO)
 
@@ -143,6 +143,7 @@ Take items in the order below; groups reflect dependencies, not ownership.
 
 | Order | ID | Item | Priority | Owner | Status | Part of | Notes |
 |---|---|---|---|---|---|---|---|
+| 10b | B2 | Rerun B1 (BOLT from lk-perf sampling vs instrumentation) on 0001–0071: Thumb builds, no R28 workaround, denser sampling (user, 2026-10-05) | P2 | Claude | In progress | — | Measurement only |
 | 10c | T4 | Performance and final validation on the real A55 target (A72 gains not transferable) | P2 | User | Out of scope here | — | Done by the user in the office environment, from this repo |
 
 
