@@ -118,7 +118,7 @@ image/configuration oracle contracts still require user review.
 
 | Holder | Since | Purpose / last observation |
 |---|---|---|
-| — (unreserved) | 2026-10-05 | Released by Claude after the R26 certified gate. Last state: LK shell after the gate on `out/r26cert` (424606a8 candidate), COM5 closed; watchdog as left by full_image_verify. Reserve and recheck before use; `pi4_run.py --reboot` recovers it. |
+| Codex | 2026-10-05 | lk-perf hardware demo: boot an existing profiler image, capture designated SMP workload, stop both samplers, close COM5, and publish release with observed board state. No BOLT source/build changes. |
 
 ## Claims (consolidated TODO)
 
