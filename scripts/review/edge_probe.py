@@ -320,12 +320,74 @@ CASES['thumb_conditional_tail_other_mode'] = (5, fn('t', 'thumb', '''
  adds r0, #7
  bx lr''') + fn('armt', 'arm', ' mov r0, r0, lsl #3\n bx lr'))
 
+
+# --- R27 extensions ---------------------------------------------------------
+# Narrow Thumb branches (cbz 0..126 forward, b<cond>.n +-256, b.n +-2K) that
+# block reordering can push out of range or make backward.
+_pad = lambda k, ins: ''.join(f' {ins}\n' for _ in range(k))
+CASES['t32_narrow_branch_range'] = (40, fn('t', 'thumb', ' cbz r0, 1f\n' + _pad(28, 'adds r0, #1') +
+    ' b 4f\n1:\n movs r0, #77\n b 3f\n4:\n cmp r0, #30\n beq 2f\n' + _pad(100, 'adds r0, #3') +
+    ' b 3f\n2:\n' + _pad(60, 'adds r0, #5') + '3:\n bx lr'))
+# Identical Thumb twins and identical ARM twins reached only through a data
+# table (ICF folds each pair; the data words must keep the right ISA bit).
+_tw = lambda isa: (' adds r0, r0, #9\n lsls r0, r0, #1\n bx lr' if isa == 'thumb'
+                   else ' add r0, r0, #9\n lsl r0, r0, #2\n bx lr')
+CASES['icf_twins_via_data_table'] = (8, fn('t', 'arm', '''
+ push {r4, lr}
+ and r1, r0, #3
+ ldr r2, =twins
+ ldr r2, [r2, r1, lsl #2]
+ blx r2
+ pop {r4, pc}
+ .ltorg''') + fn('ta', 'thumb', _tw('thumb')) + fn('tb', 'thumb', _tw('thumb')) +
+    fn('aa', 'arm', _tw('arm')) + fn('ab', 'arm', _tw('arm')) +
+    ' .data\n .p2align 2\ntwins: .word ta, ab, tb, aa\n .text\n')
+# A hot table branch whose cases are cold: under the split option set the
+# cases move to the cold fragment, far from the table.
+CASES['t32_tbh_cold_cases_split'] = (6, fn('t', 'thumb', '''
+ push {r4, lr}
+ and r4, r0, #3
+ cmp r0, #4
+ bhs 9f
+ tbh [pc, r4, lsl #1]
+1:
+ .hword (20f-1b)/2, (21f-1b)/2, (22f-1b)/2, (23f-1b)/2
+20: movs r0, #31
+ pop {r4, pc}
+21: movs r0, #37
+ pop {r4, pc}
+22: movs r0, #41
+ pop {r4, pc}
+23: movs r0, #43
+ pop {r4, pc}
+9: adds r0, #50
+ pop {r4, pc}'''))
+
 OPTIONS = {
     'default': [],
     'reverse': ['--reorder-blocks=reverse'],
     'icf': ['-icf=all', '--reorder-functions=random'],
     'far': ['--pad-funcs-before=t:0x1100000'],
+    # R27: only t's entry is sampled, so every other block of t is cold and
+    # moves to t.cold (tables and their cases end up in different fragments).
+    'split': ['-data=prof.fdata', '-split-functions', '-split-all-cold'],
+    # R27: as 'split', on fill.exe: a profiled 1.1 MB filler function sits
+    # between hot t and t.cold, so cross-fragment branches exceed Thumb
+    # b<cond>.w (+-1 MB) but not b.w/bl (+-16 MB). (--pad-funcs-before cannot
+    # model this: the emitter pads every fragment, LongJmp only the first.)
+    'split-fill': ['-data=prof.fdata', '-split-functions', '-split-all-cold'],
+    # R27: instrumented output must still compute the same results.
+    'instrument': ['--instrument', '--instrument-calls=false',
+                   '--arm-instrumentation-contract=privileged-single-core-no-fiq',
+                   '--instrumentation-sleep-time=1',
+                   '--runtime-instrumentation-lib=' + str(TC.parent / 'bolt-rt-baremetal-arm/libbolt_rt_baremetal.a')],
 }
+
+NL = chr(10)
+# Never executed; only its size matters (ARM nops, 1.1 MB).
+FILLER = (' .p2align 2' + NL + ' .arm' + NL + ' .global fill' + NL + ' .type fill,%function' + NL +
+          'fill:' + NL + ' .rept 280000' + NL + ' nop' + NL + ' .endr' + NL + ' bx lr' + NL +
+          ' .size fill,.-fill' + NL)
 
 
 def sh(cmd, cwd, timeout=60):
@@ -342,13 +404,21 @@ for name, (n, body) in CASES.items():
     (d / 'in.s').write_text(DRIVER.replace('{n}', str(n)) + body)
     (d / 'in.ld').write_text('ENTRY(_start)\nSECTIONS {\n  . = 0x10000;\n  .text : { *(.text*) }\n'
                              '  . = ALIGN(0x1000);\n  .data : { *(.data*) }\n}\n')
-    rc, _, err = sh([TC / 'llvm-mc', '-triple=armv7-unknown-linux-gnueabi', '-arm-add-build-attributes',
-                     '-filetype=obj', 'in.s', '-o', 'in.o'], d)
-    if rc:
-        results.append(dict(case=name, opt='-', verdict='FIXTURE', detail=err[-300:])); continue
-    rc, _, err = sh([TC / 'ld.lld', '--emit-relocs', '-static', '-T', 'in.ld', 'in.o', '-o', 'in.exe'], d)
-    if rc:
-        results.append(dict(case=name, opt='-', verdict='FIXTURE', detail=err[-300:])); continue
+    (d / 'fill.s').write_text(DRIVER.replace('{n}', str(n)) + body + FILLER)
+    bad = None
+    for stem in ('in', 'fill'):
+        rc, _, err = sh([TC / 'llvm-mc', '-triple=armv7-unknown-linux-gnueabi', '-arm-add-build-attributes',
+                         '-filetype=obj', f'{stem}.s', '-o', f'{stem}.o'], d)
+        if not rc:
+            rc, _, err = sh([TC / 'ld.lld', '--emit-relocs', '-static', '-T', 'in.ld', f'{stem}.o',
+                             '-o', f'{stem}.exe'], d)
+        if rc:
+            bad = err[-300:]
+            break
+    if bad:
+        results.append(dict(case=name, opt='-', verdict='FIXTURE', detail=bad)); continue
+    (d / 'prof.fdata').write_text('0 [unknown] 0 1 t 0 0 1000' + chr(10) +
+                                  '0 [unknown] 0 1 fill 0 0 1000' + chr(10))
     rc, ref, err = sh(['qemu-arm', 'in.exe'], d)
     if rc or len(ref) != 4:
         results.append(dict(case=name, opt='-', verdict='FIXTURE', detail=f'original rc={rc} {err[-200:]}')); continue
@@ -356,7 +426,8 @@ for name, (n, body) in CASES.items():
         outf = d / f'{opt}.bolt'
         outf.unlink(missing_ok=True)
         try:
-            rc, _, log = sh([TC / 'llvm-bolt', 'in.exe', '-o', outf.name, '--no-huge-pages', '-lite=0', *extra], d, 120)
+            exe = 'fill.exe' if opt == 'split-fill' else 'in.exe'
+            rc, _, log = sh([TC / 'llvm-bolt', exe, '-o', outf.name, '--no-huge-pages', '-lite=0', *extra], d, 300)
         except subprocess.TimeoutExpired:
             results.append(dict(case=name, opt=opt, verdict='BOLT-HANG')); continue
         (d / f'{opt}.log').write_text(log)

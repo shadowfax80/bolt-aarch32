@@ -118,7 +118,7 @@ deferred; new image/configuration oracle contracts still require user review.
 
 | Holder | Since | Purpose |
 |---|---|---|
-| Claude | 2026-10-05 | R27: probe extension (fixes, if any, become overlays 0070+) |
+| — (free) | 2026-10-05 | Released by Claude after R27 (no source change; overlays still 0001–0069) |
 
 ## Pi reservation
 
@@ -144,7 +144,6 @@ Take items in the order below; groups reflect dependencies, not ownership.
 
 | Order | ID | Item | Priority | Owner | Status | Part of | Notes |
 |---|---|---|---|---|---|---|---|
-| 10d | R27 | Extend the differential edge probe (`scripts/review/edge_probe.py`) | P2 | Claude | In progress | 13 | Deep review 0069 left these unprobed (KNOWN_LIMITATIONS V7): split functions with inline tables (needs a profile), instrumentation of table functions, ICF across ISAs, Thumb narrow-branch relaxation at range limits. qemu-user is a diagnostic oracle; promote any WRONG to a P0 item with a lit test |
 | 10b | T3 | Secure-SVC parity on the Pi | P2 | — | Deferred TODO (user, 2026-10-04): Secure armstub is built (`tools/pi4-armstub-secure/`, sha `af4a5512…`, install/rollback in its README) but not installed; the SD-card step and the Secure re-runs wait until the user asks | 9 | All Pi results so far are Non-secure SVC; BOLT rewriting is state-agnostic, so T3 is a parity confirmation |
 | 10c | T4 | Performance and final validation on the real A55 target (A72 gains not transferable) | P2 | User | Out of scope here | — | Done by the user in the office environment, from this repo |
 
@@ -157,7 +156,7 @@ Take items in the order below; groups reflect dependencies, not ownership.
 | 12 | 7 | Relocation/literal/veneer matrix | P1 | — | Partial | R1–R3, R7, R14, R25 done |
 | 13 | 11 | Entries/symbols/reference routes | P1 | — | Partial | R9 done |
 | 14 | 12 | Tables and inline data | P1 | — | Partial | R18, R22, R24, R12, R21, R26 done |
-| 15 | 13 | Actual pass combinations | P1 | — | Partial | R7, R8, R20 done |
+| 15 | 13 | Actual pass combinations | P1 | — | Partial | R7, R8, R20, R27 (probe: split/ICF/instrument/reverse on edge shapes) done |
 | 16 | 9 | Interrupt/reentrancy/reset boundaries | P1 | — | Partial | T2/T2b (SMP execution and counters) done; active-IRQ fixtures still open |
 | 17 | 10 | Sampling/PMU ownership | P1 | — | Partial | Per-core PC watch ranges (T2) done; per-sample core attribution and loss/saturation accounting open |
 | 18 | 14 | Clean build/content provenance | P1 | — | Partial | Overlay replay + assertions-off build (6a); clean full build and OFF parity for 0060–0061 still open; no-FPU guard misreads BOLT outputs (no input $t in original .text) |
@@ -168,6 +167,7 @@ Take items in the order below; groups reflect dependencies, not ownership.
 
 | ID | Item | Priority | Owner | Part of | Patch / evidence |
 |---|---|---|---|---|---|
+| R27 | Extend the differential edge probe | P2 | Claude | 13 | No defect found, no overlay. `scripts/review/edge_probe.py` now 26 cases × 7 option sets: adds `split` (cold cases in another fragment), `split-fill` (1.1 MB real filler, cross-fragment Thumb conditional branches need stubs), `instrument` (baremetal runtime), and cases for narrow-branch range (`cbz`→`cbnz`+`b.w` relaxation), ICF twins behind data pointers, cold TBH cases. 158 OK, 24 known rejections, 0 wrong (`edge_probe_r27_20261005.json`). `--pad-funcs-before` + split is a debug-option artifact (KNOWN_LIMITATIONS V9) |
 | R25 | Thumb code pointers in data words lost the Thumb bit | P0 | Claude | 7 | 0068: a non-code ABS32/TARGET1 relocation with an odd value into a Thumb function references the even code address and carries the bit as addend 1, so `.data` function-pointer tables and interior-entry pointers stay Thumb on every emission path (the flush path already set it; `emitAsData` did not). `arm-thumb-data-pointer.test` (default, reversed, padded layouts) fails on 0067, passes on 0069. Not observable in the LK pipeline (data sections restored); found by the deep review probe (SIGSEGV/SIGBUS under qemu-user) |
 | R26 | Inline-table base register read as data in a case block | P0 | Claude | 12 | 0069: `isTableBaseDeadAtCases` walks every path from every case target (labels, nested tables, fall-through) and admits 0057/0066/0067 tables only when rB is redefined unconditionally before any read; register-list loads count as definitions (R22 helper shared); AAPCS at calls/returns (call-clobbered base dead, callee-saved base must be restored). `arm-table-base-liveness.test` 11 cases; the 0067 build admits all 6 must-reject cases. ON/OFF ARM lit 58/58; coverage unchanged (LK 401/417, edge 561, A55 400); certified Pi gate on `424606a8` PASS (`r26_certified_20261005.json`). Review: [CORRECTNESS_REVIEW_CLAUDE_0069.md](CORRECTNESS_REVIEW_CLAUDE_0069.md) |
 | R22 | Privileged LDM overwrote an inline-table base without rejection | P1 | Claude | 12 | 0062: the R18 base-survival check also treats any register-list load naming the base as a redefinition (the privileged/user-bank `ldm ..^` does not mark its list as defs); `arm-ldr-pc-table.test` adds ordinary/user-bank/writeback LDM must-reject and a user-bank non-base control (12/12). ARM lit 52/52 in both assertion modes (OFF build now includes 0060–0062); coverage unchanged 400/417 (`lk_coverage_r22_20261005.json`) |
@@ -237,6 +237,24 @@ emission coverage, not execution or whole-backend correctness.
 4. Update the *Claims* table and LK_COVERAGE.md together.
 
 ## Handoff log
+
+### 2026-10-05 — Claude: R27 done (probe extension, no defect); lock released
+
+- `scripts/review/edge_probe.py`: +3 cases, +3 option sets (`split`,
+  `split-fill`, `instrument`; the padded split variants were dropped, see
+  below). 26 × 7 = 182 runs: 158 OK, 24 known rejections (table base read,
+  svc-exit noreturn, instrumentation contract), 0 wrong
+  (`docs/results/edge_probe_r27_20261005.json`).
+- Verified in the outputs, not just by matching results: `t.cold.0` exists
+  under split; `t.cold.0` is 1.1 MB from `t` under split-fill; a backward
+  `cbz` became `cbnz` + `b.w`; ICF folded both twin pairs with correct ISA bits in
+  `.data`.
+- `--pad-funcs-before` with `--split-functions` aborts in JITLink (the
+  emitter pads each fragment, LongJmp only the first): debug-option artifact,
+  recorded as KNOWN_LIMITATIONS V9; cross-fragment beyond ±16 MB unprobed (V10).
+- No backend change, so no overlay, coverage regeneration or Pi run. Lock
+  free, Pi unreserved (unchanged since R26). Next: P1 matrices; T3 deferred,
+  T4 user.
 
 ### 2026-10-05 — Claude: deep edge-case review; R25 (0068) and R26 (0069) fixed; limitations re-baselined; lock and Pi released
 

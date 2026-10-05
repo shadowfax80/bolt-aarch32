@@ -123,6 +123,27 @@ Coverage cost: none. Full LK stays at 401/417 functions and 126164 code bytes;
   0069 toolchain, 10 repetitions, 18/18 results, PC evidence in both redirected
   functions — `docs/results/r26_certified_20261005.json`.
 
+## Addendum: R27 probe extension (2026-10-05)
+
+R27 widened the probe to 26 cases × 7 option sets
+(`docs/results/edge_probe_r27_20261005.json`): **158 OK, 24 rejected, 0 wrong**.
+No backend change was needed.
+
+| New option set or case | What it exercises | Result |
+|---|---|---|
+| `split` | A profile samples only `t`'s entry, so every other block moves to `t.cold`: tables and their cases sit in different fragments | OK on every admitted case |
+| `split-fill` | As `split`, with a profiled 1.1 MB filler between `t` and `t.cold`: cross-fragment `b<cond>` exceeds Thumb's ±1 MB and needs LongJmp stubs | OK on every admitted case |
+| `instrument` | Baremetal instrumentation runtime (`privileged-single-core-no-fiq`), output must still compute the same results | OK; conditional returns and exclusives rejected by the instrumentation contract, as documented |
+| `t32_narrow_branch_range` | `cbz` near its 126-byte limit, `beq.n`, `b.n` over 200-byte blocks | OK; under reversed layout a backward `cbz` became `cbnz` + `b.w` |
+| `icf_twins_via_data_table` | Identical Thumb twins and identical ARM twins reached only through `.data` pointers | OK; ICF folds each pair, and the data words keep the Thumb bit (odd) or stay even (ARM) |
+| `t32_tbh_cold_cases_split` | Hot TBH whose cases are all cold | OK in all option sets |
+
+The first attempt used `--pad-funcs-before` to separate the fragments. It
+aborted in JITLink because the emitter pads every fragment but LongJmp's
+tentative layout pads only the first. That is a limitation of the debug
+option (KNOWN_LIMITATIONS V9), so the probe uses a real filler function
+instead.
+
 ## Limitations recorded (not fixed)
 
 These are listed in [KNOWN_LIMITATIONS.md](KNOWN_LIMITATIONS.md#current-atfe-backend-limitations-re-baselined-2026-10-05):

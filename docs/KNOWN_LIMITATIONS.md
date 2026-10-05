@@ -55,7 +55,9 @@ function, or the limit is in verification scope) unless marked otherwise.
 | V4 | IRQ PC sampling cannot see code that runs with IRQs masked | Execution evidence for such code needs other means (counters) |
 | V5 | QEMU twin image has no protected BOLT window (`__bolt_reserved_*`); BOLT code after `_end` is overwritten by the heap | QEMU rewrite routes are diagnostics only and refuse such images |
 | V6 | `check-no-fpu.sh` on BOLT outputs misreads the original `.text`, which keeps no input `$t` mapping symbols | Run the guard on inputs and on the new `.text`; tracked in HANDOFF item 18 |
-| V7 | Not yet probed differentially: split functions with tables, instrumentation of table functions, ICF across ISAs, Thumb narrow-branch relaxation at range limits | Next probe extension (HANDOFF R27) |
+| V7 | Split functions with tables (including a 1.1 MB hot/cold gap), instrumentation of table functions, ICF folding of Thumb and ARM twins behind data pointers, and Thumb narrow-branch relaxation are now probed (R27, `edge_probe_r27_20261005.json`: 158 OK, 24 known rejections, 0 wrong) | Resolved 2026-10-05 for qemu-user; not on the Pi (the certified LK pipeline does not split functions) |
+| V9 | `--pad-funcs-before` combined with `--split-functions` aborts in JITLink for distant fragments: the emitter pads every fragment, LongJmp's tentative layout pads only the first | Debug option only; fails safe (no output). Use a real filler, as the probe does |
+| V10 | Cross-fragment Thumb `b.w`/`bl` beyond +-16 MB (hot and cold more than 16 MB apart) is not probed; the 1.1 MB case (beyond `b<cond>.w`) passes | Needs a 16 MB+ image; LK is far below that |
 | V8 | Upstream (non-ATFE) series still has U2–U4, U8/U9, L1–L12 below | Deferred TODO (user, 2026-09-30) |
 
 ### Superseded index entries
