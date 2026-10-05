@@ -118,7 +118,7 @@ deferred; new image/configuration oracle contracts still require user review.
 
 | Holder | Since | Purpose |
 |---|---|---|
-| — (free) | 2026-10-05 | Released by Claude after overlays 0068–0069 (R25, R26) |
+| Claude | 2026-10-05 | R27: probe extension (fixes, if any, become overlays 0070+) |
 
 ## Pi reservation
 
@@ -144,7 +144,7 @@ Take items in the order below; groups reflect dependencies, not ownership.
 
 | Order | ID | Item | Priority | Owner | Status | Part of | Notes |
 |---|---|---|---|---|---|---|---|
-| 10d | R27 | Extend the differential edge probe (`scripts/review/edge_probe.py`) | P2 | — | Open | 13 | Deep review 0069 left these unprobed (KNOWN_LIMITATIONS V7): split functions with inline tables (needs a profile), instrumentation of table functions, ICF across ISAs, Thumb narrow-branch relaxation at range limits. qemu-user is a diagnostic oracle; promote any WRONG to a P0 item with a lit test |
+| 10d | R27 | Extend the differential edge probe (`scripts/review/edge_probe.py`) | P2 | Claude | In progress | 13 | Deep review 0069 left these unprobed (KNOWN_LIMITATIONS V7): split functions with inline tables (needs a profile), instrumentation of table functions, ICF across ISAs, Thumb narrow-branch relaxation at range limits. qemu-user is a diagnostic oracle; promote any WRONG to a P0 item with a lit test |
 | 10b | T3 | Secure-SVC parity on the Pi | P2 | — | Deferred TODO (user, 2026-10-04): Secure armstub is built (`tools/pi4-armstub-secure/`, sha `af4a5512…`, install/rollback in its README) but not installed; the SD-card step and the Secure re-runs wait until the user asks | 9 | All Pi results so far are Non-secure SVC; BOLT rewriting is state-agnostic, so T3 is a parity confirmation |
 | 10c | T4 | Performance and final validation on the real A55 target (A72 gains not transferable) | P2 | User | Out of scope here | — | Done by the user in the office environment, from this repo |
 
