@@ -38,7 +38,9 @@ and update it before stopping. `AGENTS.md` and `CLAUDE.md` point here.
 8. **Reserve the Pi separately.** Publish a *Pi reservation* before opening
    COM5 for probes, uploads, commands, sampling or watchdog changes. The source
    lock does not reserve the Pi. Close the port and record the board, sampler
-   and watchdog state before publishing the release.
+   and watchdog state before publishing the release. The table below is
+   **board-wide**: lk-perf work reserves the same Pi here too (see
+   [lk-perf HANDOFF](https://github.com/shadowfax80/lk-perf/blob/main/docs/HANDOFF.md)).
 
 ## Picking up shared work
 
@@ -115,6 +117,8 @@ image/configuration oracle contracts still require user review.
 | — (free) | 2026-10-05 | Released by Claude after R27 (no source change; overlays still 0001–0069) |
 
 ## Pi reservation
+
+Board-wide: shared by bolt-aarch32 and lk-perf (one Pi 4B on COM5).
 
 | Holder | Since | Purpose / last observation |
 |---|---|---|
