@@ -116,7 +116,7 @@ deferred; new image/configuration oracle contracts still require user review.
 
 | Holder | Since | Purpose |
 |---|---|---|
-| — (free) | 2026-10-05 | Released by Claude after overlays 0062–0067 (R22, R11, R23, R24, R12, R21) |
+| Claude | 2026-10-05 | R25 (data Thumb pointers) and R26 (table base read in cases): overlays 0068+ |
 
 ## Pi reservation
 
@@ -142,6 +142,8 @@ Take items in the order below; groups reflect dependencies, not ownership.
 
 | Order | ID | Item | Priority | Owner | Status | Part of | Notes |
 |---|---|---|---|---|---|---|---|
+| 10d | R25 | Thumb code pointers in data words lose the Thumb bit (function-pointer tables, interior entry pointers in `.data`) | P0 | Claude | In progress (live tree) | 7 | Found by the 2026-10-05 deep review (`scripts/review/edge_probe.py`): output words point at the even address, so a `blx`/`bx` through them enters ARM state (SIGSEGV/SIGBUS). Masked in the LK pipeline only because `.data`/`.rodata`/`lk_init`/`commands` are restored and original entries redirect |
+| 10e | R26 | Inline-table base register read as data in a case block (0057 A32 `ldr pc` tables, 0066 Thumb ADR base) | P0 | Claude | Claimed | 12 | Deep review: after re-pointing the base, a case that reads rB sees the new table address, so the result depends on layout (WRONG under `--reorder-blocks=reverse`). Fix: admit only when rB is dead at every case target, as R21 already requires for rX |
 | 10b | T3 | Secure-SVC parity on the Pi | P2 | — | Deferred TODO (user, 2026-10-04): Secure armstub is built (`tools/pi4-armstub-secure/`, sha `af4a5512…`, install/rollback in its README) but not installed; the SD-card step and the Secure re-runs wait until the user asks | 9 | All Pi results so far are Non-secure SVC; BOLT rewriting is state-agnostic, so T3 is a parity confirmation |
 | 10c | T4 | Performance and final validation on the real A55 target (A72 gains not transferable) | P2 | User | Out of scope here | — | Done by the user in the office environment, from this repo |
 
