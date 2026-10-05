@@ -118,7 +118,7 @@ image/configuration oracle contracts still require user review.
 
 | Holder | Since | Purpose / last observation |
 |---|---|---|
-| Codex | 2026-10-05 | lk-perf hardware demo: boot an existing profiler image, capture designated SMP workload, stop both samplers, close COM5, and publish release with observed board state. No BOLT source/build changes. |
+| — (unreserved) | 2026-10-05 | Released by Codex after lk-perf demo: lk-perf shell at 6000000 baud, both samplers stopped, 3200 samples retained, COM5 closed. Software reset replaced the prior BOLT image; no lk-perf watchdog command issued. Recheck before use; reboot at 6 Mbaud to recover the loader. |
 
 ## Claims (consolidated TODO)
 
@@ -187,6 +187,24 @@ emission coverage, not execution or whole-backend correctness.
 4. Update the *Claims* table and LK_COVERAGE.md together.
 
 ## Handoff log
+
+### 2026-10-05 — Codex: shared Pi released after lk-perf demonstration
+
+- Reserved Pi with pushed claim `9d8cdaa`. Previous LK shell responded at
+  3 Mbaud; software reboot reached the serial chainloader and CRC-verified
+  upload loaded the existing lk-perf image (console now 6 Mbaud).
+- Ran four-core `profiler smp 400000000` with PMU CPU cycles, period 1000000.
+  Retained 3200 samples, 800/core. Both samplers stopped before dump; a
+  lightweight second dump recovered all records after first-dump serial loss.
+- FlameGraph and Perfetto CLI import/SQL analysis verified in lk-perf;
+  evidence and replay: `shadowfax80/lk-perf`,
+  `docs/results/lk_perf_demo_20261005/README.md`.
+- Pi left at lk-perf shell, both samplers stopped, samples retained, COM5
+  closed. No watchdog command issued by lk-perf; reset replaced BOLT payload.
+  No BOLT source, overlay, shared build or LK test-image change; published
+  BOLT coverage unchanged. Live-tree lock remains free.
+- Next agent: reserve Pi and recheck baud/state. Reboot the current image
+  at 6000000 baud to return to loader; do not use the old 3 Mbaud snapshot.
 
 ### 2026-10-05 — Claude: M2 documentation consolidation; target corrected to Non-secure SVC (T3 closed)
 
