@@ -61,6 +61,7 @@ Everything needed to continue is in this repo:
 - **Findings and plans:** [Recovered Astra review, reconciled through 0061](CORRECTNESS_REVIEW_ASTRA_0057.md),
   [CORRECTNESS_REVIEW_CLAUDE_0E616EB.md](CORRECTNESS_REVIEW_CLAUDE_0E616EB.md),
   [deep edge-case review at 0069](CORRECTNESS_REVIEW_CLAUDE_0069.md),
+  [architecture and design](AARCH32_BACKEND_ARCHITECTURE.md),
   [current limitations](KNOWN_LIMITATIONS.md#current-atfe-backend-limitations-re-baselined-2026-10-05),
   [R17_BOLT_EDGE_PLAN.md](R17_BOLT_EDGE_PLAN.md), [LK_COVERAGE.md](LK_COVERAGE.md),
   [PI4_ORACLE_CONTRACT_DRAFT.md](PI4_ORACLE_CONTRACT_DRAFT.md) (approved),

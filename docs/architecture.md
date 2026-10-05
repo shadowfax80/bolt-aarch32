@@ -1,5 +1,7 @@
 # Architecture
 
+> **Current design reference:** [AARCH32_BACKEND_ARCHITECTURE.md](AARCH32_BACKEND_ARCHITECTURE.md) (overlays 0001–0069). This page is history.
+
 > Current operating context (2026-10-01): ATFE base
 > `bcc08884995ff3cbee70749524621803b9bd258a`, LLVM 24.0.0git,
 > Release **with assertions enabled**, in WSL at `/home/user/bolt-aarch32`.

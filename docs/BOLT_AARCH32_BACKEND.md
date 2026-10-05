@@ -1,5 +1,7 @@
 # BOLT AArch32 Backend — design, implementation, and user guide
 
+> **Current design reference:** [AARCH32_BACKEND_ARCHITECTURE.md](AARCH32_BACKEND_ARCHITECTURE.md) (overlays 0001–0069). This page is history.
+
 > Dated reference/history. Current ATFE status, ownership, limitations and work
 > order are in [HANDOFF.md](HANDOFF.md), with the
 > [latest reconciled review](CORRECTNESS_REVIEW_ASTRA_0057.md). Older phase,
