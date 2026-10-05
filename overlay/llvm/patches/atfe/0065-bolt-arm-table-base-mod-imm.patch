@@ -1,0 +1,68 @@
+diff --git a/bolt/lib/Target/ARM/ARMMCPlusBuilder.cpp b/bolt/lib/Target/ARM/ARMMCPlusBuilder.cpp
+--- a/bolt/lib/Target/ARM/ARMMCPlusBuilder.cpp
++++ b/bolt/lib/Target/ARM/ARMMCPlusBuilder.cpp
+@@ -347,8 +347,16 @@
+           !Inst.getOperand(5).isReg() || Inst.getOperand(5).getReg())
+         return false;
+       Reg = Inst.getOperand(0).getReg();
+-      Disp = Inst.getOpcode() == ARM::ADDri ? Inst.getOperand(2).getImm()
+-                                            : -Inst.getOperand(2).getImm();
++      {
++        // R24: the operand is the encoded modified immediate (imm8 rotated
++        // right by twice the 4-bit rotation field), not a byte count.
++        const unsigned Enc = Inst.getOperand(2).getImm();
++        if (Enc > 0xFFF)
++          return false;
++        const int64_t Value = llvm::rotr<uint32_t>(
++            ARM_AM::getSOImmValImm(Enc), ARM_AM::getSOImmValRot(Enc));
++        Disp = Inst.getOpcode() == ARM::ADDri ? Value : -Value;
++      }
+       return Reg != ARM::PC;
+     default:
+       return false;
+diff --git a/bolt/test/ARM/Inputs/check-arm-ldr-pc-table.py b/bolt/test/ARM/Inputs/check-arm-ldr-pc-table.py
+--- a/bolt/test/ARM/Inputs/check-arm-ldr-pc-table.py
++++ b/bolt/test/ARM/Inputs/check-arm-ldr-pc-table.py
+@@ -17,7 +17,7 @@
+ print('Evidence:', out)
+ 
+ 
+-def fixture(mid):
++def fixture(mid, imm=8):
+     return r''' .syntax unified
+  .text
+  .arm
+@@ -32,7 +32,7 @@
+  .type sw,%function
+ sw:
+  and r2, r0, #3
+- add r3, pc, #8
++ add r3, pc, #''' + str(imm) + r'''
+  mov r1, r0
+  ''' + mid + r'''
+  ldr pc, [r3, r2, lsl #2]
+@@ -71,9 +71,12 @@
+          ('ldm-base', 'ldmia r4, {r3, r5}', True),
+          ('ldm-user-base', 'ldmia r4, {r3, r5}^', True),
+          ('ldm-writeback-base', 'ldmia r3!, {r5, r6}', True),
+-         ('ldm-user-other', 'ldmia r4, {r5, r6}^', False))
+-for name, mid, clobber in CASES:
+-    (out / f'{name}.s').write_text(fixture(mid))
++         ('ldm-user-other', 'ldmia r4, {r5, r6}^', False),
++         # R24: a rotated modified immediate (#256 = 1 ror 24); 63 nops put the
++         # table exactly at pc+8+256.
++         ('rotated-imm', 'mov r0, #77\n' + ' nop\n' * 62, False, 256))
++for name, mid, clobber, *imm in CASES:
++    (out / f'{name}.s').write_text(fixture(mid, *imm))
+     (out / 'in.ld').write_text(LD)
+     run([tc / 'llvm-mc', '-arm-add-build-attributes', '-filetype=obj',
+          '-triple=armv7-unknown-linux-gnueabi', f'{name}.s', '-o', f'{name}.o'])
+@@ -109,7 +112,7 @@
+             table = base + 8 + int(k.group(1), 0) if k else None
+             words = [addrs.get(table + 4 * i) for i in range(4)]
+             vals = [int(w[1], 16) if w and w[0] == '.word' else None for w in words]
+-            ok = table == ldr + 4 and all(v is not None and start <= v < start + 0x100 and
++            ok = table == ldr + 4 and all(v is not None and start <= v < start + 0x400 and
+                                          addrs.get(v, ('',))[0] == 'add' for v in vals)
+             print(f"{'PASS' if ok else 'FAIL'}: {name}/{mode}: base->{table and hex(table)}, "
+                   f"ldr@{hex(ldr)}, words {[v and hex(v) for v in vals]}")
