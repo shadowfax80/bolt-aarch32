@@ -145,6 +145,7 @@ Take items in the order below; groups reflect dependencies, not ownership.
 
 | Order | ID | Item | Priority | Owner | Status | Part of | Notes |
 |---|---|---|---|---|---|---|---|
+| 10d | M2 | Documentation consolidation (concise current docs; history kept under docs/history, reviews, upstream, verification) | P2 | Claude | In progress | — | User request 2026-10-05. Docs-only: no source, build or Pi use. Please avoid doc edits until released |
 | 10b | T3 | Secure-SVC parity on the Pi | P2 | — | Deferred TODO (user, 2026-10-04): Secure armstub is built (`tools/pi4-armstub-secure/`, sha `af4a5512…`, install/rollback in its README) but not installed; the SD-card step and the Secure re-runs wait until the user asks | 9 | All Pi results so far are Non-secure SVC; BOLT rewriting is state-agnostic, so T3 is a parity confirmation |
 | 10c | T4 | Performance and final validation on the real A55 target (A72 gains not transferable) | P2 | User | Out of scope here | — | Done by the user in the office environment, from this repo |
 
