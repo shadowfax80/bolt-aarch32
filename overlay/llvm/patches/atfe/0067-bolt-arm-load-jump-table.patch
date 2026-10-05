@@ -1,0 +1,368 @@
+diff --git a/bolt/include/bolt/Core/MCPlusBuilder.h b/bolt/include/bolt/Core/MCPlusBuilder.h
+--- a/bolt/include/bolt/Core/MCPlusBuilder.h
++++ b/bolt/include/bolt/Core/MCPlusBuilder.h
+@@ -468,6 +468,18 @@
+   /// branch through a table of absolute 32-bit addresses. Sets \p Base to rB.
+   virtual bool isAbsoluteTableBranch(const MCInst &Inst,
+                                      MCPhysReg *Base = nullptr) const {
++    return false;
++  }
++
++  /// AArch32 A32 (R21): `mov pc, rX` / `bx rX` that may end a load-then-jump
++  /// inline table (`ldr rX, [rB, rI, lsl #2]` right before it).
++  virtual bool isRegisterTableJump(const MCInst &Inst, MCPhysReg *Reg) const {
++    return false;
++  }
++
++  /// AArch32 A32 (R21): unconditional `ldr rT, [rB, rI, lsl #2]`, rT != pc.
++  virtual bool isTableLoad(const MCInst &Inst, MCPhysReg *Rt,
++                           MCPhysReg *Base) const {
+     return false;
+   }
+ 
+diff --git a/bolt/include/bolt/Core/BinaryFunction.h b/bolt/include/bolt/Core/BinaryFunction.h
+--- a/bolt/include/bolt/Core/BinaryFunction.h
++++ b/bolt/include/bolt/Core/BinaryFunction.h
+@@ -626,6 +626,12 @@
+   /// R12: Thumb `adr rB, <table>` directly before `tbb/tbh [pc, ...]`:
+   /// table offset -> (offset of the adr, offset of the table branch).
+   std::map<uint64_t, std::pair<uint64_t, uint64_t>> PendingThumbTableBases;
++  /// R21: is `ldr rX, [Base, rI, lsl #2]; mov pc|bx rX` right before TableOff?
++  /// Records the jump in RegisterTableJumps on success.
++  bool isRegisterTableShape(int64_t TableOff, MCPhysReg BaseReg);
++  /// R21: A32 `mov pc, rX` / `bx rX` offsets ending a recognized
++  /// load-then-jump table -> rX.
++  std::map<uint64_t, MCPhysReg> RegisterTableJumps;
+   DenseSet<uint32_t> AbsoluteInlineTables;
+   bool InvalidAbsoluteTable = false;
+ 
+diff --git a/bolt/lib/Core/BinaryFunction.cpp b/bolt/lib/Core/BinaryFunction.cpp
+--- a/bolt/lib/Core/BinaryFunction.cpp
++++ b/bolt/lib/Core/BinaryFunction.cpp
+@@ -1204,10 +1204,40 @@
+   return BC.getOrCreateGlobalSymbol(TargetAddress, "FUNCat");
+ }
+ 
++bool BinaryFunction::isRegisterTableShape(int64_t TableOff, MCPhysReg BaseReg) {
++  if (TableOff < 8 || !BC.isARM() || isARMThumb())
++    return false;
++  ErrorOr<ArrayRef<uint8_t>> Data = getData();
++  if (!Data || uint64_t(TableOff) > Data->size())
++    return false;
++  MCInst Load, Jump;
++  uint64_t LoadSize, JumpSize;
++  MCPhysReg Rt, LoadBase, JumpReg;
++  if (getSizeOfDataInCodeAt(TableOff - 8) ||
++      !BC.DisAsm->getInstruction(Load, LoadSize, Data->slice(TableOff - 8),
++                                 getAddress() + TableOff - 8, nulls()) ||
++      LoadSize != 4 ||
++      !BC.DisAsm->getInstruction(Jump, JumpSize, Data->slice(TableOff - 4),
++                                 getAddress() + TableOff - 4, nulls()) ||
++      JumpSize != 4 || !BC.MIB->isTableLoad(Load, &Rt, &LoadBase) ||
++      !BC.MIB->isRegisterTableJump(Jump, &JumpReg) || LoadBase != BaseReg ||
++      Rt != JumpReg || Rt == BaseReg)
++    return false;
++  RegisterTableJumps[TableOff - 4] = JumpReg;
++  return true;
++}
++
+ bool BinaryFunction::processInlineTableBranch(MCInst &Instruction,
+                                               uint64_t Size, uint64_t Offset) {
+   MCPhysReg Base;
+-  if (BC.MIB->isAbsoluteTableBranch(Instruction, &Base)) {
++  const bool RegisterJump = RegisterTableJumps.count(Offset);
++  if (RegisterJump) {
++    auto P = PendingAbsoluteTables.find(Offset + Size);
++    if (P == PendingAbsoluteTables.end())
++      return false;
++    Base = P->second.first;
++  }
++  if (RegisterJump || BC.MIB->isAbsoluteTableBranch(Instruction, &Base)) {
+     // A32 `ldr pc, [rB, rI, lsl #2]` through absolute words right after it,
+     // with rB formed by the recognized `adr` (see disassemble()).
+     const uint64_t TableOffset = Offset + Size;
+@@ -1666,8 +1696,10 @@
+           BC.DisAsm->getInstruction(Branch, BranchSize,
+                                     FunctionData.slice(TableOff - 4),
+                                     getAddress() + TableOff - 4, nulls()) &&
+-          BranchSize == 4 && MIB->isAbsoluteTableBranch(Branch, &BranchBase) &&
+-          BranchBase == TableBaseReg) {
++          BranchSize == 4 &&
++          ((MIB->isAbsoluteTableBranch(Branch, &BranchBase) &&
++            BranchBase == TableBaseReg) ||
++           isRegisterTableShape(TableOff, TableBaseReg))) {
+         // Placeholder operand; the emitter substitutes the table label.
+         MIB->createInlineTableBase(Instruction, TableBaseReg,
+                                    BC.Ctx->createNamedTempSymbol("ltab_base"),
+@@ -1704,6 +1736,7 @@
+     }
+ 
+     if (BC.isARM() && MIB->isUnsupportedPCWrite(Instruction) &&
++        !RegisterTableJumps.count(Offset) &&
+         !(Offset == 0 && isRecognizedARMAbsoluteVeneer(*this)))
+       return createFatalBOLTError("unsupported AArch32 PC-writing control transfer in " +
+                                  getPrintName() + " at 0x" +
+@@ -2014,6 +2047,42 @@
+       return createFatalBOLTError("unsupported AArch32 inline jump table "
+                                   "base in " + getPrintName());
+   }
++  // R21: the register a load-then-jump table leaves behind holds the new
++  // (rewritten) case address. Admit only when every case block redefines it
++  // before any read, so the value is never observed.
++  for (const auto &[JumpOff, Reg] : RegisterTableJumps) {
++    auto JumpIt = Instructions.find(JumpOff);
++    const std::vector<MCSymbol *> *Table =
++        JumpIt == Instructions.end() ? nullptr : getInlineTable(JumpIt->second);
++    if (!Table)
++      return createFatalBOLTError("unsupported AArch32 inline jump table in " +
++                                  getPrintName());
++    for (const MCSymbol *Label : *Table) {
++      std::optional<uint64_t> TargetOff;
++      for (const auto &[Off, Sym] : Labels)
++        if (Sym == Label)
++          TargetOff = Off;
++      bool Redefined = false;
++      for (auto It = TargetOff ? Instructions.find(*TargetOff) : Instructions.end();
++           It != Instructions.end(); ++It) {
++        if (It->first != *TargetOff && Labels.count(It->first))
++          break;
++        const MCInst &I = It->second;
++        if (BC.MIB->hasUseOfPhysReg(I, Reg))
++          break;
++        if (BC.MIB->hasDefOfPhysReg(I, Reg)) {
++          Redefined = true;
++          break;
++        }
++        if (BC.MIB->isBranch(I) || BC.MIB->isCall(I) || BC.MIB->isReturn(I))
++          break;
++      }
++      if (!Redefined)
++        return createFatalBOLTError("unsupported AArch32 inline jump table "
++                                    "register in " + getPrintName());
++    }
++  }
++  RegisterTableJumps.clear();
+   PendingAbsoluteTables.clear();
+   // R12: every Thumb table base must be bound to its table, and nothing may
+   // branch to the table branch (the adr and the branch share one block).
+diff --git a/bolt/lib/Target/ARM/ARMMCPlusBuilder.cpp b/bolt/lib/Target/ARM/ARMMCPlusBuilder.cpp
+--- a/bolt/lib/Target/ARM/ARMMCPlusBuilder.cpp
++++ b/bolt/lib/Target/ARM/ARMMCPlusBuilder.cpp
+@@ -325,6 +325,59 @@
+     if (Base)
+       *Base = Rn.getReg();
+     return true;
++  }
++
++  bool isRegisterTableJump(const MCInst &Inst, MCPhysReg *Reg) const override {
++    if (Inst.getOpcode() == ARM::MOVr) {
++      // (Rd, Rm, pred, predreg, cc_out): mov pc, rX, unconditional, no S.
++      if (MCPlus::getNumPrimeOperands(Inst) < 5 || !Inst.getOperand(0).isReg() ||
++          Inst.getOperand(0).getReg() != ARM::PC || !Inst.getOperand(1).isReg() ||
++          !Inst.getOperand(2).isImm() || Inst.getOperand(2).getImm() != ARMCC::AL ||
++          !Inst.getOperand(4).isReg() || Inst.getOperand(4).getReg())
++        return false;
++      const MCPhysReg R = Inst.getOperand(1).getReg();
++      if (R == ARM::PC || R == ARM::LR || R == ARM::SP)
++        return false;
++      *Reg = R;
++      return true;
++    }
++    if (Inst.getOpcode() == ARM::BX && Inst.getNumOperands() &&
++        Inst.getOperand(0).isReg()) {
++      const MCPhysReg R = Inst.getOperand(0).getReg();
++      if (R == ARM::PC || R == ARM::LR || R == ARM::SP)
++        return false;
++      *Reg = R;
++      return true;
++    }
++    return false;
++  }
++
++  bool isTableLoad(const MCInst &Inst, MCPhysReg *Rt,
++                   MCPhysReg *Base) const override {
++    if (Inst.getOpcode() != ARM::LDRrs || MCPlus::getNumPrimeOperands(Inst) < 6)
++      return false;
++    const MCOperand &T = Inst.getOperand(0), &Rn = Inst.getOperand(1),
++                    &Rm = Inst.getOperand(2), &Am = Inst.getOperand(3),
++                    &Pred = Inst.getOperand(4);
++    if (!T.isReg() || T.getReg() == ARM::PC || !Rn.isReg() ||
++        Rn.getReg() == ARM::PC || !Rm.isReg() || Rm.getReg() == ARM::PC ||
++        !Am.isImm() || !Pred.isImm() || Pred.getImm() != ARMCC::AL)
++      return false;
++    const unsigned AM2 = Am.getImm();
++    if (ARM_AM::getAM2Op(AM2) != ARM_AM::add ||
++        ARM_AM::getAM2ShiftOpc(AM2) != ARM_AM::lsl ||
++        ARM_AM::getAM2Offset(AM2) != 2)
++      return false;
++    *Rt = T.getReg();
++    *Base = Rn.getReg();
++    return true;
++  }
++
++  // `mov pc, rX` transfers control like an indirect branch; it stays a
++  // rejected PC write unless recognized as a table jump (R21).
++  static bool isMovToPC(const MCInst &Inst) {
++    return Inst.getOpcode() == ARM::MOVr && Inst.getNumOperands() &&
++           Inst.getOperand(0).isReg() && Inst.getOperand(0).getReg() == ARM::PC;
+   }
+ 
+   bool getPCRelativeBase(const MCInst &Inst, MCPhysReg &Reg,
+@@ -387,11 +440,12 @@
+   }
+ 
+   bool isBranch(const MCInst &Inst) const override {
+-    return isAbsoluteTableBranch(Inst) || MCPlusBuilder::isBranch(Inst);
++    return isAbsoluteTableBranch(Inst) || isMovToPC(Inst) ||
++           MCPlusBuilder::isBranch(Inst);
+   }
+ 
+   bool isTerminator(const MCInst &Inst) const override {
+-    if (isAbsoluteTableBranch(Inst))
++    if (isAbsoluteTableBranch(Inst) || isMovToPC(Inst))
+       return true;
+     if (isReturn(Inst)) {
+       // Predicated returns can fall through when the condition fails. Keep
+@@ -602,7 +656,7 @@
+     // Returns are terminators, not indirect CFG edges.
+     if (isReturn(Inst))
+       return false;
+-    if (isAbsoluteTableBranch(Inst))
++    if (isAbsoluteTableBranch(Inst) || isMovToPC(Inst))
+       return true;
+     // BX rm is an interworking jump. BLX* are calls.
+     switch (Inst.getOpcode()) {
+--- /dev/null
++++ b/bolt/test/ARM/Inputs/check-arm-load-jump-table.py
+@@ -0,0 +1,122 @@
++"""R21: A32 -O0 load-then-jump tables (`add rB, pc, #k; ldr rX, [rB, rI,
++lsl #2]; mov pc, rX` or `bx rX`, absolute words after the jump). BOLT
++re-emits the table after the jump, points the base at it, and admits only
++when every case block redefines rX before reading it. Non-adjacent load,
++clobbered base and a case that reads rX stay rejected."""
++from pathlib import Path
++import re
++import shutil
++import subprocess
++import sys
++import tempfile
++
++tc = Path(shutil.which('llvm-bolt')).resolve().parent
++evidence = Path(sys.argv[1])
++evidence.mkdir(parents=True, exist_ok=True)
++out = Path(tempfile.mkdtemp(prefix='run-', dir=evidence))
++print('Evidence:', out)
++
++
++def source(jump='mov pc, r0', between='', case1='ldr r0, [sp]', after_load=''):
++    # add r1, pc, #k: the table sits right after the jump.
++    k = 4 + 4 * (between + after_load).count('\n')
++    return f''' .syntax unified
++ .text
++ .arm
++ .global _start
++ .type _start,%function
++_start:
++ bl sw
++ b _start
++ .size _start,.-_start
++
++ .global sw
++ .type sw,%function
++sw:
++ sub sp, sp, #8
++ str r0, [sp]
++ and r0, r0, #3
++ add r1, pc, #{k}
++{between} ldr r0, [r1, r0, lsl #2]
++{after_load} {jump}
++ .word c1, c2, c3, c4
++c1:
++ {case1}
++ add r0, r0, #1
++ b done
++c2:
++ ldr r0, [sp]
++ add r0, r0, #2
++ b done
++c3:
++ ldr r0, [sp]
++ add r0, r0, #3
++ b done
++c4:
++ ldr r0, [sp]
++ add r0, r0, #4
++done:
++ add sp, sp, #8
++ bx lr
++ .size sw,.-sw
++'''
++
++
++CASES = (('mov-pc', source(), True, ''),
++         ('bx', source('bx r0'), True, ''),
++         ('case-reads-rx', source(case1='mov r2, r0'), False, 'inline jump table register in sw'),
++         ('base-gap', source(between=' mov r2, r2\n'), True, ''),
++         ('not-adjacent', source(after_load=' mov r2, r2\n'), False, 'PC read in sw'),
++         ('clobbered-base', source(between=' mov r1, #0\n'), False, 'in sw'))
++
++
++def run(cmd, check=True):
++    p = subprocess.run([str(x) for x in cmd], cwd=out, capture_output=True, text=True)
++    if check and p.returncode:
++        sys.exit(f'FAIL: {Path(str(cmd[0])).name} exited {p.returncode}\n{p.stdout}{p.stderr}')
++    return p.returncode, p.stdout + p.stderr
++
++
++bad = 0
++for name, src, admit, why in CASES:
++    (out / f'{name}.s').write_text(src)
++    (out / 'in.ld').write_text('ENTRY(_start)\nSECTIONS {\n  . = 0x8000;\n  .text : { *(.text*) }\n}\n')
++    run([tc / 'llvm-mc', '-arm-add-build-attributes', '-filetype=obj', '-triple=armv7-unknown-linux-gnueabi',
++         f'{name}.s', '-o', f'{name}.o'])
++    run([tc / 'ld.lld', '--emit-relocs', '-T', 'in.ld', f'{name}.o', '-o', f'{name}.exe'])
++    for mode, extra in (('default', []), ('reverse', ['--reorder-blocks=reverse'])):
++        rc, log = run([tc / 'llvm-bolt', f'{name}.exe', '-o', f'{name}.{mode}.bolt', '-lite=0',
++                       '--funcs=sw', *extra], check=False)
++        (out / f'{name}.{mode}.log').write_text(log)
++        if not admit:
++            ok = rc != 0 and why in log
++            print(f"{'PASS' if ok else 'FAIL'}: {name}/{mode}: rejected={rc != 0}")
++            if not ok:
++                print(log[-600:])
++            bad += not ok
++            continue
++        if rc:
++            print(f'FAIL: {name}/{mode}: llvm-bolt failed\n{log[-800:]}')
++            bad += 1
++            continue
++        _, dis = run([tc / 'llvm-objdump', '-d', f'{name}.{mode}.bolt'])
++        m = re.search(r'^([0-9a-f]+) <sw>:\n(.*?)(?:\n\n|\Z)', dis, re.S | re.M)
++        # Case labels are symbols, so objdump splits sw into blocks: index all rows.
++        rows = re.findall(r'^\s*([0-9a-f]+):\s+((?:[0-9a-f]{2} ?){4}|[0-9a-f]{8})\s+(\S+)\s*([^\n]*)', dis, re.M)
++        addr = {int(a, 16): (mn, ops) for a, _, mn, ops in rows}
++        start = int(m.group(1), 16)
++        mine = {a: v for a, v in addr.items() if start <= a < start + 0x200}  # the rewritten sw
++        base = next((a for a, (mn, ops) in mine.items() if mn in ('add', 'adr') and 'pc' in ops), None)
++        jump = next((a for a, (mn, ops) in mine.items()
++                     if (mn == 'mov' and ops.startswith('pc,')) or (mn == 'bx' and ops.strip() == 'r0')), None)
++        ok = base is not None and jump is not None
++        if ok:
++            k = int(re.search(r'#(-?(?:0x)?[0-9a-f]+)', addr[base][1]).group(1), 0)
++            table = base + 8 + k
++            vals = [int(addr[table + 4 * i][1], 16) if addr.get(table + 4 * i, ('',))[0] == '.word' else None
++                    for i in range(4)]
++            ok = table == jump + 4 and all(v and start <= v < start + 0x200 and
++                                           addr.get(v, ('',))[0] == 'ldr' for v in vals)
++        print(f"{'PASS' if ok else 'FAIL'}: {name}/{mode}: base->{hex(table) if base else None} jump@{jump and hex(jump)}")
++        bad += not ok
++sys.exit(1 if bad else 0)
+--- /dev/null
++++ b/bolt/test/ARM/arm-load-jump-table.test
+@@ -0,0 +1,6 @@
++## R21: A32 -O0 load-then-jump tables (ldr rX, [rB, rI, lsl #2]; mov pc|bx rX)
++## are re-emitted after the jump with the base re-pointed; admitted only when
++## every case redefines rX; non-adjacent load and clobbered base rejected.
++
++RUN: rm -rf %t.dir
++RUN: %python %p/Inputs/check-arm-load-jump-table.py %t.dir

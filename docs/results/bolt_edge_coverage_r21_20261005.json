@@ -1,0 +1,5579 @@
+{
+ "schema": 1,
+ "input": "/mnt/c/Users/User/CURSOR/ClaudeProjects/BOLT_AARCH32/fixtures/lk-rpi4-bolt-edge-ce8dd005.elf",
+ "input_sha256": "ce8dd005d78de4eb1a627d7b69f77d0f699738baefdf9fecc3d2d11a8050f9f6",
+ "toolchain": "/home/user/bolt-aarch32/build-atfe/bin",
+ "llvm_bolt_sha256": "21fa4f462c1410db8ee24f67b541a80708414bc662e4327c03c04573ae2d63c0",
+ "bolt_options": [
+  "--no-huge-pages",
+  "-lite=0",
+  "-reorder-blocks=ext-tsp",
+  "-reorder-functions=hfsort+",
+  "-icf=all"
+ ],
+ "scan_rounds": 1,
+ "admission_scan": "report-only",
+ "admission_report_sha256": "2685a32c4047588dd58a1714e4cf2d084c4adf4fac9ba692525dba81d1a04e99",
+ "executable_sections": [
+  {
+   "name": ".text",
+   "addr": 2147516416,
+   "size": 186352
+  }
+ ],
+ "bytes_by_class": {
+  "unattributed non-filler": 514,
+  "alignment filler (0x00/0xd4)": 48046,
+  "size-0 assembly extent": 1948,
+  "data in code": 1400,
+  "sized function": 134444
+ },
+ "functions": 602,
+ "status_counts": {
+  "rejected": 12,
+  "rewritten": 561,
+  "folded (ICF)": 26,
+  "alias of rewritten function": 3
+ },
+ "code_bytes_by_status": {
+  "rejected": 718,
+  "rewritten": 135864,
+  "folded": 1162
+ },
+ "status_bytes": {
+  "rejected": 78,
+  "rewritten": 134556,
+  "folded (ICF)": 1162,
+  "alias of rewritten function": 88
+ },
+ "rejection_classes": {
+  "fallthrough": {
+   "count": 3,
+   "justification": "Usually a terminal call to a noreturn callee; real fallthrough (e.g. bzero into memset) must stay rejected.",
+   "action": "keep real fallthrough out; otherwise triage via HANDOFF"
+  },
+  "it-transfer": {
+   "count": 0,
+   "justification": "Predicated return or branch inside an IT block; unsafe to move until modeled.",
+   "action": "unsupported IT shape: triage via HANDOFF"
+  },
+  "cfg-crash": {
+   "count": 0,
+   "justification": "Not justified: crash on an IT-predicated conditional tail call.",
+   "action": "CFG failure: triage via HANDOFF"
+  },
+  "pc-write": {
+   "count": 8,
+   "justification": "Exception-return or computed PC write; vectors and early setup stay in place permanently.",
+   "action": "keep out"
+  },
+  "pc-read": {
+   "count": 1,
+   "justification": "Reads the PC as data; startup runs before the MMU and must not move. ADR to an inline switch table is supportable.",
+   "action": "keep out / R12"
+  },
+  "other": {
+   "count": 0,
+   "justification": "Unclassified diagnostic; inspect the log.",
+   "action": "triage"
+  }
+ },
+ "instrumentation": null,
+ "skip_funcs": [
+  "arm_reset",
+  "arm_secondary_setup",
+  "arm_undefined",
+  "arm_syscall",
+  "arm_prefetch_abort",
+  "arm_data_abort",
+  "arm_irq",
+  "arm_fiq",
+  "ft_into_next",
+  "a_add_pc_switch",
+  "a_pcread",
+  "bcopy",
+  "bzero"
+ ],
+ "rows": [
+  {
+   "name": "arm_secondary_setup",
+   "addr": "0x8000820c",
+   "size": 0,
+   "isa": "A32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rejected",
+   "reason_class": "pc-write",
+   "reason": "unsupported AArch32 PC-writing control transfer in arm_secondary_setup at 0x800082bc"
+  },
+  {
+   "name": "platform_init_mmu_mappings",
+   "addr": "0x800082f0",
+   "size": 2,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "bcm2711_gic_init",
+   "addr": "0x800082f2",
+   "size": 12,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "platform_early_init",
+   "addr": "0x800082fe",
+   "size": 418,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "platform_init",
+   "addr": "0x800084a0",
+   "size": 4,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "platform_dputc",
+   "addr": "0x800084a4",
+   "size": 28,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "platform_dgetc",
+   "addr": "0x800084c0",
+   "size": 24,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "platform_halt",
+   "addr": "0x800084d8",
+   "size": 20,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "bcm28xx_watchdog_reset",
+   "addr": "0x800084ec",
+   "size": 48,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "bcm28xx_poweroff",
+   "addr": "0x8000851c",
+   "size": 76,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "uart_init",
+   "addr": "0x80008568",
+   "size": 72,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "uart_irq",
+   "addr": "0x800085b0",
+   "size": 74,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "uart_init_early",
+   "addr": "0x800085fa",
+   "size": 16,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "uart_putc",
+   "addr": "0x8000860a",
+   "size": 22,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "uart_getc",
+   "addr": "0x80008620",
+   "size": 48,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "uart_flush_tx",
+   "addr": "0x80008650",
+   "size": 26,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "dcc_worker_entry",
+   "addr": "0x8000866a",
+   "size": 70,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "cmd_dcc",
+   "addr": "0x800086b0",
+   "size": 506,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "dcc_rx_callback",
+   "addr": "0x800088aa",
+   "size": 62,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "arm_syscall_handler",
+   "addr": "0x800088e8",
+   "size": 38,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "arm_undefined_handler",
+   "addr": "0x8000890e",
+   "size": 56,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "arm_data_abort_handler",
+   "addr": "0x80008948",
+   "size": 438,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "arm_prefetch_abort_handler",
+   "addr": "0x80008b00",
+   "size": 234,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "dump_fault_frame",
+   "addr": "0x80008bea",
+   "size": 158,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "dump_mode_regs",
+   "addr": "0x80008c88",
+   "size": 344,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "dump_iframe",
+   "addr": "0x80008de0",
+   "size": 82,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "arm_mmu_early_init",
+   "addr": "0x80008e32",
+   "size": 2,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "folded (ICF)",
+   "into": "platform_init_mmu_mappings"
+  },
+  {
+   "name": "arm_mmu_init",
+   "addr": "0x80008e34",
+   "size": 184,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "arch_mmu_context_switch",
+   "addr": "0x80008eec",
+   "size": 42,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "arch_mmu_query",
+   "addr": "0x80008f18",
+   "size": 396,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "arch_mmu_map",
+   "addr": "0x800090a4",
+   "size": 874,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "arch_mmu_unmap",
+   "addr": "0x80009410",
+   "size": 654,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "arch_mmu_init_aspace",
+   "addr": "0x8000969e",
+   "size": 164,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "arch_mmu_destroy_aspace",
+   "addr": "0x80009742",
+   "size": 42,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "arch_mmu_supports_user_aspaces",
+   "addr": "0x8000976c",
+   "size": 4,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "arch_thread_initialize",
+   "addr": "0x80009770",
+   "size": 44,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "initial_thread_func",
+   "addr": "0x8000979c",
+   "size": 20,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "arch_context_switch",
+   "addr": "0x800097b0",
+   "size": 8,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "arch_dump_thread",
+   "addr": "0x800097b8",
+   "size": 42,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "spin_unlock",
+   "addr": "0x800097e2",
+   "size": 12,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "arch_mp_send_ipi",
+   "addr": "0x800097ee",
+   "size": 26,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "arm_ipi_generic_handler",
+   "addr": "0x80009808",
+   "size": 4,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "arm_ipi_reschedule_handler",
+   "addr": "0x8000980c",
+   "size": 4,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "arch_mp_init_percpu",
+   "addr": "0x80009810",
+   "size": 38,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "arm_context_switch",
+   "addr": "0x80009838",
+   "size": 0,
+   "isa": "A32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "arm_save_mode_regs",
+   "addr": "0x80009850",
+   "size": 0,
+   "isa": "A32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "arm_chain_load",
+   "addr": "0x800098ac",
+   "size": 0,
+   "isa": "A32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "arch_disable_cache",
+   "addr": "0x800098d4",
+   "size": 0,
+   "isa": "A32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "arch_enable_cache",
+   "addr": "0x8000993c",
+   "size": 0,
+   "isa": "A32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "arch_clean_cache_range",
+   "addr": "0x80009acc",
+   "size": 0,
+   "isa": "A32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "arch_clean_invalidate_cache_range",
+   "addr": "0x80009af0",
+   "size": 0,
+   "isa": "A32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "arch_invalidate_cache_range",
+   "addr": "0x80009b14",
+   "size": 0,
+   "isa": "A32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "arch_sync_cache_range",
+   "addr": "0x80009b38",
+   "size": 0,
+   "isa": "A32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "arch_spin_trylock",
+   "addr": "0x80009b4c",
+   "size": 0,
+   "isa": "A32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "arch_spin_lock",
+   "addr": "0x80009b68",
+   "size": 0,
+   "isa": "A32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "arch_spin_unlock",
+   "addr": "0x80009b8c",
+   "size": 0,
+   "isa": "A32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "arch_idle",
+   "addr": "0x80009ba4",
+   "size": 0,
+   "isa": "A32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "arm_invalidate_tlb",
+   "addr": "0x80009bac",
+   "size": 0,
+   "isa": "A32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "arm_undefined",
+   "addr": "0x80009bb8",
+   "size": 0,
+   "isa": "A32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rejected",
+   "reason_class": "pc-write",
+   "reason": "unsupported AArch32 PC-writing control transfer in arm_undefined at 0x80009bf4"
+  },
+  {
+   "name": "arm_syscall",
+   "addr": "0x80009bf8",
+   "size": 0,
+   "isa": "A32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rejected",
+   "reason_class": "pc-write",
+   "reason": "unsupported AArch32 PC-writing control transfer in arm_syscall at 0x80009c34"
+  },
+  {
+   "name": "arm_prefetch_abort",
+   "addr": "0x80009c38",
+   "size": 0,
+   "isa": "A32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rejected",
+   "reason_class": "pc-write",
+   "reason": "unsupported AArch32 PC-writing control transfer in arm_prefetch_abort at 0x80009c78"
+  },
+  {
+   "name": "arm_data_abort",
+   "addr": "0x80009c7c",
+   "size": 0,
+   "isa": "A32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rejected",
+   "reason_class": "pc-write",
+   "reason": "unsupported AArch32 PC-writing control transfer in arm_data_abort at 0x80009cbc"
+  },
+  {
+   "name": "arm_reserved",
+   "addr": "0x80009cc0",
+   "size": 0,
+   "isa": "A32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "arm_irq",
+   "addr": "0x80009cc4",
+   "size": 0,
+   "isa": "A32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rejected",
+   "reason_class": "pc-write",
+   "reason": "unsupported AArch32 PC-writing control transfer in arm_irq at 0x80009d2c"
+  },
+  {
+   "name": "arm_fiq",
+   "addr": "0x80009d30",
+   "size": 0,
+   "isa": "A32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rejected",
+   "reason_class": "pc-write",
+   "reason": "unsupported AArch32 PC-writing control transfer in arm_fiq at 0x80009d70"
+  },
+  {
+   "name": "arch_early_init",
+   "addr": "0x80009d74",
+   "size": 116,
+   "isa": "A32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "arm_basic_setup",
+   "addr": "0x80009de8",
+   "size": 88,
+   "isa": "A32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "arch_init",
+   "addr": "0x80009e40",
+   "size": 132,
+   "isa": "A32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "arm_secondary_entry",
+   "addr": "0x80009ec4",
+   "size": 116,
+   "isa": "A32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "arm_vtop",
+   "addr": "0x80009f38",
+   "size": 84,
+   "isa": "A32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "panic",
+   "addr": "0x80009f8c",
+   "size": 40,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "assert_fail",
+   "addr": "0x80009fb4",
+   "size": 26,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "hexdump",
+   "addr": "0x80009fce",
+   "size": 272,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "lk_init_level",
+   "addr": "0x8000a0de",
+   "size": 232,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "lk_main",
+   "addr": "0x8000a1c6",
+   "size": 230,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "lk_primary_cpu_init_level",
+   "addr": "0x8000a2ac",
+   "size": 10,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "call_constructors",
+   "addr": "0x8000a2b6",
+   "size": 42,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "bootstrap2",
+   "addr": "0x8000a2e0",
+   "size": 140,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "lk_secondary_cpu_entry_early",
+   "addr": "0x8000a36c",
+   "size": 22,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "lk_secondary_cpu_entry",
+   "addr": "0x8000a382",
+   "size": 80,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "lk_init_secondary_cpus",
+   "addr": "0x8000a3d2",
+   "size": 140,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "secondary_cpu_bootstrap_thread",
+   "addr": "0x8000a45e",
+   "size": 20,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "apps_init",
+   "addr": "0x8000a472",
+   "size": 148,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "app_start_by_name",
+   "addr": "0x8000a506",
+   "size": 168,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "app_thread_entry",
+   "addr": "0x8000a5ae",
+   "size": 12,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "cmd_app",
+   "addr": "0x8000a5ba",
+   "size": 186,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "cmd_start",
+   "addr": "0x8000a674",
+   "size": 32,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "bolt_bench_hot_loop",
+   "addr": "0x8000a694",
+   "size": 54,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "in scope (bolt_bench workload)",
+   "status": "rewritten"
+  },
+  {
+   "name": "arch_cycle_count",
+   "addr": "0x8000a6ca",
+   "size": 6,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "bench_banner",
+   "addr": "0x8000a6d0",
+   "size": 18,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "bolt_bench_hot_cold",
+   "addr": "0x8000a6e2",
+   "size": 48,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "in scope (bolt_bench workload)",
+   "status": "rewritten"
+  },
+  {
+   "name": "bolt_bench_branch_chain",
+   "addr": "0x8000a712",
+   "size": 168,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "in scope (bolt_bench workload)",
+   "status": "rewritten"
+  },
+  {
+   "name": "bolt_bench_far_target",
+   "addr": "0x8000a7ba",
+   "size": 12,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "in scope (bolt_bench workload)",
+   "status": "rewritten"
+  },
+  {
+   "name": "bolt_bench_far_call",
+   "addr": "0x8000a7c6",
+   "size": 40,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "in scope (bolt_bench workload)",
+   "status": "rewritten"
+  },
+  {
+   "name": "bolt_bench_it_cond",
+   "addr": "0x8000a7ee",
+   "size": 90,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "in scope (bolt_bench workload)",
+   "status": "rewritten"
+  },
+  {
+   "name": "bolt_bench_arm_callee",
+   "addr": "0x8000a848",
+   "size": 8,
+   "isa": "A32",
+   "aliases": [],
+   "instrumentation": "in scope (bolt_bench workload)",
+   "status": "rewritten"
+  },
+  {
+   "name": "bolt_bench_thumb_callee",
+   "addr": "0x8000a850",
+   "size": 6,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "in scope (bolt_bench workload)",
+   "status": "rewritten"
+  },
+  {
+   "name": "bolt_bench_interwork",
+   "addr": "0x8000a858",
+   "size": 128,
+   "isa": "A32",
+   "aliases": [],
+   "instrumentation": "in scope (bolt_bench workload)",
+   "status": "rewritten"
+  },
+  {
+   "name": "bolt_bench_switch",
+   "addr": "0x8000a8d8",
+   "size": 76,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "in scope (bolt_bench workload)",
+   "status": "rewritten"
+  },
+  {
+   "name": "bolt_bench_switch_pick",
+   "addr": "0x8000a924",
+   "size": 60,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "in scope (bolt_bench workload)",
+   "status": "rewritten"
+  },
+  {
+   "name": "bolt_bench_spill_ret",
+   "addr": "0x8000a960",
+   "size": 100,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "in scope (bolt_bench workload)",
+   "status": "rewritten"
+  },
+  {
+   "name": "bolt_bench_spill_helper",
+   "addr": "0x8000a9c4",
+   "size": 8,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "in scope (bolt_bench workload)",
+   "status": "rewritten"
+  },
+  {
+   "name": "bolt_bench_litpool",
+   "addr": "0x8000a9cc",
+   "size": 104,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "in scope (bolt_bench workload)",
+   "status": "rewritten"
+  },
+  {
+   "name": "bolt_bench_memcpy",
+   "addr": "0x8000aa34",
+   "size": 216,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "in scope (bolt_bench workload)",
+   "status": "rewritten"
+  },
+  {
+   "name": "bolt_bench_ind_thumb_target",
+   "addr": "0x8000ab0c",
+   "size": 4,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "in scope (bolt_bench workload)",
+   "status": "rewritten"
+  },
+  {
+   "name": "bolt_bench_ind_arm_target",
+   "addr": "0x8000ab10",
+   "size": 12,
+   "isa": "A32",
+   "aliases": [],
+   "instrumentation": "in scope (bolt_bench workload)",
+   "status": "rewritten"
+  },
+  {
+   "name": "bolt_bench_indirect_call",
+   "addr": "0x8000ab1c",
+   "size": 122,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "in scope (bolt_bench workload)",
+   "status": "rewritten"
+  },
+  {
+   "name": "bolt_bench_tail_arm_callee",
+   "addr": "0x8000ab98",
+   "size": 16,
+   "isa": "A32",
+   "aliases": [],
+   "instrumentation": "in scope (bolt_bench workload)",
+   "status": "rewritten"
+  },
+  {
+   "name": "bolt_bench_interwork_tail",
+   "addr": "0x8000aba8",
+   "size": 72,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "in scope (bolt_bench workload)",
+   "status": "rewritten"
+  },
+  {
+   "name": "bolt_bench_tail_thumb_caller",
+   "addr": "0x8000abf0",
+   "size": 4,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "in scope (bolt_bench workload)",
+   "status": "rewritten"
+  },
+  {
+   "name": "bolt_bench_regpressure",
+   "addr": "0x8000abf4",
+   "size": 72,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "in scope (bolt_bench workload)",
+   "status": "rewritten"
+  },
+  {
+   "name": "bolt_bench_regpressure_calc",
+   "addr": "0x8000ac3c",
+   "size": 94,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "in scope (bolt_bench workload)",
+   "status": "rewritten"
+  },
+  {
+   "name": "bolt_bench_hotcold_split",
+   "addr": "0x8000ac9a",
+   "size": 106,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "in scope (bolt_bench workload)",
+   "status": "rewritten"
+  },
+  {
+   "name": "bolt_bench_cold_path",
+   "addr": "0x8000ad04",
+   "size": 296,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "in scope (bolt_bench workload)",
+   "status": "rewritten"
+  },
+  {
+   "name": "bolt_bench_icf_a",
+   "addr": "0x8000ae2c",
+   "size": 22,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "in scope (bolt_bench workload)",
+   "status": "rewritten"
+  },
+  {
+   "name": "bolt_bench_icf_b",
+   "addr": "0x8000ae42",
+   "size": 22,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "in scope (bolt_bench workload)",
+   "status": "folded (ICF)",
+   "into": "bolt_bench_icf_a"
+  },
+  {
+   "name": "bolt_bench_icf",
+   "addr": "0x8000ae58",
+   "size": 82,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "in scope (bolt_bench workload)",
+   "status": "rewritten"
+  },
+  {
+   "name": "bolt_bench_shrinkwrap",
+   "addr": "0x8000aeaa",
+   "size": 112,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "in scope (bolt_bench workload)",
+   "status": "rewritten"
+  },
+  {
+   "name": "bolt_bench_composite",
+   "addr": "0x8000af1a",
+   "size": 478,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "in scope (bolt_bench workload)",
+   "status": "rewritten"
+  },
+  {
+   "name": "bolt_pmu_report",
+   "addr": "0x8000b0f8",
+   "size": 256,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "bolt_bench_stair_kernel",
+   "addr": "0x8000b1f8",
+   "size": 16114,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "in scope (bolt_bench workload)",
+   "status": "rewritten"
+  },
+  {
+   "name": "bolt_bench_stair",
+   "addr": "0x8000f0ea",
+   "size": 590,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "in scope (bolt_bench workload)",
+   "status": "rewritten"
+  },
+  {
+   "name": "bolt_bench_pgo_lab",
+   "addr": "0x8000f338",
+   "size": 258,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "in scope (bolt_bench workload)",
+   "status": "rewritten"
+  },
+  {
+   "name": "pl_run",
+   "addr": "0x8000f43a",
+   "size": 458,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "pl_a",
+   "addr": "0x8000f604",
+   "size": 126,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "pl_b",
+   "addr": "0x8000f684",
+   "size": 462,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "pl_c",
+   "addr": "0x8000f852",
+   "size": 240,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "pl_d",
+   "addr": "0x8000f942",
+   "size": 128,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "bolt_bench_mf0",
+   "addr": "0x80010000",
+   "size": 7074,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "in scope (bolt_bench workload)",
+   "status": "rewritten"
+  },
+  {
+   "name": "bolt_bench_mf1",
+   "addr": "0x80014000",
+   "size": 7196,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "in scope (bolt_bench workload)",
+   "status": "rewritten"
+  },
+  {
+   "name": "bolt_bench_mf2",
+   "addr": "0x80018000",
+   "size": 7134,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "in scope (bolt_bench workload)",
+   "status": "rewritten"
+  },
+  {
+   "name": "bolt_bench_mf3",
+   "addr": "0x8001c000",
+   "size": 7074,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "in scope (bolt_bench workload)",
+   "status": "rewritten"
+  },
+  {
+   "name": "bolt_bench_mf4",
+   "addr": "0x80020000",
+   "size": 7134,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "in scope (bolt_bench workload)",
+   "status": "rewritten"
+  },
+  {
+   "name": "bolt_bench_mf5",
+   "addr": "0x80024000",
+   "size": 11028,
+   "isa": "A32",
+   "aliases": [],
+   "instrumentation": "in scope (bolt_bench workload)",
+   "status": "rewritten"
+  },
+  {
+   "name": "bolt_bench_multi",
+   "addr": "0x80026b14",
+   "size": 518,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "in scope (bolt_bench workload)",
+   "status": "rewritten"
+  },
+  {
+   "name": "bolt_sample_on_irq",
+   "addr": "0x80026d1a",
+   "size": 126,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "bolt_bench_app_entry",
+   "addr": "0x80026d98",
+   "size": 54,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "in scope (bolt_bench workload)",
+   "status": "rewritten"
+  },
+  {
+   "name": "bolt_pmu_init_this_cpu",
+   "addr": "0x80026dce",
+   "size": 148,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "pl_mix",
+   "addr": "0x80026e62",
+   "size": 298,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "pl_rare",
+   "addr": "0x80026f8c",
+   "size": 90,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "bolt_bench_cmd",
+   "addr": "0x80026fe6",
+   "size": 622,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "in scope (bolt_bench workload)",
+   "status": "rewritten"
+  },
+  {
+   "name": "bolt_dump_cmd",
+   "addr": "0x80027254",
+   "size": 230,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "wdog_cmd",
+   "addr": "0x8002733a",
+   "size": 250,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "sample_cmd",
+   "addr": "0x80027434",
+   "size": 596,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "run_one",
+   "addr": "0x80027688",
+   "size": 964,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "pp_kernel",
+   "addr": "0x80027a4c",
+   "size": 92,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "pp_leaf",
+   "addr": "0x80027aa8",
+   "size": 8,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "wdog_tick",
+   "addr": "0x80027ab0",
+   "size": 70,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "sample_arm_this_cpu",
+   "addr": "0x80027af6",
+   "size": 48,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "sample_disarm_this_cpu",
+   "addr": "0x80027b26",
+   "size": 20,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "composite_process",
+   "addr": "0x80027b3a",
+   "size": 20,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "composite_report_cold",
+   "addr": "0x80027b4e",
+   "size": 14,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "bolt_bench_stair_init",
+   "addr": "0x80027b5c",
+   "size": 54,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "in scope (bolt_bench workload)",
+   "status": "rewritten"
+  },
+  {
+   "name": "bolt_bench_stair_step",
+   "addr": "0x80027b92",
+   "size": 268,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "in scope (bolt_bench workload)",
+   "status": "rewritten"
+  },
+  {
+   "name": "t_add5",
+   "addr": "0x80027ca0",
+   "size": 4,
+   "isa": "T32",
+   "aliases": [
+    "t_alias"
+   ],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "alias of rewritten function"
+  },
+  {
+   "name": "t_alias",
+   "addr": "0x80027ca0",
+   "size": 4,
+   "isa": "T32",
+   "aliases": [
+    "t_add5"
+   ],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "t_add100",
+   "addr": "0x80027ca4",
+   "size": 4,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "a_add7",
+   "addr": "0x80027ca8",
+   "size": 8,
+   "isa": "A32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "folded (ICF)",
+   "into": "bolt_bench_arm_callee"
+  },
+  {
+   "name": "a_add100",
+   "addr": "0x80027cb0",
+   "size": 8,
+   "isa": "A32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "iw_a_call_t",
+   "addr": "0x80027cb8",
+   "size": 12,
+   "isa": "A32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "iw_t_call_a",
+   "addr": "0x80027cc4",
+   "size": 8,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "iw_a_tail_a",
+   "addr": "0x80027ccc",
+   "size": 8,
+   "isa": "A32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "iw_t_tail_t",
+   "addr": "0x80027cd4",
+   "size": 6,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "iw_t_tail_a",
+   "addr": "0x80027cdc",
+   "size": 6,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "iw_a_tail_t",
+   "addr": "0x80027ce4",
+   "size": 8,
+   "isa": "A32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "it_mask_t",
+   "addr": "0x80027cec",
+   "size": 14,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "it_mask_tt",
+   "addr": "0x80027cfc",
+   "size": 18,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "it_mask_te",
+   "addr": "0x80027d10",
+   "size": 18,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "it_mask_ttt",
+   "addr": "0x80027d24",
+   "size": 22,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "it_mask_tte",
+   "addr": "0x80027d3c",
+   "size": 22,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "it_mask_tet",
+   "addr": "0x80027d54",
+   "size": 22,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "it_mask_tee",
+   "addr": "0x80027d6c",
+   "size": 22,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "it_mask_tttt",
+   "addr": "0x80027d84",
+   "size": 26,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "it_mask_ttte",
+   "addr": "0x80027da0",
+   "size": 26,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "it_mask_ttet",
+   "addr": "0x80027dbc",
+   "size": 26,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "it_mask_ttee",
+   "addr": "0x80027dd8",
+   "size": 26,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "it_mask_tett",
+   "addr": "0x80027df4",
+   "size": 26,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "it_mask_tete",
+   "addr": "0x80027e10",
+   "size": 26,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "it_mask_teet",
+   "addr": "0x80027e2c",
+   "size": 26,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "it_mask_teee",
+   "addr": "0x80027e48",
+   "size": 26,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "it_ret",
+   "addr": "0x80027e64",
+   "size": 10,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "it_pop_ret",
+   "addr": "0x80027e70",
+   "size": 14,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "it_ite_ret",
+   "addr": "0x80027e80",
+   "size": 12,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "it_call",
+   "addr": "0x80027e8c",
+   "size": 14,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "it_callx",
+   "addr": "0x80027e9c",
+   "size": 14,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "it_ctc",
+   "addr": "0x80027eac",
+   "size": 12,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "t_ctc",
+   "addr": "0x80027eb8",
+   "size": 10,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "a_ctc",
+   "addr": "0x80027ec4",
+   "size": 12,
+   "isa": "A32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "a_bleq",
+   "addr": "0x80027ed0",
+   "size": 20,
+   "isa": "A32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "nr_halt_t",
+   "addr": "0x80027ee4",
+   "size": 4,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "nr_fatal_t",
+   "addr": "0x80027ee8",
+   "size": 10,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "nr_user_t",
+   "addr": "0x80027ef4",
+   "size": 20,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "nr_halt_a",
+   "addr": "0x80027f08",
+   "size": 8,
+   "isa": "A32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "nr_fatal_a",
+   "addr": "0x80027f10",
+   "size": 12,
+   "isa": "A32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "nr_user_a",
+   "addr": "0x80027f1c",
+   "size": 28,
+   "isa": "A32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "ft_into_next",
+   "addr": "0x80027f38",
+   "size": 2,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rejected",
+   "reason_class": "fallthrough",
+   "reason": "unmodeled AArch32 function fallthrough in ft_into_next"
+  },
+  {
+   "name": "ft_next",
+   "addr": "0x80027f3a",
+   "size": 4,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "lit_a",
+   "addr": "0x80027f40",
+   "size": 16,
+   "isa": "A32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "lit_t",
+   "addr": "0x80027f50",
+   "size": 12,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "t_tbb",
+   "addr": "0x80027f5c",
+   "size": 28,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "t_tbh",
+   "addr": "0x80027f78",
+   "size": 36,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "t_adr_tbh",
+   "addr": "0x80027f9c",
+   "size": 36,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "a_add_pc_switch",
+   "addr": "0x80027fc0",
+   "size": 60,
+   "isa": "A32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rejected",
+   "reason_class": "pc-write",
+   "reason": "unsupported AArch32 PC-writing control transfer in a_add_pc_switch at 0x80027fc4"
+  },
+  {
+   "name": "short16",
+   "addr": "0x80027ffc",
+   "size": 4,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "folded (ICF)",
+   "into": "ft_next"
+  },
+  {
+   "name": "size0_t",
+   "addr": "0x80028000",
+   "size": 0,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "a_pcread",
+   "addr": "0x80028004",
+   "size": 16,
+   "isa": "A32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rejected",
+   "reason_class": "pc-read",
+   "reason": "unsupported AArch32 position-dependent PC read in a_pcread at 0x80028004"
+  },
+  {
+   "name": "t_excl",
+   "addr": "0x80028014",
+   "size": 28,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "a_carry",
+   "addr": "0x80028030",
+   "size": 12,
+   "isa": "A32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "t_carry",
+   "addr": "0x8002803c",
+   "size": 8,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "rand_t_00",
+   "addr": "0x80028044",
+   "size": 100,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "rand_t_01",
+   "addr": "0x800280a8",
+   "size": 130,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "rand_t_02",
+   "addr": "0x8002812c",
+   "size": 130,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "rand_t_03",
+   "addr": "0x800281b0",
+   "size": 74,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "rand_t_04",
+   "addr": "0x800281fc",
+   "size": 92,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "rand_t_05",
+   "addr": "0x80028258",
+   "size": 58,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "rand_t_06",
+   "addr": "0x80028294",
+   "size": 74,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "rand_t_07",
+   "addr": "0x800282e0",
+   "size": 142,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "rand_t_08",
+   "addr": "0x80028370",
+   "size": 82,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "rand_t_09",
+   "addr": "0x800283c4",
+   "size": 82,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "rand_t_10",
+   "addr": "0x80028418",
+   "size": 88,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "rand_t_11",
+   "addr": "0x80028470",
+   "size": 70,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "rand_t_12",
+   "addr": "0x800284b8",
+   "size": 130,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "rand_t_13",
+   "addr": "0x8002853c",
+   "size": 100,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "rand_t_14",
+   "addr": "0x800285a0",
+   "size": 112,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "rand_t_15",
+   "addr": "0x80028610",
+   "size": 84,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "rand_t_16",
+   "addr": "0x80028664",
+   "size": 138,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "rand_t_17",
+   "addr": "0x800286f0",
+   "size": 114,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "rand_t_18",
+   "addr": "0x80028764",
+   "size": 68,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "rand_t_19",
+   "addr": "0x800287a8",
+   "size": 94,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "rand_t_20",
+   "addr": "0x80028808",
+   "size": 130,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "rand_t_21",
+   "addr": "0x8002888c",
+   "size": 106,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "rand_t_22",
+   "addr": "0x800288f8",
+   "size": 102,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "rand_t_23",
+   "addr": "0x80028960",
+   "size": 150,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "rand_a_00",
+   "addr": "0x800289f8",
+   "size": 124,
+   "isa": "A32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "rand_a_01",
+   "addr": "0x80028a74",
+   "size": 104,
+   "isa": "A32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "rand_a_02",
+   "addr": "0x80028adc",
+   "size": 136,
+   "isa": "A32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "rand_a_03",
+   "addr": "0x80028b64",
+   "size": 152,
+   "isa": "A32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "rand_a_04",
+   "addr": "0x80028bfc",
+   "size": 80,
+   "isa": "A32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "rand_a_05",
+   "addr": "0x80028c4c",
+   "size": 152,
+   "isa": "A32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "rand_a_06",
+   "addr": "0x80028ce4",
+   "size": 148,
+   "isa": "A32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "rand_a_07",
+   "addr": "0x80028d78",
+   "size": 172,
+   "isa": "A32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "rand_a_08",
+   "addr": "0x80028e24",
+   "size": 116,
+   "isa": "A32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "rand_a_09",
+   "addr": "0x80028e98",
+   "size": 68,
+   "isa": "A32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "rand_a_10",
+   "addr": "0x80028edc",
+   "size": 116,
+   "isa": "A32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "rand_a_11",
+   "addr": "0x80028f50",
+   "size": 180,
+   "isa": "A32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "rand_a_12",
+   "addr": "0x80029004",
+   "size": 144,
+   "isa": "A32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "rand_a_13",
+   "addr": "0x80029094",
+   "size": 160,
+   "isa": "A32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "rand_a_14",
+   "addr": "0x80029134",
+   "size": 160,
+   "isa": "A32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "rand_a_15",
+   "addr": "0x800291d4",
+   "size": 144,
+   "isa": "A32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "rand_a_16",
+   "addr": "0x80029264",
+   "size": 144,
+   "isa": "A32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "rand_a_17",
+   "addr": "0x800292f4",
+   "size": 112,
+   "isa": "A32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "rand_a_18",
+   "addr": "0x80029364",
+   "size": 80,
+   "isa": "A32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "rand_a_19",
+   "addr": "0x800293b4",
+   "size": 128,
+   "isa": "A32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "rand_a_20",
+   "addr": "0x80029434",
+   "size": 136,
+   "isa": "A32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "rand_a_21",
+   "addr": "0x800294bc",
+   "size": 180,
+   "isa": "A32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "rand_a_22",
+   "addr": "0x80029570",
+   "size": 48,
+   "isa": "A32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "rand_a_23",
+   "addr": "0x800295a0",
+   "size": 108,
+   "isa": "A32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "cmd_bolt_edge",
+   "addr": "0x8002960c",
+   "size": 222,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "c_switch_arm_o2",
+   "addr": "0x800296ec",
+   "size": 120,
+   "isa": "A32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "c_loop_arm_o2",
+   "addr": "0x80029764",
+   "size": 124,
+   "isa": "A32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "c_fib_arm_o2",
+   "addr": "0x800297e0",
+   "size": 8,
+   "isa": "A32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "fib_arm_o2",
+   "addr": "0x800297e8",
+   "size": 244,
+   "isa": "A32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "c_indirect_arm_o2",
+   "addr": "0x800298dc",
+   "size": 60,
+   "isa": "A32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "c_noret_arm_o2",
+   "addr": "0x80029918",
+   "size": 40,
+   "isa": "A32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "c_switch_thumb_o2",
+   "addr": "0x80029940",
+   "size": 56,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "c_loop_thumb_o2",
+   "addr": "0x80029978",
+   "size": 92,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "c_fib_thumb_o2",
+   "addr": "0x800299d4",
+   "size": 8,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "fib_thumb_o2",
+   "addr": "0x800299dc",
+   "size": 142,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "c_indirect_thumb_o2",
+   "addr": "0x80029a6c",
+   "size": 32,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "c_noret_thumb_o2",
+   "addr": "0x80029a8c",
+   "size": 30,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "c_switch_thumb_os",
+   "addr": "0x80029aac",
+   "size": 56,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "c_loop_thumb_os",
+   "addr": "0x80029ae4",
+   "size": 22,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "c_fib_thumb_os",
+   "addr": "0x80029afa",
+   "size": 8,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "fib_thumb_os",
+   "addr": "0x80029b02",
+   "size": 26,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "c_indirect_thumb_os",
+   "addr": "0x80029b1c",
+   "size": 32,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "c_noret_thumb_os",
+   "addr": "0x80029b3c",
+   "size": 28,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "c_switch_arm_o0",
+   "addr": "0x80029b58",
+   "size": 212,
+   "isa": "A32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "c_loop_arm_o0",
+   "addr": "0x80029c2c",
+   "size": 100,
+   "isa": "A32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "c_fib_arm_o0",
+   "addr": "0x80029c90",
+   "size": 32,
+   "isa": "A32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "fib_arm_o0",
+   "addr": "0x80029cb0",
+   "size": 80,
+   "isa": "A32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "c_indirect_arm_o0",
+   "addr": "0x80029d00",
+   "size": 44,
+   "isa": "A32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "c_noret_arm_o0",
+   "addr": "0x80029d2c",
+   "size": 68,
+   "isa": "A32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "op0_arm_o0",
+   "addr": "0x80029d70",
+   "size": 24,
+   "isa": "A32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "op1_arm_o0",
+   "addr": "0x80029d88",
+   "size": 24,
+   "isa": "A32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "op2_arm_o0",
+   "addr": "0x80029da0",
+   "size": 24,
+   "isa": "A32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "op3_arm_o0",
+   "addr": "0x80029db8",
+   "size": 24,
+   "isa": "A32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "edge_dup_a",
+   "addr": "0x80029dd0",
+   "size": 12,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "dup",
+   "addr": "0x80029ddc",
+   "size": 8,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "dup",
+   "addr": "0x80029de4",
+   "size": 8,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "edge_dup_b",
+   "addr": "0x80029dec",
+   "size": 12,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "shell_entry",
+   "addr": "0x80029df8",
+   "size": 154,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "get_int_handler",
+   "addr": "0x80029e92",
+   "size": 40,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "register_int_handler",
+   "addr": "0x80029eba",
+   "size": 188,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "gic_set_enable",
+   "addr": "0x80029f76",
+   "size": 180,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "arm_gic_init_percpu",
+   "addr": "0x8002a02a",
+   "size": 22,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "arm_gic_suspend_cpu",
+   "addr": "0x8002a040",
+   "size": 26,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "arm_gic_resume_cpu",
+   "addr": "0x8002a05a",
+   "size": 254,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "gic_configure_interrupt",
+   "addr": "0x8002a158",
+   "size": 90,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "arm_gic_init_map",
+   "addr": "0x8002a1b2",
+   "size": 416,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "arm_gic_sgi",
+   "addr": "0x8002a352",
+   "size": 32,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "unmask_interrupt",
+   "addr": "0x8002a372",
+   "size": 64,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "platform_irq",
+   "addr": "0x8002a3b2",
+   "size": 22,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "platform_fiq",
+   "addr": "0x8002a3c8",
+   "size": 22,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "arm_gicv2_init_percpu",
+   "addr": "0x8002a3de",
+   "size": 24,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "arm_gicv2_init",
+   "addr": "0x8002a3f6",
+   "size": 302,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "arm_gicv2_sgi",
+   "addr": "0x8002a524",
+   "size": 34,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "arm_gicv2_platform_irq",
+   "addr": "0x8002a546",
+   "size": 102,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "arm_gicv2_platform_fiq",
+   "addr": "0x8002a5ac",
+   "size": 22,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "arm_gicv3_wait_for_write_complete",
+   "addr": "0x8002a5c2",
+   "size": 18,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "arm_gicv3_init",
+   "addr": "0x8002a5d4",
+   "size": 320,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "arm_gicv3_init_percpu",
+   "addr": "0x8002a714",
+   "size": 396,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "arm_gicv3_configure_irq_locked",
+   "addr": "0x8002a8a0",
+   "size": 288,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "arm_gicv3_suspend_cpu",
+   "addr": "0x8002a9c0",
+   "size": 224,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "arm_gicv3_resume_cpu_locked",
+   "addr": "0x8002aaa0",
+   "size": 246,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "arm_gicv3_sgi",
+   "addr": "0x8002ab96",
+   "size": 138,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "arm_gicv3_platform_irq",
+   "addr": "0x8002ac20",
+   "size": 84,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "arm_gicv3_platform_fiq",
+   "addr": "0x8002ac74",
+   "size": 24,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "platform_set_oneshot_timer",
+   "addr": "0x8002ac8c",
+   "size": 132,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "platform_stop_timer",
+   "addr": "0x8002ad10",
+   "size": 12,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "current_time_hires",
+   "addr": "0x8002ad1c",
+   "size": 88,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "current_time",
+   "addr": "0x8002ad74",
+   "size": 54,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "arm_generic_timer_init",
+   "addr": "0x8002adaa",
+   "size": 3112,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "arm_generic_timer_init_postvm",
+   "addr": "0x8002b9d2",
+   "size": 56,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "arm_generic_timer_init_secondary_cpu",
+   "addr": "0x8002ba0a",
+   "size": 36,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "arm_generic_timer_resume_cpu",
+   "addr": "0x8002ba2e",
+   "size": 22,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "platform_tick",
+   "addr": "0x8002ba44",
+   "size": 88,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "cmd_threads",
+   "addr": "0x8002ba9c",
+   "size": 22,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "cmd_threads_panic",
+   "addr": "0x8002bab2",
+   "size": 22,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "cmd_threadstats",
+   "addr": "0x8002bac8",
+   "size": 256,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "cmd_threadload",
+   "addr": "0x8002bbc8",
+   "size": 72,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "threadload",
+   "addr": "0x8002bc10",
+   "size": 340,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "event_init",
+   "addr": "0x8002bd64",
+   "size": 42,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "event_wait_timeout",
+   "addr": "0x8002bd8e",
+   "size": 120,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "event_signal",
+   "addr": "0x8002be06",
+   "size": 150,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "event_unsignal",
+   "addr": "0x8002be9c",
+   "size": 46,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "kernel_init_early",
+   "addr": "0x8002beca",
+   "size": 4,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "kernel_init",
+   "addr": "0x8002bece",
+   "size": 70,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "mutex_threading_ready_init_func",
+   "addr": "0x8002bf14",
+   "size": 14,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "mutex_init",
+   "addr": "0x8002bf22",
+   "size": 38,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "mutex_acquire_timeout",
+   "addr": "0x8002bf48",
+   "size": 220,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "mutex_release",
+   "addr": "0x8002c024",
+   "size": 174,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "thread_create_etc",
+   "addr": "0x8002c0d2",
+   "size": 300,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "thread_create",
+   "addr": "0x8002c1fe",
+   "size": 34,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "thread_resume",
+   "addr": "0x8002c220",
+   "size": 218,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "insert_in_run_queue_head",
+   "addr": "0x8002c2fa",
+   "size": 226,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "thread_yield",
+   "addr": "0x8002c3dc",
+   "size": 174,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "thread_detach_and_resume",
+   "addr": "0x8002c48a",
+   "size": 24,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "thread_detach",
+   "addr": "0x8002c4a2",
+   "size": 152,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "thread_join",
+   "addr": "0x8002c53a",
+   "size": 378,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "wait_queue_block",
+   "addr": "0x8002c6b4",
+   "size": 244,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "wait_queue_wake_all",
+   "addr": "0x8002c7a8",
+   "size": 340,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "thread_exit",
+   "addr": "0x8002c8fc",
+   "size": 220,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "thread_resched",
+   "addr": "0x8002c9d8",
+   "size": 682,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "insert_in_run_queue_tail",
+   "addr": "0x8002cc82",
+   "size": 228,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "thread_preempt",
+   "addr": "0x8002cd66",
+   "size": 190,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "thread_timer_tick",
+   "addr": "0x8002ce24",
+   "size": 32,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "thread_sleep",
+   "addr": "0x8002ce44",
+   "size": 228,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "thread_sleep_handler",
+   "addr": "0x8002cf28",
+   "size": 152,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "thread_init_early",
+   "addr": "0x8002cfc0",
+   "size": 422,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "thread_init",
+   "addr": "0x8002d166",
+   "size": 44,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "thread_set_name",
+   "addr": "0x8002d192",
+   "size": 14,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "thread_become_idle",
+   "addr": "0x8002d1a0",
+   "size": 130,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "idle_thread_routine",
+   "addr": "0x8002d222",
+   "size": 6,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "thread_secondary_cpu_init_early",
+   "addr": "0x8002d228",
+   "size": 106,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "thread_create_secondary_cpu_idle_thread",
+   "addr": "0x8002d292",
+   "size": 188,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "thread_secondary_cpu_entry",
+   "addr": "0x8002d34e",
+   "size": 90,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "arch_thread_get_backtrace_regs",
+   "addr": "0x8002d3a8",
+   "size": 4,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "dump_thread",
+   "addr": "0x8002d3ac",
+   "size": 188,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "dump_all_threads_unlocked",
+   "addr": "0x8002d468",
+   "size": 76,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "dump_all_threads",
+   "addr": "0x8002d4b4",
+   "size": 118,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "dump_threads_stats",
+   "addr": "0x8002d52a",
+   "size": 256,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "wait_queue_timeout_handler",
+   "addr": "0x8002d62a",
+   "size": 80,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "wait_queue_wake_one",
+   "addr": "0x8002d67a",
+   "size": 286,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "thread_unblock_from_wait_queue",
+   "addr": "0x8002d798",
+   "size": 288,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "timer_initialize",
+   "addr": "0x8002d8b8",
+   "size": 26,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "timer_set_oneshot",
+   "addr": "0x8002d8d2",
+   "size": 26,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "timer_set",
+   "addr": "0x8002d8ec",
+   "size": 268,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "timer_set_periodic",
+   "addr": "0x8002d9f8",
+   "size": 26,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "timer_cancel",
+   "addr": "0x8002da12",
+   "size": 200,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "timer_tick",
+   "addr": "0x8002dada",
+   "size": 394,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "timer_init",
+   "addr": "0x8002dc64",
+   "size": 50,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "insert_timer_in_queue",
+   "addr": "0x8002dc96",
+   "size": 100,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "mp_init",
+   "addr": "0x8002dcfa",
+   "size": 38,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "mp_reschedule",
+   "addr": "0x8002dd20",
+   "size": 92,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "mp_set_curr_cpu_active",
+   "addr": "0x8002dd7c",
+   "size": 68,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "mp_sync_exec",
+   "addr": "0x8002ddc0",
+   "size": 346,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "mp_mbx_generic_irq",
+   "addr": "0x8002df1a",
+   "size": 154,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "mp_mbx_reschedule_irq",
+   "addr": "0x8002dfb4",
+   "size": 56,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "port_init",
+   "addr": "0x8002dfec",
+   "size": 14,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "cbuf_initialize",
+   "addr": "0x8002dffa",
+   "size": 26,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "cbuf_initialize_etc",
+   "addr": "0x8002e014",
+   "size": 138,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "cbuf_write_char",
+   "addr": "0x8002e09e",
+   "size": 156,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "cbuf_read_char",
+   "addr": "0x8002e13a",
+   "size": 182,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "fdt_ro_probe_",
+   "addr": "0x8002e1f0",
+   "size": 124,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "fdt_check_header",
+   "addr": "0x8002e26c",
+   "size": 240,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "fdt_offset_ptr",
+   "addr": "0x8002e35c",
+   "size": 96,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "fdt_next_tag",
+   "addr": "0x8002e3bc",
+   "size": 192,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "fdt_check_node_offset_",
+   "addr": "0x8002e47c",
+   "size": 38,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "fdt_check_prop_offset_",
+   "addr": "0x8002e4a2",
+   "size": 38,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "fdt_next_node",
+   "addr": "0x8002e4c8",
+   "size": 134,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "fdt_address_cells",
+   "addr": "0x8002e54e",
+   "size": 56,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "fdt_size_cells",
+   "addr": "0x8002e586",
+   "size": 62,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "fdt_get_string",
+   "addr": "0x8002e5c4",
+   "size": 162,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "fdt_get_name",
+   "addr": "0x8002e666",
+   "size": 130,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "fdt_get_property_namelen_",
+   "addr": "0x8002e6e8",
+   "size": 268,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "fdt_getprop",
+   "addr": "0x8002e7f4",
+   "size": 82,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "platform_halt_default",
+   "addr": "0x8002e846",
+   "size": 94,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "cmd_reboot",
+   "addr": "0x8002e8a4",
+   "size": 8,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "cmd_poweroff",
+   "addr": "0x8002e8ac",
+   "size": 8,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "target_early_init",
+   "addr": "0x8002e8b4",
+   "size": 2,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "folded (ICF)",
+   "into": "platform_init_mmu_mappings"
+  },
+  {
+   "name": "target_init",
+   "addr": "0x8002e8b6",
+   "size": 2,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "folded (ICF)",
+   "into": "platform_init_mmu_mappings"
+  },
+  {
+   "name": "c_switch_marm_o2",
+   "addr": "0x8002e8b8",
+   "size": 120,
+   "isa": "A32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "c_loop_marm_o2",
+   "addr": "0x8002e930",
+   "size": 124,
+   "isa": "A32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "folded (ICF)",
+   "into": "c_loop_arm_o2"
+  },
+  {
+   "name": "c_fib_marm_o2",
+   "addr": "0x8002e9ac",
+   "size": 8,
+   "isa": "A32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "folded (ICF)",
+   "into": "c_fib_arm_o2"
+  },
+  {
+   "name": "fib_marm_o2",
+   "addr": "0x8002e9b4",
+   "size": 244,
+   "isa": "A32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "folded (ICF)",
+   "into": "fib_arm_o2"
+  },
+  {
+   "name": "c_indirect_marm_o2",
+   "addr": "0x8002eaa8",
+   "size": 60,
+   "isa": "A32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "c_noret_marm_o2",
+   "addr": "0x8002eae4",
+   "size": 40,
+   "isa": "A32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "folded (ICF)",
+   "into": "c_noret_arm_o2"
+  },
+  {
+   "name": "c_switch_marm_os",
+   "addr": "0x8002eb0c",
+   "size": 120,
+   "isa": "A32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "c_loop_marm_os",
+   "addr": "0x8002eb84",
+   "size": 36,
+   "isa": "A32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "c_fib_marm_os",
+   "addr": "0x8002eba8",
+   "size": 8,
+   "isa": "A32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "fib_marm_os",
+   "addr": "0x8002ebb0",
+   "size": 48,
+   "isa": "A32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "c_indirect_marm_os",
+   "addr": "0x8002ebe0",
+   "size": 60,
+   "isa": "A32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "c_noret_marm_os",
+   "addr": "0x8002ec1c",
+   "size": 36,
+   "isa": "A32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "c_switch_marm_o0",
+   "addr": "0x8002ec40",
+   "size": 212,
+   "isa": "A32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "c_loop_marm_o0",
+   "addr": "0x8002ed14",
+   "size": 100,
+   "isa": "A32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "folded (ICF)",
+   "into": "c_loop_arm_o0"
+  },
+  {
+   "name": "c_fib_marm_o0",
+   "addr": "0x8002ed78",
+   "size": 32,
+   "isa": "A32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "folded (ICF)",
+   "into": "c_fib_arm_o0"
+  },
+  {
+   "name": "fib_marm_o0",
+   "addr": "0x8002ed98",
+   "size": 80,
+   "isa": "A32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "folded (ICF)",
+   "into": "fib_arm_o0"
+  },
+  {
+   "name": "c_indirect_marm_o0",
+   "addr": "0x8002ede8",
+   "size": 44,
+   "isa": "A32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "c_noret_marm_o0",
+   "addr": "0x8002ee14",
+   "size": 68,
+   "isa": "A32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "folded (ICF)",
+   "into": "c_noret_arm_o0"
+  },
+  {
+   "name": "op0_marm_o0",
+   "addr": "0x8002ee58",
+   "size": 24,
+   "isa": "A32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "folded (ICF)",
+   "into": "op0_arm_o0"
+  },
+  {
+   "name": "op1_marm_o0",
+   "addr": "0x8002ee70",
+   "size": 24,
+   "isa": "A32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "folded (ICF)",
+   "into": "op1_arm_o0"
+  },
+  {
+   "name": "op2_marm_o0",
+   "addr": "0x8002ee88",
+   "size": 24,
+   "isa": "A32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "folded (ICF)",
+   "into": "op2_arm_o0"
+  },
+  {
+   "name": "op3_marm_o0",
+   "addr": "0x8002eea0",
+   "size": 24,
+   "isa": "A32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "folded (ICF)",
+   "into": "op3_arm_o0"
+  },
+  {
+   "name": "c_switch_mthumb_o2",
+   "addr": "0x8002eeb8",
+   "size": 56,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "c_loop_mthumb_o2",
+   "addr": "0x8002eef0",
+   "size": 92,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "folded (ICF)",
+   "into": "c_loop_thumb_o2"
+  },
+  {
+   "name": "c_fib_mthumb_o2",
+   "addr": "0x8002ef4c",
+   "size": 8,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "folded (ICF)",
+   "into": "c_fib_thumb_o2"
+  },
+  {
+   "name": "fib_mthumb_o2",
+   "addr": "0x8002ef54",
+   "size": 142,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "folded (ICF)",
+   "into": "fib_thumb_o2"
+  },
+  {
+   "name": "c_indirect_mthumb_o2",
+   "addr": "0x8002efe4",
+   "size": 32,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "c_noret_mthumb_o2",
+   "addr": "0x8002f004",
+   "size": 30,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "folded (ICF)",
+   "into": "c_noret_thumb_o2"
+  },
+  {
+   "name": "c_switch_mthumb_os",
+   "addr": "0x8002f024",
+   "size": 56,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "c_loop_mthumb_os",
+   "addr": "0x8002f05c",
+   "size": 22,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "folded (ICF)",
+   "into": "c_loop_thumb_os"
+  },
+  {
+   "name": "c_fib_mthumb_os",
+   "addr": "0x8002f072",
+   "size": 8,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "folded (ICF)",
+   "into": "c_fib_thumb_os"
+  },
+  {
+   "name": "fib_mthumb_os",
+   "addr": "0x8002f07a",
+   "size": 26,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "folded (ICF)",
+   "into": "fib_thumb_os"
+  },
+  {
+   "name": "c_indirect_mthumb_os",
+   "addr": "0x8002f094",
+   "size": 32,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "c_noret_mthumb_os",
+   "addr": "0x8002f0b4",
+   "size": 28,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "c_switch_mthumb_o0",
+   "addr": "0x8002f0d0",
+   "size": 100,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "c_loop_mthumb_o0",
+   "addr": "0x8002f134",
+   "size": 50,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "c_fib_mthumb_o0",
+   "addr": "0x8002f166",
+   "size": 20,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "fib_mthumb_o0",
+   "addr": "0x8002f17a",
+   "size": 44,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "c_indirect_mthumb_o0",
+   "addr": "0x8002f1a6",
+   "size": 30,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "c_noret_mthumb_o0",
+   "addr": "0x8002f1c4",
+   "size": 42,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "op0_mthumb_o0",
+   "addr": "0x8002f1ee",
+   "size": 12,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "op1_mthumb_o0",
+   "addr": "0x8002f1fa",
+   "size": 14,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "op2_mthumb_o0",
+   "addr": "0x8002f208",
+   "size": 14,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "op3_mthumb_o0",
+   "addr": "0x8002f216",
+   "size": 12,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "boot_alloc_mem",
+   "addr": "0x8002f222",
+   "size": 28,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "vm_page_to_paddr",
+   "addr": "0x8002f23e",
+   "size": 78,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "paddr_to_vm_page",
+   "addr": "0x8002f28c",
+   "size": 56,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "pmm_add_arena",
+   "addr": "0x8002f2c4",
+   "size": 218,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "pmm_alloc_pages",
+   "addr": "0x8002f39e",
+   "size": 138,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "pmm_alloc_page",
+   "addr": "0x8002f428",
+   "size": 160,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "pmm_alloc_range",
+   "addr": "0x8002f4c8",
+   "size": 248,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "pmm_free",
+   "addr": "0x8002f5c0",
+   "size": 176,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "pmm_free_page",
+   "addr": "0x8002f670",
+   "size": 24,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "pmm_alloc_kpages",
+   "addr": "0x8002f688",
+   "size": 128,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "pmm_alloc_contiguous",
+   "addr": "0x8002f708",
+   "size": 414,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "pmm_free_kpages",
+   "addr": "0x8002f8a6",
+   "size": 108,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "cmd_pmm",
+   "addr": "0x8002f912",
+   "size": 1298,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "paddr_to_kvaddr",
+   "addr": "0x8002fe24",
+   "size": 60,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "vaddr_to_paddr",
+   "addr": "0x8002fe60",
+   "size": 72,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "vm_init_preheap",
+   "addr": "0x8002fea8",
+   "size": 258,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "vm_init_postheap",
+   "addr": "0x8002ffaa",
+   "size": 66,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "cmd_vm",
+   "addr": "0x8002ffec",
+   "size": 524,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "vmm_init_preheap",
+   "addr": "0x800301f8",
+   "size": 84,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "vmm_init",
+   "addr": "0x8003024c",
+   "size": 2,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "folded (ICF)",
+   "into": "platform_init_mmu_mappings"
+  },
+  {
+   "name": "arch_mmu_pick_spot",
+   "addr": "0x8003024e",
+   "size": 12,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "vmm_reserve_space",
+   "addr": "0x8003025a",
+   "size": 230,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "alloc_region",
+   "addr": "0x80030340",
+   "size": 518,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "vmm_alloc_physical",
+   "addr": "0x80030546",
+   "size": 316,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "vmm_remove_region_locked",
+   "addr": "0x80030682",
+   "size": 186,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "vmm_alloc_contiguous",
+   "addr": "0x8003073c",
+   "size": 390,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "vmm_alloc",
+   "addr": "0x800308c2",
+   "size": 548,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "vmm_free_region",
+   "addr": "0x80030ae6",
+   "size": 122,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "vmm_create_aspace",
+   "addr": "0x80030b60",
+   "size": 206,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "vmm_free_aspace",
+   "addr": "0x80030c2e",
+   "size": 292,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "vmm_context_switch",
+   "addr": "0x80030d52",
+   "size": 54,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "cmd_vmm",
+   "addr": "0x80030d88",
+   "size": 902,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "cmdline_cmd_show",
+   "addr": "0x8003110e",
+   "size": 102,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "cmdline_cmd_present",
+   "addr": "0x80031174",
+   "size": 112,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "cmdline_cmd_value",
+   "addr": "0x800311e4",
+   "size": 182,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "cmdline_cmd_string",
+   "addr": "0x8003129c",
+   "size": 268,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "cmdline_cmd_bool",
+   "addr": "0x800313a8",
+   "size": 186,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "cmdline_cmd_u32",
+   "addr": "0x80031464",
+   "size": 162,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "cmdline_cmd_u64",
+   "addr": "0x80031508",
+   "size": 166,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "cmdline_cmd_int",
+   "addr": "0x800315b0",
+   "size": 160,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "cmdline_print_escaped",
+   "addr": "0x80031650",
+   "size": 202,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "cmdline_get_value",
+   "addr": "0x8003171a",
+   "size": 90,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "find_variable",
+   "addr": "0x80031774",
+   "size": 446,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "cmdline_is_present",
+   "addr": "0x80031932",
+   "size": 44,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "cmdline_get_string",
+   "addr": "0x80031960",
+   "size": 276,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "cmdline_get_bool",
+   "addr": "0x80031a74",
+   "size": 196,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "cmdline_get_uint32",
+   "addr": "0x80031b38",
+   "size": 102,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "parse_unsigned_int",
+   "addr": "0x80031b9e",
+   "size": 260,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "cmdline_get_uint64",
+   "addr": "0x80031ca2",
+   "size": 92,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "cmdline_get_int",
+   "addr": "0x80031cfe",
+   "size": 152,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "cmdline_get_raw_string",
+   "addr": "0x80031d96",
+   "size": 12,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "cmdline_get_raw_size",
+   "addr": "0x80031da2",
+   "size": 12,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "console_set_current",
+   "addr": "0x80031dae",
+   "size": 20,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "console_create",
+   "addr": "0x80031dc2",
+   "size": 56,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "console_start",
+   "addr": "0x80031dfa",
+   "size": 96,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "command_loop",
+   "addr": "0x80031e5a",
+   "size": 1096,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "read_debug_line",
+   "addr": "0x800322a4",
+   "size": 520,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "console_run_script",
+   "addr": "0x800324ac",
+   "size": 142,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "console_run_script_locked",
+   "addr": "0x8003253a",
+   "size": 144,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "convert_args",
+   "addr": "0x800325ca",
+   "size": 180,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "cmd_help",
+   "addr": "0x8003267e",
+   "size": 206,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "cmd_help_panic",
+   "addr": "0x8003274c",
+   "size": 140,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "cmd_echo",
+   "addr": "0x800327d8",
+   "size": 48,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "cmd_test",
+   "addr": "0x80032808",
+   "size": 78,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "cmd_history",
+   "addr": "0x80032856",
+   "size": 104,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "cmd_repeat",
+   "addr": "0x800328be",
+   "size": 232,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "compare_cmds",
+   "addr": "0x800329a6",
+   "size": 8,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "background_command_exec",
+   "addr": "0x800329ae",
+   "size": 64,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "fetch_next_line",
+   "addr": "0x800329ee",
+   "size": 74,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "fp_32_64_snprintf",
+   "addr": "0x80032a38",
+   "size": 476,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "heap_init",
+   "addr": "0x80032c14",
+   "size": 32,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "heap_free_delayed_list",
+   "addr": "0x80032c34",
+   "size": 126,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "malloc",
+   "addr": "0x80032cb2",
+   "size": 72,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "calloc",
+   "addr": "0x80032cfa",
+   "size": 102,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "realloc",
+   "addr": "0x80032d60",
+   "size": 82,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "free",
+   "addr": "0x80032db2",
+   "size": 44,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "heap_delayed_free",
+   "addr": "0x80032dde",
+   "size": 96,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "cmd_heap",
+   "addr": "0x80032e3e",
+   "size": 568,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "page_alloc",
+   "addr": "0x80033076",
+   "size": 6,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "page_free",
+   "addr": "0x8003307c",
+   "size": 32,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "page_first_alloc",
+   "addr": "0x8003309c",
+   "size": 14,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "cmd_page_alloc",
+   "addr": "0x800330aa",
+   "size": 94,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "bcopy",
+   "addr": "0x80033108",
+   "size": 0,
+   "isa": "A32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rejected",
+   "reason_class": "fallthrough",
+   "reason": "unmodeled AArch32 function fallthrough in bcopy"
+  },
+  {
+   "name": "memcpy",
+   "addr": "0x80033114",
+   "size": 0,
+   "isa": "A32",
+   "aliases": [
+    "memmove"
+   ],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "memmove",
+   "addr": "0x80033114",
+   "size": 0,
+   "isa": "A32",
+   "aliases": [
+    "memcpy"
+   ],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "alias of rewritten function"
+  },
+  {
+   "name": "bzero",
+   "addr": "0x80033214",
+   "size": 0,
+   "isa": "A32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rejected",
+   "reason_class": "fallthrough",
+   "reason": "unmodeled AArch32 function fallthrough in bzero"
+  },
+  {
+   "name": "memset",
+   "addr": "0x8003321c",
+   "size": 0,
+   "isa": "A32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "atol",
+   "addr": "0x800332b0",
+   "size": 186,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "atoul",
+   "addr": "0x8003336a",
+   "size": 130,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "atoull",
+   "addr": "0x800333ec",
+   "size": 158,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "strtoul",
+   "addr": "0x8003348a",
+   "size": 248,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "isspace",
+   "addr": "0x80033582",
+   "size": 44,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "isdigit",
+   "addr": "0x800335ae",
+   "size": 14,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "isalnum",
+   "addr": "0x800335bc",
+   "size": 34,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "isxdigit",
+   "addr": "0x800335de",
+   "size": 34,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "isprint",
+   "addr": "0x80033600",
+   "size": 14,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "tolower",
+   "addr": "0x8003360e",
+   "size": 14,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "__geterrno",
+   "addr": "0x8003361c",
+   "size": 8,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "snprintf",
+   "addr": "0x80033624",
+   "size": 26,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "vsnprintf",
+   "addr": "0x80033640",
+   "size": 1882,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "vfprintf",
+   "addr": "0x80033d9c",
+   "size": 1772,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "printf",
+   "addr": "0x80034488",
+   "size": 42,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "vprintf",
+   "addr": "0x800344b2",
+   "size": 18,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "_printf_longlong_to_string",
+   "addr": "0x800344c4",
+   "size": 214,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "_printf_longlong_to_hexstring",
+   "addr": "0x8003459a",
+   "size": 70,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "qsort",
+   "addr": "0x800345e0",
+   "size": 1412,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "putchar",
+   "addr": "0x80034b64",
+   "size": 46,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "fputs",
+   "addr": "0x80034b92",
+   "size": 36,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "getchar",
+   "addr": "0x80034bb6",
+   "size": 42,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "_fprintf_output_func",
+   "addr": "0x80034be0",
+   "size": 20,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "__udivmoddi4",
+   "addr": "0x80034bf4",
+   "size": 172,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "__aeabi_uldivmod",
+   "addr": "0x80034ca0",
+   "size": 20,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "memchr",
+   "addr": "0x80034cb4",
+   "size": 22,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "memcmp",
+   "addr": "0x80034cca",
+   "size": 42,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "strcmp",
+   "addr": "0x80034cf4",
+   "size": 20,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "strdup",
+   "addr": "0x80034d08",
+   "size": 32,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "strlcpy",
+   "addr": "0x80034d28",
+   "size": 54,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "strlen",
+   "addr": "0x80034d5e",
+   "size": 14,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "strncmp",
+   "addr": "0x80034d6c",
+   "size": 44,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "strncasecmp",
+   "addr": "0x80034d98",
+   "size": 84,
+   "isa": "T32",
+   "aliases": [
+    "strnicmp"
+   ],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "strnicmp",
+   "addr": "0x80034d98",
+   "size": 84,
+   "isa": "T32",
+   "aliases": [
+    "strncasecmp"
+   ],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "alias of rewritten function"
+  },
+  {
+   "name": "strnlen",
+   "addr": "0x80034dec",
+   "size": 26,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "strrchr",
+   "addr": "0x80034e06",
+   "size": 30,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "miniheap_dump",
+   "addr": "0x80034e24",
+   "size": 104,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "miniheap_alloc",
+   "addr": "0x80034e8c",
+   "size": 654,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "heap_create_free_chunk",
+   "addr": "0x8003511a",
+   "size": 58,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "miniheap_realloc",
+   "addr": "0x80035154",
+   "size": 464,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "miniheap_free",
+   "addr": "0x80035324",
+   "size": 206,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "heap_insert_free_chunk",
+   "addr": "0x800353f2",
+   "size": 146,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "miniheap_trim",
+   "addr": "0x80035484",
+   "size": 334,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "miniheap_init",
+   "addr": "0x800355d2",
+   "size": 148,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "__debug_stdio_write",
+   "addr": "0x80035666",
+   "size": 114,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "__debug_stdio_read",
+   "addr": "0x800356d8",
+   "size": 32,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "io_write",
+   "addr": "0x800356f8",
+   "size": 56,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "io_read",
+   "addr": "0x80035730",
+   "size": 56,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "__Thumbv7ABSLongThunk_arm_context_switch",
+   "addr": "0x80035768",
+   "size": 10,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "__Thumbv7ABSLongThunk_arch_spin_unlock",
+   "addr": "0x80035772",
+   "size": 10,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "__ARMv7ABSLongThunk_thread_preempt",
+   "addr": "0x8003577c",
+   "size": 12,
+   "isa": "A32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "__ARMv7ABSLongThunk_arm_mmu_init",
+   "addr": "0x80035788",
+   "size": 12,
+   "isa": "A32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "__ARMv7ABSLongThunk_lk_secondary_cpu_entry",
+   "addr": "0x80035794",
+   "size": 12,
+   "isa": "A32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "__Thumbv7ABSLongThunk_bolt_bench_tail_arm_callee",
+   "addr": "0x800357a0",
+   "size": 10,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "__Thumbv7ABSLongThunk_bolt_bench_interwork",
+   "addr": "0x800357aa",
+   "size": 10,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "__Thumbv7ABSLongThunk_a_add7",
+   "addr": "0x800357b4",
+   "size": 10,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "__ARMv7ABSLongThunk_t_add5",
+   "addr": "0x800357c0",
+   "size": 12,
+   "isa": "A32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "__Thumbv7ABSLongThunk_a_add100",
+   "addr": "0x800357cc",
+   "size": 10,
+   "isa": "T32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "__ARMv7ABSLongThunk_t_add100",
+   "addr": "0x800357d8",
+   "size": 12,
+   "isa": "A32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  },
+  {
+   "name": "__ARMv7ABSLongThunk_panic",
+   "addr": "0x800357e4",
+   "size": 12,
+   "isa": "A32",
+   "aliases": [],
+   "instrumentation": "out of scope by policy (LK host code)",
+   "status": "rewritten"
+  }
+ ]
+}

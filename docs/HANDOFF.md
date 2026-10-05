@@ -66,7 +66,7 @@ Everything needed to continue is in this repo:
 - **Certified input image:** `fixtures/lk-rpi4-bolt-test-424606a8.elf`
   (see `fixtures/README.md`); the skip list is in
   `docs/results/lk_coverage_r15_20261004.json` (`skip_funcs`).
-- **Backend source:** overlays `overlay/llvm/patches/atfe/0001–0066`; the WSL
+- **Backend source:** overlays `overlay/llvm/patches/atfe/0001–0067`; the WSL
   live tree must replay them exactly (`scripts/verify-atfe-overlays.py`).
   Do not run `scripts/apply-overlays.sh` on the dirty live tree.
 - **Commands:**
@@ -82,7 +82,7 @@ Everything needed to continue is in this repo:
   COM5; sample captures occasionally fail chunk validation (USB corruption),
   retry; never `git stash` from WSL on the Windows checkout.
 - **Build versions:** ON is `build-atfe`; current OFF is `build-atfe-noassert`,
-  tested through 0066 (ARM lit 55/55, 2026-10-05). The older OFF build
+  tested through 0067 (ARM lit 56/56, 2026-10-05). The older OFF build
   `out/correctness/build-atfe-noasserts-20261002` is 0054 evidence. ON 0060–0061
   checks do not establish OFF parity for those overlays; recheck build hashes.
   Preserve both older receipts and dirty live source.
@@ -116,13 +116,13 @@ deferred; new image/configuration oracle contracts still require user review.
 
 | Holder | Since | Purpose |
 |---|---|---|
-| Claude | 2026-10-05 | R21: A32 -O0 load-then-jump tables (next overlay 0067) |
+| — (free) | 2026-10-05 | Released by Claude after overlays 0062–0067 (R22, R11, R23, R24, R12, R21) |
 
 ## Pi reservation
 
 | Holder | Since | Purpose / last observation |
 |---|---|---|
-| Claude | 2026-10-05 | R21: edge image (ce8dd005) with the -O0 switch functions redirected, bolt_edge runs + certified gate |
+| — (unreserved) | 2026-10-05 | Released by Claude after R21. Last state: LK shell after the certified gate on `out/r21cert` (ce8dd005 edge candidate), COM5 closed; watchdog as left by full_image_verify. Reserve and recheck before use; `pi4_run.py --reboot` recovers it. |
 
 ## Claims (consolidated TODO)
 
@@ -142,7 +142,6 @@ Take items in the order below; groups reflect dependencies, not ownership.
 
 | Order | ID | Item | Priority | Owner | Status | Part of | Notes |
 |---|---|---|---|---|---|---|---|
-| 10a | R21 | A32 `-O0` load-then-jump tables (`add rB, pc, #k; ldr rX, [rB, rI, lsl #2]; mov pc, rX` / `bx rX`) still rejected as PC read | P2 | Claude | In progress | 12 | Found by R17 after R18 (`c_switch_arm_o0`, `c_switch_marm_o0`); extend 0057's table model to a register jump |
 | 10b | T3 | Secure-SVC parity on the Pi | P2 | — | Deferred TODO (user, 2026-10-04): Secure armstub is built (`tools/pi4-armstub-secure/`, sha `af4a5512…`, install/rollback in its README) but not installed; the SD-card step and the Secure re-runs wait until the user asks | 9 | All Pi results so far are Non-secure SVC; BOLT rewriting is state-agnostic, so T3 is a parity confirmation |
 | 10c | T4 | Performance and final validation on the real A55 target (A72 gains not transferable) | P2 | User | Out of scope here | — | Done by the user in the office environment, from this repo |
 
@@ -154,7 +153,7 @@ Take items in the order below; groups reflect dependencies, not ownership.
 | 11 | 8 | CFG and mutation invariants | P1 | — | Partial | R4–R6, R19, R11, R23 done |
 | 12 | 7 | Relocation/literal/veneer matrix | P1 | — | Partial | R1–R3, R7, R14 done |
 | 13 | 11 | Entries/symbols/reference routes | P1 | — | Partial | R9 done |
-| 14 | 12 | Tables and inline data | P1 | — | Partial | R18, R22, R24, R12 done; R21 pending |
+| 14 | 12 | Tables and inline data | P1 | — | Partial | R18, R22, R24, R12, R21 done |
 | 15 | 13 | Actual pass combinations | P1 | — | Partial | R7, R8, R20 done |
 | 16 | 9 | Interrupt/reentrancy/reset boundaries | P1 | — | Partial | T2/T2b (SMP execution and counters) done; active-IRQ fixtures still open |
 | 17 | 10 | Sampling/PMU ownership | P1 | — | Partial | Per-core PC watch ranges (T2) done; per-sample core attribution and loss/saturation accounting open |
@@ -171,6 +170,7 @@ Take items in the order below; groups reflect dependencies, not ownership.
 | R23 | Noreturn absolute-thunk traversal bypassed cycle detection | P1 | Claude | 8 | 0064: thunk following moved inside `isProvenNoReturnARM`'s in-progress cache guard, so A→B→A thunk cycles prove nothing and terminate; `arm-thunk-cycle.test` (A32+T32: cycle and self-cycle rejected promptly, acyclic chain still a proof). Unfixed OFF build reproduced the hang (timeout); fixed ON/OFF 54/54 |
 | R24 | A32 rotated (modified) immediates in inline-table bases | P2 | Claude | 12 | 0065: `getPCRelativeBase` decodes the ADDri/SUBri operand as imm8 ror 2·rot instead of using the encoded value as a byte count; `arm-ldr-pc-table.test` adds `add r3, pc, #256` (admitted, base re-pointed at the re-emitted table, default + reversed). Unfixed OFF build rejected it; fixed ON/OFF 54/54 |
 | R12 | ADR to an inline TBB/TBH table (`vsnprintf`) | P2 | Claude | 12 | 0066: Thumb `adr(.w) rB, <table>` directly before `tbb/tbh [pc,...]` is re-pointed at the re-emitted table (A32 table-base mechanism; ISA-aware builder in the emitter); still rejected when anything branches to the table branch or the adr is not adjacent. `arm-tbh-adr-base.test` (TBH/TBB default+reversed; branch-in and non-adjacent rejected); ON/OFF 55/55. Full LK 400 → 401/417 functions, 98.0% → 99.5% of code bytes. Pi: certified gate PASS with vsnprintf emitted (`r12_certified_20261005.json`); vsnprintf (boot-only, via snprintf) redirected: `threads` prints `idle 0-3` formatted by the rewritten copy, 18/18 (`r12_vsnprintf_threads_pi_20261005.log`) |
+| R21 | A32 `-O0` load-then-jump tables | P2 | Claude | 12 | 0067: `add rB, pc, #k … ldr rX, [rB, rI, lsl #2]; mov pc, rX` (or `bx rX`) with the table right after the jump is modelled like 0057 (jump becomes the table branch, base re-pointed, table re-emitted); admitted only when every case block redefines rX before reading it; load not adjacent to the jump, clobbered base, or a case reading rX stay rejected. `arm-load-jump-table.test` 12/12; ON/OFF 56/56. Edge image: `c_switch_arm_o0`/`c_switch_marm_o0` admitted (`bolt_edge_coverage_r21_20261005.json`); with both redirected, 146 edge cases × 2 on the Pi, 0 mismatches; certified gate on `ce8dd005` PASS (`r21_edge_certified_20261005.json`) |
 | M1 | Repository health and documentation consolidation | P2 | Codex | — | [Audit/changes](REPO_HEALTH.md); canonical HANDOFF queue, archived duplicate history, current monitor + offline integrity command; 167 host tests run/12 skipped, no failures; fixture/receipt hashes preserved |
 | R1 | Thumb `blx` re-patched as `bl` to ARM targets (61 LK sites) | P0 | Claude | 7 | 0046; `arm-external-branch-repatch.test`; LK raw output 61 → 0 |
 | R2 | ARM `B`/`BL`/`BLX` re-patch drops condition; PC+8 | P0 | Claude | 7 | 0046 |
@@ -232,6 +232,27 @@ emission coverage, not execution or whole-backend correctness.
 4. Update the *Claims* table and LK_COVERAGE.md together.
 
 ## Handoff log
+
+### 2026-10-05 — Claude: R21 done (overlay 0067); group C correctness items complete; lock and Pi released
+
+- A32 `-O0` switch lowering `add rB, pc, #k; ldr rX, [rB, rI, lsl #2];
+  mov pc, rX` (or `bx rX`): the jump is now the table branch of 0057's model
+  (base re-pointed, table re-emitted after the jump). Because rX keeps the new
+  case address, the table is admitted only if every case block redefines rX
+  before reading it. Non-adjacent load, clobbered base and a case reading rX
+  stay rejected. `mov pc, rX` outside such a table is still a rejected PC
+  write.
+- Tests: `arm-load-jump-table.test` 12/12; ON/OFF ARM lit 56/56; BOLT lit
+  750 + known AArch64 failure; 0001–0067 replay exactly (`361c833b`).
+- Coverage: full LK unchanged at 401/417 (`lk_coverage_r21_20261005.json`);
+  edge image now admits `c_switch_arm_o0`/`c_switch_marm_o0` (only the
+  must-reject `a_add_pc_switch` remains among switch cases).
+- Pi (reserved/released): edge candidate with both -O0 functions redirected,
+  `bolt_edge all` × 2 = 146 × 2, 0 mismatches; certified gate on the approved
+  `ce8dd005` contract PASS (10 reps, 18/18, edge 146/146).
+- All group C correctness items are done (R22, R11, R23, R24, R12, R21).
+  Remaining: T3 (deferred, user), T4 (user), P1 matrices. Lock free, Pi
+  unreserved.
 
 ### 2026-10-05 — Claude: R12 done (overlay 0066); R21 claimed; Pi released
 
