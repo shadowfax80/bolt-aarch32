@@ -1,0 +1,12 @@
+redirected bolt_bench_stair_kernel: 0x800089aa -> b.w 0x800e6000
+1 function(s) redirected (new .text is 274084 bytes)
+image: /mnt/c/Users/User/CURSOR/CodexProjects/BOLT_AARCH32/out/r35/counter-off/cspgo_thinlto.instr.bin (1286296 bytes)
+COUNTERS addr=8012a000 size=017819
+redirected bolt_bench_stair_kernel: 0x800089aa -> b.w 0x800e6000
+1 function(s) redirected (new .text is 73462 bytes)
+image: /mnt/c/Users/User/CURSOR/CodexProjects/BOLT_AARCH32/out/r35/counter-off/cspgo_thinlto_bolt.bin (982784 bytes)
+ok   /mnt/c/Users/User/CURSOR/CodexProjects/BOLT_AARCH32/out/r35/counter-off/cspgo_thinlto.instr.elf: 0 FP/NEON instructions
+ok   /mnt/c/Users/User/CURSOR/CodexProjects/BOLT_AARCH32/out/r35/counter-off/cspgo_thinlto_bolt.elf: 0 FP/NEON instructions
+ok   /mnt/c/Users/User/CURSOR/CodexProjects/BOLT_AARCH32/out/r35/full-on/baseline_full.elf: 0 FP/NEON instructions
+ok   /mnt/c/Users/User/CURSOR/CodexProjects/BOLT_AARCH32/out/r35/full-off/baseline_full.elf: 0 FP/NEON instructions
+PASS: ON/OFF CSPGO instrumentation, counter optimization and certified-image outputs match (ELF excludes command-line .note.bolt_info only); all no-FPU scans pass

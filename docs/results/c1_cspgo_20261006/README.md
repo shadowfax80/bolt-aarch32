@@ -1,5 +1,10 @@
 # C1: IR-PGO, CSPGO, ThinLTO and optional BOLT
 
+Later update: [R35/0073](../r35_conditional_returns_20261006/README.md) removes
+the conditional-return counter refusal for this exact CSPGO stair input and
+records a separate exact-counter comparison. The C1 measurements, refusal log
+and archive below retain their original 0001–0072 scope and bytes.
+
 C1 adds and verifies the two-round compiler profiling pipeline. It does not
 change the LLVM backend or certify a new image contract. See the
 [build and collection recipe](../../verification/CSPGO_PIPELINE.md).

@@ -1,6 +1,6 @@
 # BOLT AArch32 backend — architecture and design
 
-Status of this document: current as of overlays **0001–0072** (2026-10-06).
+Status of this document: current as of overlays **0001–0073** (2026-10-06).
 It describes the backend as built and verified in this repository. Work order
 and ownership are in [HANDOFF.md](HANDOFF.md). Limitations are in
 [KNOWN_LIMITATIONS.md](KNOWN_LIMITATIONS.md#current-atfe-backend-limitations-re-baselined-2026-10-05).
@@ -42,7 +42,7 @@ admission report. It is never transformed on a guess.
 ```mermaid
 flowchart LR
   subgraph repo["This repository"]
-    OV["overlay/llvm/patches/atfe<br/>0001–0072 (backend)"]
+    OV["overlay/llvm/patches/atfe<br/>0001–0073 (backend)"]
     LKOV["overlay/lk<br/>patches 0001–0011 + files<br/>(rpi4 port, bolt_bench)"]
     RT["overlay/llvm/bolt-rt-baremetal<br/>instrumentation runtime"]
     SC["scripts/<br/>build, pipeline, gates"]
@@ -134,7 +134,7 @@ flowchart TD
 | Range relaxation | LongJmp veneers, ISA-correct stubs, far tail calls, r12 liveness, cbz/Jump19 | 0009, 0020, 0022, 0044, 0049, 0061 |
 | Emission/linking | JITLink aarch32 kinds, stub alignment, BLX stubs, deterministic stubs, ISA traps/nops | 0008, 0012, 0014, 0017, 0019, 0050 |
 | Kept code | Re-patching branches in code BOLT does not emit, entry patching in the right ISA | 0025, 0046, 0048 |
-| Instrumentation | Counter probes, runtime contracts, SMP counters, exclusives, startup, profile identity | 0001, 0010, 0026, 0028, 0036–0040, 0043, 0059, 0060 |
+| Instrumentation | Counter probes, runtime contracts, SMP counters, exclusives, startup, profile identity, conditional-return lowering | 0001, 0010, 0026, 0028, 0036–0040, 0043, 0059, 0060, 0073 |
 | Reporting | Function map, admission report | 0013, 0054 |
 
 ### 4.2 Input admission (contracts)
@@ -356,8 +356,24 @@ flowchart LR
 
   In both cases, reset and snapshot must be quiescent. FIQ code must not be
   instrumented.
+- **Conditional returns (0073/R35).** Before CFG construction and profile
+  matching, a uniform Thumb IT group ending in a return becomes an inverse
+  conditional guard followed by an unconditional body/return. The guard skips
+  the entire body on a failed predicate, including its stack adjustments.
+  Earlier body instructions must preserve flags; narrow instructions that
+  suppress flags inside IT but set them outside IT are refused. For A32, a
+  guard is inserted after an ordinary predecessor, then the return is
+  unpredicated. A labeled/targeted return, function-entry return or return
+  after a control transfer is not lowered. The return and continuation keep
+  original instruction-boundary block offsets; the synthetic A32 guard uses
+  its predecessor's input offset. Identical lowering at collection and
+  consumption makes counter profiles match the original compiler ELF.
+  Shared MCContext label/expression allocation is locked during parallel CFG
+  construction. See [tests and Pi flow evidence](results/r35_conditional_returns_20261006/README.md).
 - **Shapes refused by instrumentation:**
-  - conditional returns, which have no CFG edge to count (0036);
+  - remaining conditional returns: mixed IT predicates, flag-dependent or
+    narrow implicit-flag Thumb bodies, and A32 returns without a safe
+    predecessor profile site (0036 guard retained; R36 follow-up);
   - probes inside exclusive reservation windows, including windows that
     cross functions or start at interior entries. An abandoned reservation
     returned from a try-lock path is admitted only when a raw scan finds no
@@ -478,9 +494,9 @@ feedback stages in the default path.
 BOLT then has an independent **sampled** or **instrumented** profile choice.
 Sampling supplies observed PCs (inferred edges on this platform); instrumentation
 supplies counters from admitted binary paths in a temporary training image.
-Both feed `.fdata` back to optimize the original final compiler ELF. Current
-CS stair conditional returns refuse instrumentation (0036/R35) but allow the
-sealed sampling route. The [route matrix](verification/CSPGO_PIPELINE.md#two-compiler-paths-two-bolt-profile-modes)
+Both feed `.fdata` back to optimize the original final compiler ELF. The
+CS stair output supports both sealed sampling and exact counters after
+0073/R35; unsupported predication shapes keep the 0036 guard. The [route matrix](verification/CSPGO_PIPELINE.md#two-compiler-paths-two-bolt-profile-modes)
 distinguishes available combinations from those measured on the Pi.
 
 The LK overlay's `app/bolt_bench/pgo.mk` retains frontend PGO and adds two-round
@@ -498,17 +514,18 @@ profiles precede BOLT and cannot replace its exact-binary `.fdata` profiles.
 
 ---
 
-## 7. Current status (2026-10-05)
+## 7. Current status (2026-10-06)
 
 | Measure | Value |
 |---|---|
-| Overlays | 0001–0072, replay exact |
-| Lit | ARM 58/58 in both assertion modes; BOLT suite: known AArch64 `constant_island_pie_update.s` failure only |
+| Overlays | 0001–0073, replay exact |
+| Lit | ARM 62/62 in both assertion modes; the older whole BOLT-suite run had a known AArch64 `constant_island_pie_update.s` failure; no new whole-suite claim |
 | Full LK `424606a8` (ARMv7) | 401/417 functions rewritten; 126164 of 126834 code bytes (99.5%) |
 | Remaining rejections | 7 exception/startup PC writers (vectors, `arm_secondary_setup`), 2 real fall-throughs (`bcopy`, `bzero`) |
 | A55 `47c73bc0` | 400 rewritten; certified on the Pi |
 | Edge image `ce8dd005` | 561 rewritten; 146 × 2 cases on the Pi, 0 mismatches |
 | SMP | Rewritten code on all cores; SMP counters verified |
+| Conditional-return counters | C1 CSPGO stair: 2,559 sealed counters; return/continuation counts 1600/0 and 0/1600 on inputs 0/2; all internal flow balances (R35) |
 | Edge probe | 158 OK, 24 known safe rejections, 0 wrong |
 | Not yet run | Real Cortex-A55 hardware (T4, the user) |
 
@@ -631,6 +648,7 @@ To support a new instruction shape safely:
 | 0070 | bolt-arm-data-pointer-thumb-bit | Absolute words to unnamed (section) symbols take their Thumb bit from the addend, not from the function at the section start (R28) |
 | 0071 | bolt-arm-thumb-short-branch-range | Thumb B/B<c> widened instead of stubbed; CBZ/CBNZ measured as the emitted B.W (R29) |
 | 0072 | bolt-arm-mapping-symbols | Output mapping symbols: every emitted fragment and JITLink stub marked in its own state; input marks kept where the original bytes survive; no "code resumes" mark past a fragment end (R30) |
+| 0073 | arm-conditional-return-flow | Safe A32/Thumb conditional returns lowered to explicit return/continuation blocks before instrumentation and profile matching; unsupported predicates/flag changes remain guarded (R35) |
 
 ## Appendix B. Glossary
 

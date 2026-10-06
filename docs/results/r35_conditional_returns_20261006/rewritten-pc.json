@@ -1,0 +1,44 @@
+{
+  "passed": true,
+  "scope": "PCs observed inside each mapped rewritten body on Pi A72; three training-input runs. Sampling alters training visibility and is not a timing or edge-count measurement.",
+  "rows": [
+    {
+      "image": "cspgo_thinlto.instr",
+      "image_sha256": "2301ee74ec64a2c9fd3419b688169cf428210a93545f25a87a99b07aedd0618b",
+      "elf_sha256": "1f7576b1a868039d8e20327da33506308b8fc555f2885e0f8fe76d7926f159f3",
+      "range": [
+        "0x800e6000",
+        "0x80128ea4"
+      ],
+      "hits_per_core": [
+        0,
+        0,
+        40431,
+        0
+      ],
+      "log_sha256": "e82b48723935df543325341e8002505b76c2530b7b6307de8dd8bed4424dc7c7",
+      "sampler_stopped": true,
+      "watch_ranges_cleared": true,
+      "watchdog_disabled": true
+    },
+    {
+      "image": "cspgo_thinlto_bolt",
+      "image_sha256": "38313efb26018df0407a079b9cf0bd5becc48cbd45270f9cf1e5301c74ac2c96",
+      "elf_sha256": "7c0d3a11cbbb2c09ddf79985b6b435bdf05697cbd20a326781cf6e72cdab797a",
+      "range": [
+        "0x800e6000",
+        "0x800f7ef6"
+      ],
+      "hits_per_core": [
+        0,
+        0,
+        1495,
+        0
+      ],
+      "log_sha256": "56317e8a9140150e3750c4ede24a79b961d5a5bec45cabd769482f5f800636e7",
+      "sampler_stopped": true,
+      "watch_ranges_cleared": true,
+      "watchdog_disabled": true
+    }
+  ]
+}

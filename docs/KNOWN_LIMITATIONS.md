@@ -12,7 +12,7 @@ R33/R34. Those defects can accept incomplete evidence and are not fail-safe.
 
 ## Current ATFE backend limitations (reviewed 2026-10-06)
 
-State: overlays 0001–0072, full LK `424606a8` 401/417 functions (126164 of
+State: overlays 0001–0073, full LK `424606a8` 401/417 functions (126164 of
 126834 code bytes, 99.5%), edge image `ce8dd005` 561 rewritten, A55 `47c73bc0`
 400 rewritten. Verified on the Pi 4B (Cortex-A72, AArch32, Non-secure SVC);
 the real target is a Cortex-A55, also in Non-secure SVC. Sources:
@@ -63,7 +63,7 @@ function, or the limit is in verification scope) unless marked otherwise.
 | V10 | Cross-fragment Thumb `b.w`/`bl` beyond +-16 MB (hot and cold more than 16 MB apart) is not probed; the 1.1 MB case (beyond `b<cond>.w`) passes | Needs a 16 MB+ image; LK is far below that |
 | V11 | New lk-perf collector and suite measurement helpers accept incomplete evidence (R31/R32); mixed sample weighting/lifecycle/PMU sharing also need lk-perf K18–K20 | **Not fail-safe:** a bound profile may have no footer, and a missing metric can manufacture a gain. Existing B1/B2 CSV sets are complete, but raw framing/portable retention require R34; use scoped historical results and close these guards before automated gate use |
 | V12 | Compiler IR/CSPGO is scoped to the bolt_bench module, with value profiling disabled and non-atomic counters; sequential workload training only, IRQ hook excluded | No indirect-target/memop-size profile gains or concurrent/SMP/FIQ training claim. CS RAM buffer is bounded and checked. Pi timing is synthetic/A72 evidence, not whole-LK or A55 performance; [pipeline](verification/CSPGO_PIPELINE.md) |
-| V13 | BOLT exact-counter instrumentation rejects conditional returns (0036); the current CSPGO/ThinLTO stair kernel triggers this guard | Fail-safe instrumentation refusal, not CSPGO incompatibility or a rewrite rejection. Sealed PC sampling remains available, with inferred rather than exact edge frequencies. R35 tracks safe counter support for these compiler outputs |
+| V13 | Conditional-return instrumentation supports only safely lowered shapes (0073/R35): uniform Thumb IT groups with a flag-invariant body, and A32 returns with an ordinary predecessor and no incoming target/entry at the return | The C1 CSPGO stair kernel now has sealed exact counters verified on the Pi. Mixed IT predicates, flag-changing or narrow implicit-flag Thumb bodies, and A32 entry/targeted/after-control-transfer returns retain the 0036 refusal. R36 tracks extending these shapes; general instrumented A32/IRQ/SMP state coverage remains in the certification matrices. [Evidence](results/r35_conditional_returns_20261006/README.md) |
 
 ### Superseded index entries
 

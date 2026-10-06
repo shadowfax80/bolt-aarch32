@@ -67,7 +67,7 @@ Everything needed to continue is in this repo:
 - **Certified input image:** `fixtures/lk-rpi4-bolt-test-424606a8.elf`
   (see `fixtures/README.md`); the skip list is in
   `docs/results/lk_coverage_r15_20261004.json` (`skip_funcs`).
-- **Backend source:** overlays `overlay/llvm/patches/atfe/0001–0072`; the WSL
+- **Backend source:** overlays `overlay/llvm/patches/atfe/0001–0073`; the WSL
   live tree must replay them exactly (`scripts/verify-atfe-overlays.py`).
   Do not run `scripts/apply-overlays.sh` on the dirty live tree.
 - **Commands:**
@@ -83,7 +83,10 @@ Everything needed to continue is in this repo:
   COM5; sample captures occasionally fail chunk validation (USB corruption),
   retry; never `git stash` from WSL on the Windows checkout.
 - **Build versions:** ON is `build-atfe`; OFF is `build-atfe-noassert`, both
-  on 0001–0072 (ARM lit 61/61). Clean-build provenance (item 14): a clean
+  on 0001–0073 (ARM lit 62/62). R35 verifies identical CS instrumentation,
+  counter optimization and certified-image load binaries across modes; ELF
+  parity excludes command-line `.note.bolt_info` only. Complete source replay
+  passes. Clean-build provenance (item 14) is still the historical receipt: a clean
   build of the pin plus 0001–0072 in both modes gives byte-identical outputs
   to both live builds on the G1, SMP/single-core instrumentation and split
   jobs; clean OFF tools equal live OFF byte for byte
@@ -91,6 +94,9 @@ Everything needed to continue is in this repo:
   `scripts/build_provenance.py` after backend changes that need a receipt.
   The older OFF build `out/correctness/build-atfe-noasserts-20261002` is 0054
   evidence. Preserve dirty live source.
+  R35's [receipt](results/r35_conditional_returns_20261006/README.md) has exact
+  counter flow, PC watch, both-mode tests and the new certified fixture gate.
+  Old apply stamps are not identity proofs; use the complete replay report.
 
 ## Target platform (user, 2026-10-04) and gap to it
 
@@ -118,7 +124,7 @@ image/configuration oracle contracts still require user review.
 
 | Holder | Since | Purpose |
 |---|---|---|
-| Codex | 2026-10-06 | R35: safe conditional-return instrumentation, new per-item overlay/tests and both assertion-mode verification. Preserve dirty live source and existing evidence |
+| — | — | Free; R35 complete. Shared source and both builds on 0001–0073; preserve dirty source, replay before use and do not reapply overlays |
 
 ## Pi reservation
 
@@ -126,7 +132,7 @@ Board-wide: shared by bolt-aarch32 and lk-perf (one Pi 4B on COM5).
 
 | Holder | Since | Purpose / last observation |
 |---|---|---|
-| Codex | 2026-10-06 | R35: sealed CSPGO stair counter capture, result/flow parity and rewritten-PC checks; watchdog armed for runs. Previous observation: CS+BOLT shell, sampler stopped/watch ranges cleared, watchdog off, COM5 closed |
+| — | — | Free; last observed 2026-10-06: R35 counter-BOLT CS shell, sampler stopped/watch ranges cleared, watchdog off, COM5 closed. Historical observation, check before use |
 
 ## Claims (consolidated TODO)
 
@@ -174,7 +180,7 @@ Take items in the order below; groups reflect dependencies, not ownership.
 | Order | ID | Item | Priority | Owner | Status | Part of | Notes |
 |---|---|---|---|---|---|---|---|
 | 18 | R33 | Safe, identity-checked clean-build resume and failure propagation | P2 | — | Open | 14 | Source marker/build cache can be stale; lit exit hidden by `\|\| true`; validate output ownership before cleanup. Item-14's independent PASS remains scoped; [closure](reviews/CORRECTNESS_REVIEW_CODEX_0072_20261006.md#new-follow-ups-and-closure-criteria) |
-| 18a | R35 | Exact BOLT counter profiles for conditional-return compiler outputs | P2 | Codex | In progress | — | User requested next after C2. C1 CSPGO/ThinLTO stair hits 0036's safe conditional-return refusal; PC sampling works. Model function-exit counts and preserve predicates/IT, flags and stack state; test A32/T32, both assertion modes and Pi parity before relaxing the guard; do not treat this as general CSPGO incompatibility |
+| 18a | R36 | Extend remaining conditional-return instrumentation shapes | P2 | — | Open | — | R35/0073 fixes the C1 CS stair input and safe uniform Thumb/A32 predecessor shapes. Mixed IT predicates, flag-changing/narrow implicit-flag Thumb bodies, and A32 entry/targeted/after-control-transfer returns still refuse. Model predicates and unique profile sites before relaxing guards; add both-mode semantic/state/count tests and Pi evidence; broader IRQ/SMP/A32 state matrices remain separate |
 | 19 | R34 | Portable B1/B2 capture and measurement evidence | P2 | — | Open | — | Published CSVs have uniform metric/run sets; raw captures point into local temporary storage, not tracked paths; retain hash-bound logs/inputs and audit result frames; [closure](reviews/CORRECTNESS_REVIEW_CODEX_0072_20261006.md#new-follow-ups-and-closure-criteria) |
 | 20 | T4 | Performance and final validation on the real A55 target (A72 gains not transferable) | P2 | User | Out of scope here | — | Done by the user in the office environment, from this repo |
 
@@ -182,7 +188,7 @@ Take items in the order below; groups reflect dependencies, not ownership.
 
 ### Done
 
-Completed items with patches and evidence: [history/HANDOFF_DONE.md](history/HANDOFF_DONE.md) (newest first; add new rows there). Latest: C2 (compiler/BOLT route docs), C1 (compiler pipeline; R35 counter support remains open), CR1 (review/docs only), 14, R30, G1, B2, R28, R29, B1, M2, T3 (closed), R27, R25, R26, R21, R12, R24, R23.
+Completed items with patches and evidence: [history/HANDOFF_DONE.md](history/HANDOFF_DONE.md) (newest first; add new rows there). Latest: R35 (0073; CS stair counters, guarded subset), C2 (compiler/BOLT route docs), C1 (compiler pipeline), CR1 (review/docs only), 14, R30, G1, B2, R28, R29, B1, M2, T3 (closed), R27, R25, R26, R21, R12, R24, R23.
 
 ## Coverage goal
 
@@ -210,6 +216,53 @@ emission coverage, not execution or whole-backend correctness.
 4. Update the *Claims* table and LK_COVERAGE.md together.
 
 ## Handoff log
+
+### 2026-10-06 — Codex: R35 fixed for C1 CSPGO output; 0073 verified; resources released
+
+- **0073** lowers safe conditional returns before CFG/profile construction:
+  uniform, flag-invariant Thumb IT groups become an inverse guard plus an
+  unconditional return body; A32 uses an ordinary predecessor profile site.
+  Return/continuation retain original block offsets; collection and consumption
+  use the same CFG. Shared MCContext allocation is locked. The 0036 refusal
+  remains for mixed IT, flag-changing/narrow implicit-flag Thumb bodies, and
+  A32 entry/targeted/after-control-transfer returns; **R36 Open P2** tracks them.
+- ON/OFF **62/62 ARM lit**, new fixture **115 outcomes/mode** (17 admitted,
+  six refusal cases × five options), with user-QEMU result/APSR/SP diagnostics
+  on originals and default/reversed outputs. CS instrumentation, counter
+  optimization and certified-image binaries are identical across assertion
+  modes; ELFs match except `.note.bolt_info`. No-FPU scans pass. Full overlay
+  replay has no uncovered/mismatched source. This is incremental-build parity;
+  item-14 clean-build provenance stays scoped to 0001–0072.
+- Exact unchanged C1 CS stair input now instruments instead of refusing.
+  Sealed Pi captures: **2,559 counters**, source-derived **1,600 calls/exits**;
+  return/continuation counts **1600/0** for input 0 and **0/1600** for input 2;
+  all internal flow balances. Counter fdata optimizes the original compiler
+  ELF, with 0% CFG flow gap. Original/instrumented/optimized images agree on
+  all 18 results; no new algorithmic oracle. Core-2 PC watch sees **40,431**
+  instrumented and **1,495** optimized-body hits. Watchdog armed for runs.
+- Counter-trained BOLT after CS is nearly unchanged on inputs 0/1
+  (**+0.063%/+0.041%** cycles), but input 2 regresses **+10.935%**. Published
+  all 36 timing records/metrics/checksums, not a universal gain. C1's earlier
+  sampled +20.253% shifted-input result remains a separate backend/run scope.
+- Approved certified full-image gate: 18 workloads/oracles PASS, ten candidate
+  repetitions, PC evidence for both selected `interwork`/`memcpy` redirects.
+  Regenerated coverage: **401/417 → 401/417**, **126164/126834 → 126164/126834**
+  code bytes (**99.5%**); instrumentation scan passes. Other emitted functions
+  are not new execution coverage. A32 new return cases have build/QEMU evidence;
+  this new counter hardware path is Thumb, not a general IRQ/SMP/A55 certificate.
+- Updated architecture, limitations, compiler/BOLT recipe and route matrix,
+  WSL guide, root README, documentation map and completed-item history. Portable
+  [receipt/archive](results/r35_conditional_returns_20261006/README.md) retains
+  inputs/images, counters/seals/profiles, raw logs and both-mode fixture outputs.
+  This handoff plus the receipt is the persistent joint-work memory.
+- Live source/builds: 0001–0073, intentional dirty overlay source preserved;
+  exact replay required, do not trust old apply stamps or reapply overlays.
+  C1 compiler outputs preserved in `/home/user/bolt-cspgo/build-atfe/cspgo-runs/c148c605589f7b94`;
+  R35 outputs: `build-atfe/r35-counter-stair`, Windows `out/r35`.
+  Pi last observed: counter-BOLT CS shell, sampler stopped/watch ranges cleared,
+  watchdog off, COM5 closed. Live-tree and board reservations released by push.
+  Next normal shared item: **R32**; R31 awaits lk-perf K18. No further queue
+  work started. Recheck remote ownership before pickup.
 
 ### 2026-10-06 — Codex: C2 verified/documented two compiler paths and two BOLT profile modes
 

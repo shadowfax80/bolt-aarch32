@@ -13,6 +13,15 @@ receipt covers the declared four-core Pi workload/counter model. Active IRQ
 reentrancy, wider entry/runtime matrices and clean provenance remain bounded
 by HANDOFF's open items. User mode and FIQ are unsupported.
 
+Conditional returns (0073/R35) now have explicit return and continuation
+blocks for uniform, flag-invariant Thumb IT groups and safe predecessor-based
+A32 shapes. [R35 evidence](../results/r35_conditional_returns_20261006/README.md)
+verifies the C1 Thumb CSPGO kernel's exact counters on the Pi. The A32 return
+variants have build and user-QEMU state/semantic checks; this is not a new
+general A32/IRQ/SMP instrumentation certificate. Mixed/flag-changing Thumb
+groups and A32 entry/targeted/after-control-transfer returns keep the refusal
+guard (R36).
+
 ## Historical single-core contract and evidence through 0039
 
 The older observations below are preserved as dated evidence. Subsequent

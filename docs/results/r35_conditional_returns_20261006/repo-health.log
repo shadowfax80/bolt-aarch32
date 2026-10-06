@@ -1,0 +1,15 @@
+{
+  "success": true,
+  "checks": {
+    "tracked_files": 633,
+    "json": 145,
+    "python": 100,
+    "markdown": 73,
+    "fixtures": 7,
+    "work_items": 13,
+    "atfe_overlays": 73,
+    "r11_bound_artifacts": 11
+  },
+  "errors": [],
+  "scope": "Tracked-file structure, local Markdown file targets (not anchors/external links), Python syntax, JSON, current work tables, overlay inventory and selected fixture/receipt hashes. No backend execution, clean-build or hardware proof."
+}

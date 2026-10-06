@@ -1,0 +1,76 @@
+{
+  "passed": true,
+  "scope": "Exact sealed CS stair counts and command-framed output; source-derived 100 warmups + 1500 calls. Output agreement is not an independent algorithmic oracle.",
+  "rows": [
+    {
+      "variant": 0,
+      "checksum": "0x2f744325",
+      "workload_records": [
+        {
+          "kernel": "stair",
+          "run": 1,
+          "cycles": 252275828,
+          "acc": "0x2f744325",
+          "inst": 57802363,
+          "l1i_refill": 3999469,
+          "l1d_refill": 0,
+          "br_mispred": 179509,
+          "taken": 3704769
+        }
+      ],
+      "capture_manifest_sha256": "78b4de46b3768c03142f906229cfc577f19a84aade796cbdbee92bed52f82973",
+      "entries": 1600,
+      "exits": 1600,
+      "early_return_edges": [
+        {
+          "source_offset": "0x9e10",
+          "target_offset": "0x9e1a",
+          "count": 0,
+          "counter": 2046
+        },
+        {
+          "source_offset": "0x9e10",
+          "target_offset": "0x9e12",
+          "count": 1600,
+          "counter": 2047
+        }
+      ],
+      "all_internal_flow_conserved": true
+    },
+    {
+      "variant": 2,
+      "checksum": "0x5806b01f",
+      "workload_records": [
+        {
+          "kernel": "stair",
+          "run": 1,
+          "cycles": 160766835,
+          "acc": "0x5806b01f",
+          "inst": 52584025,
+          "l1i_refill": 2466206,
+          "l1d_refill": 0,
+          "br_mispred": 183840,
+          "taken": 10762904
+        }
+      ],
+      "capture_manifest_sha256": "ec853a3b4cbf168e65be678e15d215408421c61f7168c48f36c64a5727e93261",
+      "entries": 1600,
+      "exits": 1600,
+      "early_return_edges": [
+        {
+          "source_offset": "0x9e10",
+          "target_offset": "0x9e1a",
+          "count": 1600,
+          "counter": 2046
+        },
+        {
+          "source_offset": "0x9e10",
+          "target_offset": "0x9e12",
+          "count": 0,
+          "counter": 2047
+        }
+      ],
+      "all_internal_flow_conserved": true
+    }
+  ]
+}

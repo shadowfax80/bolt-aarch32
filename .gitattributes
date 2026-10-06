@@ -10,3 +10,10 @@ docs/results/lk_coverage_20261004_r11*.json -text
 # C1 raw logs carry receipt hashes; preserve bytes, including compiler-emitted
 # whitespace, across checkouts. Full UART originals also live in evidence.tar.xz.
 docs/results/c1_cspgo_20261006/*.log -text whitespace=-blank-at-eol,-blank-at-eof
+# R35 logs and receipts retain exact UART/identity bytes across checkouts.
+docs/results/r35_conditional_returns_20261006/*.log -text whitespace=-blank-at-eol,-blank-at-eof
+docs/results/r35_conditional_returns_20261006/*.json -text whitespace=cr-at-eol
+docs/results/r35_conditional_returns_20261006/*.csv -text whitespace=cr-at-eol
+# Unified-diff context includes literal trailing spaces; preserve the tested
+# patch rather than normalizing its bytes after artifact sealing.
+overlay/llvm/patches/atfe/0073-arm-conditional-return-flow.patch whitespace=-blank-at-eol

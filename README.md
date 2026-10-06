@@ -13,7 +13,7 @@ LLVM commit, and the LK changes are overlays too.
 
 | | |
 |---|---|
-| Backend | Overlays `overlay/llvm/patches/atfe/0001–0072`, ARM lit 61/61 with assertions on and off |
+| Backend | Overlays `overlay/llvm/patches/atfe/0001–0073`, ARM lit 62/62 with assertions on and off |
 | Full LK image | 401/417 functions rewritten, 99.5% of code bytes; the rest are vectors, startup and real fall-through code |
 | Hardware | Certified Pi gates on ARMv7, Cortex-A55-built and SMP images (Non-secure SVC) |
 | Compiler flow | Ordinary IR-PGO → ThinLTO-guided CSPGO training → merged IR+CS profile use with ThinLTO → optional BOLT |
@@ -70,8 +70,9 @@ Two compiler paths are available; each can feed either BOLT profile mode:
 Sampled BOLT collects execution observations; instrumented BOLT collects
 counter feedback from a temporary training binary. Both optimize the original
 compiler ELF with a fresh bound BOLT profile. The current CSPGO stair binary
-is sampled successfully but refuses counter instrumentation for conditional
-returns (R35). See the [route/status matrix](docs/verification/CSPGO_PIPELINE.md#two-compiler-paths-two-bolt-profile-modes).
+supports both routes: R35/0073 models its conditional return explicitly and
+verifies exact counters on the Pi. Unsupported predication shapes still refuse
+instrumentation. See the [route/status matrix](docs/verification/CSPGO_PIPELINE.md#two-compiler-paths-two-bolt-profile-modes).
 
 IR-PGO and CSPGO complement each other. Ordinary IR counts guide earlier
 optimization and ThinLTO inlining; a second training build collects counts
@@ -92,10 +93,10 @@ frontend-PGO variants remain explicitly selectable; its old cycle requires
 
 See the [recipe](docs/verification/CSPGO_PIPELINE.md) and
 [Pi evidence](docs/results/c1_cspgo_20261006/README.md). Optional BOLT needs a
-fresh profile bound to the final ELF. Current conditional-return counter
-support is tracked as R35; sealed PC sampling works. Measure its incremental
-benefit: on this workload BOLT after CSPGO regressed, including +20.25% cycles
-on a shifted input.
+fresh profile bound to the final ELF. [R35 evidence](docs/results/r35_conditional_returns_20261006/README.md)
+records counter support and its remaining guards. Measure BOLT's incremental
+benefit: the earlier sampled comparison after CSPGO regressed, including
++20.25% cycles on a shifted input; counter results are recorded separately.
 
 ## Layout
 

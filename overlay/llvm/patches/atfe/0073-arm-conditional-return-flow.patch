@@ -1,0 +1,418 @@
+--- a/bolt/include/bolt/Core/MCPlusBuilder.h
++++ b/bolt/include/bolt/Core/MCPlusBuilder.h
+@@ -879,6 +879,16 @@
+   /// Move a terminal direct branch out of its predication group, shortening
+   /// Prefix (or replacing it with a no-op) and giving Branch an explicit
+   /// condition. Return false when the control transfer cannot be normalized.
++  /// Lower a uniformly predicated sequence ending in a return. Guard skips
++  /// the unconditional body when its original condition fails. Return false
++  /// without changing anything for unsupported predicates/control transfers.
++  virtual bool normalizeConditionalReturnGroup(InstructionListType &Body,
++                                               MCInst &Guard,
++                                               const MCSymbol *Continuation,
++                                               MCContext *Ctx) const {
++    return false;
++  }
++
+   virtual bool normalizePredicatedBranch(MCInst &Prefix, MCInst &Branch) const {
+     return false;
+   }
+--- a/bolt/lib/Core/BinaryFunction.cpp
++++ b/bolt/lib/Core/BinaryFunction.cpp
+@@ -2999,6 +2999,77 @@
+   assert((Labels.find(getFirstInstructionOffset()) != Labels.end()) &&
+          "first instruction should always have a label");
+ 
++  // R35: expose both outcomes of supported conditional returns before CFG
++  // construction/profile matching. Thumb uniform IT return groups become a
++  // guard at the original IT offset plus an unconditional return path. A32
++  // gets a guard after its preceding ordinary instruction; the added guard's
++  // profile offset is that instruction's input offset. The return and the
++  // continuation keep distinct, original instruction-boundary block offsets.
++  // Apply the same lowering for instrumentation and profile consumption.
++  DenseMap<uint32_t, MCInst> ARMReturnGuards;
++  if (BC.isARM()) {
++    for (auto I = Instructions.begin(), E = Instructions.end(); I != E; ++I) {
++      auto Last = I;
++      InstructionListType Body;
++      if (isARMThumb()) {
++        const unsigned Size = MIB->getPredicationPrefixSize(I->second);
++        if (!Size)
++          continue;
++        auto B = std::next(I);
++        for (unsigned N = 0; N != Size && B != E; ++N, ++B) {
++          Body.push_back(B->second);
++          Last = B;
++        }
++        if (Body.size() != Size)
++          continue;
++      } else {
++        if (!MIB->isReturn(I->second) || MIB->isTerminator(I->second) ||
++            I == Instructions.begin() || Labels.count(I->first))
++          continue;
++        const MCInst &Prev = std::prev(I)->second;
++        // A second control transfer cannot share the predecessor's profile
++        // site. Leave these shapes intact for the instrumentation guard.
++        if (MIB->isBranch(Prev) || MIB->isCall(Prev) || MIB->isReturn(Prev) ||
++            MIB->isTerminator(Prev))
++          continue;
++        Body.push_back(I->second);
++      }
++      if (Body.empty() || !MIB->isReturn(Body.back()) ||
++          MIB->isTerminator(Body.back()))
++        continue;
++      const auto Next = std::next(Last);
++      if (Next == E)
++        continue; // A failed condition may not run off the function end.
++      MCInst Guard;
++      // buildCFG runs concurrently across functions. Label creation and
++      // expression allocation share MCContext, unlike the per-function maps.
++      auto ContextLock = BC.scopeLock();
++      MCSymbol *Continuation = getOrCreateLocalLabel(getAddress() + Next->first);
++      if (!MIB->normalizeConditionalReturnGroup(Body, Guard, Continuation,
++                                               BC.Ctx.get()))
++        continue;
++      if (isARMThumb()) {
++        MIB->setOffset(Guard, I->first);
++        I->second = std::move(Guard);
++        auto B = std::next(I);
++        getOrCreateLocalLabel(getAddress() + B->first);
++        for (MCInst &Inst : Body) {
++          B->second = std::move(Inst);
++          ++B;
++        }
++        TakenBranches.emplace_back(I->first, Next->first);
++        I = Last;
++      } else {
++        const auto Prev = std::prev(I);
++        MIB->setOffset(Guard, Prev->first);
++        ARMReturnGuards[Prev->first] = std::move(Guard);
++        I->second = std::move(Body.front());
++        getOrCreateLocalLabel(getAddress() + I->first);
++        TakenBranches.emplace_back(Prev->first, Next->first);
++      }
++    }
++  }
++
+   // Create basic blocks in the original layout order:
+   //
+   //  * Every instruction with associated label marks
+@@ -3105,7 +3176,7 @@
+       addCFIPlaceholders(Offset, InsertBB);
+     }
+ 
+-    const bool IsBlockEnd = MIB->isTerminator(Instr);
++    bool IsBlockEnd = MIB->isTerminator(Instr);
+     IsLastInstrNop = MIB->isNoop(Instr);
+     if (!IsLastInstrNop)
+       LastInstrOffset = Offset;
+@@ -3123,6 +3194,12 @@
+ 
+     // Note: this potentially invalidates instruction pointers/iterators.
+     addCFIPlaceholders(CFIOffset, InsertBB);
++
++    if (auto Guard = ARMReturnGuards.find(Offset);
++        Guard != ARMReturnGuards.end()) {
++      InsertBB->addInstruction(std::move(Guard->second));
++      IsBlockEnd = true;
++    }
+ 
+     if (IsBlockEnd) {
+       PrevBB = InsertBB;
+--- a/bolt/lib/Passes/Instrumentation.cpp
++++ b/bolt/lib/Passes/Instrumentation.cpp
+@@ -675,10 +675,11 @@
+             (opts::InstrumentHotOnly && !BF.getKnownExecutionCount()));
+   };
+ 
+-  // A conditional return is kept inside an ARM block to preserve its
+-  // fallthrough, but its taken exit has no CFG edge. Spanning-tree profiling
+-  // would miss paths that return before the leaf counters. Refuse to publish
+-  // such a profile until both exit and fallthrough are modeled.
++  // Supported conditional returns were lowered to explicit return and
++  // continuation blocks during CFG construction (R35). A remaining return
++  // with fallthrough has an unsupported shape (e.g. a mixed-predicate IT
++  // group or an A32 return without a safe predecessor profile site). Refuse
++  // it: spanning-tree profiling would otherwise miss its early exit.
+   if (BC.isARM()) {
+     for (auto &It : BC.getBinaryFunctions()) {
+       BinaryFunction &BF = It.second;
+--- a/bolt/lib/Target/ARM/ARMMCPlusBuilder.cpp
++++ b/bolt/lib/Target/ARM/ARMMCPlusBuilder.cpp
+@@ -118,6 +118,57 @@
+     if (CC < 0 || CC >= ARMCC::AL || Mask <= 0 || Mask > 15)
+       return 0;
+     return getITBlockSize(Inst);
++  }
++
++  bool normalizeConditionalReturnGroup(InstructionListType &Body,
++                                       MCInst &Guard,
++                                       const MCSymbol *Continuation,
++                                       MCContext *Ctx) const override {
++    if (Body.empty() || !isReturn(Body.back()) || isTerminator(Body.back()))
++      return false;
++    const int LastPred = Info->get(Body.back().getOpcode()).findFirstPredOperandIdx();
++    if (LastPred < 0 || unsigned(LastPred + 1) >= Body.back().getNumOperands() ||
++        !Body.back().getOperand(LastPred).isImm())
++      return false;
++    const int64_t CC = Body.back().getOperand(LastPred).getImm();
++    if (CC < 0 || CC >= ARMCC::AL)
++      return false;
++    // An ITE group may contain work on the opposite path; skipping that work
++    // would change the program. Validate the complete group before mutating.
++    for (unsigned I = 0; I != Body.size(); ++I) {
++      const MCInst &Inst = Body[I];
++      const int Pred = Info->get(Inst.getOpcode()).findFirstPredOperandIdx();
++      if (Pred < 0 || unsigned(Pred + 1) >= Inst.getNumOperands() ||
++          !Inst.getOperand(Pred).isImm() ||
++          Inst.getOperand(Pred).getImm() != CC ||
++          !Inst.getOperand(Pred + 1).isReg() ||
++          Inst.getOperand(Pred + 1).getReg() != ARM::CPSR ||
++          (I + 1 != Body.size() &&
++           (isBranch(Inst) || isCall(Inst) || isReturn(Inst) || isTerminator(Inst))))
++        return false;
++      if (InThumbMode() && I + 1 != Body.size()) {
++        const MCInstrDesc &Desc = Info->get(Inst.getOpcode());
++        // A single guard cannot replace predicates that depend on flags
++        // changed by an earlier body instruction. Also, narrow Thumb data
++        // instructions with an optional CPSR def suppress their flag update
++        // inside IT, but set flags outside IT even when MC carries NoRegister.
++        // Keep both shapes under the refusal guard until safely widened.
++        if (hasDefOfPhysReg(Inst, ARM::CPSR) ||
++            llvm::is_contained(Desc.implicit_defs(), ARM::CPSR) ||
++            (Desc.getSize() == 2 && Desc.hasOptionalDef()))
++          return false;
++      }
++    }
++    Guard = MCInstBuilder(InThumbMode() ? ARM::t2Bcc : ARM::Bcc)
++                .addExpr(MCSymbolRefExpr::create(Continuation, *Ctx))
++                .addImm(ARMCC::getOppositeCondition(static_cast<ARMCC::CondCodes>(CC)))
++                .addReg(ARM::CPSR);
++    for (MCInst &Inst : Body) {
++      const int Pred = Info->get(Inst.getOpcode()).findFirstPredOperandIdx();
++      Inst.getOperand(Pred).setImm(ARMCC::AL);
++      Inst.getOperand(Pred + 1).setReg(0);
++    }
++    return true;
+   }
+ 
+   bool normalizePredicatedBranch(MCInst &Prefix,
+--- a/bolt/test/ARM/Inputs/check-arm-conditional-instrumentation.py
++++ b/bolt/test/ARM/Inputs/check-arm-conditional-instrumentation.py
+@@ -16,7 +16,7 @@
+         instrument=mode.startswith('instrument');candidate=d/(mode+'.elf')
+         if instrument: options=options+['--instrument','--instrument-calls=false','--arm-instrumentation-contract=privileged-single-core-no-fiq','--instrumentation-sleep-time=1','--runtime-instrumentation-lib='+str(runtime)]
+         p=run(mode,['llvm-bolt',d/'input.elf','-o',candidate,'--no-huge-pages','-lite=0','--funcs=probe','--print-cfg','--print-only=probe',*options])
+-        good=p.returncode==1 and 'AArch32 instrumentation does not support conditional returns' in p.stdout+p.stderr and not candidate.exists() if instrument else p.returncode==0 and candidate.exists()
++        good=p.returncode==0 and candidate.exists()
+         rows.append(dict(kind=kind,mode=mode,instrument=instrument,returncode=p.returncode,output=candidate.exists(),passed=good))
+         if candidate.exists():run(mode+'-disasm',['llvm-objdump','-d',candidate])
+         if not good and not observe:raise RuntimeError('wrong conditional return boundary: '+kind+' '+mode+'\n'+p.stdout+p.stderr)
+--- a/bolt/test/ARM/Inputs/check-arm-predicated-returns-calls.py
++++ b/bolt/test/ARM/Inputs/check-arm-predicated-returns-calls.py
+@@ -211,6 +211,15 @@
+         same = it_groups(name, insts, order) == it_groups(name, in_insts, in_order)
+         ok = moved and same
+         detail = ''
++        if name == 't_ret':
++            # R35: single-IT return is now a guard and an unconditional BX.
++            seq = [insts[a][1:] for a in order if insts[a][0] == name]
++            normalized = (not it_groups(name, insts, order) and
++                          any(re.fullmatch(r'b(?:eq|ne)(?:\.w)?', m) for m, _ in seq) and
++                          any(m == 'bx' and o == 'lr' for m, o in seq) and
++                          not any(m == 'bxeq' for m, _ in seq))
++            ok = moved and normalized
++            detail = f'; return CFG normalized={normalized}' 
+         if name in CALLS:
+             mn, callee = CALLS[name]
+             sites = [a for a in order if insts[a][0] == name and insts[a][1] == mn]
+--- a/bolt/test/ARM/arm-conditional-instrumentation.test
++++ b/bolt/test/ARM/arm-conditional-instrumentation.test
+@@ -1,3 +1,3 @@
+-## Conditional returns have no taken-exit CFG edge yet. Relocation remains
+-## supported; instrumentation must reject instead of publishing incomplete counts.
++## R35: preceding A32 comparison sites permit explicit return/continuation
++## blocks. Relocation and every tested instrumentation mode must succeed.
+ RUN: %python %p/Inputs/check-arm-conditional-instrumentation.py %t.dir
+--- a/bolt/test/ARM/arm-pop-cfg.test
++++ b/bolt/test/ARM/arm-pop-cfg.test
+@@ -1,5 +1,5 @@
+ ## A PC-restoring load terminates a block; ordinary and predicated loads
+-## retain their live fallthrough instructions.
++## retain live fallthrough; supported predicated returns get explicit CFG exits.
+ RUN: llvm-mc -arm-add-build-attributes -triple=armv7-none-eabi -filetype=obj %p/Inputs/arm32-pop-cfg.s -o %t.o
+ RUN: ld.lld --emit-relocs -T %p/Inputs/arm32.ld %t.o -o %t.exe
+ RUN: llvm-bolt %t.exe -o %t.bolt --print-finalized 2>&1 | FileCheck %s
+@@ -12,7 +12,8 @@
+ CHECK: mov{{.*}}#99
+ CHECK: End of Function "arm_no_pc"
+ CHECK-LABEL: Binary Function "arm_predicated" after finalize-functions
+-CHECK: popeq
++CHECK: bne
++CHECK: pop
+ CHECK: mov{{.*}}#42
+ CHECK: pop
+ CHECK: End of Function "arm_predicated"
+--- a/bolt/test/ARM/arm-predicated-returns-calls.test
++++ b/bolt/test/ARM/arm-predicated-returns-calls.test
+@@ -1,6 +1,5 @@
+-## Group-final predicated returns and calls in Thumb IT blocks, and A32 BL<c>,
+-## stay inside their block: IT groups are emitted unchanged and calls keep
+-## their condition and reach the moved callee, also through LongJmp stubs.
+-
++## Predicated calls and unsupported return groups retain IT state/conditions.
++## R35 lowers a flag-invariant uniform return group to an explicit CFG exit;
++## call targets still reach moved callees, including through LongJmp stubs.
+ RUN: rm -rf %t.dir
+ RUN: %python %p/Inputs/check-arm-predicated-returns-calls.py %t.dir
+--- /dev/null
++++ b/bolt/test/ARM/Inputs/check-arm-conditional-return-flow.py
+@@ -0,0 +1,141 @@
++from pathlib import Path
++import json
++import shutil
++import subprocess
++import sys
++import tempfile
++
++tc = Path(shutil.which('llvm-bolt')).resolve().parent
++runtime = tc.parent / 'bolt-rt-baremetal-arm/libbolt_rt_baremetal.a'
++parent = Path(sys.argv[1]); parent.mkdir(parents=True, exist_ok=True)
++out = Path(tempfile.mkdtemp(prefix='r35-', dir=parent))
++rows = []
++qemu = shutil.which('qemu-arm')
++
++def run(label, argv, directory):
++    p = subprocess.run([str(x) for x in argv], cwd=directory, capture_output=True, text=True)
++    (directory / (label + '.log')).write_text(p.stdout + p.stderr)
++    return p
++
++driver = '''.arm
++.global _start
++.type _start,%function
++_start:
++ mov r8,sp
++ mov r4,#0
++ mov r0,#0
++ bl probe
++ mrs r5,apsr
++ and r5,r5,#0xf0000000
++ mov r6,#0x60000000
++ cmp r5,r6
++ bne bad
++ add r4,r4,r0
++ cmp sp,r8
++ bne bad
++ mov r0,#1
++ bl probe
++ mrs r5,apsr
++ and r5,r5,#0xf0000000
++ mov r6,#0x60000000
++ cmp r5,r6
++ bne bad
++ add r4,r4,r0
++ cmp sp,r8
++ bne bad
++ mov r0,#2
++ bl probe
++ mrs r5,apsr
++ and r5,r5,#0xf0000000
++ mov r6,#0x20000000
++ cmp r5,r6
++ bne bad
++ add r4,r4,r0
++ cmp sp,r8
++ bne bad
++ cmp r4,#16
++ bne bad
++ mov r0,#0
++ b exit
++bad: mov r0,#99
++exit: mov r7,#1
++ svc #0
++ b .
++.size _start,.-_start
++'''
++
++cases = []
++for kind, push, ret in [('bx', '', 'bx lr'), ('mov', '', 'mov pc,lr'),
++                       ('pop', 'push {lr}\n', 'pop {pc}'),
++                       ('ldm', 'push {r4,lr}\n', 'pop {r4,pc}')]:
++    conditional = ret.replace('bx ', 'bxeq ').replace('mov ', 'moveq ').replace('pop ', 'popeq ')
++    body = push + 'cmp r0,#0\n' + conditional + '\ncmp r0,#1\nbeq one\nmov r0,#7\n' + ret + '\none: mov r0,#9\n' + ret
++    cases.append(('arm-' + kind, '.arm\n', body, True))
++for size in range(1, 5):
++    for kind, push, ret in [('bx', '', 'bx lr'), ('pop', 'push {lr}\n', 'pop {pc}'),
++                           ('ldm', 'push {r4,lr}\n', 'pop {r4,pc}')]:
++        extra = ['moveq r2,r2', 'moveq r3,r3', 'moveq r12,r12'][:size - 1]
++        conditional = ret.replace('bx ', 'bxeq ').replace('pop ', 'popeq ')
++        body = push + 'cmp r0,#0\ni' + 't' * size + ' eq\n' + '\n'.join(extra + [conditional])
++        body += '\ncmp r0,#1\nbeq one\nmov.w r0,#7\n' + ret + '\none: mov.w r0,#9\n' + ret
++        cases.append((f'thumb-{kind}-it{size}', '.thumb\n.thumb_func\n', body, True))
++cases.append(('thumb-stack-it3', '.thumb\n.thumb_func\n', '''push {r4,lr}
++sub sp,#4
++cmp r0,#0
++ittt eq
++moveq r0,r0
++addeq sp,#4
++popeq {r4,pc}
++cmp r0,#1
++beq one
++mov.w r0,#7
++add sp,#4
++pop {r4,pc}
++one: mov.w r0,#9
++add sp,#4
++pop {r4,pc}''', True))
++cases += [
++    ('arm-entry', '.arm\n', 'bxeq lr\nmov r0,#7\nbx lr', False),
++    ('arm-targeted-return', '.arm\n', 'cmp r0,#0\nbeq ret\nmov r0,#7\nret: bxeq lr\nbx lr', False),
++    ('arm-after-branch', '.arm\n', 'cmp r0,#0\nbne one\nbxeq lr\none: mov r0,#7\nbx lr', False),
++    ('thumb-mixed-ite', '.thumb\n.thumb_func\n', 'cmp r0,#0\nite eq\nmoveq r2,#3\nbxne lr\nmov.w r0,#7\nbx lr', False),
++    ('thumb-narrow-flags', '.thumb\n.thumb_func\n', 'cmp r0,#0\nitt eq\naddeq r2,r2,#1\nbxeq lr\nmov.w r0,#7\nbx lr', False),
++    ('thumb-changing-flags', '.thumb\n.thumb_func\n', 'cmp r0,#0\nitt eq\ncmpeq r2,#3\nbxeq lr\nmov.w r0,#7\nbx lr', False),
++]
++
++for name, isa, body, supported in cases:
++    directory = out / name; directory.mkdir()
++    asm = '.syntax unified\n.arch armv7-a\n.text\n' + driver
++    asm += '.balign 4\n.global probe\n.type probe,%function\n' + isa + 'probe:\n' + body + '\n.size probe,.-probe\n'
++    (directory / 'in.s').write_text(asm)
++    (directory / 'in.ld').write_text('ENTRY(_start)\nSECTIONS { . = 0x10000; .text : { *(.text*) } }\n')
++    for label, argv in [('assemble', [tc/'llvm-mc', '-triple=armv7-none-linux-gnueabi', '-arm-add-build-attributes', '-filetype=obj', 'in.s', '-o', 'in.o']),
++                        ('link', [tc/'ld.lld', '--emit-relocs', '-T', 'in.ld', 'in.o', '-o', 'in.elf'])]:
++        p = run(label, argv, directory)
++        assert p.returncode == 0, (name, label, p.stderr)
++    if supported and qemu:
++        p = run('original-run', [qemu, 'in.elf'], directory)
++        assert p.returncode == 0, (name, 'original', p.returncode)
++    for mode, options in [('default', []), ('reverse', ['--reorder-blocks=reverse']),
++                          ('instrument', ['--instrument']),
++                          ('conservative', ['--instrument', '--conservative-instrumentation']),
++                          ('instrument-reverse', ['--instrument', '--reorder-blocks=reverse'])]:
++        instrument = '--instrument' in options
++        candidate = mode + '.elf'
++        argv = [tc/'llvm-bolt', 'in.elf', '-o', candidate, '--no-huge-pages', '-lite=0', *options]
++        if instrument:
++            argv += ['--funcs=probe', '--instrument-calls=false', '--instrumentation-sleep-time=1',
++                     '--arm-instrumentation-contract=privileged-single-core-no-fiq',
++                     '--runtime-instrumentation-lib=' + str(runtime)]
++        p = run(mode, argv, directory)
++        if instrument and not supported:
++            good = p.returncode == 1 and 'does not support conditional returns' in p.stdout+p.stderr and not (directory/candidate).exists()
++        else:
++            good = p.returncode == 0 and (directory/candidate).exists()
++        if good and supported and not instrument and qemu:
++            executed = run(mode + '-run', [qemu, candidate], directory)
++            good = executed.returncode == 0
++        rows.append(dict(case=name, mode=mode, supported=supported, passed=good))
++        assert good, (name, mode, p.stdout, p.stderr)
++(out/'results.json').write_text(json.dumps(rows, indent=2)+'\n')
++print('R35 return/continuation flow:', len(rows), 'PASS; qemu user semantics:', bool(qemu), '; evidence:', out)
+--- /dev/null
++++ b/bolt/test/ARM/arm-conditional-return-flow.test
+@@ -0,0 +1,4 @@
++## R35: explicit return/continuation CFG and whole uniform IT groups.
++## QEMU user checks relocation semantics/SP, not privileged counter execution.
++## Unsupported entry/targeted/mixed-predicate shapes must still fail closed.
++RUN: %python %p/Inputs/check-arm-conditional-return-flow.py %t.dir

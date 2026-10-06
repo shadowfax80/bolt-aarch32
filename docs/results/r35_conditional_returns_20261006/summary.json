@@ -1,0 +1,217 @@
+{
+  "item": "R35",
+  "patch": "0073-arm-conditional-return-flow.patch",
+  "patch_sha256": "8c9bae5042ba607a3728fa72ff9e9e02f2af137834360cb7375b22b7a8d69f70",
+  "source_identity_sha256": "8dcc651c86e7f6370035c07efce6eaa064fef18ea0a5aa12410af01d6cf5476d",
+  "tests": {
+    "on": {
+      "outcomes": 115,
+      "supported_cases": 17,
+      "refusal_cases": 6,
+      "all_pass": true
+    },
+    "off": {
+      "outcomes": 115,
+      "supported_cases": 17,
+      "refusal_cases": 6,
+      "all_pass": true
+    }
+  },
+  "arm_lit_per_mode": 62,
+  "assertion_mode_output_parity": "PASS; identical binaries and ELFs excluding command-line .note.bolt_info only; no new clean-build provenance claim",
+  "coverage": {
+    "functions": 417,
+    "status_counts": {
+      "rejected": 9,
+      "rewritten": 401,
+      "folded (ICF)": 5,
+      "alias of rewritten function": 2
+    },
+    "code_bytes_by_status": {
+      "rejected": 640,
+      "rewritten": 126164,
+      "folded": 30
+    }
+  },
+  "counter_flow": {
+    "passed": true,
+    "scope": "Exact sealed CS stair counts and command-framed output; source-derived 100 warmups + 1500 calls. Output agreement is not an independent algorithmic oracle.",
+    "rows": [
+      {
+        "variant": 0,
+        "checksum": "0x2f744325",
+        "workload_records": [
+          {
+            "kernel": "stair",
+            "run": 1,
+            "cycles": 252275828,
+            "acc": "0x2f744325",
+            "inst": 57802363,
+            "l1i_refill": 3999469,
+            "l1d_refill": 0,
+            "br_mispred": 179509,
+            "taken": 3704769
+          }
+        ],
+        "capture_manifest_sha256": "78b4de46b3768c03142f906229cfc577f19a84aade796cbdbee92bed52f82973",
+        "entries": 1600,
+        "exits": 1600,
+        "early_return_edges": [
+          {
+            "source_offset": "0x9e10",
+            "target_offset": "0x9e1a",
+            "count": 0,
+            "counter": 2046
+          },
+          {
+            "source_offset": "0x9e10",
+            "target_offset": "0x9e12",
+            "count": 1600,
+            "counter": 2047
+          }
+        ],
+        "all_internal_flow_conserved": true
+      },
+      {
+        "variant": 2,
+        "checksum": "0x5806b01f",
+        "workload_records": [
+          {
+            "kernel": "stair",
+            "run": 1,
+            "cycles": 160766835,
+            "acc": "0x5806b01f",
+            "inst": 52584025,
+            "l1i_refill": 2466206,
+            "l1d_refill": 0,
+            "br_mispred": 183840,
+            "taken": 10762904
+          }
+        ],
+        "capture_manifest_sha256": "ec853a3b4cbf168e65be678e15d215408421c61f7168c48f36c64a5727e93261",
+        "entries": 1600,
+        "exits": 1600,
+        "early_return_edges": [
+          {
+            "source_offset": "0x9e10",
+            "target_offset": "0x9e1a",
+            "count": 1600,
+            "counter": 2046
+          },
+          {
+            "source_offset": "0x9e10",
+            "target_offset": "0x9e12",
+            "count": 0,
+            "counter": 2047
+          }
+        ],
+        "all_internal_flow_conserved": true
+      }
+    ]
+  },
+  "rewritten_pc": {
+    "passed": true,
+    "scope": "PCs observed inside each mapped rewritten body on Pi A72; three training-input runs. Sampling alters training visibility and is not a timing or edge-count measurement.",
+    "rows": [
+      {
+        "image": "cspgo_thinlto.instr",
+        "image_sha256": "2301ee74ec64a2c9fd3419b688169cf428210a93545f25a87a99b07aedd0618b",
+        "elf_sha256": "1f7576b1a868039d8e20327da33506308b8fc555f2885e0f8fe76d7926f159f3",
+        "range": [
+          "0x800e6000",
+          "0x80128ea4"
+        ],
+        "hits_per_core": [
+          0,
+          0,
+          40431,
+          0
+        ],
+        "log_sha256": "e82b48723935df543325341e8002505b76c2530b7b6307de8dd8bed4424dc7c7",
+        "sampler_stopped": true,
+        "watch_ranges_cleared": true,
+        "watchdog_disabled": true
+      },
+      {
+        "image": "cspgo_thinlto_bolt",
+        "image_sha256": "38313efb26018df0407a079b9cf0bd5becc48cbd45270f9cf1e5301c74ac2c96",
+        "elf_sha256": "7c0d3a11cbbb2c09ddf79985b6b435bdf05697cbd20a326781cf6e72cdab797a",
+        "range": [
+          "0x800e6000",
+          "0x800f7ef6"
+        ],
+        "hits_per_core": [
+          0,
+          0,
+          1495,
+          0
+        ],
+        "log_sha256": "56317e8a9140150e3750c4ede24a79b961d5a5bec45cabd769482f5f800636e7",
+        "sampler_stopped": true,
+        "watch_ranges_cleared": true,
+        "watchdog_disabled": true
+      }
+    ]
+  },
+  "performance": [
+    {
+      "variant": 0,
+      "records": 12,
+      "checksum": "0x2f744325",
+      "mean_cycles": {
+        "compiler": 9243350.833333334,
+        "counter_bolt": 9249137.666666666
+      },
+      "mean_ci95_half_width_cycles": {
+        "compiler": 846.822879716916,
+        "counter_bolt": 1569.3537409363769
+      },
+      "cycle_change_percent": 0.06260536290003671,
+      "csv_sha256": "206a37925e98e45dd7ed46f4412aa8b285f33f5c09274cb1bfb093676b085784"
+    },
+    {
+      "variant": 1,
+      "records": 12,
+      "checksum": "0xce57eab7",
+      "mean_cycles": {
+        "compiler": 9247346.5,
+        "counter_bolt": 9251129.5
+      },
+      "mean_ci95_half_width_cycles": {
+        "compiler": 229.86978252317118,
+        "counter_bolt": 1255.3423203308532
+      },
+      "cycle_change_percent": 0.0409090326614292,
+      "csv_sha256": "24d54d723effdcc2a53c571dc69009c8ec5a4bd7c71a16c4b209bbde1805ad03"
+    },
+    {
+      "variant": 2,
+      "records": 12,
+      "checksum": "0x5806b01f",
+      "mean_cycles": {
+        "compiler": 14740095.666666666,
+        "counter_bolt": 16351861.166666666
+      },
+      "mean_ci95_half_width_cycles": {
+        "compiler": 4013.98797955978,
+        "counter_bolt": 8790.526384306784
+      },
+      "cycle_change_percent": 10.934566073711816,
+      "csv_sha256": "e96346f47d2a0715d087d026e85e6eee19837a46fbb640af6e0059a00f62f13f"
+    }
+  ],
+  "performance_scope": "Pi A72 synthetic STAIR_M=8 kernel; stair-0 profile, three interleaved rounds x two runs per image; within-boot runs are not independent population samples. No additive gain or A55 claim.",
+  "remaining_guards": [
+    "mixed IT predicates",
+    "Thumb earlier flag definitions or narrow optional CPSR definitions",
+    "A32 entry, targeted or after-control-transfer return"
+  ],
+  "before": "0036 safely refused the exact C1 CS stair kernel; original log remains in C1 receipt",
+  "after": "Sealed counters admitted, both early-return outcomes measured, original compiler input optimized with bound fdata",
+  "certified_gate": "18 results and independent reviewed oracle pass; PC evidence for interwork/memcpy, 10 repetitions; other emitted functions are not new execution coverage",
+  "archive": {
+    "file": "evidence.tar.xz",
+    "sha256": "23efb9c6ceecbd48f84da5893cce30e58e74c264a143a74845fc48212598c58b",
+    "files": 1028
+  }
+}

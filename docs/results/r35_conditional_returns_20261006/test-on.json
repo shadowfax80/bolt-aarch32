@@ -1,0 +1,692 @@
+[
+  {
+    "case": "arm-bx",
+    "mode": "default",
+    "supported": true,
+    "passed": true
+  },
+  {
+    "case": "arm-bx",
+    "mode": "reverse",
+    "supported": true,
+    "passed": true
+  },
+  {
+    "case": "arm-bx",
+    "mode": "instrument",
+    "supported": true,
+    "passed": true
+  },
+  {
+    "case": "arm-bx",
+    "mode": "conservative",
+    "supported": true,
+    "passed": true
+  },
+  {
+    "case": "arm-bx",
+    "mode": "instrument-reverse",
+    "supported": true,
+    "passed": true
+  },
+  {
+    "case": "arm-mov",
+    "mode": "default",
+    "supported": true,
+    "passed": true
+  },
+  {
+    "case": "arm-mov",
+    "mode": "reverse",
+    "supported": true,
+    "passed": true
+  },
+  {
+    "case": "arm-mov",
+    "mode": "instrument",
+    "supported": true,
+    "passed": true
+  },
+  {
+    "case": "arm-mov",
+    "mode": "conservative",
+    "supported": true,
+    "passed": true
+  },
+  {
+    "case": "arm-mov",
+    "mode": "instrument-reverse",
+    "supported": true,
+    "passed": true
+  },
+  {
+    "case": "arm-pop",
+    "mode": "default",
+    "supported": true,
+    "passed": true
+  },
+  {
+    "case": "arm-pop",
+    "mode": "reverse",
+    "supported": true,
+    "passed": true
+  },
+  {
+    "case": "arm-pop",
+    "mode": "instrument",
+    "supported": true,
+    "passed": true
+  },
+  {
+    "case": "arm-pop",
+    "mode": "conservative",
+    "supported": true,
+    "passed": true
+  },
+  {
+    "case": "arm-pop",
+    "mode": "instrument-reverse",
+    "supported": true,
+    "passed": true
+  },
+  {
+    "case": "arm-ldm",
+    "mode": "default",
+    "supported": true,
+    "passed": true
+  },
+  {
+    "case": "arm-ldm",
+    "mode": "reverse",
+    "supported": true,
+    "passed": true
+  },
+  {
+    "case": "arm-ldm",
+    "mode": "instrument",
+    "supported": true,
+    "passed": true
+  },
+  {
+    "case": "arm-ldm",
+    "mode": "conservative",
+    "supported": true,
+    "passed": true
+  },
+  {
+    "case": "arm-ldm",
+    "mode": "instrument-reverse",
+    "supported": true,
+    "passed": true
+  },
+  {
+    "case": "thumb-bx-it1",
+    "mode": "default",
+    "supported": true,
+    "passed": true
+  },
+  {
+    "case": "thumb-bx-it1",
+    "mode": "reverse",
+    "supported": true,
+    "passed": true
+  },
+  {
+    "case": "thumb-bx-it1",
+    "mode": "instrument",
+    "supported": true,
+    "passed": true
+  },
+  {
+    "case": "thumb-bx-it1",
+    "mode": "conservative",
+    "supported": true,
+    "passed": true
+  },
+  {
+    "case": "thumb-bx-it1",
+    "mode": "instrument-reverse",
+    "supported": true,
+    "passed": true
+  },
+  {
+    "case": "thumb-pop-it1",
+    "mode": "default",
+    "supported": true,
+    "passed": true
+  },
+  {
+    "case": "thumb-pop-it1",
+    "mode": "reverse",
+    "supported": true,
+    "passed": true
+  },
+  {
+    "case": "thumb-pop-it1",
+    "mode": "instrument",
+    "supported": true,
+    "passed": true
+  },
+  {
+    "case": "thumb-pop-it1",
+    "mode": "conservative",
+    "supported": true,
+    "passed": true
+  },
+  {
+    "case": "thumb-pop-it1",
+    "mode": "instrument-reverse",
+    "supported": true,
+    "passed": true
+  },
+  {
+    "case": "thumb-ldm-it1",
+    "mode": "default",
+    "supported": true,
+    "passed": true
+  },
+  {
+    "case": "thumb-ldm-it1",
+    "mode": "reverse",
+    "supported": true,
+    "passed": true
+  },
+  {
+    "case": "thumb-ldm-it1",
+    "mode": "instrument",
+    "supported": true,
+    "passed": true
+  },
+  {
+    "case": "thumb-ldm-it1",
+    "mode": "conservative",
+    "supported": true,
+    "passed": true
+  },
+  {
+    "case": "thumb-ldm-it1",
+    "mode": "instrument-reverse",
+    "supported": true,
+    "passed": true
+  },
+  {
+    "case": "thumb-bx-it2",
+    "mode": "default",
+    "supported": true,
+    "passed": true
+  },
+  {
+    "case": "thumb-bx-it2",
+    "mode": "reverse",
+    "supported": true,
+    "passed": true
+  },
+  {
+    "case": "thumb-bx-it2",
+    "mode": "instrument",
+    "supported": true,
+    "passed": true
+  },
+  {
+    "case": "thumb-bx-it2",
+    "mode": "conservative",
+    "supported": true,
+    "passed": true
+  },
+  {
+    "case": "thumb-bx-it2",
+    "mode": "instrument-reverse",
+    "supported": true,
+    "passed": true
+  },
+  {
+    "case": "thumb-pop-it2",
+    "mode": "default",
+    "supported": true,
+    "passed": true
+  },
+  {
+    "case": "thumb-pop-it2",
+    "mode": "reverse",
+    "supported": true,
+    "passed": true
+  },
+  {
+    "case": "thumb-pop-it2",
+    "mode": "instrument",
+    "supported": true,
+    "passed": true
+  },
+  {
+    "case": "thumb-pop-it2",
+    "mode": "conservative",
+    "supported": true,
+    "passed": true
+  },
+  {
+    "case": "thumb-pop-it2",
+    "mode": "instrument-reverse",
+    "supported": true,
+    "passed": true
+  },
+  {
+    "case": "thumb-ldm-it2",
+    "mode": "default",
+    "supported": true,
+    "passed": true
+  },
+  {
+    "case": "thumb-ldm-it2",
+    "mode": "reverse",
+    "supported": true,
+    "passed": true
+  },
+  {
+    "case": "thumb-ldm-it2",
+    "mode": "instrument",
+    "supported": true,
+    "passed": true
+  },
+  {
+    "case": "thumb-ldm-it2",
+    "mode": "conservative",
+    "supported": true,
+    "passed": true
+  },
+  {
+    "case": "thumb-ldm-it2",
+    "mode": "instrument-reverse",
+    "supported": true,
+    "passed": true
+  },
+  {
+    "case": "thumb-bx-it3",
+    "mode": "default",
+    "supported": true,
+    "passed": true
+  },
+  {
+    "case": "thumb-bx-it3",
+    "mode": "reverse",
+    "supported": true,
+    "passed": true
+  },
+  {
+    "case": "thumb-bx-it3",
+    "mode": "instrument",
+    "supported": true,
+    "passed": true
+  },
+  {
+    "case": "thumb-bx-it3",
+    "mode": "conservative",
+    "supported": true,
+    "passed": true
+  },
+  {
+    "case": "thumb-bx-it3",
+    "mode": "instrument-reverse",
+    "supported": true,
+    "passed": true
+  },
+  {
+    "case": "thumb-pop-it3",
+    "mode": "default",
+    "supported": true,
+    "passed": true
+  },
+  {
+    "case": "thumb-pop-it3",
+    "mode": "reverse",
+    "supported": true,
+    "passed": true
+  },
+  {
+    "case": "thumb-pop-it3",
+    "mode": "instrument",
+    "supported": true,
+    "passed": true
+  },
+  {
+    "case": "thumb-pop-it3",
+    "mode": "conservative",
+    "supported": true,
+    "passed": true
+  },
+  {
+    "case": "thumb-pop-it3",
+    "mode": "instrument-reverse",
+    "supported": true,
+    "passed": true
+  },
+  {
+    "case": "thumb-ldm-it3",
+    "mode": "default",
+    "supported": true,
+    "passed": true
+  },
+  {
+    "case": "thumb-ldm-it3",
+    "mode": "reverse",
+    "supported": true,
+    "passed": true
+  },
+  {
+    "case": "thumb-ldm-it3",
+    "mode": "instrument",
+    "supported": true,
+    "passed": true
+  },
+  {
+    "case": "thumb-ldm-it3",
+    "mode": "conservative",
+    "supported": true,
+    "passed": true
+  },
+  {
+    "case": "thumb-ldm-it3",
+    "mode": "instrument-reverse",
+    "supported": true,
+    "passed": true
+  },
+  {
+    "case": "thumb-bx-it4",
+    "mode": "default",
+    "supported": true,
+    "passed": true
+  },
+  {
+    "case": "thumb-bx-it4",
+    "mode": "reverse",
+    "supported": true,
+    "passed": true
+  },
+  {
+    "case": "thumb-bx-it4",
+    "mode": "instrument",
+    "supported": true,
+    "passed": true
+  },
+  {
+    "case": "thumb-bx-it4",
+    "mode": "conservative",
+    "supported": true,
+    "passed": true
+  },
+  {
+    "case": "thumb-bx-it4",
+    "mode": "instrument-reverse",
+    "supported": true,
+    "passed": true
+  },
+  {
+    "case": "thumb-pop-it4",
+    "mode": "default",
+    "supported": true,
+    "passed": true
+  },
+  {
+    "case": "thumb-pop-it4",
+    "mode": "reverse",
+    "supported": true,
+    "passed": true
+  },
+  {
+    "case": "thumb-pop-it4",
+    "mode": "instrument",
+    "supported": true,
+    "passed": true
+  },
+  {
+    "case": "thumb-pop-it4",
+    "mode": "conservative",
+    "supported": true,
+    "passed": true
+  },
+  {
+    "case": "thumb-pop-it4",
+    "mode": "instrument-reverse",
+    "supported": true,
+    "passed": true
+  },
+  {
+    "case": "thumb-ldm-it4",
+    "mode": "default",
+    "supported": true,
+    "passed": true
+  },
+  {
+    "case": "thumb-ldm-it4",
+    "mode": "reverse",
+    "supported": true,
+    "passed": true
+  },
+  {
+    "case": "thumb-ldm-it4",
+    "mode": "instrument",
+    "supported": true,
+    "passed": true
+  },
+  {
+    "case": "thumb-ldm-it4",
+    "mode": "conservative",
+    "supported": true,
+    "passed": true
+  },
+  {
+    "case": "thumb-ldm-it4",
+    "mode": "instrument-reverse",
+    "supported": true,
+    "passed": true
+  },
+  {
+    "case": "thumb-stack-it3",
+    "mode": "default",
+    "supported": true,
+    "passed": true
+  },
+  {
+    "case": "thumb-stack-it3",
+    "mode": "reverse",
+    "supported": true,
+    "passed": true
+  },
+  {
+    "case": "thumb-stack-it3",
+    "mode": "instrument",
+    "supported": true,
+    "passed": true
+  },
+  {
+    "case": "thumb-stack-it3",
+    "mode": "conservative",
+    "supported": true,
+    "passed": true
+  },
+  {
+    "case": "thumb-stack-it3",
+    "mode": "instrument-reverse",
+    "supported": true,
+    "passed": true
+  },
+  {
+    "case": "arm-entry",
+    "mode": "default",
+    "supported": false,
+    "passed": true
+  },
+  {
+    "case": "arm-entry",
+    "mode": "reverse",
+    "supported": false,
+    "passed": true
+  },
+  {
+    "case": "arm-entry",
+    "mode": "instrument",
+    "supported": false,
+    "passed": true
+  },
+  {
+    "case": "arm-entry",
+    "mode": "conservative",
+    "supported": false,
+    "passed": true
+  },
+  {
+    "case": "arm-entry",
+    "mode": "instrument-reverse",
+    "supported": false,
+    "passed": true
+  },
+  {
+    "case": "arm-targeted-return",
+    "mode": "default",
+    "supported": false,
+    "passed": true
+  },
+  {
+    "case": "arm-targeted-return",
+    "mode": "reverse",
+    "supported": false,
+    "passed": true
+  },
+  {
+    "case": "arm-targeted-return",
+    "mode": "instrument",
+    "supported": false,
+    "passed": true
+  },
+  {
+    "case": "arm-targeted-return",
+    "mode": "conservative",
+    "supported": false,
+    "passed": true
+  },
+  {
+    "case": "arm-targeted-return",
+    "mode": "instrument-reverse",
+    "supported": false,
+    "passed": true
+  },
+  {
+    "case": "arm-after-branch",
+    "mode": "default",
+    "supported": false,
+    "passed": true
+  },
+  {
+    "case": "arm-after-branch",
+    "mode": "reverse",
+    "supported": false,
+    "passed": true
+  },
+  {
+    "case": "arm-after-branch",
+    "mode": "instrument",
+    "supported": false,
+    "passed": true
+  },
+  {
+    "case": "arm-after-branch",
+    "mode": "conservative",
+    "supported": false,
+    "passed": true
+  },
+  {
+    "case": "arm-after-branch",
+    "mode": "instrument-reverse",
+    "supported": false,
+    "passed": true
+  },
+  {
+    "case": "thumb-mixed-ite",
+    "mode": "default",
+    "supported": false,
+    "passed": true
+  },
+  {
+    "case": "thumb-mixed-ite",
+    "mode": "reverse",
+    "supported": false,
+    "passed": true
+  },
+  {
+    "case": "thumb-mixed-ite",
+    "mode": "instrument",
+    "supported": false,
+    "passed": true
+  },
+  {
+    "case": "thumb-mixed-ite",
+    "mode": "conservative",
+    "supported": false,
+    "passed": true
+  },
+  {
+    "case": "thumb-mixed-ite",
+    "mode": "instrument-reverse",
+    "supported": false,
+    "passed": true
+  },
+  {
+    "case": "thumb-narrow-flags",
+    "mode": "default",
+    "supported": false,
+    "passed": true
+  },
+  {
+    "case": "thumb-narrow-flags",
+    "mode": "reverse",
+    "supported": false,
+    "passed": true
+  },
+  {
+    "case": "thumb-narrow-flags",
+    "mode": "instrument",
+    "supported": false,
+    "passed": true
+  },
+  {
+    "case": "thumb-narrow-flags",
+    "mode": "conservative",
+    "supported": false,
+    "passed": true
+  },
+  {
+    "case": "thumb-narrow-flags",
+    "mode": "instrument-reverse",
+    "supported": false,
+    "passed": true
+  },
+  {
+    "case": "thumb-changing-flags",
+    "mode": "default",
+    "supported": false,
+    "passed": true
+  },
+  {
+    "case": "thumb-changing-flags",
+    "mode": "reverse",
+    "supported": false,
+    "passed": true
+  },
+  {
+    "case": "thumb-changing-flags",
+    "mode": "instrument",
+    "supported": false,
+    "passed": true
+  },
+  {
+    "case": "thumb-changing-flags",
+    "mode": "conservative",
+    "supported": false,
+    "passed": true
+  },
+  {
+    "case": "thumb-changing-flags",
+    "mode": "instrument-reverse",
+    "supported": false,
+    "passed": true
+  }
+]

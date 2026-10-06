@@ -40,7 +40,7 @@ function scope. Timed runs use the optimized image with profiling stopped.
 | FE-PGO + ThinLTO + sampled BOLT | Available through the generic sealed sampling/optimization scripts; C2 verified wiring, not a fresh FE sampling benchmark |
 | FE-PGO + ThinLTO + instrumented BOLT | Retained staged route with historical Pi evidence; only admitted instruction shapes/scopes, not universal instrumentation support |
 | IR-PGO + ThinLTO + CSPGO + sampled BOLT | C1 built and measured on the Pi; results include an incremental BOLT regression, so gains are not guaranteed |
-| IR-PGO + ThinLTO + CSPGO + instrumented BOLT | Available for admitted binaries in principle; the current C1 stair output **refuses conditional returns** under 0036. R35 remains open; no measured counter result for that binary |
+| IR-PGO + ThinLTO + CSPGO + instrumented BOLT | Verified on the C1 stair output with 0073/R35: sealed counters, both return outcomes, original/instrumented/optimized result agreement and rewritten-PC evidence. Remaining unsafe predication shapes refuse instrumentation; [receipt](../results/r35_conditional_returns_20261006/README.md) |
 
 Use [sealed sampling](PI_PROFILE_IDENTITY.md) for either final compiler ELF;
 the CS-specific convenience wrapper is `scripts/cspgo-bolt.sh`. For the
@@ -214,11 +214,14 @@ comparison/sweep scripts select that switch to preserve their result labels.
   and seal a **fresh BOLT profile for each final ELF**, then follow the
   [profile identity contract](PI_PROFILE_IDENTITY.md). Compiler `.profdata`
   is not BOLT `.fdata`. Existing sampling/suite follow-ups remain in HANDOFF.
-- BOLT's AArch32 exact-counter instrumentation currently refuses conditional
-  returns (0036). The C1 CSPGO `stair` output triggers that guard. This is an
-  instruction-shape limitation of the present instrumentation implementation,
-  not a conflict between CSPGO and BOLT. PC sampling can profile the unchanged
-  compiler output; R35 in HANDOFF tracks safe counter support.
+- BOLT's AArch32 exact-counter instrumentation supports the C1 CSPGO `stair`
+  output after R35/0073. Uniform Thumb IT return groups with flag-invariant
+  bodies and safe predecessor-based A32 returns become explicit return and
+  continuation blocks before instrumentation and profile matching. Mixed IT
+  predicates, flag-changing/narrow implicit-flag Thumb bodies, and A32
+  entry/targeted/after-control-transfer returns still refuse instrumentation.
+  These are instruction-shape guards, not a conflict between CSPGO and BOLT;
+  R36 tracks extending them. See the [R35 receipt](../results/r35_conditional_returns_20261006/README.md).
 
 ## Optional BOLT comparison on these compiler outputs
 
@@ -256,7 +259,60 @@ Use `pi4_compare.py --workload stair` to interleave all four final images. Keep
 training variant 0 and measure variants 0/1/2 separately. Sampling collection
 runs with the workload's IRQ masking disabled, to expose its PCs; timed runs
 use their normal IRQ masking with the sampler stopped. PC frequencies do not
-provide exact branch-edge counts. The conditional-return counter rejection
-and the sampling approximation must accompany these results.
+provide exact branch-edge counts. The sampling approximation must accompany
+these results. C1's original 0036 counter refusal remains historical evidence;
+R35's exact-counter comparison is a separate run with 0073.
+
+### Exact-counter alternative (0073 and later)
+
+Use a fresh directory containing the original final compiler
+`cspgo_thinlto.{elf,bin}`. Acquire the shared source lock/Pi reservation and
+replay the full overlay series first. In WSL:
+
+```bash
+export BASE=atfe TOOLCHAIN=/path/to/build-atfe/bin
+export VARIANTS_DIR=/path/to/fresh/counter-output
+export BOLT_FUNC=bolt_bench_stair_kernel BOLT_PROFILE_MODE=edges
+export BOLT_RT_LIB=/path/to/build-atfe/bolt-rt-baremetal-arm/libbolt_rt_baremetal.a
+export ARM_INSTRUMENTATION_CONTRACT=privileged-single-core-no-fiq
+export SOURCE_REPLAY=/path/to/exact-successful-replay.json
+bash scripts/bolt-variant.sh instrument cspgo_thinlto
+python3 scripts/profile_identity.py seal-counters \
+  --original "$VARIANTS_DIR/cspgo_thinlto.elf" \
+  --elf "$VARIANTS_DIR/cspgo_thinlto.instr.elf" \
+  --map "$VARIANTS_DIR/cspgo_thinlto.instr.funcmap" \
+  --image "$VARIANTS_DIR/cspgo_thinlto.instr.bin" \
+  --toolchain "$TOOLCHAIN" --patch-dir overlay/llvm/patches/atfe \
+  --source-replay "$SOURCE_REPLAY"
+```
+
+Copy the input, instrumented ELF/image/map, image seal and replay receipt to
+Windows. The collector hashes the exact five tool binaries; use dereferenced
+copies of `llvm-bolt`, `llvm-readelf`, `llvm-nm`, `llvm-objdump`, `llvm-objcopy`
+if WSL symlinks cannot be read through a Windows UNC path. These copies are
+identity proofs; the Windows collector does not execute Linux tools.
+
+```powershell
+$env:PI4_WDOG='180'
+# Set PI4_FAST_LOADER to the repository's kernel7l_fast.img.
+py -3.12 scripts/pi4/pi4_bolt_profile.py cspgo_thinlto.instr.bin stair0.counters.bin `
+  --elf cspgo_thinlto.instr.elf --original cspgo_thinlto.elf `
+  --function-map cspgo_thinlto.instr.funcmap --source-replay replay.json `
+  --toolchain /path/to/exact-tool-copies --workload "stair 0 0" --port COM5
+```
+
+The counter collector binds artifacts and validates the dump. Separately check
+the workload command frame, checksum and counter flow; it does not supply an
+algorithmic oracle (R32 remains open). Copy the accepted dump and its manifest
+back to WSL and optimize the **original compiler ELF**:
+
+```bash
+bash scripts/bolt-variant.sh optimize cspgo_thinlto "$VARIANTS_DIR/stair0.counters.bin"
+```
+
+The instrumented image is only for training. R35 measured 2,559 counters and
+1,600 calls/exits per training run; inputs 0 and 2 exercise opposite outcomes
+of the early-return guard. Measure variants 0/1/2 with the sampler stopped,
+and verify PCs inside the freshly rewritten function before claiming execution.
 
 LLVM mechanisms: [Clang PGO options](https://clang.llvm.org/docs/UsersManual.html#cmdoption-fcs-profile-generate).

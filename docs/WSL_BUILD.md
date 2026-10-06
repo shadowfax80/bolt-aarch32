@@ -53,8 +53,8 @@ the patches and breaks shell scripts. `wsl-setup.sh` normalizes the WSL copy to 
 
 Two alternatives are **FE-PGO + ThinLTO + optional BOLT** and **IR-PGO +
 ThinLTO + CSPGO + optional BOLT** (default). For either, BOLT feedback may be
-**sampled** or **instrumented**; the current CS stair image rejects counter
-instrumentation of conditional returns (R35), while sampled BOLT is measured.
+**sampled** or **instrumented**; the current CS stair image supports both
+after 0073/R35. Unsupported predication shapes retain safe refusal guards.
 See the [route/status matrix](verification/CSPGO_PIPELINE.md#two-compiler-paths-two-bolt-profile-modes)
 for scope, collection tools and profile identity requirements.
 
