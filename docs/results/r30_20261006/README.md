@@ -29,6 +29,11 @@ address from the last `$a`/`$t`/`$d` before it. BOLT 0001–0071:
    the non-relocation `foo.icf.0` alias) had bit 0 clear for Thumb code.
    Found by the stricter guard on a split build of the bolt_bench image,
    after the first 0072 commit (2a629c5); 0072 was extended (same item).
+6. **Runtime library:** the instrumentation runtime's `.text`, linked into
+   `.text.bolt.extra.1`, had no marks; tools fell back to their default ISA
+   (Thumb for the LK input), so the runtime (ARM) misdecoded in every
+   instrumented LK output. Found by item 14's parity scenarios after
+   bdcac1e; 0072 extended again.
 
 Execution was never affected: mapping symbols are not in the loaded image.
 
@@ -41,19 +46,22 @@ Execution was never affected: mapping symbols are not in the loaded image.
     was moved in relocation mode without `--use-old-text`;
   - on ARM, emits a "code resumes" mark after an island or inline table only
     when code of the function actually follows inside the fragment.
-- `JITLinkLinker` records each aarch32 stub's address and ISA (from the stub
-  symbol's `ThumbSymbol` flag), and the rewriter marks it.
+- `JITLinkLinker` records the mapping symbols of linked code: each aarch32
+  stub's address and ISA (from the stub symbol's `ThumbSymbol` flag) and the
+  `$a`/`$t`/`$d` symbols that linked objects (the instrumentation runtime)
+  bring. The rewriter adds them for executable sections it does not mark
+  itself.
 - Split-fragment and ICF alias STT_FUNC values carry the Thumb bit.
 
 ## Evidence
 
 | Check | 0071 | 0072 |
 |---|---|---|
-| `arm-mapping-symbols.test` (new; reordering, stubs, a split Thumb function, an ICF pair) | FAIL: functions in the wrong state, original units misdecoded, pools not data, stubs unmarked ([log](test_on_0071.txt)); the first 0072 commit fails on `th_split.cold.0` | PASS ([log](test_on_0072.txt)) |
+| `arm-mapping-symbols.test` (new; reordering, stubs, a split Thumb function, an ICF pair, an instrumentation runtime) | FAIL: functions in the wrong state, original units misdecoded, pools not data, stubs and runtime unmarked ([log](test_on_0071.txt)); 0072 as of bdcac1e fails on the runtime section ([log](test_on_0072_bdcac1e.txt)) | PASS ([log](test_on_0072.txt)) |
 | G1 image: functions starting in the wrong state | 3 (`memcpy`, `memmove`, `memset`) | 0 of 417 |
 | G1 image: original section decoding vs input `.text` | 70,438 differences | 3: the two redirected entries (`b`/`b.w`) ([details](lk_image_mapping.txt)) |
 | G1 image: no-FPU guard | 1,943 false hits | 0 |
-| bolt_bench image, instrumented / split+ICF, stricter guard (item 14) | | ok / ok (built with 0072: `r30chk.instr.elf`, `r30chk_split.elf`) |
+| LK input instrumented (SMP / single-core contract), random split + ICF, stricter guard (item 14) | runtime misdecoded: 8 false FP hits each | ok / ok / ok |
 | G1 image `baseline_full.bin` | `2181dffe…` | `2181dffe…` (identical: G1's Pi certification carries over) |
 | ARM lit, assertions on / off | 60/60 | 61/61 / 61/61 |
 | Replay 0001–0072 | | exact ([replay.json](replay_0001_0072.json)) |

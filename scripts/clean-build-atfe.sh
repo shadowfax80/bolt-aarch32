@@ -7,7 +7,8 @@
 #   1. fetches the pinned ATFE commit from its remote into <out-dir>/src;
 #   2. applies overlay/llvm/patches/atfe/*.patch in order with `git apply`;
 #   3. records the git tree hash of the result (full source identity);
-#   4. configures each mode from cmake/llvm-bolt.cmake, the only override
+#   4. configures each mode from cmake/llvm-bolt.cmake with the host
+#      compilers (CC/CXX, default clang/clang++), the only mode override
 #      being LLVM_ENABLE_ASSERTIONS=OFF for `off`; ccache is bypassed
 #      (CCACHE_DISABLE=1) so no object comes from an earlier build;
 #   5. builds the targets of build-llvm-bolt.sh plus bolt-test-depends and
@@ -47,7 +48,11 @@ for mode in "${MODES[@]}"; do
   case "$mode" in on) assert=ON;; off) assert=OFF;; *) echo "error: mode $mode" >&2; exit 2;; esac
   B="$OUT/build-$mode"
   if [[ ! -f "$B/build.ninja" ]]; then
+    # cmake/llvm-bolt.cmake does not choose the host compiler; the live
+    # builds were configured with clang/clang++, so name them explicitly.
     cmake -G Ninja -S "$SRC/llvm" -B "$B" -C "$ROOT/cmake/llvm-bolt.cmake" \
+      -DCMAKE_C_COMPILER="$(command -v "${CC:-clang}")" \
+      -DCMAKE_CXX_COMPILER="$(command -v "${CXX:-clang++}")" \
       -DLLVM_ENABLE_ASSERTIONS=$assert -DLLVM_PARALLEL_LINK_JOBS=2 > "$OUT/configure-$mode.log"
   fi
   CCACHE_DISABLE=1 ninja -C "$B" -j"$JOBS" \

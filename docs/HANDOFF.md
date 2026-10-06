@@ -192,6 +192,18 @@ emission coverage, not execution or whole-backend correctness.
 
 ## Handoff log
 
+### 2026-10-06 — Claude: R30 extended again (linked runtime library marks)
+
+- Item 14's parity scenarios instrumented the LK input: the instrumentation
+  runtime's `.text` (`.text.bolt.extra.1`, ARM) had no mapping symbols and
+  decoded as Thumb (8 false FP hits per output). 0072 now also takes the
+  linker's marks: JITLink keeps a linked object's own `$a`/`$t`/`$d` and each
+  stub's ISA; the rewriter adds them for executable sections it does not
+  mark itself.
+- `arm-mapping-symbols.test` adds an instrumented run; fails on 0071 and on
+  0072 as of bdcac1e, passes now. ARM lit 61/61 both modes, replay exact,
+  coverage 401/417, G1 `.bin` identical (`2181dffe…`).
+
 ### 2026-10-06 — Claude: R30 extended (0072 updated: Thumb bit on fragment symbols)
 
 - Item 14's stricter no-FPU guard (each STT_FUNC must start in the state its

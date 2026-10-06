@@ -1,0 +1,22 @@
+FAIL: BOLT :: ARM/arm-mapping-symbols.test (1 of 1)
+# | Evidence: build-atfe/tools/bolt/test/ARM/Output/arm-mapping-symbols.test.tmp.dir/run-d78bsgy5
+# | function keep_t at 0x10056: t state, marked t
+# | function keep_a at 0x10074: a state, marked a
+# | function th_t at 0x22000: t state, marked t
+# | function arm_b at 0x2200c: a state, marked a
+# | function _start at 0x2201c: a state, marked a
+# | function arm_a at 0x22048: a state, marked a
+# | function th_far at 0x22054: t state, marked t
+# | function arm_tail at 0x22058: a state, marked a
+# | function th_tail at 0x2205c: t state, marked t
+# | function th_split at 0x22060: t state, marked t
+# | function th_dup1 at 0x2206c: t state, marked t
+# | function th_dup2 at 0x2206c: t state, marked t
+# | function th_split.cold.0 at 0x22080: t state, marked t
+# | function __Thumbv7ABSLongThunk_arm_b at 0x22088: t state, marked t
+# | original section: 42 input units, 0 decode differently
+# | stub section marks: ['a', 't']
+# | stub section decodes as: ['movw\tr12, #0x74', 'movt\tr12, #0x1', 'bx\tr12', 'movw\tr12, #0x57', 'movt\tr12, #0x1', 'bx\tr12']
+# | runtime section .text.bolt.extra.1 at 0x27000: marked None
+# | FAIL: ARM runtime library section not marked $a
+# | FAIL

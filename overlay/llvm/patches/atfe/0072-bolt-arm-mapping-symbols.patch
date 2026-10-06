@@ -14,10 +14,10 @@
    /// found.
    virtual std::optional<SymbolInfo> lookupSymbolInfo(StringRef Name) const = 0;
 +
-+  /// AArch32: start address and instruction set (true = Thumb) of each piece
-+  /// of code the linker generated itself (stubs), so the rewriter can give
-+  /// it mapping symbols.
-+  virtual std::vector<std::pair<uint64_t, bool>> getStubCodeMarks() const {
++  /// AArch32: mapping symbols for code the rewriter does not describe itself
++  /// (linker stubs, linked runtime libraries): address and kind ('a' ARM,
++  /// 't' Thumb, 'd' data).
++  virtual std::vector<std::pair<uint64_t, char>> getLinkerMarks() const {
 +    return {};
 +  }
  };
@@ -29,7 +29,7 @@
    jitlink::JITLinkDylib Dylib{"main"};
    std::vector<ExecutableFileMemoryManager::FinalizedAlloc> Allocs;
    StringMap<SymbolInfo> Symtab;
-+  std::vector<std::pair<uint64_t, bool>> StubCodeMarks;
++  std::vector<std::pair<uint64_t, char>> LinkerMarks;
  
  public:
    JITLinkLinker(BinaryContext &BC,
@@ -37,26 +37,45 @@
  
    void loadObject(MemoryBufferRef Obj, SectionsMapper MapSections) override;
    std::optional<SymbolInfo> lookupSymbolInfo(StringRef Name) const override;
-+  std::vector<std::pair<uint64_t, bool>> getStubCodeMarks() const override {
-+    return StubCodeMarks;
++  std::vector<std::pair<uint64_t, char>> getLinkerMarks() const override {
++    return LinkerMarks;
 +  }
  
    static SmallVector<jitlink::Block *, 2>
    orderedBlocks(const jitlink::Section &Section);
 --- a/bolt/lib/Rewrite/JITLinkLinker.cpp
 +++ b/bolt/lib/Rewrite/JITLinkLinker.cpp
-@@ -306,6 +306,15 @@
+@@ -306,6 +306,34 @@
        Linker.Symtab.insert({std::move(Name), Info});
      }
  
-+    // R30: each aarch32 stub is one block with an anonymous symbol that
-+    // carries the stub's instruction set.
-+    for (jitlink::Section &S : G.sections())
-+      if (S.getName().starts_with("__llvm_jitlink_aarch32_STUBS"))
-+        for (jitlink::Symbol *Symbol : S.symbols())
-+          Linker.StubCodeMarks.emplace_back(
-+              Symbol->getAddress().getValue(),
-+              Symbol->getTargetFlags() & jitlink::aarch32::ThumbSymbol);
++    // R30: AArch32 mapping symbols of linked code. Each stub is one block
++    // with an anonymous symbol carrying the stub's instruction set; linked
++    // objects (e.g. the instrumentation runtime) bring their own $a/$t/$d.
++    if (G.getTargetTriple().isARM() || G.getTargetTriple().isThumb())
++      for (jitlink::Section &S : G.sections()) {
++        if ((S.getMemProt() & orc::MemProt::Exec) == orc::MemProt::None)
++          continue;
++        const bool IsStubs =
++            S.getName().starts_with("__llvm_jitlink_aarch32_STUBS");
++        for (jitlink::Symbol *Symbol : S.symbols()) {
++          const uint64_t Address = Symbol->getAddress().getValue();
++          if (IsStubs) {
++            Linker.LinkerMarks.emplace_back(
++                Address,
++                Symbol->getTargetFlags() & jitlink::aarch32::ThumbSymbol ? 't'
++                                                                         : 'a');
++            continue;
++          }
++          if (!Symbol->hasName())
++            continue;
++          const StringRef Name = *Symbol->getName();
++          if (Name.size() >= 2 && Name[0] == '$' &&
++              (Name[1] == 'a' || Name[1] == 't' || Name[1] == 'd') &&
++              (Name.size() == 2 || Name[2] == '.'))
++            Linker.LinkerMarks.emplace_back(Address, Name[1]);
++        }
++      }
 +
      return Error::success();
    }
@@ -195,7 +214,7 @@
          }
        }
      }
-@@ -6760,6 +6816,42 @@
+@@ -6760,6 +6816,51 @@
      }
    }
  
@@ -203,13 +222,15 @@
 +  // The input's marks at function entries cover only where the state
 +  // changed in the input; after reordering, an ARM function that inherited
 +  // $a from its predecessor can follow Thumb code. Mark every emitted
-+  // fragment, and every linker stub, with its own state.
++  // fragment with its own state; take the linker's marks for the code it
++  // placed itself (stubs, runtime libraries).
 +  if (BC->isARM()) {
-+    auto AddCodeMark = [&](uint64_t Address, bool Thumb, unsigned Index) {
++    DenseSet<unsigned> MarkedSections;
++    auto AddMark = [&](uint64_t Address, char Kind, unsigned Index) {
 +      ELFSymTy Mark;
 +      Mark.st_value = Address;
 +      Mark.st_shndx = Index;
-+      Mark.st_name = AddToStrTab(Thumb ? "$t" : "$a");
++      Mark.st_name = AddToStrTab(Kind == 't' ? "$t" : Kind == 'd' ? "$d" : "$a");
 +      Mark.st_size = 0;
 +      Mark.st_other = 0;
 +      Mark.setBindingAndType(ELF::STB_LOCAL, ELF::STT_NOTYPE);
@@ -221,16 +242,23 @@
 +      for (const FunctionFragment &FF : BF.getLayout().fragments()) {
 +        const uint64_t Start =
 +            FF.isMainFragment() ? BF.getOutputAddress() : FF.getAddress();
-+        if (Start)
-+          AddCodeMark(Start, BF.isARMThumb(),
-+                      BF.getCodeSection(FF.getFragmentNum())->getIndex());
++        if (!Start)
++          continue;
++        const unsigned Index =
++            BF.getCodeSection(FF.getFragmentNum())->getIndex();
++        AddMark(Start, BF.isARMThumb() ? 't' : 'a', Index);
++        MarkedSections.insert(Index);
 +      }
 +    }
-+    for (const auto &[Address, Thumb] : Linker->getStubCodeMarks())
++    for (const BinaryFunction *BF : BC->getInjectedBinaryFunctions())
++      if (BF->getOutputAddress())
++        MarkedSections.insert(BF->getCodeSection()->getIndex());
++    for (const auto &[Address, Kind] : Linker->getLinkerMarks())
 +      for (const BinarySection &Section : BC->allocatableSections())
 +        if (Section.getIndex() && Section.getOutputAddress() <= Address &&
 +            Address < Section.getOutputAddress() + Section.getOutputSize()) {
-+          AddCodeMark(Address, Thumb, Section.getIndex());
++          if (!MarkedSections.contains(Section.getIndex()))
++            AddMark(Address, Kind, Section.getIndex());
 +          break;
 +        }
 +  }
@@ -266,7 +294,7 @@
 +assert all(value % 2 == 0 for value, _, _, _ in marks), marks
 --- /dev/null
 +++ b/bolt/test/ARM/Inputs/check-arm-mapping-symbols.py
-@@ -0,0 +1,266 @@
+@@ -0,0 +1,299 @@
 +from pathlib import Path
 +import re
 +import shutil
@@ -530,6 +558,39 @@
 +        if len(ks) > 1:
 +            print(f'FAIL: section {ndx} address {a:#x} has conflicting marks {sorted(ks)}')
 +            ok = False
++
++# 5. A linked runtime library (ARM) keeps its own marks: instrumenting puts
++# its .text in a section of its own, after Thumb code.
++run(tc / 'llvm-mc', '-arm-add-build-attributes', '-triple=armv7-none-eabi', '-filetype=obj',
++    Path(__file__).parent / 'arm-counter-runtime.s', '-o', out / 'rt.o')
++run(tc / 'llvm-ar', 'rcs', out / 'rt.a', out / 'rt.o')
++log = run(tc / 'llvm-bolt', out / 'in.elf', '-o', out / 'instr.elf', '--no-huge-pages', '-lite=0',
++          '--instrument', '--instrument-calls=false', '--instrumentation-sleep-time=1',
++          '--arm-instrumentation-contract=privileged-single-core-no-fiq',
++          f'--runtime-instrumentation-lib={out / "rt.a"}', '--funcs=th_far,th_split')
++(out / 'instr.log').write_text(log)
++imarks = {}
++for a, t, ndx, n in symbols(out / 'instr.elf'):
++    if re.fullmatch(r'\$[atd](\..*)?', n):
++        imarks.setdefault(ndx, []).append((a, n[1]))
++for v in imarks.values():
++    v.sort()
++rt = None
++for m in re.finditer(r'\[\s*(\d+)\]\s+(\S+)\s+PROGBITS\s+([0-9a-f]+)\s+\S+\s+([0-9a-f]+)\s+\S+\s+(\S+)',
++                     run(tc / 'llvm-readelf', '-S', '-W', out / 'instr.elf')):
++    if 'X' in m.group(5) and m.group(2).startswith('.text.bolt.extra'):
++        rt = (int(m.group(1)), int(m.group(3), 16), m.group(2))
++if not rt:
++    sys.exit('FAIL: no runtime library section in the instrumented output')
++got = state_at(imarks.get(rt[0], []), rt[1])
++print(f'runtime section {rt[2]} at {rt[1]:#x}: marked {got}')
++if got != 'a':
++    print('FAIL: ARM runtime library section not marked $a')
++    ok = False
++code = list(decode(out / 'instr.elf', rt[2]).values())
++if not code or any(not c or c.startswith(('<unknown>', 'v')) for c in code):
++    print('FAIL: runtime library does not decode as ARM:', code[:6])
++    ok = False
 +
 +print('PASS' if ok else 'FAIL')
 +sys.exit(0 if ok else 1)

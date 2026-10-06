@@ -3,7 +3,7 @@
  "input": "/home/user/bolt-aarch32/fixtures/lk-rpi4-bolt-test-424606a8.elf",
  "input_sha256": "424606a869c34b5be5f3c97f66a9cec8ea16844ac788c14c77839edcfef2459b",
  "toolchain": "/home/user/bolt-aarch32/build-atfe/bin",
- "llvm_bolt_sha256": "6eb5d2ef1df3fef76007567bc4ae1c2075b5dea64c8195361f197d7012cfe519",
+ "llvm_bolt_sha256": "80100504cb0e7a81494a6f06243b3c831dc5d406908acf75b5190ae0b601dddc",
  "bolt_options": [
   "--no-huge-pages",
   "-lite=0",
