@@ -118,7 +118,7 @@ image/configuration oracle contracts still require user review.
 
 | Holder | Since | Purpose |
 |---|---|---|
-| — | — | Free; C1 used isolated `/home/user/bolt-cspgo`. Shared ATFE source/builds preserved on 0001–0072 |
+| Codex | 2026-10-06 | R35: safe conditional-return instrumentation, new per-item overlay/tests and both assertion-mode verification. Preserve dirty live source and existing evidence |
 
 ## Pi reservation
 
@@ -174,7 +174,7 @@ Take items in the order below; groups reflect dependencies, not ownership.
 | Order | ID | Item | Priority | Owner | Status | Part of | Notes |
 |---|---|---|---|---|---|---|---|
 | 18 | R33 | Safe, identity-checked clean-build resume and failure propagation | P2 | — | Open | 14 | Source marker/build cache can be stale; lit exit hidden by `\|\| true`; validate output ownership before cleanup. Item-14's independent PASS remains scoped; [closure](reviews/CORRECTNESS_REVIEW_CODEX_0072_20261006.md#new-follow-ups-and-closure-criteria) |
-| 18a | R35 | Exact BOLT counter profiles for conditional-return compiler outputs | P2 | — | Open | — | C1 CSPGO/ThinLTO stair hits 0036's safe conditional-return refusal; PC sampling works. Model function-exit counts and preserve predicates/IT, flags and stack state; test A32/T32, both assertion modes and Pi parity before relaxing the guard; do not treat this as general CSPGO incompatibility |
+| 18a | R35 | Exact BOLT counter profiles for conditional-return compiler outputs | P2 | Codex | In progress | — | User requested next after C2. C1 CSPGO/ThinLTO stair hits 0036's safe conditional-return refusal; PC sampling works. Model function-exit counts and preserve predicates/IT, flags and stack state; test A32/T32, both assertion modes and Pi parity before relaxing the guard; do not treat this as general CSPGO incompatibility |
 | 19 | R34 | Portable B1/B2 capture and measurement evidence | P2 | — | Open | — | Published CSVs have uniform metric/run sets; raw captures point into local temporary storage, not tracked paths; retain hash-bound logs/inputs and audit result frames; [closure](reviews/CORRECTNESS_REVIEW_CODEX_0072_20261006.md#new-follow-ups-and-closure-criteria) |
 | 20 | T4 | Performance and final validation on the real A55 target (A72 gains not transferable) | P2 | User | Out of scope here | — | Done by the user in the office environment, from this repo |
 
