@@ -467,7 +467,21 @@ Evidence rules:
 - QEMU routes are labelled diagnostic;
 - every certified run writes a hashed receipt to `docs/results/`.
 
-### 6.4 Compiler IR-PGO / CSPGO before BOLT
+### 6.4 Two compiler paths before BOLT
+
+The frontend path is **FE-PGO + ThinLTO + optional BOLT**. The default
+performance path is **IR-PGO + ThinLTO + CSPGO + optional BOLT**, with two
+training rounds and a final ThinLTO build consuming merged ordinary+CS counts.
+Frontend and IR PGO are alternate collection implementations, not successive
+feedback stages in the default path.
+
+BOLT then has an independent **sampled** or **instrumented** profile choice.
+Sampling supplies observed PCs (inferred edges on this platform); instrumentation
+supplies counters from admitted binary paths in a temporary training image.
+Both feed `.fdata` back to optimize the original final compiler ELF. Current
+CS stair conditional returns refuse instrumentation (0036/R35) but allow the
+sealed sampling route. The [route matrix](verification/CSPGO_PIPELINE.md#two-compiler-paths-two-bolt-profile-modes)
+distinguishes available combinations from those measured on the Pi.
 
 The LK overlay's `app/bolt_bench/pgo.mk` retains frontend PGO and adds two-round
 IR/CSPGO with module ThinLTO. Ordinary IR training guides inlining; the second

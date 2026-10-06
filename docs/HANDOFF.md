@@ -149,12 +149,6 @@ defect was reproduced; incomplete host evidence must still fail closed.
 
 Take items in the order below; groups reflect dependencies, not ownership.
 
-**User-requested documentation verification**
-
-| Order | ID | Item | Priority | Owner | Status | Notes |
-|---|---|---|---|---|---|---|
-| 0 | C2 | Document both compiler paths and both BOLT profile modes | P2 | Codex | In progress | Verify frontend-PGO+ThinLTO and IR-PGO+ThinLTO+CSPGO paths against scripts/evidence; show sampled and instrumented BOLT with current guard/scope. Documentation only; no shared-tree or Pi use |
-
 **C. Correctness defects and target items** (declared group B P0 milestones are complete)
 
 | Order | ID | Item | Priority | Owner | Status | Part of | Notes |
@@ -188,7 +182,7 @@ Take items in the order below; groups reflect dependencies, not ownership.
 
 ### Done
 
-Completed items with patches and evidence: [history/HANDOFF_DONE.md](history/HANDOFF_DONE.md) (newest first; add new rows there). Latest: C1 (compiler pipeline; R35 counter support remains open), CR1 (review/docs only), 14, R30, G1, B2, R28, R29, B1, M2, T3 (closed), R27, R25, R26, R21, R12, R24, R23.
+Completed items with patches and evidence: [history/HANDOFF_DONE.md](history/HANDOFF_DONE.md) (newest first; add new rows there). Latest: C2 (compiler/BOLT route docs), C1 (compiler pipeline; R35 counter support remains open), CR1 (review/docs only), 14, R30, G1, B2, R28, R29, B1, M2, T3 (closed), R27, R25, R26, R21, R12, R24, R23.
 
 ## Coverage goal
 
@@ -216,6 +210,30 @@ emission coverage, not execution or whole-backend correctness.
 4. Update the *Claims* table and LK_COVERAGE.md together.
 
 ## Handoff log
+
+### 2026-10-06 — Codex: C2 verified/documented two compiler paths and two BOLT profile modes
+
+- Verified script wiring: `build-variants.sh` and LK `pgo.mk` retain FE-PGO+
+  ThinLTO (`pgo_thinlto`) and default IR-PGO+ThinLTO+CSPGO (`cspgo_thinlto`).
+  The latter has ordinary/late CS training rounds and final merged use with
+  ThinLTO. FE is an alternative, not an extra stage before ordinary IR training.
+- BOLT independently uses sampled or instrumented feedback for the exact
+  final compiler ELF. Checked the generic `BOLT_FDATA`/counter conversion
+  branches, sealed sampling collector, CS wrapper and historical FE staged
+  scripts against Clang/BOLT primary documentation. Published the
+  [four-combination route/status matrix](verification/CSPGO_PIPELINE.md#two-compiler-paths-two-bolt-profile-modes)
+  and propagated it into root README, architecture, WSL guide and doc map.
+- Evidence scope explicit: FE instrumented route has historical Pi results;
+  FE sampled route is generic wiring, not a fresh measured C2 combination.
+  C1 IR+CS sampled route is measured; the current stair kernel's counter
+  route safely refuses conditional returns (0036/R35). No universal gain,
+  all-four measured matrix or broadened instrumentation claim. Sampling and
+  counters are profile acquisition modes of the same BOLT optimizer.
+- Documentation only, no source/image/overlay/build changes or Pi access.
+  Repository health and staged whitespace checks pass. Coverage unchanged
+  401/417, 126164/126834 bytes (99.5%); no regeneration needed. Locks remain
+  free, Pi last-observed C1 state unchanged; preserved `Microsoft/`.
+  Next shared item remains R32; R35 Open P2. No new pending item from C2.
 
 ### 2026-10-06 — Codex: C1 compiler pipeline complete; R35 queued; resources released
 

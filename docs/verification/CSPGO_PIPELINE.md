@@ -1,10 +1,68 @@
-# Bare-metal IR-PGO and CSPGO with ThinLTO
+# Compiler PGO paths and BOLT profile modes
 
 The compiler pipeline supports frontend instrumentation PGO (the historical
 route), ordinary IR instrumentation PGO, and context-sensitive IR PGO. Only
 `app/bolt_bench/bolt_bench.c` and `composite.c` are profiled/compiled as
 ThinLTO bitcode. The rest of LK remains native code. This does not change BOLT
 admission or certify a new image against an approved oracle.
+
+## Two compiler paths, two BOLT profile modes
+
+The supported alternatives are **FE-PGO + ThinLTO + optional BOLT** and
+**IR-PGO + ThinLTO + CSPGO + optional BOLT**. The second is the default
+performance flow; the first remains explicitly selectable. These are two
+compiler paths, with an independent choice of BOLT profile collection mode.
+
+| Compiler path | Training and final compiler build | Final BOLT input |
+|---|---|---|
+| Frontend (FE) PGO + ThinLTO | `pgo-collect` → run workload/collect frontend profile → `pgo_thinlto` using that profile with ThinLTO | `pgo_thinlto.elf` |
+| IR-PGO + ThinLTO + CSPGO (default) | `irpgo-collect` → collect ordinary IR profile → IR-profile-guided ThinLTO/`cspgo-collect` → collect CS profile → merge IR+CS → final `cspgo_thinlto` using both levels with ThinLTO | `cspgo_thinlto.elf` |
+
+ThinLTO participates in both the CS training link and the final optimized
+link; CSPGO is not applied once to an already finished executable. The
+IR-only `irpgo_thinlto` image is a comparison control, not a third main path.
+Frontend counts are not an extra feedback round before the IR path.
+
+| BOLT flavor | Collection on the designated workload | Feedback used to optimize the original compiler ELF |
+|---|---|---|
+| **Sampled BOLT** | Run the compiler image with a sampler; this project's bare-metal routes use PMU interrupt PC sampling via `bolt_sample` or lk-perf | Convert accepted, identity-bound samples to `.fdata`; PC-only profiles infer edge frequencies and may miss execution hidden while IRQs are masked |
+| **Instrumented BOLT** | BOLT emits a temporary binary with counters; run it, dump counters, and convert them to `.fdata` | Counts for admitted instrumented paths within the declared scope; counters alter training execution and require the runtime's reset/snapshot and SMP/interrupt rules |
+
+These are two **profile acquisition modes of the same BOLT optimizer**. In
+either mode, optimize the original final compiler ELF using its bound BOLT
+profile, not the temporary counter binary. Compiler `.profdata` is separate
+from BOLT `.fdata`; neither profile type substitutes for the other. Recollect
+BOLT feedback for each exact final ELF, workload/configuration and selected
+function scope. Timed runs use the optimized image with profiling stopped.
+
+| Combination | Present project status |
+|---|---|
+| FE-PGO + ThinLTO + sampled BOLT | Available through the generic sealed sampling/optimization scripts; C2 verified wiring, not a fresh FE sampling benchmark |
+| FE-PGO + ThinLTO + instrumented BOLT | Retained staged route with historical Pi evidence; only admitted instruction shapes/scopes, not universal instrumentation support |
+| IR-PGO + ThinLTO + CSPGO + sampled BOLT | C1 built and measured on the Pi; results include an incremental BOLT regression, so gains are not guaranteed |
+| IR-PGO + ThinLTO + CSPGO + instrumented BOLT | Available for admitted binaries in principle; the current C1 stair output **refuses conditional returns** under 0036. R35 remains open; no measured counter result for that binary |
+
+Use [sealed sampling](PI_PROFILE_IDENTITY.md) for either final compiler ELF;
+the CS-specific convenience wrapper is `scripts/cspgo-bolt.sh`. For the
+counter route, `scripts/bolt-variant.sh instrument <variant>` creates the
+training image, followed by Pi collection and `optimize <variant> <dump>`;
+provide the successful exact `SOURCE_REPLAY` receipt and retain the
+[counter identity chain](AARCH32_PROFILE_IDENTITY.md) and
+[instrumentation scope](PI_INSTRUMENTATION_SCOPE.md). Do not bypass a rejected
+shape or reuse a profile from the other compiler path.
+
+Verification sources: local `build-variants.sh`, LK `pgo.mk`,
+`pgo_cycle_wsl.sh --frontend`, `bolt_stage*.sh`, `bolt-variant.sh`'s
+counter/`BOLT_FDATA` branches, and the sampling collector/converter. C1
+[results](../results/c1_cspgo_20261006/README.md) verify the IR+CS path;
+[historical frontend stages](../history/RPI4_HARDWARE_VERIFICATION.md) and
+[B1 profile-mode comparison](../results/b1_sampling_vs_instrumentation_20261005/README.md)
+provide their separately scoped evidence. B1's ThinLTO input is not claimed
+as a test of all four compiler/profile combinations. Clang's
+[instrumentation guide](https://clang.llvm.org/docs/UsersManual.html#profiling-with-instrumentation)
+and the upstream [BOLT collection guide](https://github.com/llvm/llvm-project/blob/main/bolt/README.md#step-1-collect-profile)
+describe the general mechanisms; AArch32 support here is supplied by this
+repository's overlays.
 
 This is the **main compiler flow**: ordinary IR-PGO → ThinLTO-guided CSPGO
 training → merged IR+CS profile use with ThinLTO → optional BOLT. IR-PGO and

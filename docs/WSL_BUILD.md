@@ -51,6 +51,13 @@ the patches and breaks shell scripts. `wsl-setup.sh` normalizes the WSL copy to 
 
 ## Main compiler flow and Pi measurements
 
+Two alternatives are **FE-PGO + ThinLTO + optional BOLT** and **IR-PGO +
+ThinLTO + CSPGO + optional BOLT** (default). For either, BOLT feedback may be
+**sampled** or **instrumented**; the current CS stair image rejects counter
+instrumentation of conditional returns (R35), while sampled BOLT is measured.
+See the [route/status matrix](verification/CSPGO_PIPELINE.md#two-compiler-paths-two-bolt-profile-modes)
+for scope, collection tools and profile identity requirements.
+
 The normal optimized compiler image uses **ordinary IR-PGO and CSPGO together
 with module ThinLTO**. Run `py -3.12 scripts/pi4/cspgo_cycle_wsl.py` from Windows
 with `--wsl-root <isolated synced repo> --out <fresh output>`; it performs both

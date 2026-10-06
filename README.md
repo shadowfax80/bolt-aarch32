@@ -60,6 +60,19 @@ only; the Pi is the certifying target.
 
 ## Main compiler optimization flow
 
+Two compiler paths are available; each can feed either BOLT profile mode:
+
+| Compiler path | BOLT profile choice |
+|---|---|
+| FE-PGO + ThinLTO (explicit alternate) | Sampled or instrumented |
+| IR-PGO + ThinLTO + CSPGO (default) | Sampled or instrumented, subject to backend admission |
+
+Sampled BOLT collects execution observations; instrumented BOLT collects
+counter feedback from a temporary training binary. Both optimize the original
+compiler ELF with a fresh bound BOLT profile. The current CSPGO stair binary
+is sampled successfully but refuses counter instrumentation for conditional
+returns (R35). See the [route/status matrix](docs/verification/CSPGO_PIPELINE.md#two-compiler-paths-two-bolt-profile-modes).
+
 IR-PGO and CSPGO complement each other. Ordinary IR counts guide earlier
 optimization and ThinLTO inlining; a second training build collects counts
 after inlining. The final build consumes **both** levels from a merged profile.
