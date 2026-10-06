@@ -12,7 +12,7 @@
 #      being LLVM_ENABLE_ASSERTIONS=OFF for `off`; ccache is bypassed
 #      (CCACHE_DISABLE=1) so no object comes from an earlier build;
 #   5. builds the targets of build-llvm-bolt.sh plus bolt-test-depends and
-#      runs the ARM BOLT lit suite.
+#      the bare-metal ARM BOLT runtime, and runs the ARM BOLT lit suite.
 # scripts/build-provenance.py then binds source, config, tools and outputs.
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
@@ -59,6 +59,10 @@ for mode in "${MODES[@]}"; do
     clang lld bolt bolt_rt \
     llvm-objdump llvm-readelf llvm-objcopy llvm-nm llvm-strip llvm-ar llvm-cxxfilt \
     bolt-test-depends > "$OUT/build-$mode.log"
+  # The ARM instrumentation tests link the bare-metal runtime, built here
+  # with this build's own clang.
+  ARCH=arm32 TOOLCHAIN="$B/bin" OUT_DIR="$B/bolt-rt-baremetal-arm" \
+    "$ROOT/scripts/build-bolt-rt-baremetal.sh" >> "$OUT/build-$mode.log"
   "$B/bin/llvm-lit" -sv "$B/tools/bolt/test/ARM" > "$OUT/lit-$mode.log" 2>&1 || true
   tail -3 "$OUT/lit-$mode.log"
 done

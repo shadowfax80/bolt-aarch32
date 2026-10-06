@@ -13,8 +13,10 @@ off):
 - repository: commit; overlay series, CMake cache file and these scripts
   must be unmodified;
 - source: the clean tree is the pinned base fetched from its remote plus the
-  overlay series; its git tree hash must equal the live tree's (computed in a
-  temporary index, the live tree and its index are not touched);
+  overlay series; every path's contents must equal the live tree's (git tree
+  of the live tree computed in a temporary index, the live tree and its index
+  are not touched); file-mode differences, which patches cannot carry, are
+  listed;
 - configuration: the CMake caches of all four builds, normalised, and the
   keys in which they differ;
 - tools: host tool versions; hashes of the built binaries;
@@ -112,9 +114,24 @@ def source(clean, pin):
         git(src, 'add', '-A', '--', '.', env=env)
         now = git(src, 'write-tree', env=env)
     live = live_tree_hash()
+
+    def listing(directory, tree):
+        res = {}
+        for line in git(directory, 'ls-tree', '-r', '-z', tree).split('\0'):
+            if line:
+                meta, path = line.split('\t', 1)
+                mode, _, blob = meta.split()
+                res[path] = (mode, blob)
+        return res
+    a, b = listing(src, recorded), listing(LIVE_SRC, live)
+    content = {p: v[1] for p, v in a.items()} == {p: v[1] for p, v in b.items()}
+    # The file-slice patches carry no file modes; record where they differ.
+    modes = sorted(f'{p}: clean {a[p][0]}, live {b[p][0]}'
+                   for p in a.keys() & b.keys() if a[p][0] != b[p][0])
     return {'clean_head': head, 'clean_head_is_pin': head == pin, 'clean_tree': recorded,
             'clean_tree_unchanged_since_build': now == recorded, 'live_tree': live,
-            'live_equals_clean': live == recorded,
+            'paths': len(a), 'live_equals_clean': live == recorded,
+            'live_contents_equal_clean': content, 'mode_only_differences': modes,
             'live_head': git(LIVE_SRC, 'rev-parse', 'HEAD')}
 
 
@@ -278,7 +295,7 @@ def main():
         'bound_paths_clean': r['repository']['bound_paths_clean'],
         'clean_head_is_pin': r['source']['clean_head_is_pin'],
         'clean_tree_unchanged_since_build': r['source']['clean_tree_unchanged_since_build'],
-        'live_source_equals_clean': r['source']['live_equals_clean'],
+        'live_source_contents_equal_clean': r['source']['live_contents_equal_clean'],
         'clean_modes_differ_only_in_assertions': only_assert,
         'lit_all_builds': lit_ok,
         'outputs_identical_across_builds': all(s['identical_across_builds'] for s in r['parity']['scenarios'].values()),
