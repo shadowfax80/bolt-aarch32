@@ -67,7 +67,7 @@ Everything needed to continue is in this repo:
 - **Certified input image:** `fixtures/lk-rpi4-bolt-test-424606a8.elf`
   (see `fixtures/README.md`); the skip list is in
   `docs/results/lk_coverage_r15_20261004.json` (`skip_funcs`).
-- **Backend source:** overlays `overlay/llvm/patches/atfe/0001–0071`; the WSL
+- **Backend source:** overlays `overlay/llvm/patches/atfe/0001–0072`; the WSL
   live tree must replay them exactly (`scripts/verify-atfe-overlays.py`).
   Do not run `scripts/apply-overlays.sh` on the dirty live tree.
 - **Commands:**
@@ -143,7 +143,6 @@ Take items in the order below; groups reflect dependencies, not ownership.
 
 | Order | ID | Item | Priority | Owner | Status | Part of | Notes |
 |---|---|---|---|---|---|---|---|
-| 10b | R30 | BOLT outputs lack the code mapping symbol at ARM function starts that had none in the input (inherited state), and in the JITLink stub section: tools decode them as Thumb (found by item 14's no-FPU guard on G1 output: memcpy, arch_spin_lock, ...) | P1 | Claude | In progress | 11, 14 | Claude, 2026-10-06 |
 | 10c | T4 | Performance and final validation on the real A55 target (A72 gains not transferable) | P2 | User | Out of scope here | — | Done by the user in the office environment, from this repo |
 
 
@@ -164,7 +163,7 @@ Take items in the order below; groups reflect dependencies, not ownership.
 
 ### Done
 
-Completed items with patches and evidence: [history/HANDOFF_DONE.md](history/HANDOFF_DONE.md) (newest first; add new rows there). Latest: G1, B2, R28, R29, B1, M2, T3 (closed), R27, R25, R26, R21, R12, R24, R23.
+Completed items with patches and evidence: [history/HANDOFF_DONE.md](history/HANDOFF_DONE.md) (newest first; add new rows there). Latest: R30, G1, B2, R28, R29, B1, M2, T3 (closed), R27, R25, R26, R21, R12, R24, R23.
 
 ## Coverage goal
 
@@ -192,6 +191,23 @@ emission coverage, not execution or whole-backend correctness.
 4. Update the *Claims* table and LK_COVERAGE.md together.
 
 ## Handoff log
+
+### 2026-10-06 — Claude: R30 fixed (0072, output mapping symbols)
+
+- Item 14's no-FPU guard flagged 1,943 FP/NEON "instructions" in the G1
+  output: wrong mapping symbols, not code. BOLT marked new code only where
+  the input had a mark at the entry (ARM functions that inherited `$a`
+  followed Thumb code unmarked), put island "code resumes" marks on the next
+  function's entry, dropped all marks of the kept original section, and left
+  JITLink stubs unmarked. 0072 fixes all four.
+- `arm-mapping-symbols.test` fails on 0071, passes on 0072; ARM lit 61/61 in
+  both assertion modes; replay 0001–0072 exact; coverage unchanged 401/417
+  (`lk_coverage_r30_20261006.json`). G1 image rebuilt on 0072: `.bin`
+  identical (`2181dffe…`), so G1's Pi certification carries over; 0 of 417
+  functions in the wrong state, original section decodes like the input
+  except the 2 redirected entries. [R30 results](results/r30_20261006/README.md).
+- WSL live tree: source = 0001–0072, `build-atfe` and `build-atfe-noassert`
+  llvm-bolt rebuilt. Lock and Pi kept for item 14.
 
 ### 2026-10-06 — Claude: G1 passed (certified full-image gate on 0001–0071)
 

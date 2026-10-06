@@ -1,0 +1,480 @@
+--- a/bolt/include/bolt/Core/Linker.h
++++ b/bolt/include/bolt/Core/Linker.h
+@@ -19,6 +19,8 @@
+ #include <cstdint>
+ #include <functional>
+ #include <optional>
++#include <utility>
++#include <vector>
+ 
+ namespace llvm {
+ namespace bolt {
+@@ -46,6 +48,13 @@
+   /// Return the address and size of a symbol or std::nullopt if it cannot be
+   /// found.
+   virtual std::optional<SymbolInfo> lookupSymbolInfo(StringRef Name) const = 0;
++
++  /// AArch32: start address and instruction set (true = Thumb) of each piece
++  /// of code the linker generated itself (stubs), so the rewriter can give
++  /// it mapping symbols.
++  virtual std::vector<std::pair<uint64_t, bool>> getStubCodeMarks() const {
++    return {};
++  }
+ };
+ 
+ } // namespace bolt
+--- a/bolt/include/bolt/Rewrite/JITLinkLinker.h
++++ b/bolt/include/bolt/Rewrite/JITLinkLinker.h
+@@ -35,6 +35,7 @@
+   jitlink::JITLinkDylib Dylib{"main"};
+   std::vector<ExecutableFileMemoryManager::FinalizedAlloc> Allocs;
+   StringMap<SymbolInfo> Symtab;
++  std::vector<std::pair<uint64_t, bool>> StubCodeMarks;
+ 
+ public:
+   JITLinkLinker(BinaryContext &BC,
+@@ -43,6 +44,9 @@
+ 
+   void loadObject(MemoryBufferRef Obj, SectionsMapper MapSections) override;
+   std::optional<SymbolInfo> lookupSymbolInfo(StringRef Name) const override;
++  std::vector<std::pair<uint64_t, bool>> getStubCodeMarks() const override {
++    return StubCodeMarks;
++  }
+ 
+   static SmallVector<jitlink::Block *, 2>
+   orderedBlocks(const jitlink::Section &Section);
+--- a/bolt/lib/Rewrite/JITLinkLinker.cpp
++++ b/bolt/lib/Rewrite/JITLinkLinker.cpp
+@@ -306,6 +306,15 @@
+       Linker.Symtab.insert({std::move(Name), Info});
+     }
+ 
++    // R30: each aarch32 stub is one block with an anonymous symbol that
++    // carries the stub's instruction set.
++    for (jitlink::Section &S : G.sections())
++      if (S.getName().starts_with("__llvm_jitlink_aarch32_STUBS"))
++        for (jitlink::Symbol *Symbol : S.symbols())
++          Linker.StubCodeMarks.emplace_back(
++              Symbol->getAddress().getValue(),
++              Symbol->getTargetFlags() & jitlink::aarch32::ThumbSymbol);
++
+     return Error::success();
+   }
+ 
+--- a/bolt/lib/Rewrite/RewriteInstance.cpp
++++ b/bolt/lib/Rewrite/RewriteInstance.cpp
+@@ -6368,6 +6368,33 @@
+     return SymbolName;
+   };
+ 
++  // R30: whether the original bytes of a function, and with them the input's
++  // AArch32 mapping symbols inside it, are still in the output: the function
++  // was not rewritten, or it was moved and its original section is kept.
++  auto keepsOriginalBytes = [&](const BinaryFunction &BF) {
++    if (BF.isEmitted())
++      return BC->HasRelocations && !opts::UseOldText;
++    return !(BC->HasRelocations && opts::UseOldText);
++  };
++
++  // R30: whether code of \p BF follows \p Address inside one of its emitted
++  // fragments. A data island or table at the end of a fragment is followed by
++  // the next function (marked in its own state below) or by padding, so a
++  // "code resumes" mark there would give the next function the wrong state.
++  auto codeResumesAt = [&](const BinaryFunction &BF, uint64_t Address) {
++    if (!BC->isARM())
++      return true;
++    for (const FunctionFragment &FF : BF.getLayout().fragments()) {
++      const uint64_t Start =
++          FF.isMainFragment() ? BF.getOutputAddress() : FF.getAddress();
++      const uint64_t Size =
++          FF.isMainFragment() ? BF.getOutputSize() : FF.getImageSize();
++      if (Start <= Address && Address < Start + Size)
++        return true;
++    }
++    return false;
++  };
++
+   // Add extra symbols for the function.
+   //
+   // Note that addExtraSymbols() could be called multiple times for the same
+@@ -6435,7 +6462,8 @@
+           BC->isARM() ? (Function.isARMThumb() ? "$t" : "$a") : "$x");
+       CodeMarkSym.st_value = CodeMark;
+       Symbols.emplace_back(DataMarkSym);
+-      Symbols.emplace_back(CodeMarkSym);
++      if (codeResumesAt(Function, CodeMark))
++        Symbols.emplace_back(CodeMarkSym);
+     }
+     // AArch32 inline TBH tables: $d over the table, $t where code resumes.
+     for (const auto &[Start, End] : Function.InlineTableMarks) {
+@@ -6456,7 +6484,8 @@
+       // ARM after A32 `ldr pc` tables.
+       Mark.st_name = AddToStrTab(Function.isARMThumb() ? "$t" : "$a");
+       Mark.st_value = E->Address;
+-      Symbols.emplace_back(Mark);
++      if (codeResumesAt(Function, E->Address))
++        Symbols.emplace_back(Mark);
+     }
+     if (Function.hasConstantIsland() && Function.isSplit()) {
+       uint64_t DataMark = Function.getOutputColdDataAddress();
+@@ -6474,7 +6503,8 @@
+           BC->isARM() ? (Function.isARMThumb() ? "$t" : "$a") : "$x");
+       CodeMarkSym.st_value = CodeMark;
+       Symbols.emplace_back(DataMarkSym);
+-      Symbols.emplace_back(CodeMarkSym);
++      if (codeResumesAt(Function, CodeMark))
++        Symbols.emplace_back(CodeMarkSym);
+     }
+   };
+ 
+@@ -6578,6 +6608,19 @@
+     }
+ 
+     if (Function) {
++      // R30: an AArch32 mapping symbol at the entry of an emitted function
++      // describes the original bytes, not the new code (which gets its own
++      // marks below). Keep it with those bytes if they survive, else drop it.
++      if (BC->isARM() && !IsDynSym && Function->isEmitted() &&
++          BC->getMarkerType(Symbol.getType(), Symbol.st_size, *SymbolName) !=
++              MarkerSymType::NONE) {
++        if (!keepsOriginalBytes(*Function) ||
++            Symbol.st_shndx >= ELF::SHN_LORESERVE ||
++            !getNewSectionIndex(Symbol.st_shndx))
++          continue;
++        NewSymbol.st_shndx = getNewSectionIndex(Symbol.st_shndx);
++        goto registerSymbol;
++      }
+       // If the symbol matched a function that was not emitted, update the
+       // corresponding section index but otherwise leave it unchanged.
+       if (Function->isEmitted()) {
+@@ -6689,13 +6732,20 @@
+         }
+ 
+         // Drop AArch64/RISC-V marker symbols ($d, $x) inside functions —
+-        // BOLT generates its own via addExtraSymbols.
+-        if (IsMarkerSymbol() &&
+-            BC->getBinaryFunctionContainingAddress(Symbol.st_value,
+-                                                   /*CheckPastEnd=*/false,
+-                                                   /*UseMaxSize=*/true)) {
+-          assert(!IsDynSym && "cannot delete symbol");
+-          continue;
++        // BOLT generates its own via addExtraSymbols. R30: AArch32 keeps
++        // them where they still describe the function's original bytes.
++        if (IsMarkerSymbol()) {
++          if (const BinaryFunction *Container =
++                  BC->getBinaryFunctionContainingAddress(
++                      Symbol.st_value,
++                      /*CheckPastEnd=*/false,
++                      /*UseMaxSize=*/true)) {
++            if (!BC->isARM() || !keepsOriginalBytes(*Container) ||
++                !NewSymbol.st_shndx) {
++              assert(!IsDynSym && "cannot delete symbol");
++              continue;
++            }
++          }
+         }
+       }
+     }
+@@ -6760,6 +6810,42 @@
+     }
+   }
+ 
++  // R30: AArch32 tools take the instruction set from the last mapping symbol.
++  // The input's marks at function entries cover only where the state
++  // changed in the input; after reordering, an ARM function that inherited
++  // $a from its predecessor can follow Thumb code. Mark every emitted
++  // fragment, and every linker stub, with its own state.
++  if (BC->isARM()) {
++    auto AddCodeMark = [&](uint64_t Address, bool Thumb, unsigned Index) {
++      ELFSymTy Mark;
++      Mark.st_value = Address;
++      Mark.st_shndx = Index;
++      Mark.st_name = AddToStrTab(Thumb ? "$t" : "$a");
++      Mark.st_size = 0;
++      Mark.st_other = 0;
++      Mark.setBindingAndType(ELF::STB_LOCAL, ELF::STT_NOTYPE);
++      Symbols.emplace_back(Mark);
++    };
++    for (const auto &[Address, BF] : BC->getBinaryFunctions()) {
++      if (!BF.isEmitted())
++        continue;
++      for (const FunctionFragment &FF : BF.getLayout().fragments()) {
++        const uint64_t Start =
++            FF.isMainFragment() ? BF.getOutputAddress() : FF.getAddress();
++        if (Start)
++          AddCodeMark(Start, BF.isARMThumb(),
++                      BF.getCodeSection(FF.getFragmentNum())->getIndex());
++      }
++    }
++    for (const auto &[Address, Thumb] : Linker->getStubCodeMarks())
++      for (const BinarySection &Section : BC->allocatableSections())
++        if (Section.getIndex() && Section.getOutputAddress() <= Address &&
++            Address < Section.getOutputAddress() + Section.getOutputSize()) {
++          AddCodeMark(Address, Thumb, Section.getIndex());
++          break;
++        }
++  }
++
+   auto AddSymbol = [&](const StringRef &Name, uint64_t Address) {
+     if (!Address)
+       return;
+--- a/bolt/test/ARM/Inputs/check-thumb-entry.py
++++ b/bolt/test/ARM/Inputs/check-thumb-entry.py
+@@ -22,16 +22,21 @@
+ assert mapping['_start'][0] != mapping['_start'][1], mapping['_start']
+ 
+ found = {}
++marks = []
+ for line in symbols.splitlines():
+     match = re.match(r'\s*\d+:\s+([0-9a-f]+)\s+(\d+)\s+(\w+)\s+(\w+)\s+\w+\s+\w+\s+(\S+)', line)
+     if match:
+         value, size, kind, binding, name = match.groups()
+         found[name] = (int(value, 16), int(size), kind, binding)
++        if name == '$t':
++            marks.append(found[name])
+ 
+ for name in ('_start', 'probe', 'probe_nz'):
+     old, new, size = mapping[name]
+     assert old != new, (name, mapping[name])
+     assert found[name] == (new | 1, size, 'FUNC', 'GLOBAL'), (name, found.get(name), mapping[name])
+ 
+-assert found['$t'][0] == mapping['_start'][1], (found['$t'], mapping['_start'])
+-assert found['$t'][1] == 0 and found['$t'][2] == 'NOTYPE', found['$t']
++# R30: the original section keeps its own marks and every emitted fragment
++# is marked, so there are several $t; one is at the moved entry, none is odd.
++assert (mapping['_start'][1], 0, 'NOTYPE', 'LOCAL') in marks, (marks, mapping['_start'])
++assert all(value % 2 == 0 for value, _, _, _ in marks), marks
+--- /dev/null
++++ b/bolt/test/ARM/Inputs/check-arm-mapping-symbols.py
+@@ -0,0 +1,223 @@
++from pathlib import Path
++import re
++import shutil
++import subprocess
++import sys
++import tempfile
++
++# R30: AArch32 tools take the instruction set of an address from the last
++# mapping symbol ($a/$t/$d) before it. In the input, an ARM function that
++# directly follows another ARM function has no $a of its own. BOLT used to
++# carry only the input's marks at function entries to the new code and drop
++# all others, so after reordering such a function followed Thumb code without
++# a mark (decoded as Thumb), the kept original section had no marks at all,
++# and linker stubs had none either. Checks:
++#   1. every function in the output starts in its own state;
++#   2. the original section decodes exactly like the input .text;
++#   3. JITLink stubs (ARM and Thumb) are marked with their own state;
++#   4. no address carries marks of both states (a "code resumes" mark after a
++#      function's trailing literal pool landed on the next function's entry).
++tc = Path(shutil.which('llvm-bolt')).resolve().parent
++evidence = Path(sys.argv[1])
++evidence.mkdir(parents=True, exist_ok=True)
++out = Path(tempfile.mkdtemp(prefix='run-', dir=evidence))
++print('Evidence:', out)
++
++SRC = r'''
++ .syntax unified
++ .text
++ .arm
++ .global _start
++ .type _start,%function
++ .p2align 2
++_start:
++ push {r4, lr}
++ bl arm_a
++ bl arm_b
++ blx th_t
++ blx th_far
++ bl arm_tail
++ blx th_tail
++ pop {r4, pc}
++ .size _start,.-_start
++
++ .global arm_a
++ .type arm_a,%function
++arm_a:
++ ldr r0, 1f
++ bx lr
++1:
++ .word 0x11223344
++ .size arm_a,.-arm_a
++
++ .global arm_b
++ .type arm_b,%function
++arm_b:
++ ldr r0, 2f
++ add r0, r0, #1
++ bx lr
++2:
++ .word 0x55667788
++ .size arm_b,.-arm_b
++
++ .thumb
++ .global th_t
++ .type th_t,%function
++ .thumb_func
++th_t:
++ movs r0, #7
++ b.w arm_b
++ .size th_t,.-th_t
++
++ .global th_far
++ .type th_far,%function
++ .thumb_func
++th_far:
++ movs r0, #9
++ bx lr
++ .size th_far,.-th_far
++
++## Branches to functions BOLT does not emit get JITLink stubs.
++ .global th_tail
++ .type th_tail,%function
++ .thumb_func
++th_tail:
++ b.w keep_t
++ .size th_tail,.-th_tail
++
++ .global keep_t
++ .type keep_t,%function
++ .thumb_func
++keep_t:
++ movs r0, #3
++ bx lr
++ .size keep_t,.-keep_t
++
++ .arm
++ .p2align 2
++ .global arm_tail
++ .type arm_tail,%function
++arm_tail:
++ b keep_a
++ .size arm_tail,.-arm_tail
++
++ .global keep_a
++ .type keep_a,%function
++keep_a:
++ mov r0, #4
++ bx lr
++ .size keep_a,.-keep_a
++'''
++
++
++def run(*args, **kw):
++    p = subprocess.run([str(a) for a in args], capture_output=True, text=True, **kw)
++    if p.returncode:
++        sys.exit(f'FAIL: {args[0]} exited {p.returncode}\n{p.stdout}\n{p.stderr}')
++    return p.stdout + p.stderr
++
++
++def symbols(f):
++    res = []
++    for line in run(tc / 'llvm-readelf', '-s', '-W', f).splitlines():
++        p = line.split()
++        if len(p) >= 8 and p[0].endswith(':') and p[0][:-1].isdigit() and p[6].isdigit():
++            res.append((int(p[1], 16), p[3], int(p[6]), p[7]))
++    return res
++
++
++def state_at(marks, address):
++    state = None
++    for a, k in marks:
++        if a > address:
++            break
++        state = k
++    return state
++
++
++def decode(f, section):
++    res = {}
++    for line in run(tc / 'llvm-objdump', '-d', '--no-show-raw-insn', '-j', section, f).splitlines():
++        m = re.match(r'\s*([0-9a-f]+):\s+(.*)', line)
++        if m:
++            res[int(m.group(1), 16)] = re.sub(r'\s*(@.*|<.*)$', '', m.group(2)).strip()
++    return res
++
++
++(out / 'in.s').write_text(SRC)
++run(tc / 'llvm-mc', '-arm-add-build-attributes', '-triple=armv7-none-eabi', '-filetype=obj',
++    out / 'in.s', '-o', out / 'in.o')
++run(tc / 'ld.lld', '--emit-relocs', '-Ttext=0x10000', out / 'in.o', '-o', out / 'in.elf')
++# th_t, arm_b first: arm_b (no $a of its own in the input) now follows Thumb code.
++(out / 'order.txt').write_text('\n'.join(
++    ['th_t', 'arm_b', '_start', 'arm_a', 'th_far', 'arm_tail', 'th_tail']) + '\n')
++log = run(tc / 'llvm-bolt', out / 'in.elf', '-o', out / 'out.elf', '--no-huge-pages', '-lite=0',
++          '--reorder-functions=user', f'--function-order={out / "order.txt"}',
++          '-skip-funcs=keep_a,keep_t')
++(out / 'bolt.log').write_text(log)
++if 'BOLT-ERROR' in log:
++    sys.exit('FAIL: BOLT-ERROR\n' + log)
++
++ok = True
++syms = symbols(out / 'out.elf')
++marks = {}
++for a, t, ndx, n in syms:
++    if re.fullmatch(r'\$[atd](\..*)?', n):
++        marks.setdefault(ndx, []).append((a, n[1]))
++for v in marks.values():
++    v.sort()
++
++# 1. Function starts.
++funcs = [(a, n, ndx) for a, t, ndx, n in syms if t == 'FUNC']
++for a, n, ndx in sorted(funcs):
++    want = 't' if a & 1 else 'a'
++    got = state_at(marks.get(ndx, []), a & ~1)
++    print(f'function {n} at {a & ~1:#x}: {want} state, marked {got}')
++    if got != want:
++        print(f'FAIL: {n} starts in state {got}, expected {want}')
++        ok = False
++if not {'arm_b', 'arm_tail', 'th_tail', 'keep_a', 'keep_t'} <= {n for a, n, ndx in funcs}:
++    sys.exit('FAIL: unexpected function symbols')
++
++# 2. The original section decodes like the input .text.
++before = decode(out / 'in.elf', '.text')
++after = decode(out / 'out.elf', '.bolt.org.text')
++diff = [a for a in sorted(set(before) | set(after)) if before.get(a) != after.get(a)]
++print(f'original section: {len(before)} input units, {len(diff)} decode differently')
++for a in diff[:8]:
++    print(f'FAIL: {a:#x}: input {before.get(a)!r}, output {after.get(a)!r}')
++ok &= not diff
++if not any('.word' in v for v in after.values()):
++    print('FAIL: literal pools of the original section are not marked as data')
++    ok = False
++
++# 3. Linker stubs: arm_tail (ARM B) and th_tail (Thumb B.W) branch to kept
++# functions, so JITLink makes one ARM and one Thumb MOVW/MOVT/BX stub.
++shdrs = run(tc / 'llvm-readelf', '-S', '-W', out / 'out.elf')
++stub = re.search(r'\[\s*(\d+)\]\s+(__llvm_jitlink_aarch32_STUBS\S*)', shdrs)
++if not stub:
++    sys.exit('FAIL: no JITLink stub section (test input no longer needs a stub)')
++ndx = int(stub.group(1))
++kinds = sorted(k for a, k in marks.get(ndx, []))
++print(f'stub section marks: {kinds}')
++if kinds != ['a', 't']:
++    print('FAIL: expected one $a and one $t in the stub section')
++    ok = False
++stub_code = list(decode(out / 'out.elf', stub.group(2)).values())
++print('stub section decodes as:', stub_code)
++if sorted((i.split() or ['?'])[0] for i in stub_code) !=['bx', 'bx', 'movt', 'movt', 'movw', 'movw']:
++    print('FAIL: stubs do not decode as two MOVW/MOVT/BX sequences')
++    ok = False
++
++# 4. One state per address.
++for ndx, v in marks.items():
++    at = {}
++    for a, k in v:
++        at.setdefault(a, set()).add(k)
++    for a, ks in sorted(at.items()):
++        if len(ks) > 1:
++            print(f'FAIL: section {ndx} address {a:#x} has conflicting marks {sorted(ks)}')
++            ok = False
++
++print('PASS' if ok else 'FAIL')
++sys.exit(0 if ok else 1)
+--- /dev/null
++++ b/bolt/test/ARM/arm-mapping-symbols.test
+@@ -0,0 +1,5 @@
++## R30: every function, the kept original section and linker stubs carry the
++## mapping symbols of their own instruction set after reordering.
++
++RUN: rm -rf %t.dir
++RUN: %python %p/Inputs/check-arm-mapping-symbols.py %t.dir

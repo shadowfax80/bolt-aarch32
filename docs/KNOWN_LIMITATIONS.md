@@ -9,7 +9,7 @@ matrices remain bounded by their current work items.
 
 ## Current ATFE backend limitations (re-baselined 2026-10-05)
 
-State: overlays 0001–0071, full LK `424606a8` 401/417 functions (126164 of
+State: overlays 0001–0072, full LK `424606a8` 401/417 functions (126164 of
 126834 code bytes, 99.5%), edge image `ce8dd005` 561 rewritten, A55 `47c73bc0`
 400 rewritten. Verified on the Pi 4B (Cortex-A72, AArch32, Non-secure SVC);
 the real target is a Cortex-A55, also in Non-secure SVC. Sources:

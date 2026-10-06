@@ -1,0 +1,27 @@
+== G1 image built with 0001-0071 (out/g1_0071)
+out/g1_0071/baseline.elf: 417 functions, 0 start in the wrong state []
+out/g1_0071/baseline_full.elf: 417 functions, 3 start in the wrong state [('0x800f3b80', 'memset', 'a', 't'), ('0x800f3a80', 'memcpy', 'a', 't'), ('0x800f3a80', 'memmove', 'a', 't')]
+original section: 63998 input insns, 43837 output insns, 70438 decode differently
+  800082c0: '4c 80 00 80  \t.word\t0x8000804c' -> 'andhi\tr8, r0, r12, asr #32'
+  800082c4: 'a4 6a 03 80  \t.word\t0x80036aa4' -> 'andhi\tr6, r3, r4, lsr #21'
+  800082c8: '00 80 03 80  \t.word\t0x80038000' -> 'andhi\tr8, r3, r0'
+  800082cc: 'a0 69 03 80  \t.word\t0x800369a0' -> 'andhi\tr6, r3, r0, lsr #19'
+  800082d0: '0e 14 01 00  \t.word\t0x0001140e' -> 'andeq\tr1, r1, lr, lsl #8'
+  800082d4: '40 c0 03 80  \t.word\t0x8003c040' -> 'andhi\tr12, r3, r0, asr #32'
+  800082d8: 'a0 69 03 80  \t.word\t0x800369a0' -> 'andhi\tr6, r3, r0, lsr #19'
+  800082dc: 'a0 69 03 80  \t.word\t0x800369a0' -> 'andhi\tr6, r3, r0, lsr #19'
+  800082e0: '00 c0 03 80  \t.word\t0x8003c000' -> 'andhi\tr12, r3, r0'
+  800082e4: 'f8 42 0d 80  \t.word\t0x800d42f8' -> 'strdhi\tr4, r5, [sp], -r8'
+  800082e8: 'f8 81 00 80  \t.word\t0x800081f8' -> 'strdhi\tr8, r9, [r0], -r8'
+  800082ec: '20 6a 03 80  \t.word\t0x80036a20' -> 'andhi\tr6, r3, r0, lsr #20'
+
+== same build with 0001-0072 (out/r30_g1)
+out/r30_g1/baseline.elf: 417 functions, 0 start in the wrong state []
+out/r30_g1/baseline_full.elf: 417 functions, 0 start in the wrong state []
+original section: 63998 input insns, 63997 output insns, 3 decode differently
+  8000a858: 'push\t{r4, r5, r6, r7, r11, lr}' -> 'b\t0x800d8800'
+  8000aa34: 'push\t{r4, r5, r6, r7, lr}' -> 'b.w\t0x800d8a00'
+  8000aa36: 'sub\tsp, #0x4' -> None
+
+2181dffe845616573dcf8096e276e43aa6f33e7f2d0b4218a256f4bc540d5dc3  out/g1_0071/baseline_full.bin
+2181dffe845616573dcf8096e276e43aa6f33e7f2d0b4218a256f4bc540d5dc3  out/r30_g1/baseline_full.bin

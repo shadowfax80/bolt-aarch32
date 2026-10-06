@@ -1,6 +1,6 @@
 # BOLT AArch32 backend — architecture and design
 
-Status of this document: current as of overlays **0001–0071** (2026-10-05).
+Status of this document: current as of overlays **0001–0072** (2026-10-06).
 It describes the backend as built and verified in this repository. Work order
 and ownership are in [HANDOFF.md](HANDOFF.md). Limitations are in
 [KNOWN_LIMITATIONS.md](KNOWN_LIMITATIONS.md#current-atfe-backend-limitations-re-baselined-2026-10-05).
@@ -42,7 +42,7 @@ admission report. It is never transformed on a guess.
 ```mermaid
 flowchart LR
   subgraph repo["This repository"]
-    OV["overlay/llvm/patches/atfe<br/>0001–0071 (backend)"]
+    OV["overlay/llvm/patches/atfe<br/>0001–0072 (backend)"]
     LKOV["overlay/lk<br/>patches 0001–0011 + files<br/>(rpi4 port, bolt_bench)"]
     RT["overlay/llvm/bolt-rt-baremetal<br/>instrumentation runtime"]
     SC["scripts/<br/>build, pipeline, gates"]
@@ -166,6 +166,9 @@ to PC, exception returns). The backend gives each `BinaryFunction` one ISA
 (`isARMThumb()`), decided at discovery from the symbol's bit 0 and the
 `$a`/`$t` mapping symbols. `$d` marks data in code (literal pools, inline
 tables), which becomes a constant island and is never decoded.
+On output (0072) every emitted fragment and linker stub gets its own
+`$a`/`$t`, and the kept original section keeps the input's marks, so tools
+decode both copies correctly.
 
 **Two MCPlusBuilders, never mutated.** `BinaryContext::getMIBFor(bool
 IsThumb)` returns either the primary (A32) builder or a separate `ThumbMIB`.
@@ -470,7 +473,7 @@ Evidence rules:
 
 | Measure | Value |
 |---|---|
-| Overlays | 0001–0071, replay exact |
+| Overlays | 0001–0072, replay exact |
 | Lit | ARM 58/58 in both assertion modes; BOLT suite: known AArch64 `constant_island_pie_update.s` failure only |
 | Full LK `424606a8` (ARMv7) | 401/417 functions rewritten; 126164 of 126834 code bytes (99.5%) |
 | Remaining rejections | 7 exception/startup PC writers (vectors, `arm_secondary_setup`), 2 real fall-throughs (`bcopy`, `bzero`) |
@@ -598,6 +601,7 @@ To support a new instruction shape safely:
 | 0069 | bolt-arm-table-base-liveness | Re-pointed table bases must be dead at all cases |
 | 0070 | bolt-arm-data-pointer-thumb-bit | Absolute words to unnamed (section) symbols take their Thumb bit from the addend, not from the function at the section start (R28) |
 | 0071 | bolt-arm-thumb-short-branch-range | Thumb B/B<c> widened instead of stubbed; CBZ/CBNZ measured as the emitted B.W (R29) |
+| 0072 | bolt-arm-mapping-symbols | Output mapping symbols: every emitted fragment and JITLink stub marked in its own state; input marks kept where the original bytes survive; no "code resumes" mark past a fragment end (R30) |
 
 ## Appendix B. Glossary
 
