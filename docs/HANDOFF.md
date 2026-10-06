@@ -124,7 +124,7 @@ image/configuration oracle contracts still require user review.
 
 | Holder | Since | Purpose |
 |---|---|---|
-| — | — | Free; R35 complete. Shared source and both builds on 0001–0073; preserve dirty source, replay before use and do not reapply overlays |
+| Codex | 2026-10-06 | C3: fresh FE-PGO/ThinLTO plus sampled and instrumented BOLT verification on 0073; isolated LK builds, preserve all prior source/evidence |
 
 ## Pi reservation
 
@@ -132,7 +132,7 @@ Board-wide: shared by bolt-aarch32 and lk-perf (one Pi 4B on COM5).
 
 | Holder | Since | Purpose / last observation |
 |---|---|---|
-| — | — | Free; last observed 2026-10-06: R35 counter-BOLT CS shell, sampler stopped/watch ranges cleared, watchdog off, COM5 closed. Historical observation, check before use |
+| Codex | 2026-10-06 | C3: FE profile training, BOLT captures, parity/PC checks and interleaved timings; watchdog for runs. Previous observation: R35 counter-BOLT CS shell, sampler/watch ranges off, watchdog off, COM5 closed |
 
 ## Claims (consolidated TODO)
 
@@ -180,6 +180,7 @@ Take items in the order below; groups reflect dependencies, not ownership.
 | Order | ID | Item | Priority | Owner | Status | Part of | Notes |
 |---|---|---|---|---|---|---|---|
 | 18 | R33 | Safe, identity-checked clean-build resume and failure propagation | P2 | — | Open | 14 | Source marker/build cache can be stale; lit exit hidden by `\|\| true`; validate output ownership before cleanup. Item-14's independent PASS remains scoped; [closure](reviews/CORRECTNESS_REVIEW_CODEX_0072_20261006.md#new-follow-ups-and-closure-criteria) |
+| 18b | C3 | Fresh FE-PGO + ThinLTO + both BOLT profile-mode verification | P2 | Codex | In progress | — | User requested now: fresh frontend training/profile use, current 0073 tools, sampled and exact-counter BOLT on final FE ELF, no-FPU, Pi result/rewritten-PC checks and training/shifted-input measurements; retain portable evidence and update route matrix |
 | 18a | R36 | Extend remaining conditional-return instrumentation shapes | P2 | — | Open | — | R35/0073 fixes the C1 CS stair input and safe uniform Thumb/A32 predecessor shapes. Mixed IT predicates, flag-changing/narrow implicit-flag Thumb bodies, and A32 entry/targeted/after-control-transfer returns still refuse. Model predicates and unique profile sites before relaxing guards; add both-mode semantic/state/count tests and Pi evidence; broader IRQ/SMP/A32 state matrices remain separate |
 | 19 | R34 | Portable B1/B2 capture and measurement evidence | P2 | — | Open | — | Published CSVs have uniform metric/run sets; raw captures point into local temporary storage, not tracked paths; retain hash-bound logs/inputs and audit result frames; [closure](reviews/CORRECTNESS_REVIEW_CODEX_0072_20261006.md#new-follow-ups-and-closure-criteria) |
 | 20 | T4 | Performance and final validation on the real A55 target (A72 gains not transferable) | P2 | User | Out of scope here | — | Done by the user in the office environment, from this repo |
