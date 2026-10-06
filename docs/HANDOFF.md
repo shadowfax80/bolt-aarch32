@@ -114,7 +114,7 @@ image/configuration oracle contracts still require user review.
 
 | Holder | Since | Purpose |
 |---|---|---|
-| Claude | 2026-10-06 | G1 (certified gate on 0001–0071) then item 14 (provenance, no-FPU guard on outputs) |
+| Claude | 2026-10-06 | R30 (output mapping symbols, 0072), then item 14 (clean build of 0001–0072, provenance, no-FPU guard on outputs) |
 
 ## Pi reservation
 
@@ -143,6 +143,7 @@ Take items in the order below; groups reflect dependencies, not ownership.
 
 | Order | ID | Item | Priority | Owner | Status | Part of | Notes |
 |---|---|---|---|---|---|---|---|
+| 10b | R30 | BOLT outputs lack the code mapping symbol at ARM function starts that had none in the input (inherited state), and in the JITLink stub section: tools decode them as Thumb (found by item 14's no-FPU guard on G1 output: memcpy, arch_spin_lock, ...) | P1 | Claude | In progress | 11, 14 | Claude, 2026-10-06 |
 | 10c | T4 | Performance and final validation on the real A55 target (A72 gains not transferable) | P2 | User | Out of scope here | — | Done by the user in the office environment, from this repo |
 
 
