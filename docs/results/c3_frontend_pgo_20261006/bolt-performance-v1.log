@@ -1,0 +1,55 @@
+round 1/2  fe_thinlto ...
+Measurement evidence: C:\Users\User\CURSOR\CodexProjects\BOLT_AARCH32\out\c3-fe\measure-xkmalwh5
+round 1/2  counter_bolt ...
+Measurement evidence: C:\Users\User\CURSOR\CodexProjects\BOLT_AARCH32\out\c3-fe\measure-_frfn4vj
+round 1/2  sampled_bolt ...
+Measurement evidence: C:\Users\User\CURSOR\CodexProjects\BOLT_AARCH32\out\c3-fe\measure-2aa7iajh
+round 2/2  fe_thinlto ...
+Measurement evidence: C:\Users\User\CURSOR\CodexProjects\BOLT_AARCH32\out\c3-fe\measure-8biic16p
+round 2/2  counter_bolt ...
+Measurement evidence: C:\Users\User\CURSOR\CodexProjects\BOLT_AARCH32\out\c3-fe\measure-kw8mwtzi
+round 2/2  sampled_bolt ...
+Measurement evidence: C:\Users\User\CURSOR\CodexProjects\BOLT_AARCH32\out\c3-fe\measure-h7477wwp
+
+12 runs -> out/c3-fe/bolt-performance-v1.csv
+
+checksum 0xce57eab7 identical in all 12 runs
+
+== fe_thinlto (4 runs)
+   cycles      15,176,235.8  [15,174,530 .. 15,177,353]  sd 1,089.4
+   inst        18,051,003.0  [18,051,003 .. 18,051,003]  sd 0.0
+   l1i_refill     644,635.8  [644,609 .. 644,675]  sd 24.9
+   l1d_refill           0.0  [0 .. 0]  sd 0.0
+   br_mispred       8,466.5  [8,387 .. 8,502]  sd 46.3
+   taken        1,349,195.0  [1,349,195 .. 1,349,195]  sd 0.0
+   ipc                1.189
+   taken/kinst       74.743
+   l1i_refill/kinst       35.712
+   br_mispred/kinst        0.469
+   cycles 95%    15,176,236 +- 2,001
+== counter_bolt (4 runs)
+   cycles       9,516,160.8  [9,514,589 .. 9,516,938]  sd 923.3
+   inst        17,868,027.0  [17,868,027 .. 17,868,027]  sd 0.0
+   l1i_refill      25,350.5  [25,105 .. 25,474]  sd 145.4
+   l1d_refill           0.0  [0 .. 0]  sd 0.0
+   br_mispred       8,471.2  [8,389 .. 8,505]  sd 47.7
+   taken        1,166,221.8  [1,166,221 .. 1,166,222]  sd 0.4
+   ipc                1.878
+   taken/kinst       65.269
+   l1i_refill/kinst        1.419
+   br_mispred/kinst        0.474
+   cycles 95%     9,516,161 +- 1,696
+   cycles vs fe_thinlto: -37.30% (95% CI +-0.01 pp, significant)
+== sampled_bolt (4 runs)
+   cycles       9,583,453.8  [9,580,284 .. 9,585,131]  sd 1,869.4
+   inst        17,902,354.0  [17,902,354 .. 17,902,354]  sd 0.0
+   l1i_refill      46,184.8  [45,829 .. 46,451]  sd 228.5
+   l1d_refill           0.0  [0 .. 0]  sd 0.0
+   br_mispred       8,484.8  [8,379 .. 8,527]  sd 61.6
+   taken        1,200,550.8  [1,200,548 .. 1,200,554]  sd 2.2
+   ipc                1.868
+   taken/kinst       67.061
+   l1i_refill/kinst        2.580
+   br_mispred/kinst        0.474
+   cycles 95%     9,583,454 +- 3,434
+   cycles vs fe_thinlto: -36.85% (95% CI +-0.02 pp, significant)

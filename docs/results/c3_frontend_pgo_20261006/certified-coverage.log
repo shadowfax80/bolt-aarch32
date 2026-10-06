@@ -1,0 +1,25 @@
+{
+ "functions": 417,
+ "status": {
+  "rejected": 9,
+  "rewritten": 401,
+  "folded (ICF)": 5,
+  "alias of rewritten function": 2
+ },
+ "rejection_classes": {
+  "pc-write": 7,
+  "fallthrough": 2
+ },
+ "bytes": {
+  "unattributed non-filler": 473,
+  "alignment filler (0x00/0xd4)": 47993,
+  "size-0 assembly extent": 1944,
+  "data in code": 820,
+  "sized function": 124118
+ },
+ "instrumentation": {
+  "exit": 0,
+  "result": "instrumented",
+  "first_error": null
+ }
+}

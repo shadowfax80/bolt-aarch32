@@ -499,6 +499,13 @@ CS stair output supports both sealed sampling and exact counters after
 0073/R35; unsupported predication shapes keep the 0036 guard. The [route matrix](verification/CSPGO_PIPELINE.md#two-compiler-paths-two-bolt-profile-modes)
 distinguishes available combinations from those measured on the Pi.
 
+C3 freshly verifies the frontend alternate on 0073 with both BOLT modes,
+sealed feedback, seven-image/18-workload output agreement, rewritten-PC
+evidence and ON/OFF output parity. The [frontend recipe](verification/FRONTEND_PGO_PIPELINE.md)
+and [receipt](results/c3_frontend_pgo_20261006/README.md) retain all 48 timing
+records, including FE+ThinLTO's baseline slowdown and input-2 BOLT regressions.
+The legacy frontend launcher's synchronization/fixed paths were not rerun.
+
 The LK overlay's `app/bolt_bench/pgo.mk` retains frontend PGO and adds two-round
 IR/CSPGO with module ThinLTO. Ordinary IR training guides inlining; the second
 round instruments after ThinLTO inlining, and the final build uses a merged

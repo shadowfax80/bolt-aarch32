@@ -1,0 +1,14 @@
+redirected bolt_bench_stair_kernel: 0x8000877a -> b.w 0x800e2000
+1 function(s) redirected (new .text is 269080 bytes)
+image: /home/user/bolt-fe-20261006/build-atfe/c3-counter-off/pgo_thinlto.instr.bin (1269912 bytes)
+COUNTERS addr=80125000 size=018851
+redirected bolt_bench_stair_kernel: 0x8000877a -> b.w 0x800e2000
+1 function(s) redirected (new .text is 68814 bytes)
+image: /home/user/bolt-fe-20261006/build-atfe/c3-counter-off/pgo_thinlto_bolt.bin (961752 bytes)
+ok   /home/user/bolt-fe-20261006/build-atfe/c3-counter-off/pgo_thinlto_bolt.elf: 0 FP/NEON instructions
+ok   /home/user/bolt-fe-20261006/build-atfe/c3-counter-off/pgo_thinlto.instr.elf: 0 FP/NEON instructions
+redirected bolt_bench_stair_kernel: 0x8000877a -> b.w 0x800e2000
+1 function(s) redirected (new .text is 68884 bytes)
+image: /home/user/bolt-fe-20261006/build-atfe/c3-sample-off/pgo_thinlto_bolt.bin (961822 bytes)
+ok   /home/user/bolt-fe-20261006/build-atfe/c3-sample-off/pgo_thinlto_bolt.elf: 0 FP/NEON instructions
+PASS: ON/OFF instrumentation and both profile-mode optimized binaries match; ELFs match excluding command-line .note.bolt_info only; no-FPU scans pass

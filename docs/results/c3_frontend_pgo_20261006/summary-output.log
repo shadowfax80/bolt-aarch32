@@ -1,0 +1,4 @@
+bolt-performance-v0 {'fe_thinlto': 15175210, 'counter_bolt': 9509361.75, 'sampled_bolt': 9586337.5} {'counter_bolt': -37.336209844872, 'sampled_bolt': -36.82896315767623}
+bolt-performance-v1 {'fe_thinlto': 15176235.75, 'counter_bolt': 9516160.75, 'sampled_bolt': 9583453.75} {'counter_bolt': -37.29564493619573, 'sampled_bolt': -36.85223458656406}
+bolt-performance-v2 {'fe_thinlto': 14439061.5, 'counter_bolt': 16528768, 'sampled_bolt': 15220553.75} {'counter_bolt': 14.472592280322383, 'sampled_bolt': 5.412347956271257}
+compiler-performance {'baseline': 10495448.75, 'fe_pgo': 10532391, 'fe_thinlto': 15175570.75} {'fe_pgo': 0.3519835204759625, 'fe_thinlto': 44.59191894963044}

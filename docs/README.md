@@ -25,11 +25,14 @@ Each page defines one gate or admission contract: what it proves, its inputs and
 | Admission contracts | [AARCH32_FIXED_LOAD_CONTRACT](verification/AARCH32_FIXED_LOAD_CONTRACT.md), [AARCH32_ISA_ABI_CONTRACT](verification/AARCH32_ISA_ABI_CONTRACT.md), [AARCH32_PC_READ_ADMISSION](verification/AARCH32_PC_READ_ADMISSION.md), [ARM_ADMISSION_REPORT](verification/ARM_ADMISSION_REPORT.md) |
 | Far calls and interworking | [AARCH32_EXECUTION_GATES](verification/AARCH32_EXECUTION_GATES.md), [AARCH32_FAR_EXECUTION](verification/AARCH32_FAR_EXECUTION.md), [AARCH32_FAR_INTERWORK](verification/AARCH32_FAR_INTERWORK.md), [AARCH32_PI_FAR_SAFETY](verification/AARCH32_PI_FAR_SAFETY.md) |
 | Instrumentation | [PI_INSTRUMENTATION_SCOPE](verification/PI_INSTRUMENTATION_SCOPE.md), [PI_COUNTER_STATE](verification/PI_COUNTER_STATE.md), [PI_IT_COUNTS](verification/PI_IT_COUNTS.md), [PI_INLINE_SAFETY](verification/PI_INLINE_SAFETY.md) |
-| Profiles and measurements | [AARCH32_PROFILE_IDENTITY](verification/AARCH32_PROFILE_IDENTITY.md), [PI_PROFILE_IDENTITY](verification/PI_PROFILE_IDENTITY.md), [AARCH32_MEASUREMENT_GATES](verification/AARCH32_MEASUREMENT_GATES.md), [Two compiler paths and sampled/instrumented BOLT](verification/CSPGO_PIPELINE.md) |
+| Profiles and measurements | [AARCH32_PROFILE_IDENTITY](verification/AARCH32_PROFILE_IDENTITY.md), [PI_PROFILE_IDENTITY](verification/PI_PROFILE_IDENTITY.md), [AARCH32_MEASUREMENT_GATES](verification/AARCH32_MEASUREMENT_GATES.md), [Two compiler paths and sampled/instrumented BOLT](verification/CSPGO_PIPELINE.md), [Fresh frontend-PGO recipe](verification/FRONTEND_PGO_PIPELINE.md) |
 | QEMU (diagnostic only) | [AARCH32_QEMU_REWRITE_COVERAGE](verification/AARCH32_QEMU_REWRITE_COVERAGE.md), [AARCH32_QEMU_WORKLOAD_GATES](verification/AARCH32_QEMU_WORKLOAD_GATES.md) |
 | Source provenance | [ATFE_OVERLAY_REPLAY](verification/ATFE_OVERLAY_REPLAY.md) |
 
 ## Reviews — [reviews/](reviews/)
+
+Latest pipeline verification: [C3 frontend-PGO + ThinLTO + both BOLT modes](results/c3_frontend_pgo_20261006/README.md)
+(0073, fresh Pi feedback, result/PC/parity checks; gains and regressions retained).
 
 Latest backend change: [R35 conditional-return implementation and verification](results/r35_conditional_returns_20261006/README.md)
 (0073; updates the earlier C1 counter refusal). The reviews below retain their

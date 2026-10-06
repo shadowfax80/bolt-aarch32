@@ -1,0 +1,63 @@
+{
+  "passed": true,
+  "rows": [
+    {
+      "label": "instrumented",
+      "elf_sha256": "4eadbf732407cfdb32bdf151f9d9377c4fc9e652abda6b011eb827128f79f555",
+      "image_sha256": "cca85bccb529984b33301fd95604f688aaade4899654192be5488134ca544b53",
+      "range": [
+        "0x800e2000",
+        "0x80123b18"
+      ],
+      "hits_per_core": [
+        0,
+        0,
+        26939,
+        0
+      ],
+      "log_sha256": "5ccc2b43f86901f96ae64f3d730d8aa7174eb21477ede59ef141f8ae2bc8d818",
+      "sampler_stopped": true,
+      "watch_ranges_cleared": true,
+      "watchdog_disabled": true
+    },
+    {
+      "label": "counter-bolt",
+      "elf_sha256": "4c30f88c0d42a881b8106907be219eea8cedd725570ae48b03e02c3c78d852b2",
+      "image_sha256": "211775b877a1e40f7425ef3b457064daeecea332ac2a4b9cb1c74ed9547d214a",
+      "range": [
+        "0x800e2000",
+        "0x800f2cce"
+      ],
+      "hits_per_core": [
+        0,
+        1024,
+        0,
+        0
+      ],
+      "log_sha256": "e5d49b60dfa117f84d17a2a154a13a6b161552f6b691f3803f4e99d12da1c436",
+      "sampler_stopped": true,
+      "watch_ranges_cleared": true,
+      "watchdog_disabled": true
+    },
+    {
+      "label": "sampled-bolt",
+      "elf_sha256": "bc6b0760cf61f04d321df79d673313e703ad76c6f96ada9cdbc6ec021080dd98",
+      "image_sha256": "71db24cdae8ddcbf9a7bbc73dc2623125d976e5d25160da9e6dcb64f9174fca1",
+      "range": [
+        "0x800e2000",
+        "0x800f2d14"
+      ],
+      "hits_per_core": [
+        0,
+        0,
+        0,
+        1030
+      ],
+      "log_sha256": "83ca8657e400b84cf34d80c0db1ba90514cff12f4f0f2f664489410f77904349",
+      "sampler_stopped": true,
+      "watch_ranges_cleared": true,
+      "watchdog_disabled": true
+    }
+  ],
+  "scope": "Pi A72 PC watch inside each mapped rewritten body; sampling changes visibility, not a timing or whole-image certification claim"
+}

@@ -1,0 +1,12 @@
+{
+  "ordinary": {
+    "level": "Front-end",
+    "functions": 93,
+    "maximum": 409600
+  },
+  "cs": {
+    "level": "Front-end",
+    "functions": 93,
+    "maximum": 409600
+  }
+}

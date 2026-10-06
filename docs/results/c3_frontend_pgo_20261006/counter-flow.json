@@ -1,0 +1,10 @@
+{
+  "passed": true,
+  "counters": 2561,
+  "entries": 1600,
+  "exits": 1600,
+  "all_internal_flow_conserved": true,
+  "checksum": "0x2f744325",
+  "capture_manifest_sha256": "432a1ef1ca1674235a2b6358035220bfd2877e556b0e59c7a8a80efcc2db742a",
+  "scope": "Exact bound frontend ThinLTO kernel counters; source specifies 100 warmups +1500 calls. Output association is not a new algorithmic oracle."
+}

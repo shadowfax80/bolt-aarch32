@@ -1,0 +1,15 @@
+{
+  "image_sha256": "d5b2f6f4fc1a51e246f619644d03b1b7e7a944ee6d024da27fd0312e536f6bac",
+  "profile_sha256": "bb7f7033d4f62c27b0a6c8faeb73ed65d645f496b9ed976770c2d0b930bccb0e",
+  "workloads": [
+    "stair"
+  ],
+  "buffer_addr": 2148396536,
+  "buffer_size": 12480,
+  "training_results": [
+    {
+      "stair": "0x2f744325"
+    }
+  ],
+  "scope": "transport, output consistency and image association; not a correctness certificate"
+}

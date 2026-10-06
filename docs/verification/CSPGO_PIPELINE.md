@@ -1,7 +1,7 @@
 # Compiler PGO paths and BOLT profile modes
 
-The compiler pipeline supports frontend instrumentation PGO (the historical
-route), ordinary IR instrumentation PGO, and context-sensitive IR PGO. Only
+The compiler pipeline supports frontend instrumentation PGO (the explicit
+alternate), ordinary IR instrumentation PGO, and context-sensitive IR PGO. Only
 `app/bolt_bench/bolt_bench.c` and `composite.c` are profiled/compiled as
 ThinLTO bitcode. The rest of LK remains native code. This does not change BOLT
 admission or certify a new image against an approved oracle.
@@ -37,8 +37,8 @@ function scope. Timed runs use the optimized image with profiling stopped.
 
 | Combination | Present project status |
 |---|---|
-| FE-PGO + ThinLTO + sampled BOLT | Available through the generic sealed sampling/optimization scripts; C2 verified wiring, not a fresh FE sampling benchmark |
-| FE-PGO + ThinLTO + instrumented BOLT | Retained staged route with historical Pi evidence; only admitted instruction shapes/scopes, not universal instrumentation support |
+| FE-PGO + ThinLTO + sampled BOLT | Fresh C3 run on 0073: frontend training/use, sealed samples, both-mode output parity, 18-workload agreement and rewritten-PC evidence. Training input -36.83% cycles; shifted input 2 +5.41%. [Receipt](../results/c3_frontend_pgo_20261006/README.md) |
+| FE-PGO + ThinLTO + instrumented BOLT | Fresh C3 run on 0073: 2,561 sealed counters, 1,600 entries/exits with complete internal flow conservation, both-mode parity, output agreement and rewritten-PC evidence. Training input -37.34%; shifted input 2 +14.47%. Guarded single-kernel scope. [Receipt](../results/c3_frontend_pgo_20261006/README.md) |
 | IR-PGO + ThinLTO + CSPGO + sampled BOLT | C1 built and measured on the Pi; results include an incremental BOLT regression, so gains are not guaranteed |
 | IR-PGO + ThinLTO + CSPGO + instrumented BOLT | Verified on the C1 stair output with 0073/R35: sealed counters, both return outcomes, original/instrumented/optimized result agreement and rewritten-PC evidence. Remaining unsafe predication shapes refuse instrumentation; [receipt](../results/r35_conditional_returns_20261006/README.md) |
 
@@ -55,6 +55,10 @@ Verification sources: local `build-variants.sh`, LK `pgo.mk`,
 `pgo_cycle_wsl.sh --frontend`, `bolt_stage*.sh`, `bolt-variant.sh`'s
 counter/`BOLT_FDATA` branches, and the sampling collector/converter. C1
 [results](../results/c1_cspgo_20261006/README.md) verify the IR+CS path;
+[C3 frontend evidence](../results/c3_frontend_pgo_20261006/README.md) and its
+[isolated recipe](FRONTEND_PGO_PIPELINE.md) freshly verify the FE path with
+both BOLT modes on 0073. The legacy frontend launcher's shared synchronization
+and fixed output paths were not rerun. The
 [historical frontend stages](../history/RPI4_HARDWARE_VERIFICATION.md) and
 [B1 profile-mode comparison](../results/b1_sampling_vs_instrumentation_20261005/README.md)
 provide their separately scoped evidence. B1's ThinLTO input is not claimed

@@ -124,7 +124,7 @@ image/configuration oracle contracts still require user review.
 
 | Holder | Since | Purpose |
 |---|---|---|
-| Codex | 2026-10-06 | C3: fresh FE-PGO/ThinLTO plus sampled and instrumented BOLT verification on 0073; isolated LK builds, preserve all prior source/evidence |
+| — | — | Free after C3: shared 0001–0073 tools/source preserved; isolated FE builds/evidence retained; recheck ownership and exact replay before use |
 
 ## Pi reservation
 
@@ -132,7 +132,7 @@ Board-wide: shared by bolt-aarch32 and lk-perf (one Pi 4B on COM5).
 
 | Holder | Since | Purpose / last observation |
 |---|---|---|
-| Codex | 2026-10-06 | C3: FE profile training, BOLT captures, parity/PC checks and interleaved timings; watchdog for runs. Previous observation: R35 counter-BOLT CS shell, sampler/watch ranges off, watchdog off, COM5 closed |
+| — | — | Free. Last observed 2026-10-07: C3 sampled-BOLT FE shell, sampler stopped/watch ranges cleared, watchdog off, COM5 closed |
 
 ## Claims (consolidated TODO)
 
@@ -180,16 +180,16 @@ Take items in the order below; groups reflect dependencies, not ownership.
 | Order | ID | Item | Priority | Owner | Status | Part of | Notes |
 |---|---|---|---|---|---|---|---|
 | 18 | R33 | Safe, identity-checked clean-build resume and failure propagation | P2 | — | Open | 14 | Source marker/build cache can be stale; lit exit hidden by `\|\| true`; validate output ownership before cleanup. Item-14's independent PASS remains scoped; [closure](reviews/CORRECTNESS_REVIEW_CODEX_0072_20261006.md#new-follow-ups-and-closure-criteria) |
-| 18b | C3 | Fresh FE-PGO + ThinLTO + both BOLT profile-mode verification | P2 | Codex | In progress | — | User requested now: fresh frontend training/profile use, current 0073 tools, sampled and exact-counter BOLT on final FE ELF, no-FPU, Pi result/rewritten-PC checks and training/shifted-input measurements; retain portable evidence and update route matrix |
 | 18a | R36 | Extend remaining conditional-return instrumentation shapes | P2 | — | Open | — | R35/0073 fixes the C1 CS stair input and safe uniform Thumb/A32 predecessor shapes. Mixed IT predicates, flag-changing/narrow implicit-flag Thumb bodies, and A32 entry/targeted/after-control-transfer returns still refuse. Model predicates and unique profile sites before relaxing guards; add both-mode semantic/state/count tests and Pi evidence; broader IRQ/SMP/A32 state matrices remain separate |
 | 19 | R34 | Portable B1/B2 capture and measurement evidence | P2 | — | Open | — | Published CSVs have uniform metric/run sets; raw captures point into local temporary storage, not tracked paths; retain hash-bound logs/inputs and audit result frames; [closure](reviews/CORRECTNESS_REVIEW_CODEX_0072_20261006.md#new-follow-ups-and-closure-criteria) |
+| 19a | C4 | Investigate frontend ThinLTO layout and shifted-input BOLT regressions | P2 | — | Open | — | C3 verifies the FE route but input 0 FE+ThinLTO is +44.59% vs baseline with high L1I refills; BOLT helps inputs 0/1 (~37%) but input 2 loses +14.47% counters / +5.41% sampled. Diagnose footprint/layout and representative training; retain held-out results, exact identities and PC proof, run a controlled same-source matrix before recommending a default. [C3 evidence](results/c3_frontend_pgo_20261006/README.md); performance follow-up, no reproduced output defect |
 | 20 | T4 | Performance and final validation on the real A55 target (A72 gains not transferable) | P2 | User | Out of scope here | — | Done by the user in the office environment, from this repo |
 
 **Needs the user:** new oracle contracts for new configurations.
 
 ### Done
 
-Completed items with patches and evidence: [history/HANDOFF_DONE.md](history/HANDOFF_DONE.md) (newest first; add new rows there). Latest: R35 (0073; CS stair counters, guarded subset), C2 (compiler/BOLT route docs), C1 (compiler pipeline), CR1 (review/docs only), 14, R30, G1, B2, R28, R29, B1, M2, T3 (closed), R27, R25, R26, R21, R12, R24, R23.
+Completed items with patches and evidence: [history/HANDOFF_DONE.md](history/HANDOFF_DONE.md) (newest first; add new rows there). Latest: C3 (fresh FE route/both BOLT modes), R35 (0073; CS stair counters, guarded subset), C2 (compiler/BOLT route docs), C1 (compiler pipeline), CR1 (review/docs only), 14, R30, G1, B2, R28, R29, B1, M2, T3 (closed), R27, R25, R26, R21, R12, R24, R23.
 
 ## Coverage goal
 
@@ -217,6 +217,52 @@ emission coverage, not execution or whole-backend correctness.
 4. Update the *Claims* table and LK_COVERAGE.md together.
 
 ## Handoff log
+
+### 2026-10-07 — Codex: C3 FE verification complete; performance caveats retained; resources released
+
+- Fresh FE collection/use + module ThinLTO, then **both sampled and exact-counter
+  BOLT**, verified with current 0001–0073 tools. No backend/LK changes or new
+  overlay; full replay unchanged. Low-level explicit FE variants in isolated
+  checkout verified, not the legacy launcher's shared synchronization/fixed paths.
+  [Recipe](verification/FRONTEND_PGO_PIPELINE.md), [receipt/archive](results/c3_frontend_pgo_20261006/README.md).
+- Fresh frontend raw profile **12480 bytes**, **93 Front-end records**, maximum
+  **409600**; final flags and actual ThinLTO bitcode checked. Identity binds
+  4412 LK source files, tools/runtimes/compiler artifacts; initial/final equal.
+  LK pin `79d2f56096fa32365846ceaba8b4a9d1c6b75cf0`, `STAIR_M=8`, Thumb,
+  no FPU/NEON. No reuse of C1's IR/CS profiles or source/build directories.
+- Counter capture **2561 counters**, **1600 entries/exits**, every internal
+  node balances; sealed binding/CRC/layout/complete command frames checked.
+  Samples: **26835 kept/taken**, 2959 distinct PCs, 32 repetitions, period 20000.
+  ON/OFF instrumentation and both optimized load images byte-identical;
+  ELFs match excluding command-line `.note.bolt_info` only; no-FPU scans pass.
+- Seven images agree on all **18 workload results**. Pi PC-watch hits:
+  instrumented **26939** on core 2, counter BOLT **1024** on core 1, sampled BOLT
+  **1030** on core 3. Watchdogs armed; equality is not a new algorithmic oracle,
+  PC scope is one rewritten Thumb kernel, not full-image/SMP/A55 certification.
+- **48 complete timing records / 24 accepted boots**, uploaded image/loader
+  hashes and raw command frames audited against CSVs. BOLT vs FE+ThinLTO:
+  inputs 0/1 about **−37%** both modes; input 2 **+14.473%** counters,
+  **+5.412%** sampled. Compiler input 0 FE-only **+0.352%**, FE+ThinLTO
+  **+44.592%** vs fresh baseline. New open **C4** retains layout/training
+  investigation. Small boot count; no controlled FE-vs-CSPGO or A55 gain claim.
+- Regenerated certified coverage: **401/417 →401/417**, code bytes
+  **126164/126834 →126164/126834 (99.5%)**, instrumentation scan succeeds.
+  C3 FE admission scan is separate; no new whole-image oracle/gate or ARM-lit
+  rerun (backend unchanged). R35's 0073 gate/lit and item 14's 0072 clean-build
+  provenance remain their dated scopes. R32/R33 and broader matrices stay open.
+- Portable archive: **268 files /2083068 bytes**, every member hash/readable
+  JSON checked. Repository health and staged-byte identity audit pass.
+  Retains raw UART/measurements/profiles/inputs/seals/both-mode
+  outputs and failed attempts, which are excluded from accepted statistics.
+  Updated route matrix, architecture, limitations, README/WSL guide/map and
+  done history. HANDOFF plus receipts are the persistent joint-work memory.
+- WSL shared `/home/user/bolt-aarch32` source remains intentionally dirty at
+  overlays 0001–0073, tools unchanged; preserve it and prior C1/R35 evidence.
+  Fresh `/home/user/bolt-fe-20261006`: compiler `build-atfe/c3-fe-thumb`, BOLT
+  `c3-counter`/`c3-sample` and corresponding `-off` dirs. Windows `out/c3-fe`.
+  Pi final observation: sampled-BOLT FE shell, sampler stopped/watch ranges
+  cleared, watchdog off, COM5 closed. Both reservations released by successful
+  push; next normal shared item **R32**, R31 awaits lk-perf K18. C4 not started.
 
 ### 2026-10-06 — Codex: R35 fixed for C1 CSPGO output; 0073 verified; resources released
 

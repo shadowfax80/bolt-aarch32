@@ -58,6 +58,12 @@ after 0073/R35. Unsupported predication shapes retain safe refusal guards.
 See the [route/status matrix](verification/CSPGO_PIPELINE.md#two-compiler-paths-two-bolt-profile-modes)
 for scope, collection tools and profile identity requirements.
 
+For the frontend alternate, use the [isolated FE recipe](verification/FRONTEND_PGO_PIPELINE.md).
+[C3](results/c3_frontend_pgo_20261006/README.md) freshly verifies its compiler
+stages and both BOLT modes on 0073, including output, counters, rewritten PCs,
+assertion-mode parity and held-out timings. The historical `--frontend`
+launcher's shared synchronization/fixed paths were not rerun.
+
 The normal optimized compiler image uses **ordinary IR-PGO and CSPGO together
 with module ThinLTO**. Run `py -3.12 scripts/pi4/cspgo_cycle_wsl.py` from Windows
 with `--wsl-root <isolated synced repo> --out <fresh output>`; it performs both

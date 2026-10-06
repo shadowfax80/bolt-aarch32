@@ -74,6 +74,14 @@ supports both routes: R35/0073 models its conditional return explicitly and
 verifies exact counters on the Pi. Unsupported predication shapes still refuse
 instrumentation. See the [route/status matrix](docs/verification/CSPGO_PIPELINE.md#two-compiler-paths-two-bolt-profile-modes).
 
+The FE alternate now has fresh 0073 verification for **both** BOLT modes:
+[recipe](docs/verification/FRONTEND_PGO_PIPELINE.md),
+[C3 Pi evidence](docs/results/c3_frontend_pgo_20261006/README.md).
+Seven images agree on 18 results, counters balance and rewritten PCs are
+observed. BOLT reduces cycles about 37% on inputs 0/1 but regresses on input 2
+(counter +14.47%, sampled +5.41%). FE+ThinLTO itself is +44.59% against the
+fresh baseline on input 0. These synthetic A72 results do not imply A55 gains.
+
 IR-PGO and CSPGO complement each other. Ordinary IR counts guide earlier
 optimization and ThinLTO inlining; a second training build collects counts
 after inlining. The final build consumes **both** levels from a merged profile.
@@ -87,8 +95,8 @@ py -3.12 scripts/pi4/cspgo_cycle_wsl.py --wsl-root /home/user/bolt-cspgo `
 The final compiler image is `cspgo_thinlto`; the IR-only image is a comparison
 control. `build-variants.sh` with no variant defaults to this final build and
 requires its merged profile. In Windows Git Bash, `pgo_cycle_wsl.sh` also
-defaults to this two-round flow with the same CLI options. Historical
-frontend-PGO variants remain explicitly selectable; its old cycle requires
+defaults to this two-round flow with the same CLI options. Frontend-PGO
+variants remain explicitly selectable; its historical launcher requires
 `--frontend`.
 
 See the [recipe](docs/verification/CSPGO_PIPELINE.md) and

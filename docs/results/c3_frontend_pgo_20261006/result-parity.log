@@ -1,0 +1,16 @@
+== baseline
+   18 workload results: hot_loop=0x6a4ae6e0 hot_cold=0x00000000 branch_chain=0x007a5100 memcpy=0x5acd3dc5 far_call=0xb7082fa9 it_cond=0x021e8480 interwork=0x2fb21555 switch=0xa953bbf0 spill_ret=0x504980a0 litpool=0x16b596e0 indirect_call=0x0e6aac80 interwork_tail=0xda3416f0 regpressure=0xc5da3550 hotcold_split=0xd4751003 icf=0xdc7c3be0 shrinkwrap=0x6a1b87d4 composite=0x939f4ea0 stair=0x2f744325
+== fe_training
+   all 18 results identical to baseline
+== fe_pgo
+   all 18 results identical to baseline
+== fe_thinlto
+   all 18 results identical to baseline
+== bolt_training
+   all 18 results identical to baseline
+== counter_bolt
+   all 18 results identical to baseline
+== sampled_bolt
+   all 18 results identical to baseline
+RESULT CONSISTENCY: PASS
+Rewritten execution is not verified; evidence: C:\Users\User\CURSOR\CodexProjects\BOLT_AARCH32\out\c3-fe\result-consistency-p_ajuqxg
