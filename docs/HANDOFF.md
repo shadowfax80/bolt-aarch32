@@ -195,6 +195,23 @@ emission coverage, not execution or whole-backend correctness.
 
 ## Handoff log
 
+### 2026-10-06 — Codex: GitHub synchronization of both project checkouts
+
+- Fast-forwarded the Codex BOLT checkout to `d6aa4bb` and the independent
+  Codex lk-perf checkout to `a547f94`; read both current handoffs and claims.
+  Imported the published 0070–0072 changes and G1/item-14 evidence. This
+  sync did not independently rerun the reported tests or hardware gates.
+- Git fast-forward checks passed; preserved the pre-existing untracked
+  `Microsoft/` directory. No source edits, overlay application, rebuild,
+  coverage regeneration, work-item claim or COM5 action during this sync.
+  Published coverage stays as imported; shared WSL sources/builds and
+  Claude's checkouts were not modified.
+- Both live-tree locks remain free, Pi unreserved. Last board observation
+  is Claude's G1 release in the reservation table, not a new live probe.
+- Next: use the current shared queue and publish a claim/resource ownership
+  before implementation. lk-perf has K11 blocked and T4 user-owned; BOLT
+  retains its P1 certification matrices. Sync-only stop recorded here.
+
 ### 2026-10-06 — Claude: item 14 done (clean build provenance); lock and Pi released
 
 - Clean full build of pin `bcc08884` + 0001–0072, fetched from the remote,
