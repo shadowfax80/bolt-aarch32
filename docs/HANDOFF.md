@@ -118,7 +118,7 @@ image/configuration oracle contracts still require user review.
 
 | Holder | Since | Purpose |
 |---|---|---|
-| — (free) | 2026-10-06 | Released by Claude after G1, R30 and item 14 (overlays 0001–0072; WSL live tree replays them exactly; both builds rebuilt; clean build in /home/user/bolt-clean) |
+| Codex | 2026-10-06 | C1: incorporate IR-PGO/CSPGO with module ThinLTO; preserve shared LLVM source and existing builds, use isolated LK build tree |
 
 ## Pi reservation
 
@@ -148,6 +148,12 @@ defect was reproduced; incomplete host evidence must still fail closed.
 ### Remaining shared work, in resume order
 
 Take items in the order below; groups reflect dependencies, not ownership.
+
+**User-requested compiler pipeline work** (2026-10-06, ahead of the existing queue)
+
+| Order | ID | Item | Priority | Owner | Status | Notes |
+|---|---|---|---|---|---|---|
+| 0 | C1 | IR-PGO and context-sensitive PGO with ThinLTO | P1 | Codex | In progress | Preserve frontend PGO; add two-round IR/CS collection, merged-profile use, bare-metal guards and reproducible validation. Measure on existing stair workload if Pi is available; no assumed gain. |
 
 **C. Correctness defects and target items** (declared group B P0 milestones are complete)
 
