@@ -192,6 +192,19 @@ emission coverage, not execution or whole-backend correctness.
 
 ## Handoff log
 
+### 2026-10-06 — Claude: R30 extended (0072 updated: Thumb bit on fragment symbols)
+
+- Item 14's stricter no-FPU guard (each STT_FUNC must start in the state its
+  bit 0 gives) failed on a split build of the bolt_bench image: split
+  `foo.cold.N` STT_FUNC symbols had bit 0 clear for Thumb fragments (also
+  the non-relocation `foo.icf.0` alias). Same item, so 0072 was extended
+  rather than a new overlay; nothing consumed the first 0072 (2a629c5).
+- `arm-mapping-symbols.test` now adds a split Thumb function and an ICF pair;
+  fails on 0071 and on the first 0072, passes now. ARM lit 61/61 in both
+  assertion modes, replay 0001–0072 exact, coverage unchanged 401/417, G1
+  `.bin` still identical. Guard: instrumented and split+ICF builds with 0072
+  pass. [R30 results](results/r30_20261006/README.md).
+
 ### 2026-10-06 — Claude: R30 fixed (0072, output mapping symbols)
 
 - Item 14's no-FPU guard flagged 1,943 FP/NEON "instructions" in the G1

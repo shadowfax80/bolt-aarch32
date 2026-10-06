@@ -76,7 +76,7 @@
     "0069-bolt-arm-table-base-liveness.patch": "78c479e6d0c8def14efdb0c90c127832d35ab06d7c62e6975ddcee8b7a148a51",
     "0070-bolt-arm-data-pointer-thumb-bit.patch": "09c6e14133d795e2877beefccc124cdecc3e6e6641306056add03e00bd99b4c9",
     "0071-bolt-arm-thumb-short-branch-range.patch": "7ea01906686de7989a0015b9c3e76f9c31139a32dcfab733339981df073f8364",
-    "0072-bolt-arm-mapping-symbols.patch": "60fe02ac46bf894938f465e5e0e4d0b6d6e616923696b63fa012f2bdca5e070d"
+    "0072-bolt-arm-mapping-symbols.patch": "82baab9162300f4e0823e4732261012f4063787a35bd501c2b42db02835f7553"
   },
   "source_files": {
     "bolt/CMakeLists.txt": "db57eda9c0ca5f562c252a612ae890c787c88160308f4b9ef8c4ce84b6589c67",
@@ -106,7 +106,7 @@
     "bolt/lib/Rewrite/BinaryPassManager.cpp": "21a9f16653562f9dc768394d35516da9d2997a9252d54782ad65f1614b889010",
     "bolt/lib/Rewrite/ExecutableFileMemoryManager.cpp": "4b6cf8f8f2f918af0066cc34568c009b553e75e547f6186f4d88a95a9cff1002",
     "bolt/lib/Rewrite/JITLinkLinker.cpp": "1f2e6a7e4ed3f38e4618d286b019be47cc485151eabd480180f3fbecaf8a9f87",
-    "bolt/lib/Rewrite/RewriteInstance.cpp": "81f4388d6d03929be7fbb6ff21b6ff5976d9cef507c77a0be4e6677e672ea255",
+    "bolt/lib/Rewrite/RewriteInstance.cpp": "b36c41eb8cd2bb3fb3c3f3b55fff3ef794c4f8fd90b79bc44610117dd6f48cca",
     "bolt/lib/RuntimeLibs/InstrumentationRuntimeLibrary.cpp": "b2f62c1535acfa4f1c5c51330d1edc13af19123c7c01c2c63b5640f8f064f494",
     "bolt/lib/RuntimeLibs/RuntimeLibrary.cpp": "f7e3a3367c6b419bfc9dc6b8fc9189e85881453f46ae7f336831d5d56850305e",
     "bolt/lib/Target/ARM/ARMMCPlusBuilder.cpp": "919869bcd05504be819621a3266a15eac43873f424d5d57d1921be3828fb6680",
@@ -158,7 +158,7 @@
     "bolt/test/ARM/Inputs/check-arm-ldr-pc-table-mixed-isa.py": "c6fa3cedd1dffa46a4b41e1ed4fc06a3f00d9d60b195bdf0b72ffddb24843923",
     "bolt/test/ARM/Inputs/check-arm-ldr-pc-table.py": "1d419925a47f1b25f558ac271bff3f1aa32a3aec7d5f307eaa96750e5d2db268",
     "bolt/test/ARM/Inputs/check-arm-load-jump-table.py": "a9e19e81f546b1ec6ea6c8cbe13548c483640e1aeb92d4d92a2821be6c3f5a6d",
-    "bolt/test/ARM/Inputs/check-arm-mapping-symbols.py": "90483fbacc776d73a9831a970e81c40e6b5a96f6dc4816febb1b47b8a2d93a5d",
+    "bolt/test/ARM/Inputs/check-arm-mapping-symbols.py": "f892f61f427e2b388bfa1920b93bb37bcce527751a65b28f48c86e9e95136f6b",
     "bolt/test/ARM/Inputs/check-arm-mov-lr-pc-call.py": "a859570c4428386eec35901980c1badaadc13a2800dd9da59f77a52b640eeb1c",
     "bolt/test/ARM/Inputs/check-arm-noreturn-calls.py": "2b165fb025dfca0eba0a4229be181d9883dc82225d7de18642906dbdd18dce08",
     "bolt/test/ARM/Inputs/check-arm-patch-entries.py": "94216cf05c00f06dab46bf1bda4839ba69ec6854b69f4fe677acba3cded294c5",
@@ -263,6 +263,6 @@
   },
   "uncovered_source_changes": [],
   "mismatched_source_files": [],
-  "source_identity_sha256": "88537335b81772313623a0a930a8d683a4154b3daca86d3d76351d06513fa100",
+  "source_identity_sha256": "e845cd181b74286241519c6d66d119e6f3463b410261089938bc5b56792699bf",
   "scope": "pinned base plus complete patch series; source contents only, not clean full build/binary provenance"
 }

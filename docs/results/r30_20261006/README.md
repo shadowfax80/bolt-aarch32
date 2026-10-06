@@ -25,6 +25,10 @@ address from the last `$a`/`$t`/`$d` before it. BOLT 0001–0071:
    entries), had 3 marks for 176 KB. 70,438 of 63,998 input units decoded
    differently.
 4. **Stubs:** JITLink stubs (`__llvm_jitlink_aarch32_STUBS_v7`) had no marks.
+5. **Fragment symbols:** split-fragment `foo.cold.N` STT_FUNC symbols (and
+   the non-relocation `foo.icf.0` alias) had bit 0 clear for Thumb code.
+   Found by the stricter guard on a split build of the bolt_bench image,
+   after the first 0072 commit (2a629c5); 0072 was extended (same item).
 
 Execution was never affected: mapping symbols are not in the loaded image.
 
@@ -39,15 +43,17 @@ Execution was never affected: mapping symbols are not in the loaded image.
     when code of the function actually follows inside the fragment.
 - `JITLinkLinker` records each aarch32 stub's address and ISA (from the stub
   symbol's `ThumbSymbol` flag), and the rewriter marks it.
+- Split-fragment and ICF alias STT_FUNC values carry the Thumb bit.
 
 ## Evidence
 
 | Check | 0071 | 0072 |
 |---|---|---|
-| `arm-mapping-symbols.test` (new) | FAIL: 4 functions in the wrong state, 17 original units misdecoded, pools not data, stubs unmarked ([log](test_on_0071.txt)) | PASS ([log](test_on_0072.txt)) |
+| `arm-mapping-symbols.test` (new; reordering, stubs, a split Thumb function, an ICF pair) | FAIL: functions in the wrong state, original units misdecoded, pools not data, stubs unmarked ([log](test_on_0071.txt)); the first 0072 commit fails on `th_split.cold.0` | PASS ([log](test_on_0072.txt)) |
 | G1 image: functions starting in the wrong state | 3 (`memcpy`, `memmove`, `memset`) | 0 of 417 |
 | G1 image: original section decoding vs input `.text` | 70,438 differences | 3: the two redirected entries (`b`/`b.w`) ([details](lk_image_mapping.txt)) |
 | G1 image: no-FPU guard | 1,943 false hits | 0 |
+| bolt_bench image, instrumented / split+ICF, stricter guard (item 14) | | ok / ok (built with 0072: `r30chk.instr.elf`, `r30chk_split.elf`) |
 | G1 image `baseline_full.bin` | `2181dffe…` | `2181dffe…` (identical: G1's Pi certification carries over) |
 | ARM lit, assertions on / off | 60/60 | 61/61 / 61/61 |
 | Replay 0001–0072 | | exact ([replay.json](replay_0001_0072.json)) |

@@ -1,37 +1,39 @@
 FAIL: BOLT :: ARM/arm-mapping-symbols.test (1 of 1)
-# | Evidence: build-atfe/tools/bolt/test/ARM/Output/arm-mapping-symbols.test.tmp.dir/run-ylmofcrs
-# | function keep_t at 0x1004a: t state, marked None
+# | Evidence: build-atfe/tools/bolt/test/ARM/Output/arm-mapping-symbols.test.tmp.dir/run-61xl36tx
+# | function keep_t at 0x10056: t state, marked None
 # | FAIL: keep_t starts in state None, expected t
-# | function keep_a at 0x10054: a state, marked None
+# | function keep_a at 0x10074: a state, marked None
 # | FAIL: keep_a starts in state None, expected a
 # | function th_t at 0x22000: t state, marked t
 # | function arm_b at 0x2200c: a state, marked a
 # | function _start at 0x2201c: a state, marked a
-# | function arm_a at 0x22040: a state, marked a
-# | function th_far at 0x2204c: t state, marked a
+# | function arm_a at 0x22048: a state, marked a
+# | function th_far at 0x22054: t state, marked a
 # | FAIL: th_far starts in state a, expected t
-# | function arm_tail at 0x22050: a state, marked a
-# | function th_tail at 0x22054: t state, marked a
+# | function arm_tail at 0x22058: a state, marked a
+# | function th_tail at 0x2205c: t state, marked a
 # | FAIL: th_tail starts in state a, expected t
-# | function __Thumbv7ABSLongThunk_arm_b at 0x22080: t state, marked t
-# | original section: 29 input units, 17 decode differently
-# | FAIL: 0x10028: input '44 33 22 11  \t.word\t0x11223344', output ''
-# | FAIL: 0x10038: input '88 77 66 55  \t.word\t0x55667788', output 'strbpl\tr7, [r6, #-0x788]!'
-# | FAIL: 0x1003c: input 'movs\tr0, #0x7', output ''
-# | FAIL: 0x1003e: input 'b.w\t0x1005c', output None
-# | FAIL: 0x10040: input None, output 'andhs\tr11, r9, sp, lsl #16'
-# | FAIL: 0x10042: input 'movs\tr0, #0x9', output None
-# | FAIL: 0x10044: input 'bx\tlr', output ''
-# | FAIL: 0x10046: input 'b.w\t0x1004a', output None
+# | function th_split at 0x22060: t state, marked a
+# | FAIL: th_split starts in state a, expected t
+# | function th_dup1 at 0x2206c: t state, marked a
+# | FAIL: th_dup1 starts in state a, expected t
+# | function th_dup2 at 0x2206c: t state, marked a
+# | FAIL: th_dup2 starts in state a, expected t
+# | function th_split.cold.0 at 0x22080: a state, marked None
+# | FAIL: th_split.cold.0 starts in state None, expected a
+# | function __Thumbv7ABSLongThunk_arm_b at 0x22088: t state, marked t
+# | original section: 42 input units, 27 decode differently
+# | FAIL: 0x10034: input '44 33 22 11  \t.word\t0x11223344', output ''
+# | FAIL: 0x10044: input '88 77 66 55  \t.word\t0x55667788', output 'strbpl\tr7, [r6, #-0x788]!'
+# | FAIL: 0x10048: input 'movs\tr0, #0x7', output ''
+# | FAIL: 0x1004a: input 'b.w\t0x1007c', output None
+# | FAIL: 0x1004c: input None, output 'andhs\tr11, r9, r7, lsl r8'
+# | FAIL: 0x1004e: input 'movs\tr0, #0x9', output None
+# | FAIL: 0x10050: input 'bx\tlr', output ''
+# | FAIL: 0x10052: input 'b.w\t0x10056', output None
 # | FAIL: literal pools of the original section are not marked as data
 # | stub section marks: []
 # | FAIL: expected one $a and one $t in the stub section
-# | stub section decodes as: ['movw\tr12, #0x54', 'movt\tr12, #0x1', 'bx\tr12', 'mcrreq\tp2, #0x4, pc, r11, c0', '', '']
-# | Traceback (most recent call last):
-# |   File "third_party/llvm-project-atfe/bolt/test/ARM/Inputs/check-arm-mapping-symbols.py", line 208, in <module>
-# |     if sorted(i.split()[0] for i in stub_code) != ['bx', 'bx', 'movt', 'movt', 'movw', 'movw']:
-# |        ~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-# |   File "third_party/llvm-project-atfe/bolt/test/ARM/Inputs/check-arm-mapping-symbols.py", line 208, in <genexpr>
-# |     if sorted(i.split()[0] for i in stub_code) != ['bx', 'bx', 'movt', 'movt', 'movw', 'movw']:
-# |               ~~~~~~~~~^^^
-# | IndexError: list index out of range
+# | stub section decodes as: ['movw\tr12, #0x74', 'movt\tr12, #0x1', 'bx\tr12', 'mrrceq\tp2, #0x4, pc, r7, c0', '', '']
+# | FAIL: stubs do not decode as two MOVW/MOVT/BX sequences
+# | FAIL

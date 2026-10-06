@@ -97,7 +97,27 @@
    // Add extra symbols for the function.
    //
    // Note that addExtraSymbols() could be called multiple times for the same
-@@ -6435,7 +6462,8 @@
+@@ -6384,6 +6411,9 @@
+                           .concat(".icf.0")
+                           .toStringRef(Buf));
+       ICFSymbol.st_value = ICFParent->getOutputAddress();
++      // R30: an AArch32 STT_FUNC value carries the Thumb bit.
++      if (BC->isARM() && ICFParent->isARMThumb())
++        ICFSymbol.st_value |= 1;
+       ICFSymbol.st_size = ICFParent->getOutputSize();
+       ICFSymbol.st_shndx = ICFParent->getCodeSection()->getIndex();
+       Symbols.emplace_back(ICFSymbol);
+@@ -6413,6 +6443,9 @@
+           NewColdSym.st_shndx =
+               Function.getCodeSection(FF.getFragmentNum())->getIndex();
+           NewColdSym.st_value = FF.getAddress();
++          // R30: the fragment symbol is STT_FUNC; carry the Thumb bit.
++          if (BC->isARM() && Function.isARMThumb())
++            NewColdSym.st_value |= 1;
+           NewColdSym.st_size = FF.getImageSize();
+           NewColdSym.setBindingAndType(ELF::STB_LOCAL, ELF::STT_FUNC);
+           Symbols.emplace_back(NewColdSym);
+@@ -6435,7 +6468,8 @@
            BC->isARM() ? (Function.isARMThumb() ? "$t" : "$a") : "$x");
        CodeMarkSym.st_value = CodeMark;
        Symbols.emplace_back(DataMarkSym);
@@ -107,7 +127,7 @@
      }
      // AArch32 inline TBH tables: $d over the table, $t where code resumes.
      for (const auto &[Start, End] : Function.InlineTableMarks) {
-@@ -6456,7 +6484,8 @@
+@@ -6456,7 +6490,8 @@
        // ARM after A32 `ldr pc` tables.
        Mark.st_name = AddToStrTab(Function.isARMThumb() ? "$t" : "$a");
        Mark.st_value = E->Address;
@@ -117,7 +137,7 @@
      }
      if (Function.hasConstantIsland() && Function.isSplit()) {
        uint64_t DataMark = Function.getOutputColdDataAddress();
-@@ -6474,7 +6503,8 @@
+@@ -6474,7 +6509,8 @@
            BC->isARM() ? (Function.isARMThumb() ? "$t" : "$a") : "$x");
        CodeMarkSym.st_value = CodeMark;
        Symbols.emplace_back(DataMarkSym);
@@ -127,7 +147,7 @@
      }
    };
  
-@@ -6578,6 +6608,19 @@
+@@ -6578,6 +6614,19 @@
      }
  
      if (Function) {
@@ -147,7 +167,7 @@
        // If the symbol matched a function that was not emitted, update the
        // corresponding section index but otherwise leave it unchanged.
        if (Function->isEmitted()) {
-@@ -6689,13 +6732,20 @@
+@@ -6689,13 +6738,20 @@
          }
  
          // Drop AArch64/RISC-V marker symbols ($d, $x) inside functions —
@@ -175,7 +195,7 @@
          }
        }
      }
-@@ -6760,6 +6810,42 @@
+@@ -6760,6 +6816,42 @@
      }
    }
  
@@ -246,7 +266,7 @@
 +assert all(value % 2 == 0 for value, _, _, _ in marks), marks
 --- /dev/null
 +++ b/bolt/test/ARM/Inputs/check-arm-mapping-symbols.py
-@@ -0,0 +1,223 @@
+@@ -0,0 +1,266 @@
 +from pathlib import Path
 +import re
 +import shutil
@@ -260,8 +280,10 @@
 +# carry only the input's marks at function entries to the new code and drop
 +# all others, so after reordering such a function followed Thumb code without
 +# a mark (decoded as Thumb), the kept original section had no marks at all,
-+# and linker stubs had none either. Checks:
-+#   1. every function in the output starts in its own state;
++# and linker stubs had none either. Split-fragment ("foo.cold.0") STT_FUNC
++# symbols lacked the Thumb bit. Checks:
++#   1. every function symbol, including a cold fragment and a folded twin,
++#      starts in the state its value gives (bit 0), and is marked so;
 +#   2. the original section decodes exactly like the input .text;
 +#   3. JITLink stubs (ARM and Thumb) are marked with their own state;
 +#   4. no address carries marks of both states (a "code resumes" mark after a
@@ -287,6 +309,9 @@
 + blx th_far
 + bl arm_tail
 + blx th_tail
++ blx th_split
++ blx th_dup1
++ blx th_dup2
 + pop {r4, pc}
 + .size _start,.-_start
 +
@@ -341,6 +366,38 @@
 + movs r0, #3
 + bx lr
 + .size keep_t,.-keep_t
++
++## Split by the profile: th_split.cold.0 is an STT_FUNC Thumb fragment.
++ .global th_split
++ .type th_split,%function
++ .thumb_func
++th_split:
++ cmp r0, #0
++ bne 3f
++ movs r0, #1
++ bx lr
++3:
++ adds r0, #2
++ adds r0, #3
++ bx lr
++ .size th_split,.-th_split
++
++## Identical: ICF folds one into the other.
++ .global th_dup1
++ .type th_dup1,%function
++ .thumb_func
++th_dup1:
++ adds r0, #5
++ bx lr
++ .size th_dup1,.-th_dup1
++
++ .global th_dup2
++ .type th_dup2,%function
++ .thumb_func
++th_dup2:
++ adds r0, #5
++ bx lr
++ .size th_dup2,.-th_dup2
 +
 + .arm
 + .p2align 2
@@ -399,13 +456,18 @@
 +run(tc / 'ld.lld', '--emit-relocs', '-Ttext=0x10000', out / 'in.o', '-o', out / 'in.elf')
 +# th_t, arm_b first: arm_b (no $a of its own in the input) now follows Thumb code.
 +(out / 'order.txt').write_text('\n'.join(
-+    ['th_t', 'arm_b', '_start', 'arm_a', 'th_far', 'arm_tail', 'th_tail']) + '\n')
++    ['th_t', 'arm_b', '_start', 'arm_a', 'th_far', 'arm_tail', 'th_tail', 'th_split',
++     'th_dup1', 'th_dup2']) + '\n')
++(out / 'prof.fdata').write_text('no_lbr\n1 th_split 0 100\n1 th_split 4 100\n')
 +log = run(tc / 'llvm-bolt', out / 'in.elf', '-o', out / 'out.elf', '--no-huge-pages', '-lite=0',
 +          '--reorder-functions=user', f'--function-order={out / "order.txt"}',
-+          '-skip-funcs=keep_a,keep_t')
++          '-skip-funcs=keep_a,keep_t', f'--data={out / "prof.fdata"}', '-split-functions',
++          '-split-all-cold', '-icf=all')
 +(out / 'bolt.log').write_text(log)
 +if 'BOLT-ERROR' in log:
 +    sys.exit('FAIL: BOLT-ERROR\n' + log)
++if 'ICF folded 1 ' not in log:
++    sys.exit('FAIL: th_dup1/th_dup2 were not folded\n' + log)
 +
 +ok = True
 +syms = symbols(out / 'out.elf')
@@ -425,7 +487,8 @@
 +    if got != want:
 +        print(f'FAIL: {n} starts in state {got}, expected {want}')
 +        ok = False
-+if not {'arm_b', 'arm_tail', 'th_tail', 'keep_a', 'keep_t'} <= {n for a, n, ndx in funcs}:
++if not {'arm_b', 'arm_tail', 'th_tail', 'keep_a', 'keep_t', 'th_split.cold.0',
++        'th_dup1', 'th_dup2'} <= {n for a, n, ndx in funcs}:
 +    sys.exit('FAIL: unexpected function symbols')
 +
 +# 2. The original section decodes like the input .text.
