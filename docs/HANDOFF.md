@@ -82,11 +82,15 @@ Everything needed to continue is in this repo:
   the Codex venv `out/correctness/pi-venv/Scripts/python.exe`); Pi on
   COM5; sample captures occasionally fail chunk validation (USB corruption),
   retry; never `git stash` from WSL on the Windows checkout.
-- **Build versions:** ON is `build-atfe`; current OFF is `build-atfe-noassert`,
-  tested through 0069 (ARM lit 58/58, 2026-10-05). The older OFF build
-  `out/correctness/build-atfe-noasserts-20261002` is 0054 evidence. ON 0060–0061
-  checks do not establish OFF parity for those overlays; recheck build hashes.
-  Preserve both older receipts and dirty live source.
+- **Build versions:** ON is `build-atfe`; OFF is `build-atfe-noassert`, both
+  on 0001–0072 (ARM lit 61/61). Clean-build provenance (item 14): a clean
+  build of the pin plus 0001–0072 in both modes gives byte-identical outputs
+  to both live builds on the G1, SMP/single-core instrumentation and split
+  jobs; clean OFF tools equal live OFF byte for byte
+  ([receipt](results/item14_provenance_20261006/README.md)). Rerun `scripts/clean-build-atfe.sh` and
+  `scripts/build_provenance.py` after backend changes that need a receipt.
+  The older OFF build `out/correctness/build-atfe-noasserts-20261002` is 0054
+  evidence. Preserve dirty live source.
 
 ## Target platform (user, 2026-10-04) and gap to it
 
@@ -101,7 +105,7 @@ workloads; A55 timing and target-platform behavior require target evidence.
 | ARMv8-A AArch32 | T1 Done: 0058 accepts v8-A attributes and decodes v8 integer instructions; LK patch 0011 adds `cortex-a55`; approved A55-built Pi fixtures certified | No A55-only instruction or target-hardware claim; keep the A72-compatible subset explicit |
 | SMP execution | T2 Done: declared rewritten workloads run on all four Pi cores with independent sinks and per-core PC evidence | Wider runtime/IRQ matrix 9 and PMU/loss matrix 10 remain Partial |
 | SMP counters | T2b Done: 0060 privileged-SMP-no-FIQ helper; all 74 selected counters match the scoped Pi model | Reset/snapshot require quiescence; broader instrumentation matrix and OFF checks for 0060 remain open |
-| No FPU / NEON | Inputs guarded with `-mfpu=none`; scanner fail-closed since 000a8a4; runtime integer-only | Item 14: candidate ISA metadata/scanner still misdecodes restored original code; keep input and emitted-code checks scoped |
+| No FPU / NEON | Inputs guarded with `-mfpu=none`; scanner fail-closed since 000a8a4; runtime integer-only | None for decoding: BOLT outputs carry correct mapping symbols (0072, R30) and the guard refuses files whose marks are inconsistent |
 | Privileged SVC | Declared Pi routes run in SVC | Broader entry/state/interrupt preservation remains in the certification matrices |
 | Security state | The target runs Non-secure SVC, the same state as every Pi run | None. Secure-SVC parity (T3) closed as not needed (user, 2026-10-05) |
 | IRQ / PMU | IRQ sampling hook and scoped rewritten IRQ evidence; per-core watch ranges available | Active IRQ/reentrancy, per-sample core attribution and loss/saturation accounting remain open; GICv3 target needs the equivalent platform hook |
@@ -114,7 +118,7 @@ image/configuration oracle contracts still require user review.
 
 | Holder | Since | Purpose |
 |---|---|---|
-| Claude | 2026-10-06 | R30 (output mapping symbols, 0072), then item 14 (clean build of 0001–0072, provenance, no-FPU guard on outputs) |
+| — (free) | 2026-10-06 | Released by Claude after G1, R30 and item 14 (overlays 0001–0072; WSL live tree replays them exactly; both builds rebuilt; clean build in /home/user/bolt-clean) |
 
 ## Pi reservation
 
@@ -122,7 +126,7 @@ Board-wide: shared by bolt-aarch32 and lk-perf (one Pi 4B on COM5).
 
 | Holder | Since | Purpose / last observation |
 |---|---|---|
-| Claude | 2026-10-06 | Item 14: clean-build image check (G1 passed; LK at the shell on the G1 image) |
+| — (unreserved) | 2026-10-06 | Released by Claude after G1: LK at the shell on the G1 image, watchdog disarmed by the runner, COM5 closed. Recheck before use; `--reboot` returns it to the loader |
 
 ## Claims (consolidated TODO)
 
@@ -157,13 +161,12 @@ Take items in the order below; groups reflect dependencies, not ownership.
 | 15 | 13 | Actual pass combinations | P1 | — | Partial | R7, R8, R20, R27 (probe: split/ICF/instrument/reverse on edge shapes) done |
 | 16 | 9 | Interrupt/reentrancy/reset boundaries | P1 | — | Partial | T2/T2b (SMP execution and counters) done; active-IRQ fixtures still open |
 | 17 | 10 | Sampling/PMU ownership | P1 | — | Partial | Per-core PC watch ranges (T2) done; per-sample core attribution and loss/saturation accounting open |
-| 18 | 14 | Clean build/content provenance | P1 | Claude | In progress | Overlay replay + assertions-off build (6a); clean full build and OFF parity for 0060–0061 still open; no-FPU guard misreads BOLT outputs (no input $t in original .text) |
 
 **Needs the user:** new oracle contracts for new configurations.
 
 ### Done
 
-Completed items with patches and evidence: [history/HANDOFF_DONE.md](history/HANDOFF_DONE.md) (newest first; add new rows there). Latest: R30, G1, B2, R28, R29, B1, M2, T3 (closed), R27, R25, R26, R21, R12, R24, R23.
+Completed items with patches and evidence: [history/HANDOFF_DONE.md](history/HANDOFF_DONE.md) (newest first; add new rows there). Latest: 14, R30, G1, B2, R28, R29, B1, M2, T3 (closed), R27, R25, R26, R21, R12, R24, R23.
 
 ## Coverage goal
 
@@ -191,6 +194,23 @@ emission coverage, not execution or whole-backend correctness.
 4. Update the *Claims* table and LK_COVERAGE.md together.
 
 ## Handoff log
+
+### 2026-10-06 — Claude: item 14 done (clean build provenance); lock and Pi released
+
+- Clean full build of pin `bcc08884` + 0001–0072, fetched from the remote,
+  both assertion modes, clang, no ccache (`scripts/clean-build-atfe.sh`).
+  `scripts/build_provenance.py` PASS: source contents identical to the live
+  tree (184,669 paths; 25 mode-bit-only differences), clean ON/OFF configs
+  differ only in assertions, clean ON config = live ON, ARM lit 61/61 in all
+  four builds, clean OFF tools byte-identical to live OFF, and the G1,
+  SMP/single-core instrumentation and split jobs give identical, deterministic
+  outputs in all four builds (`.bin` = certified `2181dffe…`). This also
+  gives OFF parity for 0060/0061. [Item 14 results](results/item14_provenance_20261006/README.md).
+- Audit findings recorded: host compiler not bound by the cache file (now
+  explicit in the clean script); live OFF configured without the clang
+  project; the bare-metal runtime is outside CMake.
+- V6 resolved (0072 + guard). Pi not used for item 14 (byte parity with the
+  certified image). Next: P1 matrices (items 8, 7, 11, 12, 13, 9, 10).
 
 ### 2026-10-06 — Claude: 0072 made deterministic (sorted linker marks)
 

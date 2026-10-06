@@ -54,7 +54,6 @@ function, or the limit is in verification scope) unless marked otherwise.
 | V3 | R25's rewritten data pointers are not exercised by the LK pipeline (S5 restores data) | Covered by lit and the qemu-user probe only |
 | V4 | IRQ PC sampling cannot see code that runs with IRQs masked | Execution evidence for such code needs other means (counters) |
 | V5 | QEMU twin image has no protected BOLT window (`__bolt_reserved_*`); BOLT code after `_end` is overwritten by the heap | QEMU rewrite routes are diagnostics only and refuse such images |
-| V6 | `check-no-fpu.sh` on BOLT outputs misreads the original `.text`, which keeps no input `$t` mapping symbols | Run the guard on inputs and on the new `.text`; tracked in HANDOFF item 18 |
 | V7 | Split functions with tables (including a 1.1 MB hot/cold gap), instrumentation of table functions, ICF folding of Thumb and ARM twins behind data pointers, and Thumb narrow-branch relaxation are now probed (R27, `edge_probe_r27_20261005.json`: 158 OK, 24 known rejections, 0 wrong) | Resolved 2026-10-05 for qemu-user; not on the Pi (the certified LK pipeline does not split functions) |
 | V8 | Upstream (non-ATFE) series still has U2–U4, U8/U9, L1–L12 ([upstream audit](upstream/UPSTREAM_AUDIT.md)) | Deferred TODO (user, 2026-09-30) |
 | V9 | `--pad-funcs-before` combined with `--split-functions` aborts in JITLink for distant fragments: the emitter pads every fragment, LongJmp's tentative layout pads only the first | Debug option only; fails safe (no output). Use a real filler, as the probe does |
@@ -62,6 +61,9 @@ function, or the limit is in verification scope) unless marked otherwise.
 
 ### Superseded index entries
 
+- **V6** (no-FPU guard misread BOLT outputs): resolved 2026-10-06. BOLT
+  outputs carry correct mapping symbols (0072, R30) and the guard refuses
+  files whose marks are inconsistent (item 14).
 - **U1** (7% full-image coverage, non-determinism): superseded for ATFE by the
   401/417 (99.5%) full-image coverage and certified Pi gates. The upstream base
   measurement remains historical.

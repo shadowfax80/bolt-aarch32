@@ -1,0 +1,1678 @@
+{
+ "schema": 1,
+ "repository": {
+  "commit": "056bf19ba73c2ca66d0edaf2c2d6b818e19ef11b",
+  "bound_paths": [
+   "overlay/llvm/patches/atfe",
+   "cmake",
+   "scripts/clean-build-atfe.sh",
+   "scripts/build_provenance.py",
+   "scripts/check-no-fpu.sh",
+   "scripts/pi4/full_image_build.py",
+   "scripts/resolve-base.sh"
+  ],
+  "bound_paths_clean": true,
+  "status": []
+ },
+ "base": {
+  "pin": "bcc08884995ff3cbee70749524621803b9bd258a",
+  "remote": "https://github.com/arm/arm-toolchain.git"
+ },
+ "patches": {
+  "count": 72,
+  "first": "0001-emit-bolt-instr-tables-on-elf.patch",
+  "last": "0072-bolt-arm-mapping-symbols.patch",
+  "series_sha256": "9ee52ea9aeae71c046333508f076cf4111bc965b8157ab05be83972cdb4cb787",
+  "patches": [
+   {
+    "name": "0001-emit-bolt-instr-tables-on-elf.patch",
+    "sha256": "49269895b37e21ee39d410a2717417b08bddb42974b5e99fba87636e227de16f"
+   },
+   {
+    "name": "0002-tolerate-secondary-entrypoint-outside-code-section.patch",
+    "sha256": "2460f45fbe39ad520a591d37edf5925e74d7acc2e107e399ad87607e4dfab41d"
+   },
+   {
+    "name": "0003-bolt-arm-elf32-and-target.patch",
+    "sha256": "cb2ed805a49b73c6122d4c6c0481c9703009689fa8873c4c3a06632af354d2f5"
+   },
+   {
+    "name": "0004-bolt-arm-mcplusbuilder.patch",
+    "sha256": "d2025105313fefb9c7e304a6dda4df227e483cd4be93ab55902451949932bbb0"
+   },
+   {
+    "name": "0005-bolt-arm-relocations.patch",
+    "sha256": "27b15ca9aaf28792ba9b98aaaf2edacc3f46a1e4730deee882e40a4698fe2800"
+   },
+   {
+    "name": "0006-bolt-arm-rewrite-dispatch.patch",
+    "sha256": "825de9a51c22543e9c7d9a0cee01a526b4c5fb7e0d1b6b6be9171cea1287dba3"
+   },
+   {
+    "name": "0007-bolt-arm-lit-tests.patch",
+    "sha256": "ae0e05384a0d24f6475f425f5cfb90fca98ca94c53d8d0487a151045b70c3d5a"
+   },
+   {
+    "name": "0008-jitlink-arm-generic-archkind.patch",
+    "sha256": "7a30ef8fec31cda68bb63e128edecd75eb3bc0aad4141d0a2267e9e5abe3d8ff"
+   },
+   {
+    "name": "0009-bolt-arm-longjmp-veneers.patch",
+    "sha256": "2950d0d2dddf856a83d84f45029f8c769b9832cdf10f99f486d50e7f12e7e379"
+   },
+   {
+    "name": "0010-bolt-arm-instrumentation.patch",
+    "sha256": "1acf956dab22a687c2d53e1f0e6c49a439309957986644e8325234acb1b067a4"
+   },
+   {
+    "name": "0011-bolt-arm-reverse-cbz.patch",
+    "sha256": "ddad8f56439d393eeb5ede2a158e3967540480be99f15425b6a64473caf7db15"
+   },
+   {
+    "name": "0012-jitlink-arm-thumb-stub-alignment.patch",
+    "sha256": "15494da3e1e735474b84b39664b3acbadd9cdcc49b34f0a324372852fe6f267d"
+   },
+   {
+    "name": "0013-bolt-emit-function-map.patch",
+    "sha256": "99d3c782f692bff0cfb4580d94c549e20ce664aa68eef6762cb5a2ca9282f397"
+   },
+   {
+    "name": "0014-bolt-arm-literal-loads.patch",
+    "sha256": "8861406e0bfbd6bb6747adec762b22a85c5dfe87726c5dd4623a0d21acad1da8"
+   },
+   {
+    "name": "0015-bolt-arm-unwind-rejection.patch",
+    "sha256": "ade687b385030923f6870345bfb287df44ff8e551749e6366b564383eee8ce54"
+   },
+   {
+    "name": "0016-bolt-arm-data-fixup-width.patch",
+    "sha256": "2751b9ac14c11453f4f0cfe90477c157aba202280bac6b18103a6affda4dc568"
+   },
+   {
+    "name": "0017-jitlink-arm-blx-stub-link.patch",
+    "sha256": "e50459022d2bf599c619c57ebca46035989cae1c1c5a912e617ca19a0c6b358a"
+   },
+   {
+    "name": "0018-bolt-arm-pop-terminators.patch",
+    "sha256": "01722cd389cd657c60045bea3b7ded528e57343444aa58cc75602aee378cf6de"
+   },
+   {
+    "name": "0019-deterministic-arm-stubs-and-alignment.patch",
+    "sha256": "179e2642d141217d73ab34a2170a59cdc868de47fb54f7d73afa4de77af530ec"
+   },
+   {
+    "name": "0020-preserve-flags-in-cbz-long-branches.patch",
+    "sha256": "9b0923d9d680d3e8453fb755166809db921262ca32fdca577d26dc456b19c315"
+   },
+   {
+    "name": "0021-preserve-thumb-entry-and-symbol-state.patch",
+    "sha256": "faaac1ec8a3b0a46fd1808a311b800500b60003175dcbe8d7c9950669f116ae2"
+   },
+   {
+    "name": "0022-bolt-arm-thumb-jump19-split-functions.patch",
+    "sha256": "8d51bf51f92eaadb5b23e701c77179a65b17b68ca4705d3c898f96cc252958cd"
+   },
+   {
+    "name": "0023-bolt-arm-generic-passes.patch",
+    "sha256": "cc93b6883bab0531ff041d43473128b16b4bb6ca70654c29496a3f0b48801806"
+   },
+   {
+    "name": "0024-bolt-arm-inline-switch-tables.patch",
+    "sha256": "b1856915369978bf779613bab9ba40753cc39e52edf2258c55ef0cdf3d61d3a1"
+   },
+   {
+    "name": "0025-bolt-arm-attributes-kept-code.patch",
+    "sha256": "72aaaa063316350a7a368b0bff5323febfc8ee161b5ccaba1974d246e36d60f5"
+   },
+   {
+    "name": "0026-bolt-arm-full-width-counters.patch",
+    "sha256": "52743dc6e4a099df4b6a107537ae18807e3f9ca1ff068c1b715eebe6519c468e"
+   },
+   {
+    "name": "0027-bolt-arm-terminal-it-branches.patch",
+    "sha256": "e9fb10d80d9ab3720bfb43b8a73f3dccfbbe4ff235efe52b14d61330150eaa30"
+   },
+   {
+    "name": "0028-bolt-arm-instrumentation-contract.patch",
+    "sha256": "b203cacc72fcae4d3b83df4fc2d4c9c704a44f7b599ad0efc921b24bf5143703"
+   },
+   {
+    "name": "0029-bolt-arm-pseudo-count-invariants.patch",
+    "sha256": "941bf3095f1d2080606c1b1c17a584e774d1c52e48b8aef08116ddd71eb85ba2"
+   },
+   {
+    "name": "0030-bolt-arm-function-fallthrough.patch",
+    "sha256": "7b99d65e9c9abd569b7e55cb0af4461ea34355fb830575db9ad02a290bad43a9"
+   },
+   {
+    "name": "0031-bolt-arm-self-move-flags.patch",
+    "sha256": "5388caa9e8d318682d001a9a52f88e010f2012fd99ee130bff10fc696d605ee0"
+   },
+   {
+    "name": "0032-bolt-arm-inline-safety.patch",
+    "sha256": "4be51041d90091485bbd1110371d01de2ccaa9e8320f2eef7c879d938247bb70"
+   },
+   {
+    "name": "0033-bolt-arm-pc-write-admission.patch",
+    "sha256": "717127d4b5298022246d70fd7647d7dc4d5600301cb73b485e303526e2b1dd96"
+   },
+   {
+    "name": "0034-bolt-arm-inline-pass-tests.patch",
+    "sha256": "e9001fa210bb1656060cce70d661d5286e71c035e1b712f92756e6594ab1116c"
+   },
+   {
+    "name": "0035-bolt-arm-exception-return-admission.patch",
+    "sha256": "a5fb2a2af1d8c1a79a88dbf67c70a6f11cec5d3a149af2ee448b629189e98609"
+   },
+   {
+    "name": "0036-bolt-arm-conditional-return-instrumentation.patch",
+    "sha256": "0855669ab274d51c2d47e7910adbbb32fca38d3ae634a514252480fb2ba13de9"
+   },
+   {
+    "name": "0037-bolt-arm-exclusive-instrumentation.patch",
+    "sha256": "2ead60639d5a3572b47901dbf67d6f0bb6e0e075768798b2115d05c8770ee602"
+   },
+   {
+    "name": "0038-bolt-arm-cross-function-exclusive-reservations.patch",
+    "sha256": "21fe8aa4cceb0392131bef1a7e54ac27221b6eda369e1767665f5d2a6c72eba6"
+   },
+   {
+    "name": "0039-bolt-arm-interior-exclusive-reservations.patch",
+    "sha256": "9960b704ba3cc5a96313c9fdd38bf5ab7416cd0943e3fbd7227728cbc5e713a2"
+   },
+   {
+    "name": "0040-bolt-arm-instrumentation-startup.patch",
+    "sha256": "972fc766e581961659a2ad38d81af086f231fbfedac02c3969b2647a4ff9ef34"
+   },
+   {
+    "name": "0041-bolt-arm-isa-abi-contract.patch",
+    "sha256": "c07a6d1d304b3b49051a1a1e6d08ed7eb9e6105507133e8c599e8a6833d3fa2e"
+   },
+   {
+    "name": "0042-bolt-arm-fixed-load-contract.patch",
+    "sha256": "3b1308b69c9d775dd1f12deaa7a090ed07bdbed9645399e7c1d0cf43e19c416b"
+   },
+   {
+    "name": "0043-bolt-arm-profile-source-identity.patch",
+    "sha256": "9eb4b60aad28cd052cff602bfaa59f51287eef8f53ac2eeee53b107aa770da17"
+   },
+   {
+    "name": "0044-bolt-arm-thumb-far-stub-isa.patch",
+    "sha256": "7e401a3682e13e423c4f62246ba13cc868f441d9bfad64cc09da6a9f456f8a3b"
+   },
+   {
+    "name": "0045-bolt-arm-pc-read-admission.patch",
+    "sha256": "a4a7c764b473977024e30f921b58c013e0a9f0fc965d3ed0f03c866d020c2dbe"
+   },
+   {
+    "name": "0046-bolt-arm-external-branch-repatch.patch",
+    "sha256": "6ccc1a49c8a5b16af4d7aa8891ed14c87d3d673b7413b25068577f7558f3e223"
+   },
+   {
+    "name": "0047-bolt-riscv64-relocation-dispatch.patch",
+    "sha256": "c3fce9dcc183f9c82b6c294fd9db8391e151c7a9dad80de400b89937405df713"
+   },
+   {
+    "name": "0048-bolt-arm-patch-entries-isa.patch",
+    "sha256": "9acb8b922b50495a7fcb854820139837f200116024f68fd11dae5330535a3c4e"
+   },
+   {
+    "name": "0049-bolt-arm-far-tail-call-stub.patch",
+    "sha256": "712826a14905ed55aedce1e52ab0d16724d38f9ecc4facd2040aa11106fa8cb7"
+   },
+   {
+    "name": "0050-bolt-arm-isa-traps-and-nops.patch",
+    "sha256": "db2fcee830f74874cb13262232bf16463f28bac155d955e37c2d1387c7104f97"
+   },
+   {
+    "name": "0051-bolt-arm-conditional-tail-calls.patch",
+    "sha256": "542f9963c424cc502d86425be5a54eec86d126e5cac416fbf0ccdc8690de0878"
+   },
+   {
+    "name": "0052-bolt-arm-noreturn-calls.patch",
+    "sha256": "390245901cc275e6ca77ceda6f8f26ab6ccee4a5c7a5371dcbdff84a964a4ef7"
+   },
+   {
+    "name": "0053-bolt-arm-predicated-returns-calls.patch",
+    "sha256": "97e0cb7e401fa2a812935fc1a2954b68e07129b6dd0a5165849fd25ab75c3460"
+   },
+   {
+    "name": "0054-bolt-arm-admission-report.patch",
+    "sha256": "00a8585f9f49c0135d89c5c2c1d0c3332cbeaddfdbedb26cd68447ef918ab3ef"
+   },
+   {
+    "name": "0055-bolt-arm-mov-lr-pc-call.patch",
+    "sha256": "bb8ff9d570b65aaa2c9e059943952bbb0d4b329c14bf62494bbeaafa9ef130d9"
+   },
+   {
+    "name": "0056-bolt-arm-icf-specifier-exprs.patch",
+    "sha256": "b30081fed3f27e1c3177ae00da57ba1cb7850def0d938f67cc5bf51a91fa186f"
+   },
+   {
+    "name": "0057-bolt-arm-ldr-pc-inline-tables.patch",
+    "sha256": "99911f7eed4e8399907cb67ac3d4286d0f98e8d92b620dcf5463f6d781f579c7"
+   },
+   {
+    "name": "0058-bolt-arm-v8a-aarch32.patch",
+    "sha256": "296b16d3bccf6554ddf492702b556e2b24cf1c2b56b09ad1c5b29660ff059439"
+   },
+   {
+    "name": "0059-bolt-arm-abandoned-reservation.patch",
+    "sha256": "0981aaa1044ec212ac6bcaee5deb42250d3166158bd2ed30c018d032b20e84fc"
+   },
+   {
+    "name": "0060-bolt-arm-smp-counters.patch",
+    "sha256": "99d586bc1167d3f938dcaa40fe656a7f436b96787d0f688d8be7296d85c284fe"
+   },
+   {
+    "name": "0061-bolt-arm-r12-local-stub.patch",
+    "sha256": "f5b0000890bf73438205ba59a5078387690bade04231b0e523caa03f19707ae4"
+   },
+   {
+    "name": "0062-bolt-arm-table-base-ldm-list.patch",
+    "sha256": "5d3c84d2c6e07bc32c44d23dc45bd68936d98871b248e7b28b749e5a1cac191d"
+   },
+   {
+    "name": "0063-arm-disassembler-it-state-isolation.patch",
+    "sha256": "9a3a2e5230eac15fe13b4a8e95af117b6da79598cb4ab446f404ddb629bf2b73"
+   },
+   {
+    "name": "0064-bolt-arm-thunk-cycle-guard.patch",
+    "sha256": "b9f1d627181824caa83c0c0c1985fb0eb0d757f710d0a2216ef715abfa4f4266"
+   },
+   {
+    "name": "0065-bolt-arm-table-base-mod-imm.patch",
+    "sha256": "deca1a4e1cf963000dad88c27a6cecd2bee746681ad7bdbe110d156047838127"
+   },
+   {
+    "name": "0066-bolt-arm-thumb-table-adr-base.patch",
+    "sha256": "782a22d18d54af71097b658b89a27def0e23d5d4a4ad43aed1dee0e6139da0aa"
+   },
+   {
+    "name": "0067-bolt-arm-load-jump-table.patch",
+    "sha256": "a5247aa3ac531a8492cfef9d25a36439df891ee7478cf0c33fafdd13075a3db4"
+   },
+   {
+    "name": "0068-bolt-arm-thumb-data-pointer.patch",
+    "sha256": "49e1a84229840b21fdcee48b332098756cc9d41292bef7349c32ae4eb6d5469b"
+   },
+   {
+    "name": "0069-bolt-arm-table-base-liveness.patch",
+    "sha256": "78c479e6d0c8def14efdb0c90c127832d35ab06d7c62e6975ddcee8b7a148a51"
+   },
+   {
+    "name": "0070-bolt-arm-data-pointer-thumb-bit.patch",
+    "sha256": "09c6e14133d795e2877beefccc124cdecc3e6e6641306056add03e00bd99b4c9"
+   },
+   {
+    "name": "0071-bolt-arm-thumb-short-branch-range.patch",
+    "sha256": "7ea01906686de7989a0015b9c3e76f9c31139a32dcfab733339981df073f8364"
+   },
+   {
+    "name": "0072-bolt-arm-mapping-symbols.patch",
+    "sha256": "4390a90ff804a61701f19e1151b74881abb2ba523356b4fd8e87894cf961bf17"
+   }
+  ]
+ },
+ "source": {
+  "clean_head": "bcc08884995ff3cbee70749524621803b9bd258a",
+  "clean_head_is_pin": true,
+  "clean_tree": "c12c8718d740bc3a6c393fd9b9eb3c03dec7c5d3",
+  "clean_tree_unchanged_since_build": true,
+  "live_tree": "ee4c767bda9ec9508ae215af796382ab1d072857",
+  "paths": 184669,
+  "live_equals_clean": false,
+  "live_contents_equal_clean": true,
+  "mode_only_differences": [
+   "bolt/test/ARM/Inputs/arm32-passes.fdata: clean 100644, live 100755",
+   "bolt/test/ARM/Inputs/arm32-passes.s: clean 100644, live 100755",
+   "bolt/test/ARM/Inputs/arm32-tbb.s: clean 100644, live 100755",
+   "bolt/test/ARM/Inputs/arm32-thumb-split.fdata: clean 100644, live 100755",
+   "bolt/test/ARM/Inputs/arm32-thumb-split.s: clean 100644, live 100755",
+   "bolt/test/ARM/Inputs/check-arm-counter-smp.py: clean 100644, live 100755",
+   "bolt/test/ARM/Inputs/check-arm-external-branch-repatch.py: clean 100644, live 100755",
+   "bolt/test/ARM/Inputs/check-arm-it-isolation.py: clean 100644, live 100755",
+   "bolt/test/ARM/Inputs/check-arm-ldr-pc-table-mixed-isa.py: clean 100644, live 100755",
+   "bolt/test/ARM/Inputs/check-arm-load-jump-table.py: clean 100644, live 100755",
+   "bolt/test/ARM/Inputs/check-arm-r12-stub.py: clean 100644, live 100755",
+   "bolt/test/ARM/Inputs/check-arm-table-base-liveness.py: clean 100644, live 100755",
+   "bolt/test/ARM/Inputs/check-arm-tbh-adr-base.py: clean 100644, live 100755",
+   "bolt/test/ARM/Inputs/check-arm-thumb-data-pointer.py: clean 100644, live 100755",
+   "bolt/test/ARM/Inputs/check-arm-thumb-short-branch-range.py: clean 100644, live 100755",
+   "bolt/test/ARM/Inputs/check-arm-thunk-cycle.py: clean 100644, live 100755",
+   "bolt/test/ARM/Inputs/check-arm-v8-aarch32.py: clean 100644, live 100755",
+   "bolt/test/ARM/Inputs/check-inline-table.py: clean 100644, live 100755",
+   "bolt/test/ARM/Inputs/check-passes.py: clean 100644, live 100755",
+   "bolt/test/ARM/Inputs/check-thumb-entry.py: clean 100644, live 100755",
+   "bolt/test/ARM/arm-inline-table.test: clean 100644, live 100755",
+   "bolt/test/ARM/arm-passes.test: clean 100644, live 100755",
+   "bolt/test/ARM/arm-thumb-entry.test: clean 100644, live 100755",
+   "bolt/test/ARM/arm-thumb-split.test: clean 100644, live 100755",
+   "llvm/test/ExecutionEngine/JITLink/AArch32/ELF_relocations_thumb_jump19.s: clean 100644, live 100755"
+  ],
+  "live_head": "bcc08884995ff3cbee70749524621803b9bd258a"
+ },
+ "configuration": {
+  "cache_file": "cmake/llvm-bolt.cmake",
+  "cache_file_sha256": "88f5f7b7740add6024a20157e771b7ce1300dd392043dabd7aa65014a24595f5",
+  "clean_overrides": {
+   "on": [],
+   "off": [
+    "LLVM_ENABLE_ASSERTIONS=OFF"
+   ],
+   "both": [
+    "CMAKE_C_COMPILER/CMAKE_CXX_COMPILER = host clang/clang++ (not chosen by the cache file; matches the live builds)",
+    "LLVM_PARALLEL_LINK_JOBS=2 (scheduling only)",
+    "environment CCACHE_DISABLE=1 (no cached objects)"
+   ]
+  },
+  "key_entries": {
+   "clean-on": {
+    "CMAKE_BUILD_TYPE": "Release",
+    "LLVM_ENABLE_ASSERTIONS": "ON",
+    "LLVM_ABI_BREAKING_CHECKS": "WITH_ASSERTS",
+    "LLVM_ENABLE_PROJECTS": "clang;bolt;lld",
+    "LLVM_TARGETS_TO_BUILD": "X86;AArch64;ARM",
+    "BOLT_TARGETS_TO_BUILD": "AArch64;ARM;X86",
+    "BOLT_ENABLE_RUNTIME": "ON",
+    "LLVM_USE_LINKER": "lld",
+    "LLVM_CCACHE_BUILD": "ON",
+    "CMAKE_C_COMPILER": "/usr/bin/clang",
+    "CMAKE_CXX_COMPILER": "/usr/bin/clang++",
+    "LLVM_PARALLEL_LINK_JOBS": "2",
+    "LLVM_ENABLE_IO_SANDBOX": "ON",
+    "CMAKE_CXX_FLAGS": "",
+    "CMAKE_CXX_FLAGS_RELEASE": "-O3 -DNDEBUG"
+   },
+   "clean-off": {
+    "CMAKE_BUILD_TYPE": "Release",
+    "LLVM_ENABLE_ASSERTIONS": "OFF",
+    "LLVM_ABI_BREAKING_CHECKS": "WITH_ASSERTS",
+    "LLVM_ENABLE_PROJECTS": "clang;bolt;lld",
+    "LLVM_TARGETS_TO_BUILD": "X86;AArch64;ARM",
+    "BOLT_TARGETS_TO_BUILD": "AArch64;ARM;X86",
+    "BOLT_ENABLE_RUNTIME": "ON",
+    "LLVM_USE_LINKER": "lld",
+    "LLVM_CCACHE_BUILD": "ON",
+    "CMAKE_C_COMPILER": "/usr/bin/clang",
+    "CMAKE_CXX_COMPILER": "/usr/bin/clang++",
+    "LLVM_PARALLEL_LINK_JOBS": "2",
+    "LLVM_ENABLE_IO_SANDBOX": "OFF",
+    "CMAKE_CXX_FLAGS": "",
+    "CMAKE_CXX_FLAGS_RELEASE": "-O3 -DNDEBUG"
+   },
+   "live-on": {
+    "CMAKE_BUILD_TYPE": "Release",
+    "LLVM_ENABLE_ASSERTIONS": "ON",
+    "LLVM_ABI_BREAKING_CHECKS": "WITH_ASSERTS",
+    "LLVM_ENABLE_PROJECTS": "clang;bolt;lld",
+    "LLVM_TARGETS_TO_BUILD": "X86;AArch64;ARM",
+    "BOLT_TARGETS_TO_BUILD": "AArch64;ARM;X86",
+    "BOLT_ENABLE_RUNTIME": "ON",
+    "LLVM_USE_LINKER": "lld",
+    "LLVM_CCACHE_BUILD": "ON",
+    "CMAKE_C_COMPILER": "/usr/bin/clang",
+    "CMAKE_CXX_COMPILER": "/usr/bin/clang++",
+    "LLVM_PARALLEL_LINK_JOBS": "2",
+    "LLVM_ENABLE_IO_SANDBOX": "ON",
+    "CMAKE_CXX_FLAGS": "",
+    "CMAKE_CXX_FLAGS_RELEASE": "-O3 -DNDEBUG"
+   },
+   "live-off": {
+    "CMAKE_BUILD_TYPE": "Release",
+    "LLVM_ENABLE_ASSERTIONS": "OFF",
+    "LLVM_ABI_BREAKING_CHECKS": "WITH_ASSERTS",
+    "LLVM_ENABLE_PROJECTS": "bolt;lld",
+    "LLVM_TARGETS_TO_BUILD": "X86;AArch64;ARM",
+    "BOLT_TARGETS_TO_BUILD": "AArch64;ARM;X86",
+    "BOLT_ENABLE_RUNTIME": "ON",
+    "LLVM_USE_LINKER": "lld",
+    "LLVM_CCACHE_BUILD": "ON",
+    "CMAKE_C_COMPILER": "/usr/bin/clang",
+    "CMAKE_CXX_COMPILER": "/usr/bin/clang++",
+    "LLVM_PARALLEL_LINK_JOBS": "2",
+    "LLVM_ENABLE_IO_SANDBOX": "OFF",
+    "CMAKE_CXX_FLAGS": "",
+    "CMAKE_CXX_FLAGS_RELEASE": "-O3 -DNDEBUG"
+   }
+  },
+  "differences": {
+   "clean-on vs clean-off": {
+    "LLVM_ENABLE_ASSERTIONS": [
+     "ON",
+     "OFF"
+    ],
+    "LLVM_ENABLE_IO_SANDBOX": [
+     "ON",
+     "OFF"
+    ]
+   },
+   "clean-on vs live-on": {},
+   "clean-off vs live-off": {
+    "CLANG": [
+     "",
+     null
+    ],
+    "CLANG_BOLT": [
+     "OFF",
+     null
+    ],
+    "CLANG_BUILD_EXAMPLES": [
+     "OFF",
+     null
+    ],
+    "CLANG_BUILD_TOOLS": [
+     "ON",
+     null
+    ],
+    "CLANG_DEFAULT_CXX_STDLIB": [
+     "",
+     null
+    ],
+    "CLANG_DEFAULT_LINKER": [
+     "",
+     null
+    ],
+    "CLANG_DEFAULT_OBJCOPY": [
+     "objcopy",
+     null
+    ],
+    "CLANG_DEFAULT_OPENMP_RUNTIME": [
+     "libomp",
+     null
+    ],
+    "CLANG_DEFAULT_PIE_ON_LINUX": [
+     "ON",
+     null
+    ],
+    "CLANG_DEFAULT_RTLIB": [
+     "",
+     null
+    ],
+    "CLANG_DEFAULT_UNWINDLIB": [
+     "",
+     null
+    ],
+    "CLANG_ENABLE_LIBXML2": [
+     "ON",
+     null
+    ],
+    "CLANG_ENABLE_OBJC_REWRITER": [
+     "OFF",
+     null
+    ],
+    "CLANG_ENABLE_PROTO_FUZZER": [
+     "OFF",
+     null
+    ],
+    "CLANG_ENABLE_STATIC_ANALYZER": [
+     "ON",
+     null
+    ],
+    "CLANG_EXECUTABLE_VERSION": [
+     "24",
+     null
+    ],
+    "CLANG_FORCE_MATCHING_LIBCLANG_SOVERSION": [
+     "ON",
+     null
+    ],
+    "CLANG_INCLUDE_DOCS": [
+     "ON",
+     null
+    ],
+    "CLANG_INCLUDE_EXAMPLES": [
+     "ON",
+     null
+    ],
+    "CLANG_INCLUDE_TESTS": [
+     "ON",
+     null
+    ],
+    "CLANG_INSTALL_HMAPTOOL": [
+     "ON",
+     null
+    ],
+    "CLANG_INSTALL_PACKAGE_DIR": [
+     "lib/cmake/clang",
+     null
+    ],
+    "CLANG_INSTALL_SCANBUILD": [
+     "ON",
+     null
+    ],
+    "CLANG_INSTALL_SCANBUILDPY": [
+     "ON",
+     null
+    ],
+    "CLANG_INSTALL_SCANVIEW": [
+     "ON",
+     null
+    ],
+    "CLANG_LINK_CLANG_DYLIB": [
+     "OFF",
+     null
+    ],
+    "CLANG_PGO_TRAINING_DATA": [
+     "<SRC>/clang/utils/perf-training",
+     null
+    ],
+    "CLANG_PGO_TRAINING_DATA_SOURCE_DIR": [
+     "OFF",
+     null
+    ],
+    "CLANG_PGO_TRAINING_DEPS": [
+     "",
+     null
+    ],
+    "CLANG_PGO_TRAINING_USE_LLVM_BUILD": [
+     "ON",
+     null
+    ],
+    "CLANG_PLUGIN_SUPPORT": [
+     "ON",
+     null
+    ],
+    "CLANG_PYTHON_BINDINGS_VERSIONS": [
+     "",
+     null
+    ],
+    "CLANG_REPOSITORY_STRING": [
+     "",
+     null
+    ],
+    "CLANG_RESOURCE_DIR": [
+     "",
+     null
+    ],
+    "CLANG_SPAWN_CC1": [
+     "OFF",
+     null
+    ],
+    "CLANG_SYSTEMZ_DEFAULT_ARCH": [
+     "z10",
+     null
+    ],
+    "CLANG_TABLEGEN": [
+     "clang-tblgen",
+     null
+    ],
+    "CLANG_TEST_USE_VG": [
+     "OFF",
+     null
+    ],
+    "CLANG_TOOLS_INSTALL_DIR": [
+     "bin",
+     null
+    ],
+    "CLANG_TOOL_APINOTES_TEST_BUILD": [
+     "ON",
+     null
+    ],
+    "CLANG_TOOL_CIR_LSP_SERVER_BUILD": [
+     "ON",
+     null
+    ],
+    "CLANG_TOOL_CIR_OPT_BUILD": [
+     "ON",
+     null
+    ],
+    "CLANG_TOOL_CIR_TRANSLATE_BUILD": [
+     "ON",
+     null
+    ],
+    "CLANG_TOOL_CLANG_CHECK_BUILD": [
+     "ON",
+     null
+    ],
+    "CLANG_TOOL_CLANG_DIFF_BUILD": [
+     "ON",
+     null
+    ],
+    "CLANG_TOOL_CLANG_EXTDEF_MAPPING_BUILD": [
+     "ON",
+     null
+    ],
+    "CLANG_TOOL_CLANG_FORMAT_BUILD": [
+     "ON",
+     null
+    ],
+    "CLANG_TOOL_CLANG_FUZZER_BUILD": [
+     "ON",
+     null
+    ],
+    "CLANG_TOOL_CLANG_IMPORT_TEST_BUILD": [
+     "ON",
+     null
+    ],
+    "CLANG_TOOL_CLANG_INSTALLAPI_BUILD": [
+     "ON",
+     null
+    ],
+    "CLANG_TOOL_CLANG_LINKER_WRAPPER_BUILD": [
+     "ON",
+     null
+    ],
+    "CLANG_TOOL_CLANG_NVLINK_WRAPPER_BUILD": [
+     "ON",
+     null
+    ],
+    "CLANG_TOOL_CLANG_OFFLOAD_BUNDLER_BUILD": [
+     "ON",
+     null
+    ],
+    "CLANG_TOOL_CLANG_REFACTOR_BUILD": [
+     "ON",
+     null
+    ],
+    "CLANG_TOOL_CLANG_REPL_BUILD": [
+     "ON",
+     null
+    ],
+    "CLANG_TOOL_CLANG_SCAN_DEPS_BUILD": [
+     "ON",
+     null
+    ],
+    "CLANG_TOOL_CLANG_SHLIB_BUILD": [
+     "ON",
+     null
+    ],
+    "CLANG_TOOL_CLANG_SSAF_ANALYZER_BUILD": [
+     "ON",
+     null
+    ],
+    "CLANG_TOOL_CLANG_SSAF_FORMAT_BUILD": [
+     "ON",
+     null
+    ],
+    "CLANG_TOOL_CLANG_SSAF_LINKER_BUILD": [
+     "ON",
+     null
+    ],
+    "CLANG_TOOL_CLANG_SSAF_SRC_EDIT_MERGE_BUILD": [
+     "ON",
+     null
+    ],
+    "CLANG_TOOL_CLANG_SYCL_LINKER_BUILD": [
+     "ON",
+     null
+    ],
+    "CLANG_TOOL_C_INDEX_TEST_BUILD": [
+     "ON",
+     null
+    ],
+    "CLANG_TOOL_DIAGTOOL_BUILD": [
+     "ON",
+     null
+    ],
+    "CLANG_TOOL_DICTIONARY_BUILD": [
+     "ON",
+     null
+    ],
+    "CLANG_TOOL_DRIVER_BUILD": [
+     "ON",
+     null
+    ],
+    "CLANG_TOOL_HANDLE_CXX_BUILD": [
+     "ON",
+     null
+    ],
+    "CLANG_TOOL_HANDLE_LLVM_BUILD": [
+     "ON",
+     null
+    ],
+    "CLANG_TOOL_LIBCLANG_BUILD": [
+     "ON",
+     null
+    ],
+    "CLANG_TOOL_OFFLOAD_ARCH_BUILD": [
+     "ON",
+     null
+    ],
+    "CLANG_TOOL_SCAN_BUILD_BUILD": [
+     "ON",
+     null
+    ],
+    "CLANG_TOOL_SCAN_BUILD_PY_BUILD": [
+     "ON",
+     null
+    ],
+    "CLANG_TOOL_SCAN_VIEW_BUILD": [
+     "ON",
+     null
+    ],
+    "CLANG_USE_EXPERIMENTAL_CONST_INTERP": [
+     "OFF",
+     null
+    ],
+    "CLANG_VENDOR": [
+     "",
+     null
+    ],
+    "CLANG_VENDOR_UTI": [
+     "org.llvm.clang",
+     null
+    ],
+    "C_INCLUDE_DIRS": [
+     "",
+     null
+    ],
+    "DEFAULT_SYSROOT": [
+     "",
+     null
+    ],
+    "DIFF_EXE": [
+     "/usr/bin/diff",
+     null
+    ],
+    "DTRACE": [
+     "DTRACE-NOTFOUND",
+     null
+    ],
+    "ENABLE_LINKER_BUILD_ID": [
+     "OFF",
+     null
+    ],
+    "ENABLE_X86_RELAX_RELOCATIONS": [
+     "ON",
+     null
+    ],
+    "GCC_INSTALL_PREFIX": [
+     "",
+     null
+    ],
+    "HOST_LINK_VERSION": [
+     "",
+     null
+    ],
+    "LIBCLANG_BUILD_STATIC": [
+     "OFF",
+     null
+    ],
+    "LIBCLANG_LIBRARY_VERSION": [
+     "24",
+     null
+    ],
+    "LLVM_ENABLE_PROJECTS": [
+     "clang;bolt;lld",
+     "bolt;lld"
+    ],
+    "LLVM_EXTERNAL_CLANG_SOURCE_DIR": [
+     "<SRC>/llvm/../clang",
+     ""
+    ],
+    "LLVM_EXTERNAL_CLANG_TOOLS_EXTRA_SOURCE_DIR": [
+     "",
+     null
+    ],
+    "LLVM_TOOL_CLANG_BUILD": [
+     "TRUE",
+     "FALSE"
+    ],
+    "PERL_EXECUTABLE": [
+     "/usr/bin/perl",
+     null
+    ],
+    "PPC_LINUX_DEFAULT_IEEELONGDOUBLE": [
+     "OFF",
+     null
+    ],
+    "TOOL_INFO_PLIST": [
+     "Info.plist",
+     null
+    ],
+    "TOUCH_EXE": [
+     "/usr/bin/touch",
+     null
+    ],
+    "USE_DEPRECATED_GCC_INSTALL_PREFIX": [
+     "OFF",
+     null
+    ],
+    "clang_exe": [
+     "$<TARGET_FILE:clang>",
+     null
+    ],
+    "clang_target": [
+     "clang",
+     null
+    ]
+   },
+   "live-on vs live-off": {
+    "CLANG": [
+     "",
+     null
+    ],
+    "CLANG_BOLT": [
+     "OFF",
+     null
+    ],
+    "CLANG_BUILD_EXAMPLES": [
+     "OFF",
+     null
+    ],
+    "CLANG_BUILD_TOOLS": [
+     "ON",
+     null
+    ],
+    "CLANG_DEFAULT_CXX_STDLIB": [
+     "",
+     null
+    ],
+    "CLANG_DEFAULT_LINKER": [
+     "",
+     null
+    ],
+    "CLANG_DEFAULT_OBJCOPY": [
+     "objcopy",
+     null
+    ],
+    "CLANG_DEFAULT_OPENMP_RUNTIME": [
+     "libomp",
+     null
+    ],
+    "CLANG_DEFAULT_PIE_ON_LINUX": [
+     "ON",
+     null
+    ],
+    "CLANG_DEFAULT_RTLIB": [
+     "",
+     null
+    ],
+    "CLANG_DEFAULT_UNWINDLIB": [
+     "",
+     null
+    ],
+    "CLANG_ENABLE_LIBXML2": [
+     "ON",
+     null
+    ],
+    "CLANG_ENABLE_OBJC_REWRITER": [
+     "OFF",
+     null
+    ],
+    "CLANG_ENABLE_PROTO_FUZZER": [
+     "OFF",
+     null
+    ],
+    "CLANG_ENABLE_STATIC_ANALYZER": [
+     "ON",
+     null
+    ],
+    "CLANG_EXECUTABLE_VERSION": [
+     "24",
+     null
+    ],
+    "CLANG_FORCE_MATCHING_LIBCLANG_SOVERSION": [
+     "ON",
+     null
+    ],
+    "CLANG_INCLUDE_DOCS": [
+     "ON",
+     null
+    ],
+    "CLANG_INCLUDE_EXAMPLES": [
+     "ON",
+     null
+    ],
+    "CLANG_INCLUDE_TESTS": [
+     "ON",
+     null
+    ],
+    "CLANG_INSTALL_HMAPTOOL": [
+     "ON",
+     null
+    ],
+    "CLANG_INSTALL_PACKAGE_DIR": [
+     "lib/cmake/clang",
+     null
+    ],
+    "CLANG_INSTALL_SCANBUILD": [
+     "ON",
+     null
+    ],
+    "CLANG_INSTALL_SCANBUILDPY": [
+     "ON",
+     null
+    ],
+    "CLANG_INSTALL_SCANVIEW": [
+     "ON",
+     null
+    ],
+    "CLANG_LINK_CLANG_DYLIB": [
+     "OFF",
+     null
+    ],
+    "CLANG_PGO_TRAINING_DATA": [
+     "<SRC>/clang/utils/perf-training",
+     null
+    ],
+    "CLANG_PGO_TRAINING_DATA_SOURCE_DIR": [
+     "OFF",
+     null
+    ],
+    "CLANG_PGO_TRAINING_DEPS": [
+     "",
+     null
+    ],
+    "CLANG_PGO_TRAINING_USE_LLVM_BUILD": [
+     "ON",
+     null
+    ],
+    "CLANG_PLUGIN_SUPPORT": [
+     "ON",
+     null
+    ],
+    "CLANG_PYTHON_BINDINGS_VERSIONS": [
+     "",
+     null
+    ],
+    "CLANG_REPOSITORY_STRING": [
+     "",
+     null
+    ],
+    "CLANG_RESOURCE_DIR": [
+     "",
+     null
+    ],
+    "CLANG_SPAWN_CC1": [
+     "OFF",
+     null
+    ],
+    "CLANG_SYSTEMZ_DEFAULT_ARCH": [
+     "z10",
+     null
+    ],
+    "CLANG_TABLEGEN": [
+     "clang-tblgen",
+     null
+    ],
+    "CLANG_TEST_USE_VG": [
+     "OFF",
+     null
+    ],
+    "CLANG_TOOLS_INSTALL_DIR": [
+     "bin",
+     null
+    ],
+    "CLANG_TOOL_APINOTES_TEST_BUILD": [
+     "ON",
+     null
+    ],
+    "CLANG_TOOL_CIR_LSP_SERVER_BUILD": [
+     "ON",
+     null
+    ],
+    "CLANG_TOOL_CIR_OPT_BUILD": [
+     "ON",
+     null
+    ],
+    "CLANG_TOOL_CIR_TRANSLATE_BUILD": [
+     "ON",
+     null
+    ],
+    "CLANG_TOOL_CLANG_CHECK_BUILD": [
+     "ON",
+     null
+    ],
+    "CLANG_TOOL_CLANG_DIFF_BUILD": [
+     "ON",
+     null
+    ],
+    "CLANG_TOOL_CLANG_EXTDEF_MAPPING_BUILD": [
+     "ON",
+     null
+    ],
+    "CLANG_TOOL_CLANG_FORMAT_BUILD": [
+     "ON",
+     null
+    ],
+    "CLANG_TOOL_CLANG_FUZZER_BUILD": [
+     "ON",
+     null
+    ],
+    "CLANG_TOOL_CLANG_IMPORT_TEST_BUILD": [
+     "ON",
+     null
+    ],
+    "CLANG_TOOL_CLANG_INSTALLAPI_BUILD": [
+     "ON",
+     null
+    ],
+    "CLANG_TOOL_CLANG_LINKER_WRAPPER_BUILD": [
+     "ON",
+     null
+    ],
+    "CLANG_TOOL_CLANG_NVLINK_WRAPPER_BUILD": [
+     "ON",
+     null
+    ],
+    "CLANG_TOOL_CLANG_OFFLOAD_BUNDLER_BUILD": [
+     "ON",
+     null
+    ],
+    "CLANG_TOOL_CLANG_REFACTOR_BUILD": [
+     "ON",
+     null
+    ],
+    "CLANG_TOOL_CLANG_REPL_BUILD": [
+     "ON",
+     null
+    ],
+    "CLANG_TOOL_CLANG_SCAN_DEPS_BUILD": [
+     "ON",
+     null
+    ],
+    "CLANG_TOOL_CLANG_SHLIB_BUILD": [
+     "ON",
+     null
+    ],
+    "CLANG_TOOL_CLANG_SSAF_ANALYZER_BUILD": [
+     "ON",
+     null
+    ],
+    "CLANG_TOOL_CLANG_SSAF_FORMAT_BUILD": [
+     "ON",
+     null
+    ],
+    "CLANG_TOOL_CLANG_SSAF_LINKER_BUILD": [
+     "ON",
+     null
+    ],
+    "CLANG_TOOL_CLANG_SSAF_SRC_EDIT_MERGE_BUILD": [
+     "ON",
+     null
+    ],
+    "CLANG_TOOL_CLANG_SYCL_LINKER_BUILD": [
+     "ON",
+     null
+    ],
+    "CLANG_TOOL_C_INDEX_TEST_BUILD": [
+     "ON",
+     null
+    ],
+    "CLANG_TOOL_DIAGTOOL_BUILD": [
+     "ON",
+     null
+    ],
+    "CLANG_TOOL_DICTIONARY_BUILD": [
+     "ON",
+     null
+    ],
+    "CLANG_TOOL_DRIVER_BUILD": [
+     "ON",
+     null
+    ],
+    "CLANG_TOOL_HANDLE_CXX_BUILD": [
+     "ON",
+     null
+    ],
+    "CLANG_TOOL_HANDLE_LLVM_BUILD": [
+     "ON",
+     null
+    ],
+    "CLANG_TOOL_LIBCLANG_BUILD": [
+     "ON",
+     null
+    ],
+    "CLANG_TOOL_OFFLOAD_ARCH_BUILD": [
+     "ON",
+     null
+    ],
+    "CLANG_TOOL_SCAN_BUILD_BUILD": [
+     "ON",
+     null
+    ],
+    "CLANG_TOOL_SCAN_BUILD_PY_BUILD": [
+     "ON",
+     null
+    ],
+    "CLANG_TOOL_SCAN_VIEW_BUILD": [
+     "ON",
+     null
+    ],
+    "CLANG_USE_EXPERIMENTAL_CONST_INTERP": [
+     "OFF",
+     null
+    ],
+    "CLANG_VENDOR": [
+     "",
+     null
+    ],
+    "CLANG_VENDOR_UTI": [
+     "org.llvm.clang",
+     null
+    ],
+    "C_INCLUDE_DIRS": [
+     "",
+     null
+    ],
+    "DEFAULT_SYSROOT": [
+     "",
+     null
+    ],
+    "DIFF_EXE": [
+     "/usr/bin/diff",
+     null
+    ],
+    "DTRACE": [
+     "DTRACE-NOTFOUND",
+     null
+    ],
+    "ENABLE_LINKER_BUILD_ID": [
+     "OFF",
+     null
+    ],
+    "ENABLE_X86_RELAX_RELOCATIONS": [
+     "ON",
+     null
+    ],
+    "GCC_INSTALL_PREFIX": [
+     "",
+     null
+    ],
+    "HOST_LINK_VERSION": [
+     "",
+     null
+    ],
+    "LIBCLANG_BUILD_STATIC": [
+     "OFF",
+     null
+    ],
+    "LIBCLANG_LIBRARY_VERSION": [
+     "24",
+     null
+    ],
+    "LLVM_ENABLE_ASSERTIONS": [
+     "ON",
+     "OFF"
+    ],
+    "LLVM_ENABLE_IO_SANDBOX": [
+     "ON",
+     "OFF"
+    ],
+    "LLVM_ENABLE_PROJECTS": [
+     "clang;bolt;lld",
+     "bolt;lld"
+    ],
+    "LLVM_EXTERNAL_CLANG_SOURCE_DIR": [
+     "<SRC>/llvm/../clang",
+     ""
+    ],
+    "LLVM_EXTERNAL_CLANG_TOOLS_EXTRA_SOURCE_DIR": [
+     "",
+     null
+    ],
+    "LLVM_TOOL_CLANG_BUILD": [
+     "TRUE",
+     "FALSE"
+    ],
+    "PERL_EXECUTABLE": [
+     "/usr/bin/perl",
+     null
+    ],
+    "PPC_LINUX_DEFAULT_IEEELONGDOUBLE": [
+     "OFF",
+     null
+    ],
+    "TOOL_INFO_PLIST": [
+     "Info.plist",
+     null
+    ],
+    "TOUCH_EXE": [
+     "/usr/bin/touch",
+     null
+    ],
+    "USE_DEPRECATED_GCC_INSTALL_PREFIX": [
+     "OFF",
+     null
+    ],
+    "clang_exe": [
+     "$<TARGET_FILE:clang>",
+     null
+    ],
+    "clang_target": [
+     "clang",
+     null
+    ]
+   }
+  }
+ },
+ "host": {
+  "os": "Ubuntu 26.04 LTS",
+  "kernel": "6.18.33.2-microsoft-standard-WSL2",
+  "clang": "Ubuntu clang version 21.1.8 (6ubuntu1)",
+  "clang++": "Ubuntu clang version 21.1.8 (6ubuntu1)",
+  "ld.lld": "Ubuntu LLD 21.1.8 (compatible with GNU linkers)",
+  "cmake": "cmake version 4.2.3",
+  "ninja": "1.13.2",
+  "python3": "Python 3.14.4",
+  "git": "git version 2.53.0",
+  "ccache": "ccache version 4.12.3"
+ },
+ "tools": {
+  "clean-on": {
+   "llvm-bolt": "2d217c9fbcc6291905e8e0aa686531ec36a828c47be8a09740dcdcb1998e1844",
+   "merge-fdata": "0ad10be447cab764195a43acd6f62586844e09be005e27464b657c825c078d54",
+   "ld.lld": "078daea4f88388a913ffa51b985792d09f856527bea9cce556b508cac02ceb93",
+   "clang": "71b082e4e73e97a5b45f2794092fa940442d1b6e18a5910928e50d863ddbf809",
+   "llvm-mc": "be9c607a52f1319e8fa4ad416275bde80ca88380d0b2be11aa1026435524c7f9",
+   "llvm-objcopy": "6323a7f271daaa126cc7376e701ccec33c8377c8542f23b8a6e3c9063d159681",
+   "llvm-objdump": "aab739a1539303215d783db53e66318e44e3565b8e33714cfd4c924bf5d2ff62",
+   "llvm-readelf": "16dbb067be072096bd9eb63f33b9110782ec3f7d48f68851bbe5a4114f9e931c",
+   "llvm-nm": "9a1e60adc3f133f4d3003d0c70d3b8f2f884475f6ab9fc1d9011be234fa78518",
+   "llvm-bolt --version": [
+    "LLVM (http://llvm.org/):",
+    "  LLVM version 24.0.0git",
+    "  Optimized build with assertions.",
+    "Arm Toolchain ID: unset",
+    "BOLT revision bcc08884995ff3cbee70749524621803b9bd258a",
+    ""
+   ]
+  },
+  "clean-off": {
+   "llvm-bolt": "b0d53d44eefbf7c77819f71b56c0e4806ba51c50fefe4a7d6a6aca3ea13a65af",
+   "merge-fdata": "bc3414990b209e49eaadb2ce04bdbe48512e648a77c776989dff0c39f2e59029",
+   "ld.lld": "5d942829462bed687760d2224f817078d3754f503e6206079d0eee364b8e9295",
+   "clang": "f31dc71e97a80f9a989d350d77935cc65de76b8e58f8564df24d41d1e6055716",
+   "llvm-mc": "b52adf157ad60a7a33d3ff1b0733639a14c0d03cb6154c00d0bf318986581e4d",
+   "llvm-objcopy": "5e3717e9e26b856bc3cb76e1b9f596393d3a82c4d69a467699bdae68cfc82155",
+   "llvm-objdump": "0631036e62a7be3b7a3187c649b31aa6c20830374891ea763ccd1d9e0d0447c5",
+   "llvm-readelf": "9fd4b81fd7557958a0306d2e88679b06c635e29d9afa1a5ce45c84bd450b40fd",
+   "llvm-nm": "9e70a90151861d0eca0143a16e44ebef303928a9dc91f638516cbc1ce950fac8",
+   "llvm-bolt --version": [
+    "LLVM (http://llvm.org/):",
+    "  LLVM version 24.0.0git",
+    "  Optimized build.",
+    "Arm Toolchain ID: unset",
+    "BOLT revision bcc08884995ff3cbee70749524621803b9bd258a",
+    ""
+   ]
+  },
+  "live-on": {
+   "llvm-bolt": "9acca1bc080b61b0e765fe654142040157cade09e8fcc8fa89f5e1b6b1bccb73",
+   "merge-fdata": "96e092b67b2e232fbe8a5d7a614fb177c15f83a5dda9979ecf35af2261edd775",
+   "ld.lld": "ddfa5d8e0ec27c3035c24b9d8cca749b029b1075f463f4993a5826ef3d52bd1b",
+   "clang": "ad5719c2947ca6f874f0a0dfc0265b6ae8420efd0cc8d44875aab3f739973f9e",
+   "llvm-mc": "d7218eea8c88db9dafa29fc677953d61db2d102d17db26dc3908fd261109addb",
+   "llvm-objcopy": "f80e39c3121994c8b5baf3b9c2e586d4ffcd8da332e6c2c51b9f86fb482207de",
+   "llvm-objdump": "f550f4ca030307b9e6c01d81fb60e64003df6ff6d9d888721e92510580b345be",
+   "llvm-readelf": "34ffb11d9ed81366c93817f462483e1d76b341c90d35f85895d5b768b0b974ac",
+   "llvm-nm": "73c4b2a3e9d39cbaa531208f78d0e29f20d74fe00dfc64da8848d1f9562ea791",
+   "llvm-bolt --version": [
+    "LLVM (http://llvm.org/):",
+    "  LLVM version 24.0.0git",
+    "  Optimized build with assertions.",
+    "Arm Toolchain ID: unset",
+    "BOLT revision bcc08884995ff3cbee70749524621803b9bd258a",
+    ""
+   ]
+  },
+  "live-off": {
+   "llvm-bolt": "b0d53d44eefbf7c77819f71b56c0e4806ba51c50fefe4a7d6a6aca3ea13a65af",
+   "merge-fdata": "96e092b67b2e232fbe8a5d7a614fb177c15f83a5dda9979ecf35af2261edd775",
+   "ld.lld": "5d942829462bed687760d2224f817078d3754f503e6206079d0eee364b8e9295",
+   "clang": "ad5719c2947ca6f874f0a0dfc0265b6ae8420efd0cc8d44875aab3f739973f9e",
+   "llvm-mc": "b52adf157ad60a7a33d3ff1b0733639a14c0d03cb6154c00d0bf318986581e4d",
+   "llvm-objcopy": "5e3717e9e26b856bc3cb76e1b9f596393d3a82c4d69a467699bdae68cfc82155",
+   "llvm-objdump": "0631036e62a7be3b7a3187c649b31aa6c20830374891ea763ccd1d9e0d0447c5",
+   "llvm-readelf": "9fd4b81fd7557958a0306d2e88679b06c635e29d9afa1a5ce45c84bd450b40fd",
+   "llvm-nm": "9e70a90151861d0eca0143a16e44ebef303928a9dc91f638516cbc1ce950fac8",
+   "llvm-bolt --version": [
+    "LLVM (http://llvm.org/):",
+    "  LLVM version 24.0.0git",
+    "  Optimized build.",
+    "Arm Toolchain ID: unset",
+    "BOLT revision bcc08884995ff3cbee70749524621803b9bd258a",
+    ""
+   ]
+  }
+ },
+ "lit": {
+  "clean-on": {
+   "exit": 0,
+   "counts": {
+    "total discovered tests": 61,
+    "passed": 61
+   },
+   "failed_tests": []
+  },
+  "clean-off": {
+   "exit": 0,
+   "counts": {
+    "total discovered tests": 61,
+    "passed": 61
+   },
+   "failed_tests": []
+  },
+  "live-on": {
+   "exit": 0,
+   "counts": {
+    "total discovered tests": 61,
+    "passed": 61
+   },
+   "failed_tests": []
+  },
+  "live-off": {
+   "exit": 0,
+   "counts": {
+    "total discovered tests": 61,
+    "passed": 61
+   },
+   "failed_tests": []
+  }
+ },
+ "parity": {
+  "input": {
+   "path": "fixtures/lk-rpi4-bolt-test-424606a8.elf",
+   "sha256": "424606a869c34b5be5f3c97f66a9cec8ea16844ac788c14c77839edcfef2459b"
+  },
+  "runtime_library": {
+   "path": "build-atfe/bolt-rt-baremetal-arm/libbolt_rt_baremetal.a",
+   "sha256": "02cd16859e9b73c8f52587a46901b2bcbc06e97c18a1f5b91d3ef3f59e8db62d"
+  },
+  "scenarios": {
+   "g1_full_image": {
+    "identical_across_builds": true,
+    "deterministic": true,
+    "exit": 0,
+    "guard_ok": true,
+    "builds": {
+     "clean-on": {
+      "exit": 0,
+      "raw_sha256": {
+       "baseline_full.bin": "2181dffe845616573dcf8096e276e43aa6f33e7f2d0b4218a256f4bc540d5dc3",
+       "baseline_full.elf": "bc246c66f8dc15b11c3f2a6e73cd8bbbc3995b492d178797e6592dad1e090bb8",
+       "full.funcmap": "f88212ad06da20c5b8f7764317374f9ac921da19a34874c7f8146b472cdf82b4"
+      },
+      "outputs": {
+       "baseline_full.bin": "2181dffe845616573dcf8096e276e43aa6f33e7f2d0b4218a256f4bc540d5dc3",
+       "baseline_full.elf": "0e6ef458613beea9b3e1f21fe90cef052737121e62a4cc0834448e56f7ec8bd2",
+       "full.funcmap": "f88212ad06da20c5b8f7764317374f9ac921da19a34874c7f8146b472cdf82b4"
+      },
+      "guard": {
+       "baseline_full.elf": {
+        "exit": 0,
+        "line": "ok   /home/user/r30/prov/g1_full_image/clean-on/img/baseline_full.elf: 0 FP/NEON instructions"
+       }
+      }
+     },
+     "clean-off": {
+      "exit": 0,
+      "raw_sha256": {
+       "baseline_full.bin": "2181dffe845616573dcf8096e276e43aa6f33e7f2d0b4218a256f4bc540d5dc3",
+       "baseline_full.elf": "17f7fb5681514cafbf371a7297574742f9042b0b13343191d57e43f24e6d9dc1",
+       "full.funcmap": "f88212ad06da20c5b8f7764317374f9ac921da19a34874c7f8146b472cdf82b4"
+      },
+      "outputs": {
+       "baseline_full.bin": "2181dffe845616573dcf8096e276e43aa6f33e7f2d0b4218a256f4bc540d5dc3",
+       "baseline_full.elf": "0e6ef458613beea9b3e1f21fe90cef052737121e62a4cc0834448e56f7ec8bd2",
+       "full.funcmap": "f88212ad06da20c5b8f7764317374f9ac921da19a34874c7f8146b472cdf82b4"
+      },
+      "guard": {
+       "baseline_full.elf": {
+        "exit": 0,
+        "line": "ok   /home/user/r30/prov/g1_full_image/clean-off/img/baseline_full.elf: 0 FP/NEON instructions"
+       }
+      }
+     },
+     "live-on": {
+      "exit": 0,
+      "raw_sha256": {
+       "baseline_full.bin": "2181dffe845616573dcf8096e276e43aa6f33e7f2d0b4218a256f4bc540d5dc3",
+       "baseline_full.elf": "7d2ea2570d57f7cbce941759c563f0dde7e548e0defe67bc5bb22e1c8c9bdcf3",
+       "full.funcmap": "f88212ad06da20c5b8f7764317374f9ac921da19a34874c7f8146b472cdf82b4"
+      },
+      "outputs": {
+       "baseline_full.bin": "2181dffe845616573dcf8096e276e43aa6f33e7f2d0b4218a256f4bc540d5dc3",
+       "baseline_full.elf": "0e6ef458613beea9b3e1f21fe90cef052737121e62a4cc0834448e56f7ec8bd2",
+       "full.funcmap": "f88212ad06da20c5b8f7764317374f9ac921da19a34874c7f8146b472cdf82b4"
+      },
+      "guard": {
+       "baseline_full.elf": {
+        "exit": 0,
+        "line": "ok   /home/user/r30/prov/g1_full_image/live-on/img/baseline_full.elf: 0 FP/NEON instructions"
+       }
+      }
+     },
+     "live-off": {
+      "exit": 0,
+      "raw_sha256": {
+       "baseline_full.bin": "2181dffe845616573dcf8096e276e43aa6f33e7f2d0b4218a256f4bc540d5dc3",
+       "baseline_full.elf": "ec84ed993588973a9842f55aa0955c9d97697067b636d7e6f3a2af84f594e036",
+       "full.funcmap": "f88212ad06da20c5b8f7764317374f9ac921da19a34874c7f8146b472cdf82b4"
+      },
+      "outputs": {
+       "baseline_full.bin": "2181dffe845616573dcf8096e276e43aa6f33e7f2d0b4218a256f4bc540d5dc3",
+       "baseline_full.elf": "0e6ef458613beea9b3e1f21fe90cef052737121e62a4cc0834448e56f7ec8bd2",
+       "full.funcmap": "f88212ad06da20c5b8f7764317374f9ac921da19a34874c7f8146b472cdf82b4"
+      },
+      "guard": {
+       "baseline_full.elf": {
+        "exit": 0,
+        "line": "ok   /home/user/r30/prov/g1_full_image/live-off/img/baseline_full.elf: 0 FP/NEON instructions"
+       }
+      }
+     }
+    }
+   },
+   "instr_smp": {
+    "identical_across_builds": true,
+    "deterministic": true,
+    "exit": 0,
+    "guard_ok": true,
+    "builds": {
+     "clean-on": {
+      "exit": 0,
+      "raw_sha256": {
+       "out.elf": "f3ec0e2f7c3e44b4f06ba8805f89be60f87b2bdb24a6ad6255384ad5ebcdfade"
+      },
+      "outputs": {
+       "out.elf": "63c71fe68bc4011f84f6eb7aedc3b70004fd2de36b79284f855e56920fb2d980"
+      },
+      "guard": {
+       "out.elf": {
+        "exit": 0,
+        "line": "ok   /home/user/r30/prov/instr_smp/clean-on/out.elf: 0 FP/NEON instructions"
+       }
+      }
+     },
+     "clean-off": {
+      "exit": 0,
+      "raw_sha256": {
+       "out.elf": "e607c9ba67e9ef8b657dbaf877cf711a612cb5cc8a5c0e83edc588d5779a1548"
+      },
+      "outputs": {
+       "out.elf": "63c71fe68bc4011f84f6eb7aedc3b70004fd2de36b79284f855e56920fb2d980"
+      },
+      "guard": {
+       "out.elf": {
+        "exit": 0,
+        "line": "ok   /home/user/r30/prov/instr_smp/clean-off/out.elf: 0 FP/NEON instructions"
+       }
+      }
+     },
+     "live-on": {
+      "exit": 0,
+      "raw_sha256": {
+       "out.elf": "34af4ff8e0481f5b6058d411efc107dfb84c7b62fe73be827afa46f4de08b0c7"
+      },
+      "outputs": {
+       "out.elf": "63c71fe68bc4011f84f6eb7aedc3b70004fd2de36b79284f855e56920fb2d980"
+      },
+      "guard": {
+       "out.elf": {
+        "exit": 0,
+        "line": "ok   /home/user/r30/prov/instr_smp/live-on/out.elf: 0 FP/NEON instructions"
+       }
+      }
+     },
+     "live-off": {
+      "exit": 0,
+      "raw_sha256": {
+       "out.elf": "b8004953e5e2cd5ebae63f818f46d4139ffce434a796c37b086e688d5d3d7823"
+      },
+      "outputs": {
+       "out.elf": "63c71fe68bc4011f84f6eb7aedc3b70004fd2de36b79284f855e56920fb2d980"
+      },
+      "guard": {
+       "out.elf": {
+        "exit": 0,
+        "line": "ok   /home/user/r30/prov/instr_smp/live-off/out.elf: 0 FP/NEON instructions"
+       }
+      }
+     }
+    }
+   },
+   "instr_single_core": {
+    "identical_across_builds": true,
+    "deterministic": true,
+    "exit": 0,
+    "guard_ok": true,
+    "builds": {
+     "clean-on": {
+      "exit": 0,
+      "raw_sha256": {
+       "out.elf": "628cf0a5d8b2f1738f815bd80baad5196a2d432682bb986c88863d7c2f86313d"
+      },
+      "outputs": {
+       "out.elf": "3543eea29d585eec5de2d35ca5546f722b5132c5d70cc27f47452a4f58f0755a"
+      },
+      "guard": {
+       "out.elf": {
+        "exit": 0,
+        "line": "ok   /home/user/r30/prov/instr_single_core/clean-on/out.elf: 0 FP/NEON instructions"
+       }
+      }
+     },
+     "clean-off": {
+      "exit": 0,
+      "raw_sha256": {
+       "out.elf": "be84bfd3d624534e021993532277efe47a3a00ec72f8be3fd001cdc1c6eb5615"
+      },
+      "outputs": {
+       "out.elf": "3543eea29d585eec5de2d35ca5546f722b5132c5d70cc27f47452a4f58f0755a"
+      },
+      "guard": {
+       "out.elf": {
+        "exit": 0,
+        "line": "ok   /home/user/r30/prov/instr_single_core/clean-off/out.elf: 0 FP/NEON instructions"
+       }
+      }
+     },
+     "live-on": {
+      "exit": 0,
+      "raw_sha256": {
+       "out.elf": "3975d30218b7020e0f96280693228a7ad12542a1f6c5484303e76a9c08a78740"
+      },
+      "outputs": {
+       "out.elf": "3543eea29d585eec5de2d35ca5546f722b5132c5d70cc27f47452a4f58f0755a"
+      },
+      "guard": {
+       "out.elf": {
+        "exit": 0,
+        "line": "ok   /home/user/r30/prov/instr_single_core/live-on/out.elf: 0 FP/NEON instructions"
+       }
+      }
+     },
+     "live-off": {
+      "exit": 0,
+      "raw_sha256": {
+       "out.elf": "b4f8eaaf144b70348953ee278a030b9e1108e3a286939114318fb3a5c61afc75"
+      },
+      "outputs": {
+       "out.elf": "3543eea29d585eec5de2d35ca5546f722b5132c5d70cc27f47452a4f58f0755a"
+      },
+      "guard": {
+       "out.elf": {
+        "exit": 0,
+        "line": "ok   /home/user/r30/prov/instr_single_core/live-off/out.elf: 0 FP/NEON instructions"
+       }
+      }
+     }
+    }
+   },
+   "split_random2_icf": {
+    "identical_across_builds": true,
+    "deterministic": true,
+    "exit": 0,
+    "guard_ok": true,
+    "builds": {
+     "clean-on": {
+      "exit": 0,
+      "raw_sha256": {
+       "out.elf": "2ec19ede022a3171d4cfef013c1eef53c8e71e1cc22af83141298fae9bd04456"
+      },
+      "outputs": {
+       "out.elf": "fee54159591e4bbb0a9343b3f900c7b40946bb417c0c6049efb0bf3d0ad794a4"
+      },
+      "guard": {
+       "out.elf": {
+        "exit": 0,
+        "line": "ok   /home/user/r30/prov/split_random2_icf/clean-on/out.elf: 0 FP/NEON instructions"
+       }
+      }
+     },
+     "clean-off": {
+      "exit": 0,
+      "raw_sha256": {
+       "out.elf": "86ae3e0c13945a5378683e5a89a66304f7585421a441638a2de90a3a578338c9"
+      },
+      "outputs": {
+       "out.elf": "fee54159591e4bbb0a9343b3f900c7b40946bb417c0c6049efb0bf3d0ad794a4"
+      },
+      "guard": {
+       "out.elf": {
+        "exit": 0,
+        "line": "ok   /home/user/r30/prov/split_random2_icf/clean-off/out.elf: 0 FP/NEON instructions"
+       }
+      }
+     },
+     "live-on": {
+      "exit": 0,
+      "raw_sha256": {
+       "out.elf": "e31f7d51057bbaeefec5a1a2526128a8334e6abc50c88b6ae58dae9d5b1543db"
+      },
+      "outputs": {
+       "out.elf": "fee54159591e4bbb0a9343b3f900c7b40946bb417c0c6049efb0bf3d0ad794a4"
+      },
+      "guard": {
+       "out.elf": {
+        "exit": 0,
+        "line": "ok   /home/user/r30/prov/split_random2_icf/live-on/out.elf: 0 FP/NEON instructions"
+       }
+      }
+     },
+     "live-off": {
+      "exit": 0,
+      "raw_sha256": {
+       "out.elf": "69035411e9ef76987bae381b63e9488ff23d0b28f2f2a291097d3bbe4c689bd8"
+      },
+      "outputs": {
+       "out.elf": "fee54159591e4bbb0a9343b3f900c7b40946bb417c0c6049efb0bf3d0ad794a4"
+      },
+      "guard": {
+       "out.elf": {
+        "exit": 0,
+        "line": "ok   /home/user/r30/prov/split_random2_icf/live-off/out.elf: 0 FP/NEON instructions"
+       }
+      }
+     }
+    }
+   }
+  }
+ },
+ "checks": {
+  "bound_paths_clean": true,
+  "clean_head_is_pin": true,
+  "clean_tree_unchanged_since_build": true,
+  "live_source_contents_equal_clean": true,
+  "clean_modes_differ_only_in_assertions": true,
+  "lit_all_builds": true,
+  "outputs_identical_across_builds": true,
+  "outputs_deterministic": true,
+  "scenarios_succeeded": true,
+  "no_fpu_guard_on_outputs": true
+ },
+ "pass": true
+}
