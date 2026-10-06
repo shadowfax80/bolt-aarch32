@@ -126,7 +126,7 @@ Board-wide: shared by bolt-aarch32 and lk-perf (one Pi 4B on COM5).
 
 | Holder | Since | Purpose / last observation |
 |---|---|---|
-| — | — | Free; last observed 2026-10-06: CS+BOLT shell, sampler stopped/watch ranges cleared, watchdog off, COM5 closed. Historical observation, check before use |
+| Codex | 2026-10-06 | R35: sealed CSPGO stair counter capture, result/flow parity and rewritten-PC checks; watchdog armed for runs. Previous observation: CS+BOLT shell, sampler stopped/watch ranges cleared, watchdog off, COM5 closed |
 
 ## Claims (consolidated TODO)
 
