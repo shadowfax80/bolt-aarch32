@@ -126,7 +126,7 @@ Board-wide: shared by bolt-aarch32 and lk-perf (one Pi 4B on COM5).
 
 | Holder | Since | Purpose / last observation |
 |---|---|---|
-| — (unreserved) | 2026-10-06 | Released by Claude after G1: LK at the shell on the G1 image, watchdog disarmed by the runner, COM5 closed. Recheck before use; `--reboot` returns it to the loader |
+| Codex | 2026-10-06 | C1: ordinary IR and CS profile collection and validation on stair; watchdog required; previous last observation G1 shell/COM5 closed |
 
 ## Claims (consolidated TODO)
 
