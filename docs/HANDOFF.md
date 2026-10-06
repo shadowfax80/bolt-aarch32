@@ -114,7 +114,7 @@ image/configuration oracle contracts still require user review.
 
 | Holder | Since | Purpose |
 |---|---|---|
-| — (free) | 2026-10-05 | Released by Claude after B2 (no source change; overlays still 0001–0071) |
+| Claude | 2026-10-06 | G1 (certified gate on 0001–0071) then item 14 (provenance, no-FPU guard on outputs) |
 
 ## Pi reservation
 
@@ -122,7 +122,7 @@ Board-wide: shared by bolt-aarch32 and lk-perf (one Pi 4B on COM5).
 
 | Holder | Since | Purpose / last observation |
 |---|---|---|
-| — (unreserved) | 2026-10-05 | Released by Claude after B2: B2 whole-image R3 image at the shell, 3000000 baud, watchdog disarmed by the runner, samplers stopped, COM5 closed. Recheck before use; `--reboot` returns it to the loader |
+| Claude | 2026-10-06 | G1: certified full-image gate rerun on 0001–0071 |
 
 ## Claims (consolidated TODO)
 
@@ -143,6 +143,7 @@ Take items in the order below; groups reflect dependencies, not ownership.
 
 | Order | ID | Item | Priority | Owner | Status | Part of | Notes |
 |---|---|---|---|---|---|---|---|
+| 10b | G1 | Rerun the certified full-image Pi gate on 0001–0071 (0070/0071 changed linking and long-branch handling since the last certified run on 0069) | P1 | Claude | In progress | 14 | user, 2026-10-06 |
 | 10c | T4 | Performance and final validation on the real A55 target (A72 gains not transferable) | P2 | User | Out of scope here | — | Done by the user in the office environment, from this repo |
 
 
@@ -157,7 +158,7 @@ Take items in the order below; groups reflect dependencies, not ownership.
 | 15 | 13 | Actual pass combinations | P1 | — | Partial | R7, R8, R20, R27 (probe: split/ICF/instrument/reverse on edge shapes) done |
 | 16 | 9 | Interrupt/reentrancy/reset boundaries | P1 | — | Partial | T2/T2b (SMP execution and counters) done; active-IRQ fixtures still open |
 | 17 | 10 | Sampling/PMU ownership | P1 | — | Partial | Per-core PC watch ranges (T2) done; per-sample core attribution and loss/saturation accounting open |
-| 18 | 14 | Clean build/content provenance | P1 | — | Partial | Overlay replay + assertions-off build (6a); clean full build and OFF parity for 0060–0061 still open; no-FPU guard misreads BOLT outputs (no input $t in original .text) |
+| 18 | 14 | Clean build/content provenance | P1 | Claude | In progress | Overlay replay + assertions-off build (6a); clean full build and OFF parity for 0060–0061 still open; no-FPU guard misreads BOLT outputs (no input $t in original .text) |
 
 **Needs the user:** new oracle contracts for new configurations.
 
