@@ -122,7 +122,7 @@ Board-wide: shared by bolt-aarch32 and lk-perf (one Pi 4B on COM5).
 
 | Holder | Since | Purpose / last observation |
 |---|---|---|
-| Claude | 2026-10-06 | G1: certified full-image gate rerun on 0001–0071 |
+| Claude | 2026-10-06 | Item 14: clean-build image check (G1 passed; LK at the shell on the G1 image) |
 
 ## Claims (consolidated TODO)
 
@@ -143,7 +143,6 @@ Take items in the order below; groups reflect dependencies, not ownership.
 
 | Order | ID | Item | Priority | Owner | Status | Part of | Notes |
 |---|---|---|---|---|---|---|---|
-| 10b | G1 | Rerun the certified full-image Pi gate on 0001–0071 (0070/0071 changed linking and long-branch handling since the last certified run on 0069) | P1 | Claude | In progress | 14 | user, 2026-10-06 |
 | 10c | T4 | Performance and final validation on the real A55 target (A72 gains not transferable) | P2 | User | Out of scope here | — | Done by the user in the office environment, from this repo |
 
 
@@ -164,7 +163,7 @@ Take items in the order below; groups reflect dependencies, not ownership.
 
 ### Done
 
-Completed items with patches and evidence: [history/HANDOFF_DONE.md](history/HANDOFF_DONE.md) (newest first; add new rows there). Latest: B2, R28, R29, B1, M2, T3 (closed), R27, R25, R26, R21, R12, R24, R23.
+Completed items with patches and evidence: [history/HANDOFF_DONE.md](history/HANDOFF_DONE.md) (newest first; add new rows there). Latest: G1, B2, R28, R29, B1, M2, T3 (closed), R27, R25, R26, R21, R12, R24, R23.
 
 ## Coverage goal
 
@@ -192,6 +191,17 @@ emission coverage, not execution or whole-backend correctness.
 4. Update the *Claims* table and LK_COVERAGE.md together.
 
 ## Handoff log
+
+### 2026-10-06 — Claude: G1 passed (certified full-image gate on 0001–0071)
+
+- `full_image_build.py` on `lk-rpi4-bolt-test-424606a8.elf` with the WSL
+  `build-atfe` (0001–0071, llvm-bolt sha `e0d7e741…`): 417 input functions,
+  402 emitted, 2 redirected (`bolt_bench_interwork`, `bolt_bench_memcpy`),
+  0 stubs. Kept-code audit: 9 patched instructions, 0 changed shape.
+- `full_image_verify.py --repeat 10` on the Pi, watchdog armed: PASS, 18
+  workload results equal baseline and formulas, PC evidence for both
+  redirected functions. Receipt: [`results/g1_certified_0071_20261006.json`](results/g1_certified_0071_20261006.json).
+- Lock and Pi kept for item 14.
 
 ### 2026-10-05 — Claude: B2 done (B1 rerun on 0001–0071); lock and Pi released
 
