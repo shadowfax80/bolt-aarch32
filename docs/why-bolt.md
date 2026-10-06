@@ -1,8 +1,19 @@
 # Why BOLT, on top of PGO and LTO
 
-PGO and LTO reason about **IR**, before the linker assigns addresses. BOLT reasons about the **linked binary**, where the addresses are final. That difference is the whole argument: a handful of optimizations are simply not expressible until layout is fixed, and BOLT is the only stage that sees it.
+PGO and LTO guide compiler optimizations before the final binary is linked.
+BOLT revisits the **linked binary**, including code outside the LTO unit and
+the actual instruction addresses. Compiler and BOLT block-layout opportunities
+overlap; their incremental benefits must be measured on the resulting images.
 
 BOLT is not a replacement for PGO or LTO. It is the stage after them.
+
+This project also supports [CSPGO with ThinLTO](verification/CSPGO_PIPELINE.md):
+a second training round records branch behavior after inlining, so distinct
+inline copies need not share one aggregate profile. The existing `stair`
+workload exposes that distinction. A stronger compiler layout can reduce
+BOLT's remaining gain; collect a fresh BOLT profile from each compiler output
+when comparing the combined pipelines. Historical frontend-PGO measurements
+are not measurements of this new IR/CSPGO route.
 
 ## Where each stage acts
 

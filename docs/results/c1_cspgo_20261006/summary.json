@@ -1,0 +1,313 @@
+{
+  "schema": 1,
+  "scope": "Pi A72 stair STAIR_M=8; output consistency and performance, not backend certification",
+  "measurements": {
+    "compiler": {
+      "variant-0.csv": {
+        "variants": {
+          "irpgo_thinlto": {
+            "runs": 6,
+            "cycles_mean": 16353196.833333334,
+            "l1i_refill_mean": 781640.8333333334,
+            "acc": [
+              "0x2f744325"
+            ]
+          },
+          "cspgo_thinlto": {
+            "runs": 6,
+            "cycles_mean": 9243529.5,
+            "l1i_refill_mean": 33514.666666666664,
+            "acc": [
+              "0x2f744325"
+            ]
+          }
+        },
+        "comparisons": {
+          "cspgo_thinlto vs irpgo_thinlto": {
+            "cycle_change_pct": -43.47570328782096,
+            "repeatability_interval_half_pp": 0.004230834951294145,
+            "excludes_zero": true
+          }
+        }
+      },
+      "variant-1.csv": {
+        "variants": {
+          "irpgo_thinlto": {
+            "runs": 6,
+            "cycles_mean": 16353977.666666666,
+            "l1i_refill_mean": 781555.1666666666,
+            "acc": [
+              "0xce57eab7"
+            ]
+          },
+          "cspgo_thinlto": {
+            "runs": 6,
+            "cycles_mean": 9246085.333333334,
+            "l1i_refill_mean": 33729.333333333336,
+            "acc": [
+              "0xce57eab7"
+            ]
+          }
+        },
+        "comparisons": {
+          "cspgo_thinlto vs irpgo_thinlto": {
+            "cycle_change_pct": -43.46277387806958,
+            "repeatability_interval_half_pp": 0.010690536460057623,
+            "excludes_zero": true
+          }
+        }
+      },
+      "variant-2.csv": {
+        "variants": {
+          "irpgo_thinlto": {
+            "runs": 6,
+            "cycles_mean": 14745326.833333334,
+            "l1i_refill_mean": 106512.66666666667,
+            "acc": [
+              "0x5806b01f"
+            ]
+          },
+          "cspgo_thinlto": {
+            "runs": 6,
+            "cycles_mean": 14743738.666666666,
+            "l1i_refill_mean": 15882.5,
+            "acc": [
+              "0x5806b01f"
+            ]
+          }
+        },
+        "comparisons": {
+          "cspgo_thinlto vs irpgo_thinlto": {
+            "cycle_change_pct": -0.010770644046205159,
+            "repeatability_interval_half_pp": 0.04387019385812815,
+            "excludes_zero": false
+          }
+        }
+      }
+    },
+    "final-workflow": {
+      "variant-0.csv": {
+        "variants": {
+          "irpgo_thinlto": {
+            "runs": 2,
+            "cycles_mean": 16353487.5,
+            "l1i_refill_mean": 781654.5,
+            "acc": [
+              "0x2f744325"
+            ]
+          },
+          "cspgo_thinlto": {
+            "runs": 2,
+            "cycles_mean": 9243494,
+            "l1i_refill_mean": 33525.5,
+            "acc": [
+              "0x2f744325"
+            ]
+          }
+        },
+        "comparisons": {
+          "cspgo_thinlto vs irpgo_thinlto": {
+            "cycle_change_pct": -43.47692502898847,
+            "repeatability_interval_half_pp": 0.016608273657255767,
+            "excludes_zero": true
+          }
+        }
+      },
+      "variant-1.csv": {
+        "variants": {
+          "irpgo_thinlto": {
+            "runs": 2,
+            "cycles_mean": 16353375.5,
+            "l1i_refill_mean": 781537,
+            "acc": [
+              "0xce57eab7"
+            ]
+          },
+          "cspgo_thinlto": {
+            "runs": 2,
+            "cycles_mean": 9245844,
+            "l1i_refill_mean": 33617.5,
+            "acc": [
+              "0xce57eab7"
+            ]
+          }
+        },
+        "comparisons": {
+          "cspgo_thinlto vs irpgo_thinlto": {
+            "cycle_change_pct": -43.46216779526649,
+            "repeatability_interval_half_pp": 0.10336356848347392,
+            "excludes_zero": true
+          }
+        }
+      },
+      "variant-2.csv": {
+        "variants": {
+          "irpgo_thinlto": {
+            "runs": 2,
+            "cycles_mean": 14745988,
+            "l1i_refill_mean": 109193,
+            "acc": [
+              "0x5806b01f"
+            ]
+          },
+          "cspgo_thinlto": {
+            "runs": 2,
+            "cycles_mean": 14749333,
+            "l1i_refill_mean": 16191.5,
+            "acc": [
+              "0x5806b01f"
+            ]
+          }
+        },
+        "comparisons": {
+          "cspgo_thinlto vs irpgo_thinlto": {
+            "cycle_change_pct": 0.02268413618673771,
+            "repeatability_interval_half_pp": 0.04066304920040999,
+            "excludes_zero": false
+          }
+        }
+      }
+    },
+    "bolt": {
+      "plain-baseline.csv": {
+        "variants": {
+          "baseline": {
+            "runs": 2,
+            "cycles_mean": 10495385.5,
+            "l1i_refill_mean": 2,
+            "acc": [
+              "0x2f744325"
+            ]
+          },
+          "cspgo_thinlto": {
+            "runs": 2,
+            "cycles_mean": 9243646,
+            "l1i_refill_mean": 33548.5,
+            "acc": [
+              "0x2f744325"
+            ]
+          }
+        },
+        "comparisons": {
+          "cspgo_thinlto vs baseline": {
+            "cycle_change_pct": -11.926570014984204,
+            "repeatability_interval_half_pp": 0.013154260665153837,
+            "excludes_zero": true
+          }
+        }
+      },
+      "variant-0.csv": {
+        "variants": {
+          "irpgo_thinlto": {
+            "runs": 6,
+            "cycles_mean": 16352670.166666666,
+            "l1i_refill_mean": 781613.8333333334,
+            "acc": [
+              "0x2f744325"
+            ]
+          },
+          "cspgo_thinlto": {
+            "runs": 6,
+            "cycles_mean": 9243053.833333334,
+            "l1i_refill_mean": 33499,
+            "acc": [
+              "0x2f744325"
+            ]
+          },
+          "irpgo_thinlto_bolt": {
+            "runs": 6,
+            "cycles_mean": 9317272.333333334,
+            "l1i_refill_mean": 52622.5,
+            "acc": [
+              "0x2f744325"
+            ]
+          },
+          "cspgo_thinlto_bolt": {
+            "runs": 6,
+            "cycles_mean": 9286405.333333334,
+            "l1i_refill_mean": 48822,
+            "acc": [
+              "0x2f744325"
+            ]
+          }
+        },
+        "comparisons": {
+          "cspgo_thinlto vs irpgo_thinlto": {
+            "cycle_change_pct": -43.47679162407126,
+            "repeatability_interval_half_pp": 0.0062419209519985405,
+            "excludes_zero": true
+          },
+          "irpgo_thinlto_bolt vs irpgo_thinlto": {
+            "cycle_change_pct": -43.02292996573923,
+            "repeatability_interval_half_pp": 0.0029256039258687442,
+            "excludes_zero": true
+          },
+          "cspgo_thinlto_bolt vs cspgo_thinlto": {
+            "cycle_change_pct": 0.4690170671046075,
+            "repeatability_interval_half_pp": 0.015033496251035958,
+            "excludes_zero": true
+          }
+        }
+      },
+      "variant-1.csv": {
+        "variants": {
+          "cspgo_thinlto": {
+            "runs": 6,
+            "cycles_mean": 9247199.166666666,
+            "l1i_refill_mean": 33774.5,
+            "acc": [
+              "0xce57eab7"
+            ]
+          },
+          "cspgo_thinlto_bolt": {
+            "runs": 6,
+            "cycles_mean": 9287327.833333334,
+            "l1i_refill_mean": 48456.166666666664,
+            "acc": [
+              "0xce57eab7"
+            ]
+          }
+        },
+        "comparisons": {
+          "cspgo_thinlto_bolt vs cspgo_thinlto": {
+            "cycle_change_pct": 0.4339548218158804,
+            "repeatability_interval_half_pp": 0.0036725480502970264,
+            "excludes_zero": true
+          }
+        }
+      },
+      "variant-2.csv": {
+        "variants": {
+          "cspgo_thinlto": {
+            "runs": 6,
+            "cycles_mean": 14745602,
+            "l1i_refill_mean": 15782.833333333334,
+            "acc": [
+              "0x5806b01f"
+            ]
+          },
+          "cspgo_thinlto_bolt": {
+            "runs": 6,
+            "cycles_mean": 17731993.833333332,
+            "l1i_refill_mean": 237808.16666666666,
+            "acc": [
+              "0x5806b01f"
+            ]
+          }
+        },
+        "comparisons": {
+          "cspgo_thinlto_bolt vs cspgo_thinlto": {
+            "cycle_change_pct": 20.252763049845857,
+            "repeatability_interval_half_pp": 0.04556269991114949,
+            "excludes_zero": true
+          }
+        }
+      }
+    }
+  },
+  "archive": {
+    "path": "evidence.tar.xz",
+    "bytes": 1973468,
+    "sha256": "c97434831c083be7c9722b34250d6b7e89bfc57041160c6b03f45fb5b4a378dc"
+  }
+}

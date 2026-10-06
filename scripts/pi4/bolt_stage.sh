@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# One complete staged point on the real Pi:
+# Historical frontend-PGO comparison on the real Pi (explicit legacy route).
+# Main IR-PGO/CSPGO flow: cspgo_cycle_wsl.py, then cspgo-bolt.sh sampling.
 # baseline -> +PGO -> +PGO+ThinLTO -> +BOLT, plus a BOLT no-reorder control, all
 # from fresh builds and fresh profiles.
 #
@@ -38,7 +39,7 @@ W=(wsl.exe -d Ubuntu -- env BOLT_FUNC="$FUNC" bash)
 
 echo "=== [$TAG] PGO training + variant builds"
 LK_MAKE_ARGS="STAIR_M=$M STAIR_X=$X" OUTDIR="$REL" \
-  bash "$ROOT/scripts/pi4/pgo_cycle_wsl.sh" composite,stair,pgo_lab baseline pgo pgo_thinlto \
+  bash "$ROOT/scripts/pi4/pgo_cycle_wsl.sh" --frontend composite,stair,pgo_lab baseline pgo pgo_thinlto \
   > "$ROOT/$REL/cycle.log" 2>&1
 
 echo "=== [$TAG] BOLT instrument ($FUNC)"

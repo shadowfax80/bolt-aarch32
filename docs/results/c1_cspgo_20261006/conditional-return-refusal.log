@@ -1,0 +1,14 @@
+BOLT-INFO: Target architecture: arm
+BOLT-INFO: BOLT version: bcc08884995ff3cbee70749524621803b9bd258a
+BOLT-INFO: first alloc address is 0x80008000
+BOLT-INFO: creating new program header table at address 0x800e5000, offset 0xdd000
+BOLT-WARNING: debug info will be stripped from the binary. Use -update-debug-sections to keep it.
+BOLT-INFO: enabling relocation mode
+BOLT-INFO: static input executable detected
+BOLT-INFO: AArch32 instrumentation caller acknowledges privileged-smp-no-fiq; reset/snapshot require quiescence
+BOLT-INFO: forcing -jump-tables=move for instrumentation
+BOLT-WARNING: ignoring symbol _end_of_ram at 0x90000000, which lies outside .bss
+BOLT-INFO: AArch32 reservation abandoned on return in arch_spin_trylock at 0x8001cd18 admitted: every exclusive store is locally paired
+BOLT-INFO: number of removed linker-inserted veneers: 0
+BOLT-INFO: 0 out of 423 functions in the binary (0.0%) have non-empty execution profile
+FATAL BOLT-ERROR: AArch32 instrumentation does not support conditional returns in bolt_bench_stair_kernel

@@ -1268,26 +1268,40 @@ static uint32_t bolt_dump_checksum(const uint8_t *buf, size_t len) {
 }
 
 #if WITH_BOLT_PGO
-/* clang's -fprofile-instr-generate counter data, with no filesystem and no
+/* LLVM frontend/IR/CS counter data, with no filesystem and no
  * runtime-init hook (ATFE's compiler-rt has a real COMPILER_RT_PROFILE_BAREMETAL
  * build mode for exactly this -- see scripts/build-pgo-rt-baremetal.sh).
  * __llvm_profile_write_buffer() serializes a complete, valid raw instrprof
  * file into this buffer; the existing generic bolt_dump command above reads
  * it out over UART like any other memory range, no new transport needed. */
+#ifndef BOLT_PGO_BUFFER_SIZE
 #define BOLT_PGO_BUFFER_SIZE (64u * 1024u)
+#endif
 static uint8_t g_bolt_pgo_buffer[BOLT_PGO_BUFFER_SIZE];
 
 extern uint64_t __llvm_profile_get_size_for_buffer(void);
 extern int __llvm_profile_write_buffer(char *Buffer);
 
+__attribute__((no_profile_instrument_function))
 static int bolt_pgo_dump_cmd(int argc, const console_cmd_args *argv) {
+    if (g_bolt_sampling) {
+        printf("bolt_pgo_dump: stop PC sampling before serializing counters\n");
+        return -1;
+    }
     uint64_t needed = __llvm_profile_get_size_for_buffer();
     if (needed > sizeof(g_bolt_pgo_buffer)) {
         printf("bolt_pgo_dump: profile needs %llu bytes, buffer is only %u\n",
                (unsigned long long)needed, (unsigned)sizeof(g_bolt_pgo_buffer));
         return -1;
     }
+    /* Sequential training has returned; do not let a local IRQ update counters
+     * while the runtime copies them. The all-core IRQ hook is excluded below.
+     * SMP/concurrent training remains unsupported (increments are not atomic). */
+    bool ints_were_disabled = arch_ints_disabled();
+    arch_disable_ints();
     int rc = __llvm_profile_write_buffer((char *)g_bolt_pgo_buffer);
+    if (!ints_were_disabled)
+        arch_enable_ints();
     if (rc != 0) {
         printf("bolt_pgo_dump: __llvm_profile_write_buffer failed (%d)\n", rc);
         return -1;
@@ -1447,6 +1461,9 @@ static inline void sample_ctr_write(uint32_t v) {
     __asm__ volatile("mcr p15, 0, %0, c14, c8, 5" ::"r"(v)); /* PMEVCNTR5 */
 }
 
+/* Called on every core's IRQ, even while sampling is off. Compiler PGO is
+ * workload-scoped, with non-atomic counters; this hook must not write them. */
+__attribute__((no_profile_instrument_function))
 void bolt_sample_on_irq(struct arm_iframe *frame, unsigned int vector) {
     if (vector < BB_SAMPLE_SPI || vector >= BB_SAMPLE_SPI + 4)
         return;

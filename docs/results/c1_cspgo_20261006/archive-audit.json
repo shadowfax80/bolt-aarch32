@@ -1,0 +1,11 @@
+{
+  "status": "PASS",
+  "archive_sha256": "c97434831c083be7c9722b34250d6b7e89bfc57041160c6b03f45fb5b4a378dc",
+  "retained_files": 457,
+  "compiler_manifest_bound_files": {
+    "compiler": 158,
+    "final-workflow": 112
+  },
+  "normalized_logs_staged_bytes_match": true,
+  "scope": "archive round-trip contents and original compiler manifests; normalized default-build log hashes in Git index"
+}

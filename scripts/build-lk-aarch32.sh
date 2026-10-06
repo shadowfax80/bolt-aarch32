@@ -12,8 +12,10 @@ if [[ ! -x "$CLANG_BINDIR/clang" ]]; then
   exit 1
 fi
 
+source "$ROOT/scripts/pgo-build-config.sh"
+
 "$ROOT/scripts/ensure-lk-source.sh"
-"$ROOT/scripts/apply-overlays.sh"
+OVERLAY_TARGET=lk "$ROOT/scripts/apply-overlays.sh"
 
 cd "$ROOT/third_party/lk"
 
@@ -26,26 +28,7 @@ MAKE_ARGS=()
 if [[ -n "${BOLT_BENCH_ISA:-}" ]]; then
   MAKE_ARGS+=("BOLT_BENCH_ISA=$BOLT_BENCH_ISA")
 fi
-if [[ "${WITH_BOLT_PGO:-}" == "true" ]]; then
-  MAKE_ARGS+=("WITH_BOLT_PGO=true")
-  PGO_RT_LIB="${PGO_RT_LIB:-$ROOT/build-${BASE:-upstream}/pgo-rt-baremetal-arm/libpgo_rt_baremetal.a}"
-  if [[ ! -f "$PGO_RT_LIB" ]]; then
-    echo "error: $PGO_RT_LIB not found — run scripts/build-pgo-rt-baremetal.sh first" >&2
-    exit 1
-  fi
-  MAKE_ARGS+=("EXTRA_OBJS=$PGO_RT_LIB")
-fi
-if [[ -n "${WITH_BOLT_PGO_USE:-}" ]]; then
-  if [[ "${WITH_BOLT_PGO:-}" == "true" ]]; then
-    echo "error: WITH_BOLT_PGO (collect) and WITH_BOLT_PGO_USE (apply) are mutually exclusive" >&2
-    exit 1
-  fi
-  if [[ ! -f "$WITH_BOLT_PGO_USE" ]]; then
-    echo "error: profile $WITH_BOLT_PGO_USE not found" >&2
-    exit 1
-  fi
-  MAKE_ARGS+=("WITH_BOLT_PGO_USE=$WITH_BOLT_PGO_USE")
-fi
+MAKE_ARGS+=("${PGO_MAKE_ARGS[@]}")
 if [[ "${WITH_BOLT_THINLTO:-}" == "true" ]]; then
   MAKE_ARGS+=("WITH_BOLT_THINLTO=true")
   # LK runs `$(SIZE) -t` over the module objects before linking; host `size` cannot

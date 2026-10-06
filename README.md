@@ -9,14 +9,15 @@ Upstream LLVM and LK are not forked: the backend is an overlay series on a
 pinned [Arm Toolchain for Embedded (ATFE)](https://github.com/arm/arm-toolchain)
 LLVM commit, and the LK changes are overlays too.
 
-## Status (2026-10-05)
+## Status (2026-10-06)
 
 | | |
 |---|---|
-| Backend | Overlays `overlay/llvm/patches/atfe/0001–0069`, ARM lit 58/58 with assertions on and off |
+| Backend | Overlays `overlay/llvm/patches/atfe/0001–0072`, ARM lit 61/61 with assertions on and off |
 | Full LK image | 401/417 functions rewritten, 99.5% of code bytes; the rest are vectors, startup and real fall-through code |
 | Hardware | Certified Pi gates on ARMv7, Cortex-A55-built and SMP images (Non-secure SVC) |
-| Open | P1 certification matrices; real A55 validation (user) |
+| Compiler flow | Ordinary IR-PGO → ThinLTO-guided CSPGO training → merged IR+CS profile use with ThinLTO → optional BOLT |
+| Open | Shared handoff follow-ups and P1 certification matrices; real A55 validation (user) |
 
 Live status, ownership and the work queue: **[docs/HANDOFF.md](docs/HANDOFF.md)**.
 
@@ -56,6 +57,32 @@ py -3.12 scripts/pi4/full_image_verify.py out/cand --require-executed bolt_bench
 The `-skip-funcs` list for the certified image is in
 `docs/results/lk_coverage_r15_20261004.json`. QEMU routes are for debugging
 only; the Pi is the certifying target.
+
+## Main compiler optimization flow
+
+IR-PGO and CSPGO complement each other. Ordinary IR counts guide earlier
+optimization and ThinLTO inlining; a second training build collects counts
+after inlining. The final build consumes **both** levels from a merged profile.
+With a synced isolated WSL/LK checkout and published resource reservations:
+
+```powershell
+py -3.12 scripts/pi4/cspgo_cycle_wsl.py --wsl-root /home/user/bolt-cspgo `
+  --out out/my-fresh-pgo-run --make-args "STAIR_M=8"
+```
+
+The final compiler image is `cspgo_thinlto`; the IR-only image is a comparison
+control. `build-variants.sh` with no variant defaults to this final build and
+requires its merged profile. In Windows Git Bash, `pgo_cycle_wsl.sh` also
+defaults to this two-round flow with the same CLI options. Historical
+frontend-PGO variants remain explicitly selectable; its old cycle requires
+`--frontend`.
+
+See the [recipe](docs/verification/CSPGO_PIPELINE.md) and
+[Pi evidence](docs/results/c1_cspgo_20261006/README.md). Optional BOLT needs a
+fresh profile bound to the final ELF. Current conditional-return counter
+support is tracked as R35; sealed PC sampling works. Measure its incremental
+benefit: on this workload BOLT after CSPGO regressed, including +20.25% cycles
+on a shifted input.
 
 ## Layout
 

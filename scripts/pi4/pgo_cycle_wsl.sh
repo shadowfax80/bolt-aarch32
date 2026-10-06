@@ -1,9 +1,11 @@
 #!/usr/bin/env bash
 # PGO training cycle with the build tree in WSL and the Pi on this Windows machine.
-# Same as pgo_cycle.sh, minus the pod: builds run in WSL (~/bolt-aarch32), the
-# profile is collected on the real Pi over COM5.
+# Default: ordinary IR training -> ThinLTO-guided CS training -> merged use.
+# Pass the cspgo_cycle_wsl.py options, including --wsl-root and --out.
+# Historical frontend replay requires the explicit --frontend switch:
 #
-#   [LK_MAKE_ARGS="STAIR_M=5"] [OUTDIR=build/v2] scripts/pi4/pgo_cycle_wsl.sh [workloads] [variants...]
+#   scripts/pi4/pgo_cycle_wsl.sh --wsl-root /home/user/bolt-cspgo --out out/fresh
+#   [LK_MAKE_ARGS="STAIR_M=5"] [OUTDIR=build/v2] scripts/pi4/pgo_cycle_wsl.sh --frontend [workloads] [variants...]
 #
 # workloads  comma-separated training workloads (default: composite,stair)
 # variants   what to build afterwards (default: baseline pgo pgo_thinlto)
@@ -12,6 +14,10 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 export MSYS_NO_PATHCONV=1
+if [[ "${1:-}" != --frontend ]]; then
+  exec python3 "$ROOT/scripts/pi4/cspgo_cycle_wsl.py" "$@"
+fi
+shift
 WL="${1:-composite,stair}"; shift || true
 VARIANTS="${*:-baseline pgo pgo_thinlto}"
 OUTDIR="${OUTDIR:-build/v2}"

@@ -467,6 +467,21 @@ Evidence rules:
 - QEMU routes are labelled diagnostic;
 - every certified run writes a hashed receipt to `docs/results/`.
 
+### 6.4 Compiler IR-PGO / CSPGO before BOLT
+
+The LK overlay's `app/bolt_bench/pgo.mk` retains frontend PGO and adds two-round
+IR/CSPGO with module ThinLTO. Ordinary IR training guides inlining; the second
+round instruments after ThinLTO inlining, and the final build uses a merged
+ordinary/CS profile. LK calls `ld.lld` directly, so the overlay explicitly
+forwards CS generation/use options to the ThinLTO backend. The integer-only
+bare-metal profile runtime dumps counters over UART; value profiling and
+concurrent workload training are unsupported. The IRQ hook is excluded.
+
+`cspgo_cycle_wsl.py` builds, trains, validates profile kinds, checks no-FPU,
+measures held-out variants and retains hash-bound evidence. Details and
+commands: [CSPGO pipeline](verification/CSPGO_PIPELINE.md). These compiler
+profiles precede BOLT and cannot replace its exact-binary `.fdata` profiles.
+
 ---
 
 ## 7. Current status (2026-10-05)

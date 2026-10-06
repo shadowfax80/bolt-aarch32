@@ -49,12 +49,22 @@ changes that do not require applying source overlays.
 **Line endings:** a Windows checkout can have CRLF line endings, which makes `git am` fail on
 the patches and breaks shell scripts. `wsl-setup.sh` normalizes the WSL copy to LF.
 
-## Measuring on the Pi (all from Windows Git Bash)
+## Main compiler flow and Pi measurements
+
+The normal optimized compiler image uses **ordinary IR-PGO and CSPGO together
+with module ThinLTO**. Run `py -3.12 scripts/pi4/cspgo_cycle_wsl.py` from Windows
+with `--wsl-root <isolated synced repo> --out <fresh output>`; it performs both
+training rounds, merges ordinary+CS counts and builds `cspgo_thinlto`.
+The [recipe](verification/CSPGO_PIPELINE.md) describes inputs and optional BOLT.
+`build-variants.sh` defaults to this final image when no variant is named;
+profiles must already exist. The IR-only build remains a comparison control.
+
+Windows Git Bash entry points and measurement helpers:
 
 | Script | What it does |
 |---|---|
-| `scripts/pi4/pgo_cycle_wsl.sh` | PGO training on the Pi + WSL builds of baseline / +PGO / +PGO+ThinLTO |
-| `scripts/pi4/bolt_stage.sh <M or M:X>` | one full staged point: PGO, ThinLTO, BOLT edge profile, BOLT + no-reorder control, interleaved measurement of the stair function and of the `pgo_lab` kernels |
+| `scripts/pi4/pgo_cycle_wsl.sh` | Main two-round IR-PGO/CSPGO cycle; same `--wsl-root`/`--out` options as the Python entry. Historical frontend cycle requires explicit `--frontend` |
+| `scripts/pi4/bolt_stage.sh <M or M:X>` | Historical frontend-PGO staged comparison: PGO, ThinLTO, BOLT edge profile and no-reorder control; explicitly selects `--frontend`. For the main CSPGO pipeline use the recipe's sealed sampling route |
 | `scripts/pi4/multi_stage.sh` | multi-function BOLT: six functions, spacing control |
 | `scripts/pi4/stair_sweep.sh` | ThinLTO footprint sweep |
 | `scripts/pi4/pgo_lab_measure.py`, `pi4_compare.py` | the interleaved measurement (checksum-checked, 95% confidence intervals via `stats_util.py`, one retry on a hung boot) |

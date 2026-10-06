@@ -1,0 +1,27 @@
+{
+  "schema": 1,
+  "status": "PASS",
+  "scope": "default compiler build and cycle dispatch normalization; no new Pi capture",
+  "final_variant": "cspgo_thinlto",
+  "ordinary_and_cs_merged": true,
+  "measured_image_equal": {
+    "elf": "c02862f04da795f34121f0df0fb22abbafde39f4802812e1710b01befe23f42b",
+    "image": "9e099d81646d5656896f48606acb05f4bf8afedf3290df0386c0ef892cdef5b7"
+  },
+  "normalized_source_sha256": {
+    "scripts/build-variants.sh": "f7f7556f4d0e8d58ba9ebc1fd4e927ec34a64de1e825538ff7d0346db4db60b3",
+    "scripts/pi4/pgo_cycle_wsl.sh": "f3b54e07edcb24937415429e651409dde03867572ee8cb436135a4381e9bf008",
+    "scripts/pi4/bolt_stage.sh": "09fd7ec43995a943b33a7fc2d503abd0cda1236190939a18bc1d9e3e818c09e1",
+    "scripts/pi4/stair_sweep.sh": "b91e6cdf6b7edc9451a6d605f329f7ecb4b3b26d5427a43f9b02d820d637c55e"
+  },
+  "shell_syntax": "PASS",
+  "default_shell_dispatch": "two-round cspgo_cycle_wsl.py --help passed",
+  "focused_tests": "10 passed",
+  "no_fpu": "PASS",
+  "output": "/home/user/bolt-cspgo/build-atfe/c1-normalized-default",
+  "retained_log_sha256": {
+    "default-build.log": "39e6f616ac743d4a3ecd853b3df1415e6b12aca1f8d0ccfca153d2c1e91c92e0",
+    "cspgo_thinlto.build.log": "678d73c90aeb65facd84867c70f2a8b7c27840354abf96c40dd31f9e22bc3fbb",
+    "cspgo_thinlto.nofpu.log": "9e7329785ed57f9ab7170ead8171707ba3b8e73b8aeefef0c47b2edafc5205de"
+  }
+}

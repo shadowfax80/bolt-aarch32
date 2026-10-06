@@ -118,7 +118,7 @@ image/configuration oracle contracts still require user review.
 
 | Holder | Since | Purpose |
 |---|---|---|
-| Codex | 2026-10-06 | C1: incorporate IR-PGO/CSPGO with module ThinLTO; preserve shared LLVM source and existing builds, use isolated LK build tree |
+| — | — | Free; C1 used isolated `/home/user/bolt-cspgo`. Shared ATFE source/builds preserved on 0001–0072 |
 
 ## Pi reservation
 
@@ -126,7 +126,7 @@ Board-wide: shared by bolt-aarch32 and lk-perf (one Pi 4B on COM5).
 
 | Holder | Since | Purpose / last observation |
 |---|---|---|
-| Codex | 2026-10-06 | C1: ordinary IR and CS profile collection and validation on stair; watchdog required; previous last observation G1 shell/COM5 closed |
+| — | — | Free; last observed 2026-10-06: CS+BOLT shell, sampler stopped/watch ranges cleared, watchdog off, COM5 closed. Historical observation, check before use |
 
 ## Claims (consolidated TODO)
 
@@ -148,12 +148,6 @@ defect was reproduced; incomplete host evidence must still fail closed.
 ### Remaining shared work, in resume order
 
 Take items in the order below; groups reflect dependencies, not ownership.
-
-**User-requested compiler pipeline work** (2026-10-06, ahead of the existing queue)
-
-| Order | ID | Item | Priority | Owner | Status | Notes |
-|---|---|---|---|---|---|---|
-| 0 | C1 | IR-PGO and context-sensitive PGO with ThinLTO | P1 | Codex | In progress | Preserve frontend PGO; add two-round IR/CS collection, merged-profile use, bare-metal guards and reproducible validation. Measure on existing stair workload if Pi is available; no assumed gain. |
 
 **C. Correctness defects and target items** (declared group B P0 milestones are complete)
 
@@ -180,6 +174,7 @@ Take items in the order below; groups reflect dependencies, not ownership.
 | Order | ID | Item | Priority | Owner | Status | Part of | Notes |
 |---|---|---|---|---|---|---|---|
 | 18 | R33 | Safe, identity-checked clean-build resume and failure propagation | P2 | — | Open | 14 | Source marker/build cache can be stale; lit exit hidden by `\|\| true`; validate output ownership before cleanup. Item-14's independent PASS remains scoped; [closure](reviews/CORRECTNESS_REVIEW_CODEX_0072_20261006.md#new-follow-ups-and-closure-criteria) |
+| 18a | R35 | Exact BOLT counter profiles for conditional-return compiler outputs | P2 | — | Open | — | C1 CSPGO/ThinLTO stair hits 0036's safe conditional-return refusal; PC sampling works. Model function-exit counts and preserve predicates/IT, flags and stack state; test A32/T32, both assertion modes and Pi parity before relaxing the guard; do not treat this as general CSPGO incompatibility |
 | 19 | R34 | Portable B1/B2 capture and measurement evidence | P2 | — | Open | — | Published CSVs have uniform metric/run sets; raw captures point into local temporary storage, not tracked paths; retain hash-bound logs/inputs and audit result frames; [closure](reviews/CORRECTNESS_REVIEW_CODEX_0072_20261006.md#new-follow-ups-and-closure-criteria) |
 | 20 | T4 | Performance and final validation on the real A55 target (A72 gains not transferable) | P2 | User | Out of scope here | — | Done by the user in the office environment, from this repo |
 
@@ -187,7 +182,7 @@ Take items in the order below; groups reflect dependencies, not ownership.
 
 ### Done
 
-Completed items with patches and evidence: [history/HANDOFF_DONE.md](history/HANDOFF_DONE.md) (newest first; add new rows there). Latest: CR1 (review/docs only), 14, R30, G1, B2, R28, R29, B1, M2, T3 (closed), R27, R25, R26, R21, R12, R24, R23.
+Completed items with patches and evidence: [history/HANDOFF_DONE.md](history/HANDOFF_DONE.md) (newest first; add new rows there). Latest: C1 (compiler pipeline; R35 counter support remains open), CR1 (review/docs only), 14, R30, G1, B2, R28, R29, B1, M2, T3 (closed), R27, R25, R26, R21, R12, R24, R23.
 
 ## Coverage goal
 
@@ -215,6 +210,58 @@ emission coverage, not execution or whole-backend correctness.
 4. Update the *Claims* table and LK_COVERAGE.md together.
 
 ## Handoff log
+
+### 2026-10-06 — Codex: C1 compiler pipeline complete; R35 queued; resources released
+
+- Added module IR-PGO and late CSPGO with ThinLTO, two-round collection and
+  merged-profile validation/use; frontend PGO retained. LK overlay files and
+  host build/collection tools changed, **no LLVM backend source change or new
+  ATFE patch**. LK-only overlay installation avoids reapplying shared LLVM.
+  [Recipe](verification/CSPGO_PIPELINE.md), [portable evidence/results](results/c1_cspgo_20261006/README.md).
+- User requested normalization: the main flow is ordinary IR-PGO followed by
+  late CSPGO, final merged use with ThinLTO. No-argument `build-variants.sh`
+  selects `cspgo_thinlto`; `pgo_cycle_wsl.sh` defaults to the two-round workflow,
+  legacy frontend requires `--frontend`. Historical staged/sweep callers now
+  select it explicitly. Fresh default final ELF/bin equal the measured CS
+  image byte for byte; no-FPU, shell syntax/dispatch and ten focused tests pass.
+  Root README/WSL guide updated; frontend and IR collection modes distinguished.
+  Frontend-use + IR-generation driver flags reject on the pin (retained probe);
+  no third frontend feedback stage added. Archive round-trip/manifest and
+  staged receipt byte checks pass; raw log bytes preserved via Git attributes.
+- Pi: both profile levels trained (75 records each), four compiler builds;
+  primary 36 measurements plus final current-workflow 12. CSPGO vs IR+ThinLTO:
+  variants 0/1 -43.48/-43.46% cycles; variant 2 -0.01%, interval includes zero.
+  Plain O2 sanity comparison is -11.93% (only two runs/image).
+- Optional sealed PC sampling/BOLT comparison (48 records): IR+ThinLTO+BOLT
+  -43.02% on variant 0; **CS+ThinLTO+BOLT +0.47/+0.43/+20.25%** on variants
+  0/1/2 vs CS alone. Publish the shifted-input regression; no universal gain
+  or A55 timing claim. Each exact compiler ELF has its own profile seal;
+  failed UART capture rejected/preserved, accepted retry retained. Five
+  final images have complete matching 18-workload results. Separate CS+BOLT
+  watch observes 501 PCs in the rewritten kernel, sampler then stopped.
+  No new oracle contract or certification derived from output agreement.
+- Exact-counter instrumentation hits existing 0036 conditional-return refusal.
+  This is fixable instruction-shape support, not CSPGO incompatibility.
+  **R35 Open P2**: preserve exit predicates/IT/flags/registers/stack, model both
+  paths, A32/T32 tests in both assertion modes and Pi parity before relaxing
+  the guard. Sampling comparison does not establish exact-counter gains.
+- Verification: 177 host tests run/12 skipped/no failures; ten new profile,
+  transport and training-frame tests; shell syntax and all built-image
+  no-FPU scans pass. Baseline/legacy collection compile and legacy profile
+  validates (fresh legacy optimized cycle not run). Full overlays 0001–0072
+  replay exactly with live source preserved. Certified fixture coverage
+  before/after unchanged 401/417, 126164/126834 bytes (99.5%); regenerated
+  [receipt](results/lk_coverage_c1_20261006.json). Compiler candidates 407/423
+  emitted each are different images, not expanded certified coverage.
+- WSL remains running and available. Isolated LK/build evidence is in
+  `/home/user/bolt-cspgo`, pinned LK `79d2f560`; compiler/runtime used read-only
+  from shared `build-atfe`. Shared LLVM source, assertion-mode builds and
+  indices preserved on 0072; Windows `Microsoft/` preserved. Pi last observed
+  CS+BOLT shell, sampler stopped/watch ranges cleared, watchdog off, COM5
+  closed. Live-tree lock and board reservation released by this push.
+- Next: claim **R32** in the shared pool; R31 still depends on lk-perf K18.
+  R35 is a later P2 backend task. Complete images/profiles/logs/manifests are
+  in the published 1.97 MB archive, avoiding dependence on local scratchpads.
 
 ### 2026-10-06 — Claude: CR1 follow-ups verified; R31 re-prioritised
 

@@ -1,0 +1,5 @@
+variant,round,run,cycles,inst,l1i_refill,l1d_refill,br_mispred,taken,acc
+irpgo_thinlto,1,1,16353483,17665622,781545,0,8496,1347689,0xce57eab7
+irpgo_thinlto,1,2,16353268,17665622,781529,0,8506,1347689,0xce57eab7
+cspgo_thinlto,1,1,9247170,17481146,33686,0,8474,1163215,0xce57eab7
+cspgo_thinlto,1,2,9244518,17481146,33549,0,8374,1163214,0xce57eab7

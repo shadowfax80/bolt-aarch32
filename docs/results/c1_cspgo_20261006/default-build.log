@@ -1,0 +1,14 @@
+{
+  "ordinary": {
+    "level": "IR",
+    "functions": 75,
+    "maximum": 205633
+  },
+  "cs": {
+    "level": "IR",
+    "functions": 75,
+    "maximum": 1573
+  }
+}
+=== building variant: cspgo_thinlto ===
+  -> /home/user/bolt-cspgo/build-atfe/c1-normalized-default/cspgo_thinlto.bin (260096 bytes)

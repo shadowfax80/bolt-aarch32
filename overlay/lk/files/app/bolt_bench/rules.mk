@@ -15,31 +15,8 @@ ifeq ($(BOLT_BENCH_ISA),arm)
 MODULE_COMPILEFLAGS += -marm
 endif
 
-# Step 6 (PGO): instrument just this module with clang's counter-based PGO,
-# not all of LK. Needs libpgo_rt_baremetal.a on the final link line for
-# __llvm_profile_get_size_for_buffer()/__llvm_profile_write_buffer() --
-# passed via EXTRA_OBJS by scripts/build-lk-aarch32.sh, not from here,
-# since rules.mk has no path back to the toolchain's BASE-specific build
-# output directory.
-ifeq ($(WITH_BOLT_PGO),true)
-# -mfpu=none: clang vectorizes the 64-bit profile-counter increments into NEON
-# (vld1.64/vadd.i64), and LK panics on floating-point code in IRQ context. Any
-# instrumented function that runs from an interrupt or IPI handler (the PMU
-# arming does, via mp_sync_exec) hit this on the Pi and under QEMU: "panic:
-# floating point code in irq context" at a vld1.64 in bolt_pmu_init_this_cpu.
-# Plain integer ldrd/adds/adc/strd increments are fine anywhere.
-MODULE_COMPILEFLAGS += -fprofile-instr-generate -mfpu=none
-MODULE_DEFINES += WITH_BOLT_PGO=1
-endif
-
-# The "+PGO" variant: same module, optimized using a profile collected from
-# an instrumented run on the real Pi (WITH_BOLT_PGO_USE=/path/to/x.profdata).
-# Mutually exclusive with WITH_BOLT_PGO (that one is the collection build).
-# -Wno-profile-instr-unprofiled: every workload except composite has zero
-# counts in a composite-only training run, and that is expected here.
-ifneq ($(WITH_BOLT_PGO_USE),)
-MODULE_COMPILEFLAGS += -fprofile-instr-use=$(WITH_BOLT_PGO_USE) -Wno-profile-instr-unprofiled -Wno-profile-instr-out-of-date
-endif
+# Frontend/IR/CS profiling stays scoped to this module.
+include $(LOCAL_DIR)/pgo.mk
 
 # Step 7 (ThinLTO): compile just this module (bolt_bench.c + composite.c) as
 # ThinLTO bitcode, not all of LK -- keeps PGO-vs-ThinLTO a one-variable

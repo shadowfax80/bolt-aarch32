@@ -7,3 +7,6 @@
 # R11 evidence hashes bind the original bytes across Windows/WSL checkouts.
 docs/results/r11_*.json -text
 docs/results/lk_coverage_20261004_r11*.json -text
+# C1 raw logs carry receipt hashes; preserve bytes, including compiler-emitted
+# whitespace, across checkouts. Full UART originals also live in evidence.tar.xz.
+docs/results/c1_cspgo_20261006/*.log -text whitespace=-blank-at-eol,-blank-at-eof

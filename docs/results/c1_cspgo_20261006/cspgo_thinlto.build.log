@@ -1,0 +1,235 @@
+{
+  "ordinary": {
+    "level": "IR",
+    "functions": 75,
+    "maximum": 205633
+  },
+  "cs": {
+    "level": "IR",
+    "functions": 75,
+    "maximum": 1573
+  }
+}
+commit=79d2f56096fa32365846ceaba8b4a9d1c6b75cf0
+Installing overlay files from /home/user/bolt-cspgo/overlay/lk/files...
+Applying patches for lk...
+  already applied: /home/user/bolt-cspgo/overlay/lk/patches/0001-emit-relocs-for-bolt.patch
+  already applied: /home/user/bolt-cspgo/overlay/lk/patches/0002-bcm28xx-add-rpi4.patch
+  already applied: /home/user/bolt-cspgo/overlay/lk/patches/0003-bcm2711-uart-baud.patch
+  already applied: /home/user/bolt-cspgo/overlay/lk/patches/0004-bcm28xx-watchdog-reboot.patch
+  already applied: /home/user/bolt-cspgo/overlay/lk/patches/0005-module-lto-optin.patch
+  already applied: /home/user/bolt-cspgo/overlay/lk/patches/0006-bcm2711-reserve-bolt-window.patch
+  already applied: /home/user/bolt-cspgo/overlay/lk/patches/0007-rpi4-no-fpu-neon.patch
+  already applied: /home/user/bolt-cspgo/overlay/lk/patches/0008-rpi4-compile-no-fpu.patch
+  already applied: /home/user/bolt-cspgo/overlay/lk/patches/0009-irq-sample-hook.patch
+  already applied: /home/user/bolt-cspgo/overlay/lk/patches/0010-qemu-virt-arm-optional-gpu.patch
+  already applied: /home/user/bolt-cspgo/overlay/lk/patches/0011-arm-cortex-a55-aarch32.patch
+LK overlay complete (LLVM source untouched).
+make[1]: Entering directory '/home/user/bolt-cspgo/third_party/lk'
+make[2]: Entering directory '/home/user/bolt-cspgo/third_party/lk'
+LINKER_TYPE=lld
+COMPILER_TYPE=clang
+Checking if -Wnonnull-compare is supported: no
+PROJECT = rpi4-bolt-test
+PLATFORM = bcm28xx
+TARGET = rpi4
+ARCH = arm
+TOOLCHAIN_PREFIX = arm-eabi-
+DEBUG = 2
+including app app/bolt_bench app/shell arch dev dev/interrupt/arm_gic dev/timer/arm_generic kernel lib/cbuf lib/fdt platform target
+including kernel/vm lib/cmdline lib/console lib/fixed_point lib/heap lib/libc
+including lib/heap/miniheap lib/io
+LIBGCC = 
+GLOBAL_COMPILEFLAGS = -g -include ./build-rpi4-bolt-test/config.h -Wextra -Wall -Werror=return-type -Wshadow -Wdouble-promotion -Wno-multichar -Wno-unused-parameter -Wno-unused-function -Wno-unused-label -fno-common -ffreestanding -mfpu=none -gdwarf-4 -ffunction-sections -fdata-sections
+GLOBAL_OPTFLAGS = -O2
+ARCH_COMPILEFLAGS = -mcpu=cortex-a15
+ARCH_COMPILEFLAGS_FLOAT = -mfpu=neon -mfloat-abi=softfp
+ARCH_COMPILEFLAGS_NOFLOAT = 
+generating build-rpi4-bolt-test/platform/bcm28xx/module_config.h
+generating build-rpi4-bolt-test/config.h
+generating build-rpi4-bolt-test/arch/arm/module_config.h
+generating build-rpi4-bolt-test/top/module_config.h
+generating build-rpi4-bolt-test/app/module_config.h
+generating build-rpi4-bolt-test/app/bolt_bench/module_config.h
+generating build-rpi4-bolt-test/app/shell/module_config.h
+generating build-rpi4-bolt-test/arch/module_config.h
+generating build-rpi4-bolt-test/dev/module_config.h
+generating build-rpi4-bolt-test/dev/interrupt/arm_gic/module_config.h
+generating build-rpi4-bolt-test/dev/timer/arm_generic/module_config.h
+generating build-rpi4-bolt-test/kernel/module_config.h
+generating build-rpi4-bolt-test/lib/cbuf/module_config.h
+generating build-rpi4-bolt-test/external/lib/fdt/module_config.h
+generating build-rpi4-bolt-test/platform/module_config.h
+generating build-rpi4-bolt-test/target/module_config.h
+generating build-rpi4-bolt-test/kernel/vm/module_config.h
+generating build-rpi4-bolt-test/lib/cmdline/module_config.h
+generating build-rpi4-bolt-test/lib/console/module_config.h
+generating build-rpi4-bolt-test/lib/fixed_point/module_config.h
+generating build-rpi4-bolt-test/lib/heap/module_config.h
+generating build-rpi4-bolt-test/lib/libc/module_config.h
+generating build-rpi4-bolt-test/lib/heap/miniheap/module_config.h
+generating build-rpi4-bolt-test/lib/io/module_config.h
+compiling platform/bcm28xx/gpio.c
+compiling platform/bcm28xx/platform.c
+compiling platform/bcm28xx/mailbox.c
+generating build-rpi4-bolt-test/system-onesegment.ld
+compiling platform/bcm28xx/uart.c
+compiling arch/arm/arm/cache.c
+compiling arch/arm/arm/debug.c
+compiling arch/arm/arm/faults.c
+compiling arch/arm/arm/mmu.c
+compiling arch/arm/arm/thread.c
+compiling arch/arm/arm/mp.c
+compiling arch/arm/arm/start.S
+compiling arch/arm/arm/asm.S
+compiling arch/arm/arm/cache-ops.S
+compiling arch/arm/arm/ops.S
+compiling arch/arm/arm/fpu.c
+compiling arch/arm/arm/exceptions.S
+compiling arch/arm/arm/fpu.S
+compiling arch/arm/arm/arch.c
+compiling top/debug.c
+compiling top/init.c
+compiling top/main.c
+compiling top/mp.c
+compiling app/app.c
+compiling app/bolt_bench/bolt_bench.c
+compiling app/bolt_bench/composite.c
+compiling app/shell/shell.c
+compiling arch/arch.c
+compiling dev/dev.c
+compiling dev/interrupt/arm_gic/arm_gic.c
+compiling dev/interrupt/arm_gic/gic_v2.c
+compiling dev/interrupt/arm_gic/gic_v3.c
+compiling dev/timer/arm_generic/arm_generic_timer.c
+compiling kernel/debug.c
+compiling kernel/event.c
+compiling kernel/init.c
+compiling kernel/mutex.c
+dev/interrupt/arm_gic/gic_v2.c:140:13: warning: no previous prototype for function 'bolt_sample_on_irq' [-Wmissing-prototypes]
+  140 | __WEAK void bolt_sample_on_irq(struct iframe *frame, unsigned int vector) {}
+      |             ^
+dev/interrupt/arm_gic/gic_v2.c:140:8: note: declare 'static' if the function is not intended to be used outside of this translation unit
+  140 | __WEAK void bolt_sample_on_irq(struct iframe *frame, unsigned int vector) {}
+      |        ^
+      |        static 
+compiling kernel/thread.c
+1 warning generated.
+compiling kernel/timer.c
+compiling kernel/semaphore.c
+compiling kernel/mp.c
+compiling kernel/port.c
+compiling lib/cbuf/cbuf.c
+compiling external/lib/fdt/fdt.c
+compiling external/lib/fdt/fdt_addresses.c
+compiling external/lib/fdt/fdt_check.c
+compiling external/lib/fdt/fdt_empty_tree.c
+compiling external/lib/fdt/fdt_overlay.c
+compiling external/lib/fdt/fdt_ro.c
+compiling external/lib/fdt/fdt_rw.c
+compiling external/lib/fdt/fdt_strerror.c
+compiling external/lib/fdt/fdt_sw.c
+compiling external/lib/fdt/fdt_wip.c
+app/bolt_bench/bolt_bench.c:1155:17: warning: variable 'g_smp_ncpu' set but not used [-Wunused-but-set-global]
+ 1155 | static uint32_t g_smp_ncpu;
+      |                 ^
+compiling platform/debug.c
+compiling platform/init.c
+compiling platform/power.c
+compiling platform/time.c
+compiling target/init.c
+compiling kernel/vm/asid.c
+compiling kernel/vm/bootalloc.c
+compiling kernel/vm/pmm.c
+compiling kernel/vm/vm.c
+compiling kernel/vm/vmm.c
+compiling lib/cmdline/debug.c
+compiling lib/cmdline/cmdline.c
+compiling lib/console/console.c
+compiling lib/fixed_point/fixed_point.c
+compiling lib/heap/heap_wrapper.c
+compiling lib/heap/page_alloc.c
+compiling lib/libc/abort.c
+compiling lib/libc/atexit.c
+compiling lib/libc/atoi.c
+compiling lib/libc/bsearch.c
+compiling lib/libc/ctype.c
+compiling lib/libc/compiler_rt.c
+compiling lib/libc/eabi.c
+compiling lib/libc/errno.c
+compiling lib/libc/printf.c
+compiling lib/libc/printf_helpers.c
+compiling lib/libc/qsort.c
+compiling lib/libc/rand.c
+compiling lib/libc/stdio.c
+compiling lib/libc/strtol.c
+compiling lib/libc/strtoll.c
+compiling lib/libc/compiler_rt_divmod.c
+compiling lib/libc/eabi_libgcc_fallback.c
+compiling lib/libc/string/bcmp.c
+compiling lib/libc/string/memchr.c
+compiling lib/libc/string/memcmp.c
+compiling lib/libc/string/strcasecmp.c
+compiling lib/libc/string/strcat.c
+compiling lib/libc/string/strchr.c
+compiling lib/libc/string/strcmp.c
+compiling lib/libc/string/strcoll.c
+compiling lib/libc/string/strcpy.c
+compiling lib/libc/string/strdup.c
+compiling lib/libc/string/strerror.c
+compiling lib/libc/string/strlcat.c
+compiling lib/libc/string/strlcpy.c
+compiling lib/libc/string/strlen.c
+compiling lib/libc/string/strncat.c
+compiling lib/libc/string/strncpy.c
+compiling lib/libc/string/strncmp.c
+compiling lib/libc/string/strnicmp.c
+compiling lib/libc/string/strnlen.c
+compiling lib/libc/string/strpbrk.c
+compiling lib/libc/string/strrchr.c
+compiling lib/libc/string/strspn.c
+compiling lib/libc/string/strstr.c
+compiling lib/libc/string/strtok.c
+compiling lib/libc/string/strxfrm.c
+compiling lib/libc/string/arch/arm/arm/memcpy.S
+compiling lib/libc/string/arch/arm/arm/memset.S
+compiling lib/libc/printf_float.c
+compiling lib/libc/atof.c
+compiling lib/heap/miniheap/miniheap.c
+compiling lib/io/console.c
+compiling lib/io/io.c
+linking build-rpi4-bolt-test/top.mod.o
+linking build-rpi4-bolt-test/app.mod.o
+linking build-rpi4-bolt-test/app/shell.mod.o
+linking build-rpi4-bolt-test/arch.mod.o
+linking build-rpi4-bolt-test/dev.mod.o
+linking build-rpi4-bolt-test/dev/interrupt/arm_gic.mod.o
+linking build-rpi4-bolt-test/dev/timer/arm_generic.mod.o
+linking build-rpi4-bolt-test/kernel.mod.o
+linking build-rpi4-bolt-test/lib/cbuf.mod.o
+linking build-rpi4-bolt-test/external/lib/fdt.mod.o
+linking build-rpi4-bolt-test/platform.mod.o
+linking build-rpi4-bolt-test/target.mod.o
+linking build-rpi4-bolt-test/kernel/vm.mod.o
+linking build-rpi4-bolt-test/lib/cmdline.mod.o
+linking build-rpi4-bolt-test/lib/console.mod.o
+linking build-rpi4-bolt-test/lib/fixed_point.mod.o
+linking build-rpi4-bolt-test/lib/heap.mod.o
+linking build-rpi4-bolt-test/lib/libc.mod.o
+linking build-rpi4-bolt-test/lib/io.mod.o
+linking build-rpi4-bolt-test/lib/heap/miniheap.mod.o
+1 warning generated.
+linking build-rpi4-bolt-test/lk.elf
+generating image: build-rpi4-bolt-test/lk.bin
+generating listing: build-rpi4-bolt-test/lk.elf.lst
+generating listing: build-rpi4-bolt-test/lk.elf.debug.lst
+generating symbols: build-rpi4-bolt-test/lk.elf.sym
+generating sorted symbols: build-rpi4-bolt-test/lk.elf.sym.sorted
+generating size map: build-rpi4-bolt-test/lk.elf.size
+generating objdump: build-rpi4-bolt-test/lk.elf.dump
+generating build-rpi4-bolt-test/include_paths.txt
+generating build-rpi4-bolt-test/srcfiles.txt
+generating stack usage build-rpi4-bolt-test/lk.elf.stack
+make[2]: Leaving directory '/home/user/bolt-cspgo/third_party/lk'
+make[1]: Leaving directory '/home/user/bolt-cspgo/third_party/lk'
+LK ARM32 build complete: build-rpi4-bolt-test/lk.elf

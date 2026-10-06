@@ -1,0 +1,158 @@
+{
+  "schema": 1,
+  "result_consistency": true,
+  "execution_verified": false,
+  "scope": "baseline output agreement only; rewritten execution is not observed",
+  "images": {
+    "baseline": {
+      "path": "C:\\Users\\User\\CURSOR\\CodexProjects\\BOLT_AARCH32\\out\\cspgo-bolt-20261006\\baseline.bin",
+      "sha256": "8533e253173fc988465c1faf4e627a1d9d22540d66f3e06cb0319256a1c2b7b1"
+    },
+    "ir": {
+      "path": "C:\\Users\\User\\CURSOR\\CodexProjects\\BOLT_AARCH32\\out\\cspgo-bolt-20261006\\irpgo_thinlto.bin",
+      "sha256": "bef5f2bf6e2dbec3817e2944b4f400a1d4fc2cae625e8b53e44226838f9e059a"
+    },
+    "cs": {
+      "path": "C:\\Users\\User\\CURSOR\\CodexProjects\\BOLT_AARCH32\\out\\cspgo-bolt-20261006\\cspgo_thinlto.bin",
+      "sha256": "9e099d81646d5656896f48606acb05f4bf8afedf3290df0386c0ef892cdef5b7"
+    },
+    "ir_bolt": {
+      "path": "C:\\Users\\User\\CURSOR\\CodexProjects\\BOLT_AARCH32\\out\\cspgo-bolt-20261006\\irpgo_thinlto_bolt.bin",
+      "sha256": "45385c478e3031deea61a739999ce499fa820eae998ed7ddce89861fd82a759a"
+    },
+    "cs_bolt": {
+      "path": "C:\\Users\\User\\CURSOR\\CodexProjects\\BOLT_AARCH32\\out\\cspgo-bolt-20261006\\cspgo_thinlto_bolt.bin",
+      "sha256": "4958faba30d54fefbe3ed763b98eab9068e3ac0e2e26eaa97327da925af7cba0"
+    }
+  },
+  "workload_results": {
+    "baseline": {
+      "hot_loop": "0x6a4ae6e0",
+      "hot_cold": "0x00000000",
+      "branch_chain": "0x007a5100",
+      "memcpy": "0x5acd3dc5",
+      "far_call": "0xb7082fa9",
+      "it_cond": "0x021e8480",
+      "interwork": "0x2fb21555",
+      "switch": "0xa953bbf0",
+      "spill_ret": "0x504980a0",
+      "litpool": "0x16b596e0",
+      "indirect_call": "0x0e6aac80",
+      "interwork_tail": "0xda3416f0",
+      "regpressure": "0xc5da3550",
+      "hotcold_split": "0xd4751003",
+      "icf": "0xdc7c3be0",
+      "shrinkwrap": "0x6a1b87d4",
+      "composite": "0x939f4ea0",
+      "stair": "0x2f744325"
+    },
+    "ir": {
+      "hot_loop": "0x6a4ae6e0",
+      "hot_cold": "0x00000000",
+      "branch_chain": "0x007a5100",
+      "memcpy": "0x5acd3dc5",
+      "far_call": "0xb7082fa9",
+      "it_cond": "0x021e8480",
+      "interwork": "0x2fb21555",
+      "switch": "0xa953bbf0",
+      "spill_ret": "0x504980a0",
+      "litpool": "0x16b596e0",
+      "indirect_call": "0x0e6aac80",
+      "interwork_tail": "0xda3416f0",
+      "regpressure": "0xc5da3550",
+      "hotcold_split": "0xd4751003",
+      "icf": "0xdc7c3be0",
+      "shrinkwrap": "0x6a1b87d4",
+      "composite": "0x939f4ea0",
+      "stair": "0x2f744325"
+    },
+    "cs": {
+      "hot_loop": "0x6a4ae6e0",
+      "hot_cold": "0x00000000",
+      "branch_chain": "0x007a5100",
+      "memcpy": "0x5acd3dc5",
+      "far_call": "0xb7082fa9",
+      "it_cond": "0x021e8480",
+      "interwork": "0x2fb21555",
+      "switch": "0xa953bbf0",
+      "spill_ret": "0x504980a0",
+      "litpool": "0x16b596e0",
+      "indirect_call": "0x0e6aac80",
+      "interwork_tail": "0xda3416f0",
+      "regpressure": "0xc5da3550",
+      "hotcold_split": "0xd4751003",
+      "icf": "0xdc7c3be0",
+      "shrinkwrap": "0x6a1b87d4",
+      "composite": "0x939f4ea0",
+      "stair": "0x2f744325"
+    },
+    "ir_bolt": {
+      "hot_loop": "0x6a4ae6e0",
+      "hot_cold": "0x00000000",
+      "branch_chain": "0x007a5100",
+      "memcpy": "0x5acd3dc5",
+      "far_call": "0xb7082fa9",
+      "it_cond": "0x021e8480",
+      "interwork": "0x2fb21555",
+      "switch": "0xa953bbf0",
+      "spill_ret": "0x504980a0",
+      "litpool": "0x16b596e0",
+      "indirect_call": "0x0e6aac80",
+      "interwork_tail": "0xda3416f0",
+      "regpressure": "0xc5da3550",
+      "hotcold_split": "0xd4751003",
+      "icf": "0xdc7c3be0",
+      "shrinkwrap": "0x6a1b87d4",
+      "composite": "0x939f4ea0",
+      "stair": "0x2f744325"
+    },
+    "cs_bolt": {
+      "hot_loop": "0x6a4ae6e0",
+      "hot_cold": "0x00000000",
+      "branch_chain": "0x007a5100",
+      "memcpy": "0x5acd3dc5",
+      "far_call": "0xb7082fa9",
+      "it_cond": "0x021e8480",
+      "interwork": "0x2fb21555",
+      "switch": "0xa953bbf0",
+      "spill_ret": "0x504980a0",
+      "litpool": "0x16b596e0",
+      "indirect_call": "0x0e6aac80",
+      "interwork_tail": "0xda3416f0",
+      "regpressure": "0xc5da3550",
+      "hotcold_split": "0xd4751003",
+      "icf": "0xdc7c3be0",
+      "shrinkwrap": "0x6a1b87d4",
+      "composite": "0x939f4ea0",
+      "stair": "0x2f744325"
+    }
+  },
+  "expected_workload_results": {
+    "hot_loop": "0x6a4ae6e0",
+    "hot_cold": "0x00000000",
+    "branch_chain": "0x007a5100",
+    "memcpy": "0x5acd3dc5",
+    "far_call": "0xb7082fa9",
+    "it_cond": "0x021e8480",
+    "interwork": "0x2fb21555",
+    "switch": "0xa953bbf0",
+    "spill_ret": "0x504980a0",
+    "litpool": "0x16b596e0",
+    "indirect_call": "0x0e6aac80",
+    "interwork_tail": "0xda3416f0",
+    "regpressure": "0xc5da3550",
+    "hotcold_split": "0xd4751003",
+    "icf": "0xdc7c3be0",
+    "shrinkwrap": "0x6a1b87d4",
+    "composite": "0x939f4ea0",
+    "stair": "0x2f744325"
+  },
+  "verifier_sha256": "f590ab943cbadf8c6918f88bcabd873dd2c96256a13f40de9abe02d855737bff",
+  "logs": {
+    "image-0.1.log": "859d7d6319bce2a9cdad6a1b59487405355b3b4ea0bbe38586cec9b8bfffddfa",
+    "image-1.1.log": "cacd467a08249f4048f710147aea59d8a80a1d4043a96077d9d8b78e885c34e6",
+    "image-2.1.log": "6e26a43b76ba5322cd4426d5623480ecf6eb6936ea6f97ce6571fa9c1a8b0658",
+    "image-3.1.log": "4bddd5508ea9180230e4e8845284f82fb7aa5400c0f332b80bf2f6f0cd0576a1",
+    "image-4.1.log": "d1e313e4aa710ec08ff47f49dece98b4c97217b189c55bbd811e2bd79d8e9b52"
+  }
+}

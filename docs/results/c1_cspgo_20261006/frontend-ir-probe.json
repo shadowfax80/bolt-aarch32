@@ -1,0 +1,46 @@
+{
+  "frontend-level": {
+    "command": [
+      "/home/user/bolt-aarch32/build-atfe/bin/llvm-profdata",
+      "show",
+      "/home/user/bolt-aarch32/build-atfe/pgo/pgo.profdata"
+    ],
+    "exit_code": 0,
+    "stdout": "Instrumentation level: Front-end\nTotal functions: 78\nMaximum function count: 1000000\nMaximum internal block count: 2249526\nTotal number of blocks: 663\nTotal count: 15641882\n",
+    "stderr": ""
+  },
+  "merge-frontend-ir": {
+    "command": [
+      "/home/user/bolt-aarch32/build-atfe/bin/llvm-profdata",
+      "merge",
+      "--failure-mode=any",
+      "/home/user/bolt-aarch32/build-atfe/pgo/pgo.profdata",
+      "/home/user/bolt-cspgo/build-atfe/cspgo-runs/c148c605589f7b94/ir.profdata",
+      "-o",
+      "/home/user/bolt-cspgo/out/c1-frontend-ir-probe-strict.profdata"
+    ],
+    "exit_code": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  "frontend-use-ir-collect": {
+    "command": [
+      "/home/user/bolt-aarch32/build-atfe/bin/clang",
+      "--target=arm-none-eabi",
+      "-mfpu=none",
+      "-mfloat-abi=soft",
+      "-O2",
+      "-fprofile-instr-use=/home/user/bolt-aarch32/build-atfe/pgo/pgo.profdata",
+      "-fprofile-generate",
+      "-x",
+      "c",
+      "-c",
+      "/dev/null",
+      "-o",
+      "/home/user/bolt-cspgo/out/c1-frontend-ir-probe.o"
+    ],
+    "exit_code": 1,
+    "stdout": "",
+    "stderr": "clang: error: invalid argument '-fprofile-instr-use=' not allowed with '-fprofile-generate'\n"
+  }
+}

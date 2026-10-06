@@ -63,7 +63,8 @@ def consistent(records,kernels):
 def capture_measurements(image,port,command,kernels,runs,wait,max_wait):
     """Save exact upload and child output even when parsing or child execution fails."""
     here=Path(__file__).resolve().parent
-    parent=here.parents[1]/'out/pi4'; parent.mkdir(parents=True,exist_ok=True)
+    parent=Path(os.environ.get('PI4_EVIDENCE_DIR', str(here.parents[1]/'out/pi4')))
+    parent.mkdir(parents=True,exist_ok=True)
     evidence=Path(tempfile.mkdtemp(prefix='measure-',dir=parent))
     source=Path(image); payload=source.read_bytes()
     if not payload: raise ValueError('empty image')

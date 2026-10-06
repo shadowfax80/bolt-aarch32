@@ -5,6 +5,10 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 source "$ROOT/scripts/resolve-base.sh"
+case "${OVERLAY_TARGET:-all}" in
+  all|lk) ;;
+  *) echo "error: OVERLAY_TARGET must be all or lk" >&2; exit 1 ;;
+esac
 
 install_overlay_files() {
   local dir="$1"
@@ -124,6 +128,10 @@ add_bolt_bench_to_project() {
 add_bolt_bench_to_project "$ROOT/third_party/lk/project/qemu-virt-arm64-test.mk"
 add_bolt_bench_to_project "$ROOT/third_party/lk/project/qemu-virt-arm32-test.mk"
 apply_patches lk "$ROOT/third_party/lk" "$ROOT/overlay/lk/patches"
+if [[ "${OVERLAY_TARGET:-all}" == lk ]]; then
+  echo "LK overlay complete (LLVM source untouched)."
+  exit 0
+fi
 first_patch="$(compgen -G "$PATCH_DIR/*.patch" | head -1 || true)"
 if [[ -n "$first_patch" ]] && head -1 "$first_patch" | grep -q '^From [0-9a-f]\{40\} '; then
   apply_series "llvm-project ($BASE)" "$LLVM_DIR" "$PATCH_DIR" "$LLVM_COMMIT" "${LLVM_BRANCH:-bolt-arm-backend}"
