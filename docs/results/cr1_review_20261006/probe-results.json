@@ -1,0 +1,89 @@
+{
+  "scheduler_overwritten_prefix": {
+    "overwritten": 9,
+    "first_retained_tick": 9000,
+    "start": 1000,
+    "inferred_a_oncpu_ticks": 8000,
+    "observed": "assigns entire unobserved 8000-tick prefix to a"
+  },
+  "scheduler_mismatched_footer": {
+    "header_run": 4660,
+    "footer_run": 39321,
+    "rejected": {},
+    "analysis_completed": true
+  },
+  "scheduler_duplicate_event": {
+    "footer_events": 1,
+    "accepted_events": 2,
+    "rejected": {}
+  },
+  "scheduler_output_overwrites_elf": {
+    "exit_code": 0,
+    "input_changed": true,
+    "output_prefix": "# tracer: nop\n#\n#   "
+  },
+  "scheduler_overlapping_thread_bounds": {
+    "first_thread": "0x80001000",
+    "second_thread": "0x80001100",
+    "wait_queue": "0x80001120",
+    "reported_owner": "0x80001000",
+    "expected_owner": "0x80001100"
+  },
+  "sample_count_underflow": {
+    "accepted": 2,
+    "expected": 1,
+    "lost": -1
+  },
+  "mixed_capture_weighted_as_pmu": {
+    "timer_record_present": true,
+    "output_headers": [
+      "lk-80002000 1/1 [000] 1.000000: 1000000 cpu-cycles:",
+      "lk-80002000 1/1 [000] 1.000001: 1000000 cpu-cycles:"
+    ],
+    "target": {
+      "run_id": "0000000000001234",
+      "dump": 1,
+      "image_range": "00008000-00008004",
+      "image_hash": "2097280a",
+      "elf_matches_image": true,
+      "timer_sampling": true,
+      "pmu_sampling": true,
+      "pmu_event_id": "0x11",
+      "pmu_period": 1000000,
+      "pmu_config_changed_mid_run": true,
+      "timer_period_us": 50,
+      "timer_period_changed_mid_run": true,
+      "timer_source": "dedicated-stratified"
+    }
+  },
+  "bolt_collector_missing_footer": {
+    "exit_code": 0,
+    "verified_binding": true,
+    "dumps": [
+      {
+        "sent": null,
+        "accepted": 1,
+        "problems": [
+          "dump footer missing or damaged: trailing loss unknown"
+        ]
+      }
+    ],
+    "downstream_identity_accepted": true,
+    "summary": "1 samples (-1 of 0 records lost in transfer) -> /tmp/codex-cr1-contracts-xjgsp5o6/profile.samples"
+  },
+  "suite_duplicate_metric": [
+    {
+      "x": 1
+    }
+  ],
+  "suite_missing_metrics_and_results": {
+    "exit_code": 0,
+    "requested_passes_per_image": 2,
+    "recorded_passes_per_image": 1,
+    "summary": [
+      "results identical in every run of every image (0 app results checked)",
+      "total                       0.000M     0.000M -50.00%      "
+    ],
+    "csv": "image,round,run,metric,cycles\nbase,1,1,x,100\nbase,1,1,y,100\ncandidate,1,1,x,100\n"
+  }
+}

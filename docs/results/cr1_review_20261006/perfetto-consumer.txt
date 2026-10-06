@@ -1,0 +1,26 @@
+test_real_perfetto_importer (test_perf_export.ExportTests.test_real_perfetto_importer) ... FAIL
+
+======================================================================
+FAIL: test_real_perfetto_importer (test_perf_export.ExportTests.test_real_perfetto_importer)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/mnt/c/Users/User/CURSOR/CodexProjects/lk-perf/scripts/test_perf_export.py", line 332, in test_real_perfetto_importer
+    self.assertEqual([r["stack"] for r in stacks],
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                     ["arm_leaf", "root;caller;leaf", "no_cfi", "root;caller;leaf"])
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: Lists differ: ['arm_leaf', 'root;caller;leaf', 'caller;no_cfi', 'root;caller;leaf'] != ['arm_leaf', 'root;caller;leaf', 'no_cfi', 'root;caller;leaf']
+
+First differing element 2:
+'caller;no_cfi'
+'no_cfi'
+
+- ['arm_leaf', 'root;caller;leaf', 'caller;no_cfi', 'root;caller;leaf']
+?                                   -------
+
++ ['arm_leaf', 'root;caller;leaf', 'no_cfi', 'root;caller;leaf']
+
+----------------------------------------------------------------------
+Ran 1 test in 0.161s
+
+FAILED (failures=1)

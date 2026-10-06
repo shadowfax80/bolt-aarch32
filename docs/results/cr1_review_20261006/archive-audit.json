@@ -1,0 +1,120 @@
+{
+  "b1_sampling_vs_instrumentation_20261005": {
+    "docs\\results\\b1_sampling_vs_instrumentation_20261005\\stair\\measure.csv": {
+      "rows": 24,
+      "passes_per_variant": {
+        "o2": 6,
+        "thinlto_input": 6,
+        "bolt_instr": 6,
+        "bolt_lkperf": 6
+      },
+      "result_values": [
+        "0x2f744325"
+      ]
+    },
+    "docs\\results\\b1_sampling_vs_instrumentation_20261005\\whole\\measure.csv": {
+      "rows": 288,
+      "observed_runs": 24,
+      "distinct_metric_sets": [
+        [
+          "bench",
+          "composite",
+          "memtest",
+          "multi",
+          "nest",
+          "pl_a",
+          "pl_b",
+          "pl_c",
+          "pl_d",
+          "schedtest",
+          "smp",
+          "stair"
+        ]
+      ],
+      "duplicates": [],
+      "passes_per_image": {
+        "input": 6,
+        "r1_instr": 6,
+        "r2_lkperf_scoped": 6,
+        "r3_lkperf_all": 6
+      }
+    },
+    "docs\\results\\b1_sampling_vs_instrumentation_20261005\\stair\\stairA_lto.lkperf.samples.manifest.json": {
+      "dumps": 10,
+      "dumps_with_problems": [],
+      "kept": 163811,
+      "sent": 163840,
+      "accepted": 163811,
+      "raw_log_available_locally": true,
+      "raw_log_committed": false
+    },
+    "docs\\results\\b1_sampling_vs_instrumentation_20261005\\whole\\whole_a.lkperf.samples.manifest.json": {
+      "dumps": 27,
+      "dumps_with_problems": [],
+      "kept": 102240,
+      "sent": 102278,
+      "accepted": 102240,
+      "raw_log_available_locally": true,
+      "raw_log_committed": false
+    }
+  },
+  "b2_sampling_vs_instrumentation_rerun_20261005": {
+    "docs\\results\\b2_sampling_vs_instrumentation_rerun_20261005\\stair\\measure.csv": {
+      "rows": 24,
+      "passes_per_variant": {
+        "o2": 6,
+        "thinlto_input": 6,
+        "bolt_instr": 6,
+        "bolt_lkperf": 6
+      },
+      "result_values": [
+        "0x2f744325"
+      ]
+    },
+    "docs\\results\\b2_sampling_vs_instrumentation_rerun_20261005\\whole\\measure.csv": {
+      "rows": 288,
+      "observed_runs": 24,
+      "distinct_metric_sets": [
+        [
+          "bench",
+          "composite",
+          "memtest",
+          "multi",
+          "nest",
+          "pl_a",
+          "pl_b",
+          "pl_c",
+          "pl_d",
+          "schedtest",
+          "smp",
+          "stair"
+        ]
+      ],
+      "duplicates": [],
+      "passes_per_image": {
+        "input": 6,
+        "r1_instr": 6,
+        "r2_lkperf_scoped": 6,
+        "r3_lkperf_all": 6
+      }
+    },
+    "docs\\results\\b2_sampling_vs_instrumentation_rerun_20261005\\stair\\b2_stair_lto.lkperf.samples.manifest.json": {
+      "dumps": 14,
+      "dumps_with_problems": [],
+      "kept": 184804,
+      "sent": 184842,
+      "accepted": 184804,
+      "raw_log_available_locally": true,
+      "raw_log_committed": false
+    },
+    "docs\\results\\b2_sampling_vs_instrumentation_rerun_20261005\\whole\\b2_whole.lkperf.samples.manifest.json": {
+      "dumps": 88,
+      "dumps_with_problems": [],
+      "kept": 391996,
+      "sent": 392016,
+      "accepted": 391996,
+      "raw_log_available_locally": true,
+      "raw_log_committed": false
+    }
+  }
+}

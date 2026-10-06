@@ -62,7 +62,7 @@ Everything needed to continue is in this repo:
 - **What to do next:** *Claims* below, Open tables in resume order.
 - **Design and state:** [architecture](AARCH32_BACKEND_ARCHITECTURE.md),
   [limitations](KNOWN_LIMITATIONS.md), [coverage](LK_COVERAGE.md),
-  [latest review](reviews/CORRECTNESS_REVIEW_CLAUDE_0069.md), and the
+  [latest review](reviews/CORRECTNESS_REVIEW_CODEX_0072_20261006.md), and the
   [documentation map](README.md) for gate contracts, reviews and history.
 - **Certified input image:** `fixtures/lk-rpi4-bolt-test-424606a8.elf`
   (see `fixtures/README.md`); the skip list is in
@@ -139,6 +139,12 @@ and [history/CORRECTNESS_WORKSTREAMS_HISTORY.md](history/CORRECTNESS_WORKSTREAMS
 links an R item to the certification item it contributes to; closing the R
 item does not close that item. *Owner* is empty until someone claims it.
 
+The [2026-10-06 joint review](reviews/CORRECTNESS_REVIEW_CODEX_0072_20261006.md)
+adds R31–R34. These are follow-ups; historical B1/B2/G1/item-14 milestones
+keep their scoped evidence. R31 depends on the strict capture contract in
+lk-perf K18, and target guarantees also need K19/K20. No new backend P0
+defect was reproduced; incomplete host evidence must still fail closed.
+
 ### Remaining shared work, in resume order
 
 Take items in the order below; groups reflect dependencies, not ownership.
@@ -147,8 +153,8 @@ Take items in the order below; groups reflect dependencies, not ownership.
 
 | Order | ID | Item | Priority | Owner | Status | Part of | Notes |
 |---|---|---|---|---|---|---|---|
-| 10c | T4 | Performance and final validation on the real A55 target (A72 gains not transferable) | P2 | User | Out of scope here | — | Done by the user in the office environment, from this repo |
-| Review | CR1 | Deep review at 0072: backend, host pipeline, evidence contracts and TODO reconciliation | P1 | Codex | In progress | — | Read-only code/evidence review and focused offline probes; documentation changes only; no shared build/Pi ownership |
+| 1 | R31 | Fail-closed lk-perf PC-profile collection | P1 | — | Open | 10 | Missing footer is accepted and downstream identity passes; require strict session/record/mode/period checks and parser provenance; coordinate lk-perf K18–K20; [closure criteria](reviews/CORRECTNESS_REVIEW_CODEX_0072_20261006.md#new-follow-ups-and-closure-criteria) |
+| 2 | R32 | Complete, bound suite measurement and result frames | P1 | — | Open | — | Missing passes/results/metrics yield success and false -50% total; reject omissions/duplicates before publication, seal image identity; [closure criteria](reviews/CORRECTNESS_REVIEW_CODEX_0072_20261006.md#new-follow-ups-and-closure-criteria) |
 
 
 **D. P1 certification matrices (as capacity allows)**
@@ -156,18 +162,26 @@ Take items in the order below; groups reflect dependencies, not ownership.
 | Order | ID | Item | Priority | Owner | Status | Notes |
 |---|---|---|---|---|---|---|
 | 11 | 8 | CFG and mutation invariants | P1 | — | Partial | R4–R6, R19, R11, R23 done |
-| 12 | 7 | Relocation/literal/veneer matrix | P1 | — | Partial | R1–R3, R7, R14, R25 done |
+| 12 | 7 | Relocation/literal/veneer matrix | P1 | — | Partial | R1–R3, R7, R14, R25 done; include cross-fragment Thumb B.W/BL beyond ±16 MB (V10) |
 | 13 | 11 | Entries/symbols/reference routes | P1 | — | Partial | R9 done |
 | 14 | 12 | Tables and inline data | P1 | — | Partial | R18, R22, R24, R12, R21, R26 done |
-| 15 | 13 | Actual pass combinations | P1 | — | Partial | R7, R8, R20, R27 (probe: split/ICF/instrument/reverse on edge shapes) done |
+| 15 | 13 | Actual pass combinations | P1 | — | Partial | R7, R8, R20, R27 done; 0072 joint review: 182 outcomes/mode, 158 matching +24 safe rejects; retain combined-pass/far-fragment and r12 live/dead matrix scope |
 | 16 | 9 | Interrupt/reentrancy/reset boundaries | P1 | — | Partial | T2/T2b (SMP execution and counters) done; active-IRQ fixtures still open |
 | 17 | 10 | Sampling/PMU ownership | P1 | — | Partial | Per-core PC watch ranges (T2) done; per-sample core attribution and loss/saturation accounting open |
+
+**E. Workflow reproducibility and intended target**
+
+| Order | ID | Item | Priority | Owner | Status | Part of | Notes |
+|---|---|---|---|---|---|---|---|
+| 18 | R33 | Safe, identity-checked clean-build resume and failure propagation | P2 | — | Open | 14 | Source marker/build cache can be stale; lit exit hidden by `\|\| true`; validate output ownership before cleanup. Item-14's independent PASS remains scoped; [closure](reviews/CORRECTNESS_REVIEW_CODEX_0072_20261006.md#new-follow-ups-and-closure-criteria) |
+| 19 | R34 | Portable B1/B2 capture and measurement evidence | P2 | — | Open | — | Published CSVs have uniform metric/run sets; raw captures point into local temporary storage, not tracked paths; retain hash-bound logs/inputs and audit result frames; [closure](reviews/CORRECTNESS_REVIEW_CODEX_0072_20261006.md#new-follow-ups-and-closure-criteria) |
+| 20 | T4 | Performance and final validation on the real A55 target (A72 gains not transferable) | P2 | User | Out of scope here | — | Done by the user in the office environment, from this repo |
 
 **Needs the user:** new oracle contracts for new configurations.
 
 ### Done
 
-Completed items with patches and evidence: [history/HANDOFF_DONE.md](history/HANDOFF_DONE.md) (newest first; add new rows there). Latest: 14, R30, G1, B2, R28, R29, B1, M2, T3 (closed), R27, R25, R26, R21, R12, R24, R23.
+Completed items with patches and evidence: [history/HANDOFF_DONE.md](history/HANDOFF_DONE.md) (newest first; add new rows there). Latest: CR1 (review/docs only), 14, R30, G1, B2, R28, R29, B1, M2, T3 (closed), R27, R25, R26, R21, R12, R24, R23.
 
 ## Coverage goal
 
@@ -195,6 +209,34 @@ emission coverage, not execution or whole-backend correctness.
 4. Update the *Claims* table and LK_COVERAGE.md together.
 
 ## Handoff log
+
+### 2026-10-06 — Codex: CR1 joint deep review complete; follow-ups published
+
+- Reviewed BOLT `d6aa4bb` / overlays 0001–0072 and lk-perf `a547f94`
+  through K15. Published [review](reviews/CORRECTNESS_REVIEW_CODEX_0072_20261006.md),
+  [offline evidence](results/cr1_review_20261006/README.md), R31/R32 P1 and
+  R33/R34 P2 closure criteria. Updated current documentation/limitations;
+  existing historical milestones remain scoped. CR1 Done means review/docs,
+  not closure of the newly identified implementation defects.
+- BOLT host: 167 tests OK/12 skipped. Differential: each assertion mode
+  158 matching +24 safe rejects (182), no wrong/crash/hang. Focused 0070,
+  0071, 0072 checks pass ON/OFF; four used tool hashes/mode and overlay
+  series match item 14. lk-perf: 56 tests OK/1 skipped, 7 unwind checks PASS;
+  actual optional Perfetto consumer fails stale K3 expected stack (K25).
+  Probes reproduce incomplete collector acceptance and false suite gain;
+  B1/B2 CSV audit finds complete uniform published metric sets, not that
+  failure. Raw logs are local temporary artifacts (R34).
+- Tracked-file repository health PASS (72 overlays, fixture/R11 identities,
+  Python/JSON and local documentation targets). Changed-document links,
+  code fences and staged whitespace checks pass in both clones.
+- No implementation/overlay/image changes, build, coverage regeneration or
+  Pi use. Coverage unchanged 401/417 and 126164/126834 bytes (99.5%). Shared
+  WSL source/build/index trees and Claude's checkouts untouched; locks free,
+  Pi unreserved. Last observation remains Claude's G1 release (shell,
+  watchdog disarmed, COM5 closed); no live probe. Preserved `Microsoft/`.
+- Next: claim R31/R32; coordinate lk-perf K18 before creating another parser.
+  Reserve live trees/Pi only if that work needs them. P1 matrices remain
+  open; do not interpret current coverage as all-backend certification.
 
 ### 2026-10-06 — Codex: GitHub synchronization of both project checkouts
 

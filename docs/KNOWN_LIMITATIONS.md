@@ -2,12 +2,15 @@
 
 Current ATFE limitations. Open work is in
 [HANDOFF.md](HANDOFF.md#claims-consolidated-todo); the latest reviews are the
+[joint review at 0072](reviews/CORRECTNESS_REVIEW_CODEX_0072_20261006.md), the
 [deep review at 0069](reviews/CORRECTNESS_REVIEW_CLAUDE_0069.md) and the
 [reconciled review](reviews/CORRECTNESS_REVIEW_ASTRA_0057.md).
-Candidate no-FPU scanning, clean provenance and broader runtime/entry/pass
-matrices remain bounded by their current work items.
+Candidate no-FPU scanning and clean provenance have the bounded item-14
+receipt. Broader runtime/entry/pass matrices remain open; the 0072 review
+adds capture/measurement evidence defects R31/R32 and workflow follow-ups
+R33/R34. Those defects can accept incomplete evidence and are not fail-safe.
 
-## Current ATFE backend limitations (re-baselined 2026-10-05)
+## Current ATFE backend limitations (reviewed 2026-10-06)
 
 State: overlays 0001–0072, full LK `424606a8` 401/417 functions (126164 of
 126834 code bytes, 99.5%), edge image `ce8dd005` 561 rewritten, A55 `47c73bc0`
@@ -52,12 +55,13 @@ function, or the limit is in verification scope) unless marked otherwise.
 | V1 | Security state | None: the target runs Non-secure SVC like the Pi; Secure-SVC parity (T3) closed as not needed 2026-10-05 |
 | V2 | Real Cortex-A55 hardware (T4) | User, office environment; A72 timing gains do not transfer |
 | V3 | R25's rewritten data pointers are not exercised by the LK pipeline (S5 restores data) | Covered by lit and the qemu-user probe only |
-| V4 | IRQ PC sampling cannot see code that runs with IRQs masked | Execution evidence for such code needs other means (counters) |
+| V4 | Default IRQ PC sampling cannot see code that runs with IRQs masked | Counters provide another route. lk-perf K12 opt-in pseudo-NMI reaches masked thread code with timer/PMU sampling; IRQ handlers remain blind and this does not extend the legacy sampler's scope |
 | V5 | QEMU twin image has no protected BOLT window (`__bolt_reserved_*`); BOLT code after `_end` is overwritten by the heap | QEMU rewrite routes are diagnostics only and refuse such images |
 | V7 | Split functions with tables (including a 1.1 MB hot/cold gap), instrumentation of table functions, ICF folding of Thumb and ARM twins behind data pointers, and Thumb narrow-branch relaxation are now probed (R27, `edge_probe_r27_20261005.json`: 158 OK, 24 known rejections, 0 wrong) | Resolved 2026-10-05 for qemu-user; not on the Pi (the certified LK pipeline does not split functions) |
 | V8 | Upstream (non-ATFE) series still has U2–U4, U8/U9, L1–L12 ([upstream audit](upstream/UPSTREAM_AUDIT.md)) | Deferred TODO (user, 2026-09-30) |
 | V9 | `--pad-funcs-before` combined with `--split-functions` aborts in JITLink for distant fragments: the emitter pads every fragment, LongJmp's tentative layout pads only the first | Debug option only; fails safe (no output). Use a real filler, as the probe does |
 | V10 | Cross-fragment Thumb `b.w`/`bl` beyond +-16 MB (hot and cold more than 16 MB apart) is not probed; the 1.1 MB case (beyond `b<cond>.w`) passes | Needs a 16 MB+ image; LK is far below that |
+| V11 | New lk-perf collector and suite measurement helpers accept incomplete evidence (R31/R32); mixed sample weighting/lifecycle/PMU sharing also need lk-perf K18–K20 | **Not fail-safe:** a bound profile may have no footer, and a missing metric can manufacture a gain. Existing B1/B2 CSV sets are complete, but raw framing/portable retention require R34; use scoped historical results and close these guards before automated gate use |
 
 ### Superseded index entries
 
