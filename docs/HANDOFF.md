@@ -149,6 +149,12 @@ defect was reproduced; incomplete host evidence must still fail closed.
 
 Take items in the order below; groups reflect dependencies, not ownership.
 
+**User-requested documentation verification**
+
+| Order | ID | Item | Priority | Owner | Status | Notes |
+|---|---|---|---|---|---|---|
+| 0 | C2 | Document both compiler paths and both BOLT profile modes | P2 | Codex | In progress | Verify frontend-PGO+ThinLTO and IR-PGO+ThinLTO+CSPGO paths against scripts/evidence; show sampled and instrumented BOLT with current guard/scope. Documentation only; no shared-tree or Pi use |
+
 **C. Correctness defects and target items** (declared group B P0 milestones are complete)
 
 | Order | ID | Item | Priority | Owner | Status | Part of | Notes |
