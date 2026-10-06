@@ -148,6 +148,7 @@ Take items in the order below; groups reflect dependencies, not ownership.
 | Order | ID | Item | Priority | Owner | Status | Part of | Notes |
 |---|---|---|---|---|---|---|---|
 | 10c | T4 | Performance and final validation on the real A55 target (A72 gains not transferable) | P2 | User | Out of scope here | — | Done by the user in the office environment, from this repo |
+| Review | CR1 | Deep review at 0072: backend, host pipeline, evidence contracts and TODO reconciliation | P1 | Codex | In progress | — | Read-only code/evidence review and focused offline probes; documentation changes only; no shared build/Pi ownership |
 
 
 **D. P1 certification matrices (as capacity allows)**
