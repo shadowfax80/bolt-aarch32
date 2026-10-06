@@ -192,6 +192,17 @@ emission coverage, not execution or whole-backend correctness.
 
 ## Handoff log
 
+### 2026-10-06 — Claude: 0072 made deterministic (sorted linker marks)
+
+- Item 14's first parity run: the flashed G1 `.bin` and the G1 ELF (without
+  `.note.bolt_info`) are identical across clean/live ON/OFF builds, but the
+  instrumented and split outputs differed even run to run: 0072 emitted
+  stub marks in JITLink's pointer-hash order. 0072 now sorts them; three runs
+  give identical outputs. ARM lit 61/61 both modes, replay exact.
+- `.note.bolt_info` records the llvm-bolt path and command line, so parity
+  compares outputs without it (raw hashes recorded too) and also runs each
+  job twice. Clean build restarted on the fixed series.
+
 ### 2026-10-06 — Claude: R30 extended again (linked runtime library marks)
 
 - Item 14's parity scenarios instrumented the LK input: the instrumentation

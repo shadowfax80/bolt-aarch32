@@ -50,7 +50,9 @@ Execution was never affected: mapping symbols are not in the loaded image.
   stub's address and ISA (from the stub symbol's `ThumbSymbol` flag) and the
   `$a`/`$t`/`$d` symbols that linked objects (the instrumentation runtime)
   bring. The rewriter adds them for executable sections it does not mark
-  itself.
+  itself, sorted (JITLink holds a section's symbols in a pointer-keyed set;
+  unsorted, the symbol order changed from run to run, found by item 14's
+  determinism check).
 - Split-fragment and ICF alias STT_FUNC values carry the Thumb bit.
 
 ## Evidence

@@ -22,8 +22,10 @@ off):
 - tools: host tool versions; hashes of the built binaries;
 - tests: ARM BOLT lit suite in every build;
 - parity: the same BOLT jobs on the certified LK input with every build,
-  whose outputs must be byte-identical (G1 full-image layout, SMP and
-  single-core instrumentation, random split + ICF), and the no-FPU guard on
+  whose outputs must be byte-identical apart from .note.bolt_info (it records
+  the llvm-bolt path and command line) and identical when run twice (G1
+  full-image layout, SMP and single-core instrumentation, random split +
+  ICF), and the no-FPU guard on
   every ELF output.
 
 Binary identity of the tools themselves is recorded, not required: builds
@@ -244,10 +246,21 @@ def run_scenario(name, args, build, out):
         elfs = outputs
     (out / 'log.txt').write_text(p.stdout + p.stderr)
     res = {'exit': p.returncode,
-           'outputs': {f.name: sha256(f) if f.exists() else None for f in outputs}}
+           'raw_sha256': {f.name: sha256(f) if f.exists() else None for f in outputs},
+           'outputs': {f.name: normalized_sha256(tc, f) if f.exists() else None for f in outputs}}
     if p.returncode == 0:
         res['guard'] = {f.name: guard(tc, f) for f in elfs}
     return res
+
+
+def normalized_sha256(tc, path):
+    """SHA-256 of an output without .note.bolt_info, which records the
+    llvm-bolt path and the command line and so differs per build directory."""
+    if path.suffix != '.elf':
+        return sha256(path)
+    stripped = path.with_name(path.name + '.nonote')
+    run([tc / 'llvm-objcopy', '--remove-section=.note.bolt_info', path, stripped])
+    return sha256(stripped)
 
 
 def parity(builds, work):
@@ -259,12 +272,16 @@ def parity(builds, work):
            'scenarios': {}}
     for name, args in scenarios(work, funcs).items():
         per_build = {b: run_scenario(name, args, build, work / name / b) for b, build in builds.items()}
+        # Determinism: the same job again with the same build.
+        again = run_scenario(name, args, builds['clean-on'], work / name / 'clean-on-again')
         ref = per_build['clean-on']
+        deterministic = again['exit'] == ref['exit'] and again['outputs'] == ref['outputs']
         same = all(r['exit'] == ref['exit'] and r['outputs'] == ref['outputs'] for r in per_build.values())
         guards_ok = all(g['exit'] == 0 for r in per_build.values() for g in r.get('guard', {}).values())
-        res['scenarios'][name] = {'identical_across_builds': same, 'exit': ref['exit'],
-                                  'guard_ok': guards_ok, 'builds': per_build}
-        print(f'{name}: identical={same} exit={ref["exit"]} guard_ok={guards_ok}', flush=True)
+        res['scenarios'][name] = {'identical_across_builds': same, 'deterministic': deterministic,
+                                  'exit': ref['exit'], 'guard_ok': guards_ok, 'builds': per_build}
+        print(f'{name}: identical={same} deterministic={deterministic} exit={ref["exit"]} '
+              f'guard_ok={guards_ok}', flush=True)
     return res
 
 
@@ -299,6 +316,7 @@ def main():
         'clean_modes_differ_only_in_assertions': only_assert,
         'lit_all_builds': lit_ok,
         'outputs_identical_across_builds': all(s['identical_across_builds'] for s in r['parity']['scenarios'].values()),
+        'outputs_deterministic': all(s['deterministic'] for s in r['parity']['scenarios'].values()),
         'scenarios_succeeded': all(s['exit'] == 0 for s in r['parity']['scenarios'].values()),
         'no_fpu_guard_on_outputs': all(s['guard_ok'] for s in r['parity']['scenarios'].values()),
     }

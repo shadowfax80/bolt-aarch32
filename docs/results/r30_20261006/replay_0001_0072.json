@@ -76,7 +76,7 @@
     "0069-bolt-arm-table-base-liveness.patch": "78c479e6d0c8def14efdb0c90c127832d35ab06d7c62e6975ddcee8b7a148a51",
     "0070-bolt-arm-data-pointer-thumb-bit.patch": "09c6e14133d795e2877beefccc124cdecc3e6e6641306056add03e00bd99b4c9",
     "0071-bolt-arm-thumb-short-branch-range.patch": "7ea01906686de7989a0015b9c3e76f9c31139a32dcfab733339981df073f8364",
-    "0072-bolt-arm-mapping-symbols.patch": "866f6ee791a8f7f7e705fc353df4ac6f84985be2ff0f55c5bbb1048d8ee1e03f"
+    "0072-bolt-arm-mapping-symbols.patch": "4390a90ff804a61701f19e1151b74881abb2ba523356b4fd8e87894cf961bf17"
   },
   "source_files": {
     "bolt/CMakeLists.txt": "db57eda9c0ca5f562c252a612ae890c787c88160308f4b9ef8c4ce84b6589c67",
@@ -106,7 +106,7 @@
     "bolt/lib/Rewrite/BinaryPassManager.cpp": "21a9f16653562f9dc768394d35516da9d2997a9252d54782ad65f1614b889010",
     "bolt/lib/Rewrite/ExecutableFileMemoryManager.cpp": "4b6cf8f8f2f918af0066cc34568c009b553e75e547f6186f4d88a95a9cff1002",
     "bolt/lib/Rewrite/JITLinkLinker.cpp": "6e22d84f2fcdc6e94dd8509197f744e46e686c13b893d5f6cec4f03a7159c7e7",
-    "bolt/lib/Rewrite/RewriteInstance.cpp": "cee163d7e52022ab334c9ec394f00c36922b20c8c632359d7dbbf8ae214dbf7e",
+    "bolt/lib/Rewrite/RewriteInstance.cpp": "c227ca927b50efb265c6d93f66e2b01c8c72ecfeb0691eefa5ea06011c7af92d",
     "bolt/lib/RuntimeLibs/InstrumentationRuntimeLibrary.cpp": "b2f62c1535acfa4f1c5c51330d1edc13af19123c7c01c2c63b5640f8f064f494",
     "bolt/lib/RuntimeLibs/RuntimeLibrary.cpp": "f7e3a3367c6b419bfc9dc6b8fc9189e85881453f46ae7f336831d5d56850305e",
     "bolt/lib/Target/ARM/ARMMCPlusBuilder.cpp": "919869bcd05504be819621a3266a15eac43873f424d5d57d1921be3828fb6680",
@@ -263,6 +263,6 @@
   },
   "uncovered_source_changes": [],
   "mismatched_source_files": [],
-  "source_identity_sha256": "76118264951682d88094cfcb97e5ba256564c850f4f495f888a2c60c0b3cc648",
+  "source_identity_sha256": "9512dde12e1db73fb218ea59356866d1e8e042860562561bf3e3ce1e5219c5ee",
   "scope": "pinned base plus complete patch series; source contents only, not clean full build/binary provenance"
 }

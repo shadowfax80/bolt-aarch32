@@ -214,7 +214,7 @@
          }
        }
      }
-@@ -6760,6 +6816,51 @@
+@@ -6760,6 +6816,56 @@
      }
    }
  
@@ -253,7 +253,12 @@
 +    for (const BinaryFunction *BF : BC->getInjectedBinaryFunctions())
 +      if (BF->getOutputAddress())
 +        MarkedSections.insert(BF->getCodeSection()->getIndex());
-+    for (const auto &[Address, Kind] : Linker->getLinkerMarks())
++    // JITLink keeps a section's symbols in a pointer-keyed set; sort so the
++    // symbol table does not depend on allocation order.
++    std::vector<std::pair<uint64_t, char>> LinkerMarks =
++        Linker->getLinkerMarks();
++    llvm::sort(LinkerMarks);
++    for (const auto &[Address, Kind] : LinkerMarks)
 +      for (const BinarySection &Section : BC->allocatableSections())
 +        if (Section.getIndex() && Section.getOutputAddress() <= Address &&
 +            Address < Section.getOutputAddress() + Section.getOutputSize()) {
