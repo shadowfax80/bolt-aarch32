@@ -153,8 +153,8 @@ Take items in the order below; groups reflect dependencies, not ownership.
 
 | Order | ID | Item | Priority | Owner | Status | Part of | Notes |
 |---|---|---|---|---|---|---|---|
-| 1 | R31 | Fail-closed lk-perf PC-profile collection | P1 | — | Open | 10 | Missing footer is accepted and downstream identity passes; require strict session/record/mode/period checks and parser provenance; coordinate lk-perf K18–K20; [closure criteria](reviews/CORRECTNESS_REVIEW_CODEX_0072_20261006.md#new-follow-ups-and-closure-criteria) |
-| 2 | R32 | Complete, bound suite measurement and result frames | P1 | — | Open | — | Missing passes/results/metrics yield success and false -50% total; reject omissions/duplicates before publication, seal image identity; [closure criteria](reviews/CORRECTNESS_REVIEW_CODEX_0072_20261006.md#new-follow-ups-and-closure-criteria) |
+| 1 | R32 | Complete, bound suite measurement and result frames | P1 | — | Open | — | Missing passes/results/metrics yield success and false -50% total; reject omissions/duplicates before publication, seal image identity; [closure criteria](reviews/CORRECTNESS_REVIEW_CODEX_0072_20261006.md#new-follow-ups-and-closure-criteria) |
+| 2 | R31 | Fail-closed lk-perf PC-profile collection | P2 | — | Blocked (lk-perf K18) | 10 | Missing footer is accepted and downstream identity passes; require strict session/record/mode/period checks and parser provenance; start after lk-perf K18 (shared strict parser); P2: lk-perf profiles feed optimisation quality, not the certified (counter-based) pipeline; [closure criteria](reviews/CORRECTNESS_REVIEW_CODEX_0072_20261006.md#new-follow-ups-and-closure-criteria) |
 
 
 **D. P1 certification matrices (as capacity allows)**
@@ -209,6 +209,16 @@ emission coverage, not execution or whole-backend correctness.
 4. Update the *Claims* table and LK_COVERAGE.md together.
 
 ## Handoff log
+
+### 2026-10-06 — Claude: CR1 follow-ups verified; R31 re-prioritised
+
+- Reran Codex's `probe_contracts.py` on current trees: all nine observations
+  reproduce (R31 missing footer accepted, R32 false -50%, lk-perf K16-K18,
+  K21). Source check confirms R33 (clean-build helper) and R34 (B1/B2
+  manifests point into a temporary scratchpad). All four items are accurate.
+- Changes: R32 first; R31 P1 -> P2 and Blocked on lk-perf K18 (it reuses
+  K18's strict parser, which was queued after R31). lk-perf priorities
+  adjusted in its own handoff. Docs only, no code, build or Pi.
 
 ### 2026-10-06 — Codex: CR1 joint deep review complete; follow-ups published
 
