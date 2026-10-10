@@ -33,31 +33,44 @@ STAT_CMD = re.compile(r"stat: '(.+)' returned (-?\d+), ([\d.]+) ms")
 STAT_ALL = re.compile(r"stat: all\s+(\d+)\s+\d+")
 
 
-def parse(text: str) -> tuple[list[dict], dict]:
-    """Per suite pass: {metric: cycles}; plus result values seen."""
-    runs, cur, results = [], {}, defaultdict(set)
+def parse(text: str) -> tuple[list[dict], list[dict]]:
+    """Per suite pass: {metric: cycles}; plus result values seen per run."""
+    runs, cur, results = [], {}, []
+    cur_results = {}
     pending = None
     for line in text.splitlines():
         if line.startswith('$ ') and '__SUITE_START__' in line:
-            if cur:
+            if cur or cur_results:
                 runs.append(cur)
+                results.append(cur_results)
             cur = {}
+            cur_results = {}
             continue
         if m := DONE.search(line):
+            if m[1] in cur:
+                raise ValueError(f"duplicate metric in run: {m[1]}")
             cur[m[1]] = int(m[2])
         elif m := ACC.search(line):
-            results[m[1]].add(m[2])
+            if m[1] in cur_results:
+                raise ValueError(f"duplicate result in run: {m[1]}")
+            cur_results[m[1]] = m[2]
         elif m := SINK.search(line):
-            results['profiler_' + m[1]].add(m[2])
+            key = 'profiler_' + m[1]
+            if key in cur_results:
+                raise ValueError(f"duplicate result in run: {key}")
+            cur_results[key] = m[2]
         elif m := STAT_CMD.search(line):
             pending = m[1].split()[1] if m[1].startswith('profiler ') else m[1]
             if int(m[2]) != 0:
                 raise ValueError(f'{m[1]} returned {m[2]}')
         elif pending and (m := STAT_ALL.search(line)):
+            if pending in cur:
+                raise ValueError(f"duplicate metric in run: {pending}")
             cur[pending] = int(m[1])
             pending = None
-    if cur:
+    if cur or cur_results:
         runs.append(cur)
+        results.append(cur_results)
     return runs, results
 
 
@@ -76,6 +89,11 @@ def main() -> int:
         ap.error('need name=image arguments and suite commands')
     evidence = Path(tempfile.mkdtemp(prefix='suite-', dir=Path(args.out).resolve().parent))
     rows, values = [], defaultdict(set)
+
+    # We must determine expected_metrics in the first run and enforce it
+    expected_metrics = None
+    expected_result_keys = None
+
     for rnd in range(args.rounds):
         order = images[rnd % len(images):] + images[:rnd % len(images)]
         for name, path in order:
@@ -89,13 +107,40 @@ def main() -> int:
             r = subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE, text=True)
             if r.returncode:
                 raise SystemExit(f'{name}: run failed: {r.stderr[-600:]}')
-            runs, results = parse(log.read_text(errors='replace'))
-            for k, v in results.items():
-                values[k] |= v
+
+            log_text = log.read_text(errors='replace')
+            # Each run produces results; if a result is missing in one run, `parse` just doesn't add it.
+            # To fix R32, we should ensure the *set* of results is exactly identical across all images/runs.
+            runs, results = parse(log_text)
+            if len(runs) != args.runs:
+                raise ValueError(f'{name}: expected {args.runs} runs, got {len(runs)}')
+
+            for i, (run, result_dict) in enumerate(zip(runs, results)):
+                run_result_keys = set(result_dict.keys())
+                if expected_result_keys is None:
+                    expected_result_keys = run_result_keys
+                if run_result_keys != expected_result_keys:
+                    raise ValueError(f'{name}: results mismatch in run {i+1}. expected {expected_result_keys}, got {run_result_keys}')
+
+                for k, v in result_dict.items():
+                    values[k].add(v)
+
             for i, run in enumerate(runs):
+                run_metrics = set(run.keys())
+                if expected_metrics is None:
+                    expected_metrics = run_metrics
+                if run_metrics != expected_metrics:
+                    raise ValueError(f'{name}: metrics mismatch in run {i+1}. expected {expected_metrics}, got {run_metrics}')
+
                 for metric, cycles in run.items():
                     rows.append(dict(image=name, round=rnd + 1, run=i + 1, metric=metric, cycles=cycles))
+
     differing = {k: sorted(v) for k, v in values.items() if len(v) > 1}
+
+    if differing:
+        print(f'RESULTS DIFFER between runs/images: {differing}')
+        return 1
+
     with open(args.out, 'w', newline='') as f:
         w = csv.DictWriter(f, fieldnames=['image', 'round', 'run', 'metric', 'cycles'])
         w.writeheader()
