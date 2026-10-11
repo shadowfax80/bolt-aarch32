@@ -1,0 +1,9 @@
+🧹 code health: Reject false positive on importlib.util
+
+The reported issue "Remove unused import 'importlib.util'" is a false
+positive. The module is explicitly used to load the target python
+script `fix-kernel-elf-sections.py` via `spec_from_file_location`.
+The target script has dashes in its filename, which requires the use of
+importlib's dynamic module loading. Removing this import breaks the
+script's functionality. This code health issue should be closed without
+changes.
