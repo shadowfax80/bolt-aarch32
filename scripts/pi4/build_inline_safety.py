@@ -2,7 +2,6 @@
 """Build a bounded ARM/Thumb inlining and branch-semantics Pi fixture in WSL."""
 import argparse
 import importlib.util
-import json
 import os
 from pathlib import Path
 import re
@@ -12,7 +11,7 @@ import tempfile
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path[:0] = [str(ROOT/'scripts'), str(ROOT/'scripts/pi4')]
-from profile_identity import elf_metadata, sha256
+from profile_identity import elf_metadata, sha256, write_json
 spec = importlib.util.spec_from_file_location('inline_fixture_sections', ROOT/'scripts/fix-kernel-elf-sections.py')
 sections_helper = importlib.util.module_from_spec(spec)
 sys.modules[spec.name] = sections_helper
@@ -229,14 +228,14 @@ extern const struct Case case_entries[];
     (out/'bad-cbz-flags.elf').write_bytes(flag_fault)
     for name in ('baseline', *variants, 'bad-result','bad-cbz-flags'):
         run(name+'-raw', [tc/'llvm-objcopy', '-O', 'binary', out/(name+'.elf'), out/(name+'.bin')])
-    (out/'redirects.json').write_text(json.dumps(redirects,indent=2)+'\n')
-    (out/'cases.json').write_text(json.dumps(cases,indent=2)+'\n')
+    write_json(out/'redirects.json', redirects)
+    write_json(out/'cases.json', cases)
     manifest = dict(schema=1,kind='pi-inline-safety',cases=case_count,variants=variants,pass_matrix=args.pass_matrix,
                     faults={'bad-result':dict(case_id=0,field=0),'bad-cbz-flags':dict(case_id=46,field=0)},toolchain=str(tc),
                     scope='HYP core 0, masked interrupts; ARM/Thumb leaf, stack, LR, conditional return and both branch paths; Thumb CBZ/CBNZ expansions preserve flags consumed on both paths'+('; predicated, indirect and mixed-ISA call-site exclusions under automatic/size-based inlining and reverse-layout peepholes' if args.pass_matrix else ''),
                     files={p.name:sha256(p) for p in sorted(out.iterdir()) if p.is_file()},
                     tools={name:sha256(tc/name) for name in ('llvm-bolt','llvm-mc','ld.lld','clang','llvm-objcopy')},builder_sha256=sha256(Path(__file__)))
-    (out/'build.json').write_text(json.dumps(manifest,indent=2)+'\n')
+    write_json(out/'build.json', manifest)
     print('Built',case_count,'cases per image plus result and CBZ flag faults:', out)
 
 
