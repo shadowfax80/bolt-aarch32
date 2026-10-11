@@ -91,6 +91,28 @@ class TransportTests(unittest.TestCase):
             with self.subTest(invalid=invalid[-100:]), self.assertRaises(ValueError):
                 collect.extract_profile(invalid, (0x80000000, 80))
 
+    def test_profile_buffer(self):
+        # Valid edge cases
+        self.assertEqual(collect.profile_buffer("bolt_pgo_dump: addr=1000 size=10"), (4096, 16))
+        self.assertEqual(collect.profile_buffer("bolt_pgo_dump: addr=1000 size=1000000"), (4096, 16777216))
+
+        # Missing or duplicate
+        with self.assertRaisesRegex(ValueError, "missing/duplicate profile buffer announcement"):
+            collect.profile_buffer("no buffer here")
+        with self.assertRaisesRegex(ValueError, "missing/duplicate profile buffer announcement"):
+            collect.profile_buffer("bolt_pgo_dump: addr=1000 size=10\nbolt_pgo_dump: addr=1000 size=10")
+
+        # Invalid ranges
+        invalid_cases = [
+            "bolt_pgo_dump: addr=0 size=10", # Address 0
+            "bolt_pgo_dump: addr=1000 size=0", # Size 0
+            "bolt_pgo_dump: addr=1000 size=1000001", # Size > 16MB
+            "bolt_pgo_dump: addr=FFFFFFFF size=2", # Addr + Size > 2^32
+        ]
+        for invalid in invalid_cases:
+            with self.subTest(invalid=invalid), self.assertRaisesRegex(ValueError, "invalid profile buffer range"):
+                collect.profile_buffer(invalid)
+
 
 if __name__ == '__main__':
     unittest.main()
