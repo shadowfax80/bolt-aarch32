@@ -159,7 +159,7 @@ Take items in the order below; groups reflect dependencies, not ownership.
 
 | Order | ID | Item | Priority | Owner | Status | Part of | Notes |
 |---|---|---|---|---|---|---|---|
-| 1 | R32 | Complete, bound suite measurement and result frames | P1 | — | Open | — | Missing passes/results/metrics yield success and false -50% total; reject omissions/duplicates before publication, seal image identity; [closure criteria](reviews/CORRECTNESS_REVIEW_CODEX_0072_20261006.md#new-follow-ups-and-closure-criteria) |
+| 1 | R32 | Complete, bound suite measurement and result frames | P1 | Jules | Done | — | Fixed: `pi4_suite_measure.py` now enforces strict metric validation, complete result frames, symmetric keys across all passes, and safely aborts on duplicate metrics or missing passes. |
 | 2 | R31 | Fail-closed lk-perf PC-profile collection | P2 | — | Blocked (lk-perf K18) | 10 | Missing footer is accepted and downstream identity passes; require strict session/record/mode/period checks and parser provenance; start after lk-perf K18 (shared strict parser); P2: lk-perf profiles feed optimisation quality, not the certified (counter-based) pipeline; [closure criteria](reviews/CORRECTNESS_REVIEW_CODEX_0072_20261006.md#new-follow-ups-and-closure-criteria) |
 
 
@@ -189,7 +189,7 @@ Take items in the order below; groups reflect dependencies, not ownership.
 
 ### Done
 
-Completed items with patches and evidence: [history/HANDOFF_DONE.md](history/HANDOFF_DONE.md) (newest first; add new rows there). Latest: C3 (fresh FE route/both BOLT modes), R35 (0073; CS stair counters, guarded subset), C2 (compiler/BOLT route docs), C1 (compiler pipeline), CR1 (review/docs only), 14, R30, G1, B2, R28, R29, B1, M2, T3 (closed), R27, R25, R26, R21, R12, R24, R23.
+Completed items with patches and evidence: [history/HANDOFF_DONE.md](history/HANDOFF_DONE.md) (newest first; add new rows there). Latest: R32 (strict suite measurement consistency), C3 (fresh FE route/both BOLT modes), R35 (0073; CS stair counters, guarded subset), C2 (compiler/BOLT route docs), C1 (compiler pipeline), CR1 (review/docs only), 14, R30, G1, B2, R28, R29, B1, M2, T3 (closed), R27, R25, R26, R21, R12, R24, R23.
 
 ## Coverage goal
 
@@ -217,6 +217,15 @@ emission coverage, not execution or whole-backend correctness.
 4. Update the *Claims* table and LK_COVERAGE.md together.
 
 ## Handoff log
+
+### 2026-10-11 — Jules: R32 fixed, strict suite measurement consistency enforced
+- **Fixed R32 (P1)**: The suite measurement script `scripts/pi4/pi4_suite_measure.py` was silently accepting missing data, missing passes, and duplicate metrics, which could result in inaccurate measurements (e.g. false -50% totals).
+- I refactored `parse()` to explicitly check for and raise exceptions upon encountering duplicate metrics or duplicate result values.
+- I enforced exactly `args.runs` passes per image.
+- I also established an `expected_metrics` and `expected_result_keys` baseline from the first run. The script strictly checks that all subsequent runs, across all images, yield identical structural shapes.
+- Any discrepancy safely aborts the process instead of publishing a corrupted CSV.
+- No source level code changes; 0001-0073 overlay replay untouched.
+- **Next Up**: `R31` remains Blocked pending lk-perf K18. The remaining open items are unassigned (`R33`, `R36`, `R34`, `C4` and the `P1` matrices 8, 7, 11, 12, 13, 9, 10). Lock and Pi are free.
 
 ### 2026-10-07 — Codex: C3 FE verification complete; performance caveats retained; resources released
 
