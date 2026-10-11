@@ -1,5 +1,4 @@
 """Negative gates for redirect selection, artifacts and observed execution."""
-import importlib.util
 import contextlib
 import io
 import json
