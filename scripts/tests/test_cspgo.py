@@ -84,6 +84,30 @@ class TransportTests(unittest.TestCase):
             with self.subTest(invalid=invalid), self.assertRaises(ValueError):
                 collect.training_results(invalid, ['stair'])
 
+    def test_training_command_frames_validation(self):
+        base_text = ('$ bolt_bench composite\nbolt_bench: composite done (10 cycles)\n'
+                     'bolt_bench: composite acc=0x1234\n'
+                     '$ bolt_bench stair\nbolt_bench: stair done (10 cycles)\n'
+                     'bolt_bench: stair acc=0x5678\n$ bolt_pgo_dump\n')
+
+        # missing frames
+        text_missing = base_text.replace('$ bolt_bench stair\n', '')
+        with self.assertRaisesRegex(ValueError, "missing/extra/reordered training command frames"):
+            collect.training_results(text_missing, ['composite', 'stair'])
+
+        # extra frames
+        text_extra = base_text.replace('$ bolt_pgo_dump\n', '$ bolt_bench extra\n$ bolt_pgo_dump\n')
+        with self.assertRaisesRegex(ValueError, "missing/extra/reordered training command frames"):
+            collect.training_results(text_extra, ['composite', 'stair'])
+
+        # reordered frames
+        text_reordered = ('$ bolt_bench stair\nbolt_bench: stair done (10 cycles)\n'
+                          'bolt_bench: stair acc=0x5678\n'
+                          '$ bolt_bench composite\nbolt_bench: composite done (10 cycles)\n'
+                          'bolt_bench: composite acc=0x1234\n$ bolt_pgo_dump\n')
+        with self.assertRaisesRegex(ValueError, "missing/extra/reordered training command frames"):
+            collect.training_results(text_reordered, ['composite', 'stair'])
+
     def test_corruption_overlap_and_changed_buffer(self):
         text = self.stream()
         for invalid in (text.replace('data=00', 'data=ff'), text.replace('off=00000040', 'off=00000000'),
