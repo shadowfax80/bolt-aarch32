@@ -138,23 +138,7 @@ def emitted_route(blob,row):
     return dict(call=call,stub=stub,absolute_target=absolute,stub_thumb=source['thumb'])
 
 
-def main():
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--toolchain',type=Path,required=True)
-    parser.add_argument('--out',type=Path,required=True)
-    args = parser.parse_args()
-    args.out.mkdir(parents=True,exist_ok=True)
-    out = Path(tempfile.mkdtemp(prefix='build-',dir=args.out.resolve()))
-    tc = args.toolchain.resolve()
-    tools = {name:sha256(tc/name) for name in ['llvm-mc','ld.lld','clang','llvm-bolt','llvm-objcopy']}
-    script_paths = [Path(__file__),ROOT/'scripts/profile_identity.py',ROOT/'scripts/verify_far_execution.py',ROOT/'scripts/verify_far_interwork.py',ROOT/'scripts/pi4/fixtures/counter-state/main.c']
-    scripts = {p.relative_to(ROOT).as_posix():sha256(p) for p in script_paths}
-    revision = subprocess.check_output(['git','-C',str(ROOT),'rev-parse','HEAD'],text=True).strip()
-    def run(name,command):
-        p = subprocess.run([str(x) for x in command],capture_output=True,text=True,timeout=60)
-        (out/(name+'.log')).write_text(p.stdout+p.stderr)
-        require(p.returncode == 0,name+': '+(p.stdout+p.stderr)[-2500:])
-        return p.stdout
+def generate_fixture_asm():
     asm = '.syntax unified\n.arch armv7-a\n.arm\n.section .text.start,"ax",%progbits\n.global _start\n.type _start,%function\n_start:\ncpsid if\nldr sp,=0x00800000\nbl state_main\n.Lhalt: wfe\nb .Lhalt\n.size _start,.-_start\n.ltorg\n.text\n'
     functions = []
     def function(name,isa,body):
@@ -177,9 +161,10 @@ def main():
         for seed in SEEDS:
             asm += f'.word caller_{a}_{b},{seed},{(seed+7)&0xffffffff},0,0,0,0\n'
     asm += '.size case_entries,.-case_entries\n'
-    (out/'fixture.s').write_text(asm)
-    support = (ROOT/'scripts/pi4/fixtures/counter-state/main.c').read_text()
-    support = support[support.index('#define REG'):support.index('void state_main(void)')].replace('BOLT_COUNTER_STATE','BOLT_FAR_PI')
+    return asm, functions
+
+
+def generate_main_c(support, len_pairs, len_seeds):
     c = '''#include <stdint.h>
 struct Case { uint32_t (*fn)(uint32_t, volatile uint32_t*); uint32_t arg,expected,cpc,fpc,rpc,ip; };
 extern const struct Case case_entries[];
@@ -212,26 +197,11 @@ extern const struct Case case_entries[];
     puts_uart("BOLT_FAR_PI PASS cases=20\\r\\n");finish();
 }
 '''
-    c=c.replace('i<20','i<'+str(len(PAIRS)*len(SEEDS))).replace('cases=20','cases='+str(len(PAIRS)*len(SEEDS)))
-    (out/'main.c').write_text(c)
-    (out/'link.ld').write_text('ENTRY(_start)\nSECTIONS { . = 0x100000; .text : { *(.text.start) *(.text*) } .rodata : { *(.rodata*) } .data : { *(.data*) } .bss : { *(.bss*) *(COMMON) } /DISCARD/ : { *(.ARM.exidx*) *(.ARM.extab*) *(.comment) } }\n')
-    run('mc',[tc/'llvm-mc','-triple=armv7-none-eabi','-arm-add-build-attributes','-filetype=obj',out/'fixture.s','-o',out/'fixture.o'])
-    run('cc',[tc/'clang','--target=arm-none-eabi','-march=armv7-a','-marm','-mfloat-abi=soft','-mno-unaligned-access','-ffreestanding','-fno-builtin','-fno-stack-protector','-fno-unwind-tables','-fno-asynchronous-unwind-tables','-O2','-c',out/'main.c','-o',out/'main.o'])
-    run('ld',[tc/'ld.lld','--emit-relocs','-T',out/'link.ld',out/'fixture.o',out/'main.o','-o',out/'baseline.elf'])
-    original = (out/'baseline.elf').read_bytes()
-    original_sections,original_symbols = elf_metadata(original)
-    case_table = next(s for s in original_symbols if s['name'] == 'case_entries')
-    layouts = {}
-    for layout,extra in [('normal',[]),('reverse',['--reorder-blocks=reverse'])]:
-        options = ['--no-huge-pages','-lite=0','--funcs='+','.join(functions),'--emit-function-map='+str(out/(layout+'.map'))]
-        options += ['--pad-funcs-before=far_'+a+'_'+b+':0x2100000' for a,b in PAIRS]+extra
-        log = run(layout+'-bolt',[tc/'llvm-bolt',out/'baseline.elf','-o',out/(layout+'.elf'),*options])
-        require('removed linker-inserted veneers: 4' in log,'literal veneers not removed')
-        mapping={parts[0]:[int(x,16) for x in parts[1:]] for line in (out/(layout+'.map')).read_text().splitlines() if (parts:=line.split())}
-        emitted=[n for n in functions if not n.startswith('__ARMv5LongLdrPcThunk_')]
-        require(set(mapping)==set(emitted),'missing/extra emitted function')
-        layouts[layout] = dict(options=options,selected=functions,emitted=mapping,
-                              eliminated=[n for n in functions if n not in mapping],profile=None)
+    c=c.replace('i<20','i<'+str(len_pairs*len_seeds)).replace('cases=20','cases='+str(len_pairs*len_seeds))
+    return c
+
+
+def generate_variants(out, tc, run_fn, original, original_sections, case_table):
     variants = {}
     for name in ['baseline','normal','reverse','bad-result','bad-flags','retained-callee','timeout']:
         code_name = 'normal' if name.startswith('bad-') or name in ['retained-callee','timeout'] else name
@@ -339,9 +309,9 @@ chunk_table:
             boot += f'.global packed_{i}\n.type packed_{i},%object\npacked_{i}:\n.incbin "{d/f"chunk-{i:03d}.bin"}"\n.size packed_{i},.-packed_{i}\n'
         (d/'boot.s').write_text(boot)
         (d/'boot.ld').write_text('ENTRY(_loader_start)\nSECTIONS { . = 0x8000; .text : { *(.text.start) *(.text*) } .data : { *(.data*) } }\n')
-        run(name+'-boot-mc',[tc/'llvm-mc','-triple=armv7-none-eabi','-arm-add-build-attributes','-filetype=obj',d/'boot.s','-o',d/'boot.o'])
-        run(name+'-boot-ld',[tc/'ld.lld','-T',d/'boot.ld',d/'boot.o','-o',out/(name+'.stage.elf')])
-        run(name+'-raw',[tc/'llvm-objcopy','-O','binary',out/(name+'.stage.elf'),out/(name+'.bin')])
+        run_fn(name+'-boot-mc',[tc/'llvm-mc','-triple=armv7-none-eabi','-arm-add-build-attributes','-filetype=obj',d/'boot.s','-o',d/'boot.o'])
+        run_fn(name+'-boot-ld',[tc/'ld.lld','-T',d/'boot.ld',d/'boot.o','-o',out/(name+'.stage.elf')])
+        run_fn(name+'-raw',[tc/'llvm-objcopy','-O','binary',out/(name+'.stage.elf'),out/(name+'.bin')])
         require((out/(name+'.bin')).stat().st_size < 0x100000-0x8000,'upload overlaps staged memory')
         stage = (out/(name+'.stage.elf')).read_bytes(); _,symbols = elf_metadata(stage)
         for i,row in enumerate(plan):
@@ -350,6 +320,57 @@ chunk_table:
         write_json(d/'plan.json',dict(schema=1,chunks=plan))
         variants[name] = dict(code=code_name,code_sha256=hashlib.sha256(code).hexdigest(),expectations=expectations,routes=routes,plan=(d/'plan.json').relative_to(out).as_posix(),image_sha256=sha256(out/(name+'.bin')))
         print(name,'packed',len(chunks),'chunks,', (out/(name+'.bin')).stat().st_size,'upload bytes',flush=True)
+    return variants
+
+
+def generate_layouts(out, tc, run_fn, functions):
+    layouts = {}
+    for layout,extra in [('normal',[]),('reverse',['--reorder-blocks=reverse'])]:
+        options = ['--no-huge-pages','-lite=0','--funcs='+','.join(functions),'--emit-function-map='+str(out/(layout+'.map'))]
+        options += ['--pad-funcs-before=far_'+a+'_'+b+':0x2100000' for a,b in PAIRS]+extra
+        log = run_fn(layout+'-bolt',[tc/'llvm-bolt',out/'baseline.elf','-o',out/(layout+'.elf'),*options])
+        require('removed linker-inserted veneers: 4' in log,'literal veneers not removed')
+        mapping={parts[0]:[int(x,16) for x in parts[1:]] for line in (out/(layout+'.map')).read_text().splitlines() if (parts:=line.split())}
+        emitted=[n for n in functions if not n.startswith('__ARMv5LongLdrPcThunk_')]
+        require(set(mapping)==set(emitted),'missing/extra emitted function')
+        layouts[layout] = dict(options=options,selected=functions,emitted=mapping,
+                              eliminated=[n for n in functions if n not in mapping],profile=None)
+    return layouts
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--toolchain',type=Path,required=True)
+    parser.add_argument('--out',type=Path,required=True)
+    args = parser.parse_args()
+    args.out.mkdir(parents=True,exist_ok=True)
+    out = Path(tempfile.mkdtemp(prefix='build-',dir=args.out.resolve()))
+    tc = args.toolchain.resolve()
+    tools = {name:sha256(tc/name) for name in ['llvm-mc','ld.lld','clang','llvm-bolt','llvm-objcopy']}
+    script_paths = [Path(__file__),ROOT/'scripts/profile_identity.py',ROOT/'scripts/verify_far_execution.py',ROOT/'scripts/verify_far_interwork.py',ROOT/'scripts/pi4/fixtures/counter-state/main.c']
+    scripts = {p.relative_to(ROOT).as_posix():sha256(p) for p in script_paths}
+    revision = subprocess.check_output(['git','-C',str(ROOT),'rev-parse','HEAD'],text=True).strip()
+    def run(name,command):
+        p = subprocess.run([str(x) for x in command],capture_output=True,text=True,timeout=60)
+        (out/(name+'.log')).write_text(p.stdout+p.stderr)
+        require(p.returncode == 0,name+': '+(p.stdout+p.stderr)[-2500:])
+        return p.stdout
+
+    asm, functions = generate_fixture_asm()
+    (out/'fixture.s').write_text(asm)
+    support = (ROOT/'scripts/pi4/fixtures/counter-state/main.c').read_text()
+    support = support[support.index('#define REG'):support.index('void state_main(void)')].replace('BOLT_COUNTER_STATE','BOLT_FAR_PI')
+    c = generate_main_c(support, len(PAIRS), len(SEEDS))
+    (out/'main.c').write_text(c)
+    (out/'link.ld').write_text('ENTRY(_start)\nSECTIONS { . = 0x100000; .text : { *(.text.start) *(.text*) } .rodata : { *(.rodata*) } .data : { *(.data*) } .bss : { *(.bss*) *(COMMON) } /DISCARD/ : { *(.ARM.exidx*) *(.ARM.extab*) *(.comment) } }\n')
+    run('mc',[tc/'llvm-mc','-triple=armv7-none-eabi','-arm-add-build-attributes','-filetype=obj',out/'fixture.s','-o',out/'fixture.o'])
+    run('cc',[tc/'clang','--target=arm-none-eabi','-march=armv7-a','-marm','-mfloat-abi=soft','-mno-unaligned-access','-ffreestanding','-fno-builtin','-fno-stack-protector','-fno-unwind-tables','-fno-asynchronous-unwind-tables','-O2','-c',out/'main.c','-o',out/'main.o'])
+    run('ld',[tc/'ld.lld','--emit-relocs','-T',out/'link.ld',out/'fixture.o',out/'main.o','-o',out/'baseline.elf'])
+    original = (out/'baseline.elf').read_bytes()
+    original_sections,original_symbols = elf_metadata(original)
+    case_table = next(s for s in original_symbols if s['name'] == 'case_entries')
+    layouts = generate_layouts(out, tc, run, functions)
+    variants = generate_variants(out, tc, run, original, original_sections, case_table)
     require(tools == {name:sha256(tc/name) for name in tools} and scripts == {name:sha256(ROOT/name) for name in scripts},'producer inputs changed')
     require(revision == subprocess.check_output(['git','-C',str(ROOT),'rev-parse','HEAD'],text=True).strip(),'revision changed')
     write_json(out/'build.json',dict(schema=2,kind='pi-far-safety',witness_kind='same-ISA BL return link including Thumb bit',scope='HYP core 0, MMU/caches off, masked IRQ/FIQ; sparse staging of original harness and unmodified emitted four-ISA far-call code; live BL/LR position witnesses; no whole-kernel/ISR claim',
