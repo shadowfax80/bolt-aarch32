@@ -9,8 +9,9 @@ index 0000000..0000000 100644
 + * uart_init_port() is a no-op -- it inherits whatever the previous
 + * bootloader left the UART set to. That's the pi4-serialboot
 + * chainloader, fixed at 115200 (deliberately left untouched: changing
-+ * it would need an SD-card reflash to take effect, tracked as a TODO
-+ * in docs/RPI4_BRINGUP.md rather than done here). Bump it ourselves,
++ * it would need an SD-card reflash to take effect, which is an external
++ * hardware operation beyond the scope of a pure code change here. See
++ * docs/history/RPI4_HARDWARE_VERIFICATION.md for context). Bump it ourselves,
 + * as the very first thing LK does, so everything from this point on --
 + * the boot banner, the interactive shell, and any future profiler-dump
 + * command -- runs at the calibrated 3,000,000 baud instead of the
@@ -24,8 +25,7 @@ index 0000000..0000000 100644
 + * IBRD>=1 from this clock. Confirmed on real hardware, 2026-09-27
 + * (scripts/pi4_baud_calibrate.py): 1,000,000 / 1,500,000 / 2,000,000
 + * baud never sync on this adapter, but this exact rate does, reliably,
-+ * at ~212.8 KiB/s sustained -- see docs/RPI4_BRINGUP.md for the full
-+ * candidate table and the two independent confirmation runs. */
++ * at ~212.8 KiB/s sustained. */
 +#define UART0_TFR   (*(volatile uint32_t *)(UART0_BASE + 0x18))
 +#define UART0_IBRD  (*(volatile uint32_t *)(UART0_BASE + 0x24))
 +#define UART0_FBRD  (*(volatile uint32_t *)(UART0_BASE + 0x28))

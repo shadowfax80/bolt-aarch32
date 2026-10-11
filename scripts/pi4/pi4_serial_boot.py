@@ -20,7 +20,7 @@ order.
 
 The chainloader's own handshake and image transfer always run at
 --baud (115200) -- that's fixed in the resident SD-card image, not
-changed here (see docs/RPI4_BRINGUP.md). Once the payload jumps and
+changed here (see docs/history/RPI4_HARDWARE_VERIFICATION.md). Once the payload jumps and
 runs, this script follows it to --post-jump-baud (default: 3000000),
 matching the UART speed TARGET=rpi4 LK images reprogram themselves to
 as their first boot action (calibrated 2026-09-27, ~19x faster than
@@ -250,7 +250,7 @@ def main() -> None:
                     help="baud to switch to right after the payload jumps and "
                          "runs (default: 3000000, matching TARGET=rpi4 LK images "
                          "built after the 2026-09-27 UART calibration -- see "
-                         "docs/RPI4_BRINGUP.md). Pass the same value as --baud "
+                         "docs/history/RPI4_HARDWARE_VERIFICATION.md). Pass the same value as --baud "
                          "(115200) for a payload that doesn't reprogram its own "
                          "UART, e.g. an old pi4-baremetal image.")
     ap.add_argument("--log", help="append everything received to this file")
