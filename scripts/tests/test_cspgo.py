@@ -91,6 +91,34 @@ class TransportTests(unittest.TestCase):
             with self.subTest(invalid=invalid[-100:]), self.assertRaises(ValueError):
                 collect.extract_profile(invalid, (0x80000000, 80))
 
+    def test_extract_profile_parsing_edge_cases(self):
+        text = self.stream()
+
+        # Missing BOLT_DUMP_BEGIN
+        invalid = text.replace('BOLT_DUMP_BEGIN addr=80000000 size=00000050\n', '')
+        with self.assertRaisesRegex(ValueError, "missing/duplicate/mismatched dump frame"):
+            collect.extract_profile(invalid, (0x80000000, 80))
+
+        # Mismatched BOLT_DUMP_BEGIN
+        invalid = text.replace('BOLT_DUMP_BEGIN addr=80000000', 'BOLT_DUMP_BEGIN addr=80000004')
+        with self.assertRaisesRegex(ValueError, "missing/duplicate/mismatched dump frame"):
+            collect.extract_profile(invalid, (0x80000000, 80))
+
+        # Missing a BOLT_DUMP chunk
+        invalid = text.replace('BOLT_DUMP seq=00000001 off=00000040 len=00000010 crc=43126c15 data=404142434445464748494a4b4c4d4e4f\n', '')
+        with self.assertRaisesRegex(ValueError, "incomplete/duplicate dump footer or records"):
+            collect.extract_profile(invalid, (0x80000000, 80))
+
+        # Wrong chunk length in BOLT_DUMP (change len=00000010 to 00000011)
+        invalid = text.replace('len=00000010', 'len=00000011')
+        with self.assertRaisesRegex(ValueError, "invalid dump chunk order/range"):
+            collect.extract_profile(invalid, (0x80000000, 80))
+
+        # Wrong chunk seq in BOLT_DUMP (change seq=00000001 to 00000002)
+        invalid = text.replace('BOLT_DUMP seq=00000001', 'BOLT_DUMP seq=00000002')
+        with self.assertRaisesRegex(ValueError, "invalid dump chunk order/range"):
+            collect.extract_profile(invalid, (0x80000000, 80))
+
 
 if __name__ == '__main__':
     unittest.main()
