@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 """Certify the four ARM/Thumb far-call ISA pairs with executable fault controls."""
 import argparse
-import hashlib
 from pathlib import Path
 import re
 import shutil
