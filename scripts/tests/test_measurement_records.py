@@ -60,6 +60,20 @@ class MeasurementTests(unittest.TestCase):
         with self.assertRaises(ValueError): gate.consistent(rows,['composite'])
         with self.assertRaises(ValueError): gate.consistent(rows,['pl_a'])
 
+    def test_compare_boot_and_run_filters_keys(self):
+        fake_rows = [
+            {'kernel': 'composite', 'run': 1, 'cycles': 10, 'acc': '0x7'},
+            {'kernel': 'composite', 'run': 2, 'cycles': 11, 'acc': '0x7'}
+        ]
+        with patch.object(compare, 'EXTRA_ARGS', 'extra'), \
+             patch.object(compare, 'capture_measurements', return_value=fake_rows) as mock_capture:
+            result = compare.boot_and_run('image.bin', 'COM1', 'composite', 2)
+            mock_capture.assert_called_once_with('image.bin', 'COM1', 'bolt_bench composite extra', ['composite'], 2, 30, 60)
+            self.assertEqual(result, [
+                {'cycles': 10, 'acc': '0x7'},
+                {'cycles': 11, 'acc': '0x7'}
+            ])
+
     def test_parse_failure_is_not_retried(self):
         with patch.object(compare,'capture_measurements',side_effect=ValueError('bad records')) as run:
             with self.assertRaises(ValueError): compare.boot_and_run('x','COM5','composite',2)
