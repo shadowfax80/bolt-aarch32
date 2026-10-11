@@ -329,7 +329,7 @@ class ExecutionGateTests(unittest.TestCase):
         import pi4_run
         image = self.out / 'image.bin'; image.write_bytes(b'fixture')
         fake_port = MagicMock()
-        with patch.object(sys, 'argv', ['serial-run', str(image), '--post-jump-baud', '115200', '--wdog', '5', 'bolt_bench all']), \
+        with patch.object(sys, 'argv', ['serial-run', str(image), 'bolt_bench all', '--post-jump-baud', '115200', '--wdog', '5']), \
              patch.object(pi4_run, 'resolve_port', return_value='COM5'), \
              patch.object(pi4_run.serial, 'Serial', return_value=fake_port), \
              patch.object(pi4_run, 'send_image'), patch.object(pi4_run, 'Console'), \
