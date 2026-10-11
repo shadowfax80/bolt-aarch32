@@ -5,6 +5,9 @@ import subprocess
 import sys
 import unittest
 from unittest.mock import patch
+import os
+import tempfile
+from types import SimpleNamespace
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / 'scripts'))
@@ -63,6 +66,47 @@ class TransportTests(unittest.TestCase):
             text += f'BOLT_DUMP seq={seq:08x} off={off:08x} len={len(part):08x} crc={checksum(part):08x} data={part.hex()}\n'
         text += f'BOLT_DUMP_END seq={(len(blob)+63)//64:08x} total={len(blob):08x}\n'
         return text
+
+
+    @patch('pi4_pgo_collect.run_bounded')
+    def test_run_pi_success(self, mock_run_bounded):
+        mock_run_bounded.return_value = SimpleNamespace(
+            returncode=0,
+            stdout=b'hello world',
+            stderr=b'no errors'
+        )
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            log_path = Path(tmpdir) / "test.log"
+
+            result = collect.run_pi("image.bin", "COM1", ["cmd1", "cmd2"], log=log_path)
+
+            self.assertEqual(result, "hello world")
+            self.assertTrue(log_path.exists())
+            self.assertEqual(log_path.read_bytes(), b'hello world')
+            self.assertTrue(log_path.with_suffix(".stderr").exists())
+            self.assertEqual(log_path.with_suffix(".stderr").read_bytes(), b'no errors')
+
+            expected_cmd = [
+                sys.executable, os.path.join(collect.HERE, "pi4_run.py"), "image.bin",
+                "--port", "COM1", "--reboot", "--wait", "30", "--max-wait", "60",
+                "cmd1", "cmd2"
+            ]
+            mock_run_bounded.assert_called_once_with(expected_cmd, 900)
+
+    @patch('pi4_pgo_collect.run_bounded')
+    def test_run_pi_failure(self, mock_run_bounded):
+        mock_run_bounded.return_value = SimpleNamespace(
+            returncode=1,
+            stdout=b'error occurred',
+            stderr=b'traceback'
+        )
+        with self.assertRaises(SystemExit) as cm:
+            collect.run_pi("image.bin", "COM1", ["cmd1"])
+
+        self.assertIn("pi4_run.py failed (1)", str(cm.exception))
+        self.assertIn("error occurred", str(cm.exception))
+        self.assertIn("traceback", str(cm.exception))
 
     def test_complete_verified_profile(self):
         self.assertEqual(collect.extract_profile(self.stream(), (0x80000000, 80)), bytes(range(80)))
