@@ -11,7 +11,7 @@ import tempfile
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / 'scripts'))
-from profile_identity import elf_metadata, sha256
+from profile_identity import elf_metadata, sha256, write_json
 
 
 def require(value, message):
@@ -63,21 +63,7 @@ def check_image(elf, raw, row):
     return sections, symbols
 
 
-def main():
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--out', required=True, type=Path)
-    parser.add_argument('--toolchain', required=True, type=Path)
-    args = parser.parse_args()
-    tc = args.toolchain.resolve()
-    args.out.mkdir(parents=True, exist_ok=True)
-    out = Path(tempfile.mkdtemp(prefix='build-', dir=args.out.resolve()))
-
-    def run(name, cmd):
-        p = subprocess.run([str(x) for x in cmd], capture_output=True, text=True)
-        (out / (name + '.log')).write_text(p.stdout + p.stderr)
-        require(p.returncode == 0, name + ': ' + (p.stdout + p.stderr)[-2400:])
-        return p.stdout
-
+def write_sources(out):
     (out / 'start.s').write_text('''.syntax unified
 .arch armv7-a
 .section .text.boot,"ax",%progbits
@@ -170,6 +156,9 @@ void report(uint32_t marker, uint32_t cpsr, uint32_t sp, uint32_t link) {
 }
 ''')
     (out / 'link.ld').write_text('ENTRY(_start)\nSECTIONS { . = 0x8000; .text : { *(.text.boot) *(.text*) } .rodata : { *(.rodata*) } .data : { *(.data*) } /DISCARD/ : { *(.ARM.exidx*) *(.ARM.extab*) *(.comment) } }\n')
+
+
+def build_baseline(out, tc, run):
     run('mc', [tc/'llvm-mc', '-triple=armv7-none-eabi', '-arm-add-build-attributes',
                '-filetype=obj', out/'start.s', '-o', out/'start.o'])
     run('compile', [tc/'clang', '--target=arm-none-eabi', '-march=armv7-a', '-marm',
@@ -180,7 +169,10 @@ void report(uint32_t marker, uint32_t cpsr, uint32_t sp, uint32_t link) {
                  out/'main.o', '-o', out/'baseline.elf'])
     original = (out/'baseline.elf').read_bytes()
     _, syms = elf_metadata(original)
-    objects = {s['name']:s['address'] for s in syms}
+    return {s['name']:s['address'] for s in syms}
+
+
+def build_variants(out, tc, run, objects):
     rows = {}
     for name, options in [('baseline', None), ('normal', []), ('reverse', ['--reorder-blocks=reverse'])]:
         elf = out/(name+'.elf')
@@ -213,11 +205,32 @@ void report(uint32_t marker, uint32_t cpsr, uint32_t sp, uint32_t link) {
         run(name+'-objcopy', [tc/'llvm-objcopy', '-O', 'binary', elf, out/(name+'.bin')])
         check_image(elf, out/(name+'.bin'), row)
         rows[name] = row
+    return rows
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--out', required=True, type=Path)
+    parser.add_argument('--toolchain', required=True, type=Path)
+    args = parser.parse_args()
+    tc = args.toolchain.resolve()
+    args.out.mkdir(parents=True, exist_ok=True)
+    out = Path(tempfile.mkdtemp(prefix='build-', dir=args.out.resolve()))
+
+    def run(name, cmd):
+        p = subprocess.run([str(x) for x in cmd], capture_output=True, text=True)
+        (out / (name + '.log')).write_text(p.stdout + p.stderr)
+        require(p.returncode == 0, name + ': ' + (p.stdout + p.stderr)[-2400:])
+        return p.stdout
+
+    write_sources(out)
+    objects = build_baseline(out, tc, run)
+    rows = build_variants(out, tc, run, objects)
     files = {p.name:sha256(p) for p in out.iterdir() if p.is_file()}
     manifest = dict(schema=1, kind='pi-thumb-startup', variants=rows, files=files,
                     tool_sha256=sha256(tc/'llvm-bolt'), builder_sha256=sha256(Path(__file__)),
                     scope='Actual ARM runtime entry and trampoline to rewritten Thumb entry; one exact counter, Thumb return link, NZCV, R4, SP and quiet core-zero contract. Boot shim changes only the entry pointer and counter metadata; ELF entry and emitted code are retained.')
-    (out/'build.json').write_text(json.dumps(manifest, indent=2)+'\n')
+    write_json(out / 'build.json', manifest)
     print(out, flush=True)
 
 
