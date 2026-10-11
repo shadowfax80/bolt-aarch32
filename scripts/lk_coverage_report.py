@@ -145,9 +145,12 @@ def attribute_bytes(secs, funcs, mapping, image):
     return dict(out)
 
 
+_COMPILED_CLASSES = [(key, re.compile(pattern)) for key, pattern, _, _ in CLASSES]
+
+
 def classify(message):
-    for key, pattern, _, _ in CLASSES:
-        if re.search(pattern, message):
+    for key, pattern in _COMPILED_CLASSES:
+        if pattern.search(message):
             return key
     return 'other'
 
