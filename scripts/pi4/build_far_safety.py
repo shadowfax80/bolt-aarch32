@@ -2,7 +2,6 @@
 """Build sparse Pi images that execute unmodified BOLT ARM/Thumb far-call code."""
 import argparse
 import hashlib
-import json
 from pathlib import Path
 import struct
 import subprocess
