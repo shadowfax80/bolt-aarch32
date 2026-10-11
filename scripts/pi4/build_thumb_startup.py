@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 """Build a fixed-load Pi fixture that enters BOLT's actual runtime startup."""
 import argparse
-import json
 from pathlib import Path
 import re
 import struct
@@ -11,7 +10,7 @@ import tempfile
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / 'scripts'))
-from profile_identity import elf_metadata, sha256
+from profile_identity import elf_metadata, sha256, write_json
 
 
 def require(value, message):
@@ -217,7 +216,7 @@ void report(uint32_t marker, uint32_t cpsr, uint32_t sp, uint32_t link) {
     manifest = dict(schema=1, kind='pi-thumb-startup', variants=rows, files=files,
                     tool_sha256=sha256(tc/'llvm-bolt'), builder_sha256=sha256(Path(__file__)),
                     scope='Actual ARM runtime entry and trampoline to rewritten Thumb entry; one exact counter, Thumb return link, NZCV, R4, SP and quiet core-zero contract. Boot shim changes only the entry pointer and counter metadata; ELF entry and emitted code are retained.')
-    (out/'build.json').write_text(json.dumps(manifest, indent=2)+'\n')
+    write_json(out/'build.json', manifest)
     print(out, flush=True)
 
 
