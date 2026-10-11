@@ -19,6 +19,9 @@ CONC_SET = ['hot_loop', 'hot_cold', 'branch_chain', 'far_call', 'it_cond', 'inte
             'spill_ret', 'litpool', 'indirect_call', 'interwork_tail', 'regpressure',
             'hotcold_split', 'icf', 'shrinkwrap']
 SINK = re.compile(r'bolt_bench: (\w+) sink=(0x[0-9a-f]{8})')
+CONC_SINK = re.compile(r'smp conc cpu=(\d+) rep=(\d+) (\w+) sink=(0x[0-9a-f]{8})')
+CONC_ON = re.compile(r'smp conc cpu=(\d+) on=(\d+),(\d+)')
+RUN_HEADER = re.compile(r'(\d+) reps=(\d+) set=(\d+)')
 
 
 def check(text, min_cpus):
@@ -28,7 +31,7 @@ def check(text, min_cpus):
     if len(runs) != 2:
         return [f'expected exactly one smp run, found {len(runs) - 1}'], {}
     body = runs[1]
-    m = re.match(r'(\d+) reps=(\d+) set=(\d+)', body)
+    m = RUN_HEADER.match(body)
     ncpu, reps, nset = map(int, m.groups())
     if ncpu < min_cpus:
         errors.append(f'only {ncpu} active cores (need {min_cpus})')
@@ -45,7 +48,7 @@ def check(text, min_cpus):
         got = dict((k, int(v, 16)) for k, v in SINK.findall(seg.group(2)))
         if got != expected:
             errors.append(f'seq cpu {c}: wrong/missing ' + ','.join(sorted(k for k in expected if got.get(k) != expected[k])))
-    conc = re.findall(r'smp conc cpu=(\d+) rep=(\d+) (\w+) sink=(0x[0-9a-f]{8})', body)
+    conc = CONC_SINK.findall(body)
     if len(conc) != ncpu * reps * len(CONC_SET):
         errors.append(f'conc: {len(conc)} results, expected {ncpu * reps * len(CONC_SET)}')
     seen = set()
@@ -56,7 +59,7 @@ def check(text, min_cpus):
         seen.add(key)
         if int(v, 16) != expected[name]:
             errors.append(f'conc cpu {c} rep {r}: {name} = {v}')
-    for c, a, b in re.findall(r'smp conc cpu=(\d+) on=(\d+),(\d+)', body):
+    for c, a, b in CONC_ON.findall(body):
         if not c == a == b:
             errors.append(f'conc cpu {c}: ran on {a},{b}')
     summary = dict(cpus=ncpu, reps=reps, seq_results=ncpu * len(expected), conc_results=len(conc))
