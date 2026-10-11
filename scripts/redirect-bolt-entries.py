@@ -39,8 +39,8 @@ usage: redirect-bolt-entries.py <bolt.elf> --original <input.elf>
 from __future__ import annotations
 
 import argparse
-import hashlib
 import importlib.util
+from profile_identity import sha256
 import json
 import os
 import re
@@ -200,14 +200,6 @@ def bounded_offset(section, address, length, file_size):
     if position < 0 or position + length > file_size:
         raise SystemExit('redirect range is outside ELF file bytes')
     return position
-
-
-def sha256(path):
-    digest = hashlib.sha256()
-    with open(path, 'rb') as stream:
-        for chunk in iter(lambda: stream.read(1024 * 1024), b''):
-            digest.update(chunk)
-    return digest.hexdigest()
 
 
 def main() -> int:
