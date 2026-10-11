@@ -12,7 +12,7 @@ import tempfile
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path[:0] = [str(ROOT/'scripts'), str(ROOT/'scripts/pi4')]
-from profile_identity import elf_metadata, sha256
+from profile_identity import elf_metadata, sha256, write_json
 spec = importlib.util.spec_from_file_location('inline_fixture_sections', ROOT/'scripts/fix-kernel-elf-sections.py')
 sections_helper = importlib.util.module_from_spec(spec)
 sys.modules[spec.name] = sections_helper
@@ -24,23 +24,7 @@ def require(condition, message):
         raise ValueError(message)
 
 
-def main():
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--out', type=Path, required=True)
-    parser.add_argument('--toolchain', type=Path, default=Path('/home/user/bolt-aarch32/build-atfe/bin'))
-    parser.add_argument('--pass-matrix', action='store_true', help='also verify automatic/size-based inlining and peepholes with reverse layout')
-    args = parser.parse_args()
-    args.out.mkdir(parents=True, exist_ok=True)
-    out = Path(tempfile.mkdtemp(prefix='build-', dir=args.out.resolve()))
-    tc = args.toolchain.resolve()
-    env = dict(os.environ, PATH=str(tc)+':'+os.environ['PATH'])
-
-    def run(label, command):
-        p = subprocess.run([str(x) for x in command], capture_output=True, text=True, env=env)
-        (out/(label+'.log')).write_text(p.stdout+p.stderr)
-        require(p.returncode == 0, label+': '+(p.stdout+p.stderr)[-3000:])
-        return p.stdout
-
+def generate_assembly_and_cases(pass_matrix):
     asm = '''.syntax unified
 .arch armv7-a
 .section .text.start,"ax",%progbits
@@ -99,7 +83,7 @@ b 1b
                             else 11 if kind == 'conditional' and value == 0
                             else 34 if kind == 'branch' and value == 0 else value+18)
                 cases.append(dict(function=caller, arg=value, expected=expected & 0xffffffff))
-    if args.pass_matrix:
+    if pass_matrix:
         # These call-site boundaries must hold even when a safe callee is
         # eligible under force-inline, inline-all or size-based inlining.
         for kind,body in [
@@ -116,7 +100,10 @@ b 1b
     asm += '.data\n.balign 4\n.global case_entries\n.type case_entries,%object\ncase_entries:\n'
     asm += ''.join(f'.word {c["function"]},{c["arg"]},{c["expected"]}\n' for c in cases)
     asm += '.size case_entries,.-case_entries\n'
-    (out/'start.s').write_text(asm)
+
+    return asm, cases, functions, wrappers, callees, inline_expected
+
+def generate_c_test_harness(out, pass_matrix, cases, wrappers):
     # Reuse only the loader/UART/watchdog support. The oracle is independent
     # of emitted code: arithmetic results plus stack and CBZ flag checks.
     support = (ROOT/'scripts/pi4/fixtures/counter-state/main.c').read_text()
@@ -146,30 +133,37 @@ extern const struct Case case_entries[];
     finish();
 }
 '''
-    case_count, wrapper_count = (70,14) if args.pass_matrix else (55,11)
+    case_count, wrapper_count = (70,14) if pass_matrix else (55,11)
     require(len(cases) == case_count and len(wrappers) == wrapper_count, 'wrong fixture matrix')
     main_c = main_c.replace('i<55','i<'+str(case_count)).replace('PASS cases=55','PASS cases='+str(case_count))
     (out/'main.c').write_text(main_c)
+    return case_count
+
+def build_baseline(out, tc, run_cmd):
     layout = ROOT/'scripts/pi4/fixtures/counter-state/link.ld'
-    run('mc', [tc/'llvm-mc', '-triple=armv7-none-eabi', '-arm-add-build-attributes', '-filetype=obj', out/'start.s', '-o', out/'start.o'])
-    run('compile', [tc/'clang', '--target=arm-none-eabi', '-march=armv7-a', '-marm', '-mfloat-abi=soft', '-ffreestanding', '-fno-builtin', '-fno-stack-protector', '-fno-unwind-tables', '-fno-asynchronous-unwind-tables', '-O2', '-c', out/'main.c', '-o', out/'main.o'])
-    run('link', [tc/'ld.lld', '--emit-relocs', '-T', layout, out/'start.o', out/'main.o', '-o', out/'baseline.elf'])
+    run_cmd('mc', [tc/'llvm-mc', '-triple=armv7-none-eabi', '-arm-add-build-attributes', '-filetype=obj', out/'start.s', '-o', out/'start.o'])
+    run_cmd('compile', [tc/'clang', '--target=arm-none-eabi', '-march=armv7-a', '-marm', '-mfloat-abi=soft', '-ffreestanding', '-fno-builtin', '-fno-stack-protector', '-fno-unwind-tables', '-fno-asynchronous-unwind-tables', '-O2', '-c', out/'main.c', '-o', out/'main.o'])
+    run_cmd('link', [tc/'ld.lld', '--emit-relocs', '-T', layout, out/'start.o', out/'main.o', '-o', out/'baseline.elf'])
     original = (out/'baseline.elf').read_bytes()
     original_sections, _ = elf_metadata(original)
+    return original, original_sections
+
+
+def evaluate_bolt_variants(out, tc, run_cmd, pass_matrix, functions, wrappers, callees, inline_expected, original, original_sections):
     variants, redirects = {}, {}
     configurations = [('normal', []), ('reverse', ['--reorder-blocks=reverse'])]
-    if args.pass_matrix:
+    if pass_matrix:
         configurations += [('inline_all',['--inline-all']),
                            ('inline_small',['--inline-small-functions','--inline-small-functions-bytes=10000']),
                            ('peepholes',['--peepholes=double-jumps','--reorder-blocks=reverse'])]
     for mode, extra in configurations:
         candidate, mapping = out/(mode+'.elf'), out/(mode+'.map')
         inline = [] if mode in ('inline_all','inline_small') else ['--force-inline='+','.join(callees)]
-        log = run(mode, [tc/'llvm-bolt', out/'baseline.elf', '-o', candidate, '--no-huge-pages', '-lite=0', '--funcs='+','.join(functions), *inline, '--emit-function-map='+str(mapping), *extra])
+        log = run_cmd(mode, [tc/'llvm-bolt', out/'baseline.elf', '-o', candidate, '--no-huge-pages', '-lite=0', '--funcs='+','.join(functions), *inline, '--emit-function-map='+str(mapping), *extra])
         require('inlined' in log and 'call sites' in log, 'inlining pass did not run '+mode)
         rows = {p[0]:[int(x,16) for x in p[1:]] for line in mapping.read_text().splitlines() if (p:=line.split())}
         require(set(rows) == set(functions), 'missing emitted fixture functions')
-        dis = run(mode+'-disasm', [tc/'llvm-objdump', '-d', candidate])
+        dis = run_cmd(mode+'-disasm', [tc/'llvm-objdump', '-d', candidate])
         for name in wrappers:
             _, address, size = rows[name]
             ops = []
@@ -204,6 +198,9 @@ extern const struct Case case_entries[];
             redirects[mode].append(dict(name=name,input=old,output=new,thumb=thumb,branch_hex=branch.hex()))
         candidate.write_bytes(blob)
         variants[mode] = dict(inlined=[n for n,v in inline_expected.items() if v],retained=[n for n,v in inline_expected.items() if not v],options=inline+extra)
+    return variants, redirects
+
+def inject_faults(out, redirects):
     # A return-value fault must be rejected at case zero by the independent oracle.
     fault = bytearray((out/'normal.elf').read_bytes())
     sections, _ = elf_metadata(fault)
@@ -227,16 +224,41 @@ extern const struct Case case_entries[];
     pos = base+body.index(bytes.fromhex('00f10700'))
     flag_fault[pos:pos+4] = bytes.fromhex('10f10700') # ADD.W -> ADDS.W
     (out/'bad-cbz-flags.elf').write_bytes(flag_fault)
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--out', type=Path, required=True)
+    parser.add_argument('--toolchain', type=Path, default=Path('/home/user/bolt-aarch32/build-atfe/bin'))
+    parser.add_argument('--pass-matrix', action='store_true', help='also verify automatic/size-based inlining and peepholes with reverse layout')
+    args = parser.parse_args()
+    args.out.mkdir(parents=True, exist_ok=True)
+    out = Path(tempfile.mkdtemp(prefix='build-', dir=args.out.resolve()))
+    tc = args.toolchain.resolve()
+    env = dict(os.environ, PATH=str(tc)+':'+os.environ['PATH'])
+
+    def run(label, command):
+        p = subprocess.run([str(x) for x in command], capture_output=True, text=True, env=env)
+        (out/(label+'.log')).write_text(p.stdout+p.stderr)
+        require(p.returncode == 0, label+': '+(p.stdout+p.stderr)[-3000:])
+        return p.stdout
+
+    asm, cases, functions, wrappers, callees, inline_expected = generate_assembly_and_cases(args.pass_matrix)
+    (out/'start.s').write_text(asm)
+    case_count = generate_c_test_harness(out, args.pass_matrix, cases, wrappers)
+    original, original_sections = build_baseline(out, tc, run)
+    variants, redirects = evaluate_bolt_variants(out, tc, run, args.pass_matrix, functions, wrappers, callees, inline_expected, original, original_sections)
+    inject_faults(out, redirects)
     for name in ('baseline', *variants, 'bad-result','bad-cbz-flags'):
         run(name+'-raw', [tc/'llvm-objcopy', '-O', 'binary', out/(name+'.elf'), out/(name+'.bin')])
-    (out/'redirects.json').write_text(json.dumps(redirects,indent=2)+'\n')
-    (out/'cases.json').write_text(json.dumps(cases,indent=2)+'\n')
+    write_json(out/'redirects.json', redirects)
+    write_json(out/'cases.json', cases)
     manifest = dict(schema=1,kind='pi-inline-safety',cases=case_count,variants=variants,pass_matrix=args.pass_matrix,
                     faults={'bad-result':dict(case_id=0,field=0),'bad-cbz-flags':dict(case_id=46,field=0)},toolchain=str(tc),
                     scope='HYP core 0, masked interrupts; ARM/Thumb leaf, stack, LR, conditional return and both branch paths; Thumb CBZ/CBNZ expansions preserve flags consumed on both paths'+('; predicated, indirect and mixed-ISA call-site exclusions under automatic/size-based inlining and reverse-layout peepholes' if args.pass_matrix else ''),
                     files={p.name:sha256(p) for p in sorted(out.iterdir()) if p.is_file()},
                     tools={name:sha256(tc/name) for name in ('llvm-bolt','llvm-mc','ld.lld','clang','llvm-objcopy')},builder_sha256=sha256(Path(__file__)))
-    (out/'build.json').write_text(json.dumps(manifest,indent=2)+'\n')
+    write_json(out/'build.json', manifest)
     print('Built',case_count,'cases per image plus result and CBZ flag faults:', out)
 
 
