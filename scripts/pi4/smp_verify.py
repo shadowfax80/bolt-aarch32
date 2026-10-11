@@ -31,6 +31,12 @@ from bolt_bench_smp_check import CONC_SET, check as smp_check  # noqa: E402
 from qemu_bench_oracle import check_contract, reference_results  # noqa: E402
 from profile_identity import write_json  # noqa: E402
 
+_SEQ_RE = re.compile(r'smp seq cpu=(\d+) on=\d+ begin\n(.*?)smp seq cpu=\1', re.S)
+_SINK_RE = re.compile(r'bolt_bench: (\w+) sink=(0x[0-9a-f]{8})')
+_CONC_RE = re.compile(r'smp conc cpu=(\d+) rep=(\d+) (\w+) sink=(0x[0-9a-f]{8})')
+_FAULT_RE = re.compile(r'abort|fault|panic|undefined instr', re.I)
+_HITS_RE = re.compile(r'bolt_sample: watch (\d+) hits per core: ([\d ]+)')
+
 
 def sha(path):
     return hashlib.sha256(Path(path).read_bytes()).hexdigest()
@@ -38,9 +44,9 @@ def sha(path):
 
 def observed(text):
     """Every per-core sink line, as printed, for the receipt."""
-    seq = re.findall(r'smp seq cpu=(\d+) on=\d+ begin\n(.*?)smp seq cpu=\1', text, re.S)
-    out = {f'seq cpu{c}': dict(re.findall(r'bolt_bench: (\w+) sink=(0x[0-9a-f]{8})', body)) for c, body in seq}
-    out['conc'] = [list(t) for t in re.findall(r'smp conc cpu=(\d+) rep=(\d+) (\w+) sink=(0x[0-9a-f]{8})', text)]
+    seq = _SEQ_RE.findall(text)
+    out = {f'seq cpu{c}': dict(_SINK_RE.findall(body)) for c, body in seq}
+    out['conc'] = [list(t) for t in _CONC_RE.findall(text)]
     return out
 
 
@@ -53,7 +59,7 @@ def pi_run(image, commands, log, a):
     text = Path(log).read_text(errors='replace')
     if p.returncode:
         raise SystemExit(f'error: pi4_run failed ({p.returncode}); see {log}')
-    if re.search(r'abort|fault|panic|undefined instr', text, re.I):
+    if _FAULT_RE.search(text):
         raise SystemExit(f'error: fault reported; see {log}')
     return text
 
@@ -102,7 +108,7 @@ def main():
     if errors:
         raise SystemExit('error: candidate: ' + '; '.join(errors[:5]))
     hits = {int(w): list(map(int, h.split()))
-            for w, h in re.findall(r'bolt_sample: watch (\d+) hits per core: ([\d ]+)', cand_log)}
+            for w, h in _HITS_RE.findall(cand_log)}
     ncpu = cand_summary['cpus']
     coverage = {}
     for w, name in enumerate(required):
