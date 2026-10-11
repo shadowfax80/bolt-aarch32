@@ -7,7 +7,7 @@
 #
 #   scripts/pi4/heldout.sh <M | M:X> [rounds] [runs]        (after bolt_stage.sh <same point>)
 #
-# All Pi runs are in Non-secure SVC (see docs/TODO / memory: Secure SVC is on hold).
+# All Pi runs are in Non-secure SVC (matching the target).
 set -euo pipefail
 POINT="${1:?usage: $0 <M | M:X> [rounds] [runs]}"
 M="${POINT%%:*}"; X=0
