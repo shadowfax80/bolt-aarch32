@@ -58,4 +58,21 @@ class ITCountsTest(unittest.TestCase):
         for text in (GROUP.replace(' 10006: f101 0102  addeq.w r1, r1, #0x2\n',''),GROUP.replace('addeq.w r1, r1, #0x2','addne.w r1, r1, #0x2')):
             with self.assertRaises(ValueError):check_groups(text,['it_tt'])
 
+
+    def test_object_decl_generation(self):
+        """Verify assembly format for generated object declarations."""
+        import ast
+        code = (Path(__file__).resolve().parents[2] / 'scripts/pi4/build_it_counts.py').read_text(encoding='utf-8')
+        for node in ast.walk(ast.parse(code)):
+            if isinstance(node, ast.FunctionDef) and node.name == 'object_decl':
+                local_env = {}
+                exec(compile(ast.unparse(node), filename="<ast>", mode="exec"), local_env)
+                object_decl = local_env['object_decl']
+                self.assertEqual(
+                    object_decl('expected_counts', '.zero 100'),
+                    '.global expected_counts\n.type expected_counts,%object\nexpected_counts:\n.zero 100\n.size expected_counts,.-expected_counts\n'
+                )
+                return
+        self.fail('object_decl not found in build_it_counts.py')
+
 if __name__=='__main__':unittest.main()
