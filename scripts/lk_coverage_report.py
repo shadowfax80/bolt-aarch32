@@ -155,6 +155,9 @@ def classify(message):
 def scan_rejections_legacy(tc, elf, out, max_rounds):
     """Rerun llvm-bolt, skipping every function named in a fatal error."""
     skip, reasons = [], {}
+    bolt_err_re = re.compile(r'BOLT-ERROR: ([^\n]*) in ([A-Za-z0-9_.$/]+)')
+    fn_re = re.compile(r'End of Function "([^"(]+)')
+    llvm_err_re = re.compile(r'LLVM ERROR: [^\n]*')
     for rnd in range(1, max_rounds + 1):
         opts = list(BOLT_OPTS)
         if skip:
@@ -165,11 +168,11 @@ def scan_rejections_legacy(tc, elf, out, max_rounds):
             return skip, reasons, rnd
         new = []
         # The function follows the last " in " ("... in Thumb IT group in f").
-        for m in re.finditer(r'BOLT-ERROR: ([^\n]*) in ([A-Za-z0-9_.$/]+)', log):
+        for m in bolt_err_re.finditer(log):
             new.append((m.group(2), m.group(1)))
         if not new and 'LLVM ERROR' in log:
-            fn = re.findall(r'End of Function "([^"(]+)', log)
-            err = re.search(r'LLVM ERROR: [^\n]*', log)
+            fn = fn_re.findall(log)
+            err = llvm_err_re.search(log)
             if fn:
                 new.append((fn[-1], err.group(0) if err else 'LLVM ERROR'))
         added = False
