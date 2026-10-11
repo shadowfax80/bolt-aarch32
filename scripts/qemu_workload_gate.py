@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 """Complete LK workload/output consistency; no rewritten execution certificate."""
 import argparse
-import json
 import os
 import re
 import shutil
